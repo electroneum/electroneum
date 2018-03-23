@@ -55,9 +55,6 @@
 #define FINAL_SUBSIDY_PER_MINUTE                        ((uint64_t)30) // 3 * pow(10, 1)
 
 #define CRYPTONOTE_REWARD_BLOCKS_WINDOW                     100
-#define CRYPTONOTE_BLOCK_GRANTED_FULL_REWARD_ZONE_V2_OLD    60000 //size of block (bytes) after which reward for block calculated using block size
-#define CRYPTONOTE_BLOCK_GRANTED_FULL_REWARD_ZONE_V1_OLD    20000 //size of block (bytes) after which reward for block calculated using block size - before first fork
-#define CRYPTONOTE_BLOCK_GRANTED_FULL_REWARD_ZONE_V5_OLD    300000 //size of block (bytes) after which reward for block calculated using block size - second change, from v5
 
 //default blocksize to 250kB
 #define CRYPTONOTE_BLOCK_GRANTED_FULL_REWARD_ZONE_V2    100000 //size of block (bytes) after which reward for block calculated using block size
@@ -71,7 +68,6 @@
 #define COIN                                            ((uint64_t)1000000000000) // pow(10, 12)
 
 //tx fee to 0.15 per kB, still reasonable amount.
-#define FEE_PER_KB_OLD_SPAMMED                          ((uint64_t)1)
 #define FEE_PER_KB                                      ((uint64_t)15)
 #define FEE_PER_KB_ANTI_SPAM_PROOF                      ((uint64_t)45)
 #define DYNAMIC_FEE_PER_KB_BASE_FEE                     ((uint64_t)2000000000) // 2 * pow(10,9)
