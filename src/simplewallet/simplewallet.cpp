@@ -2326,6 +2326,7 @@ bool simple_wallet::transfer_main(int transfer_type, const std::vector<std::stri
   size_t fake_outs_count;
   if(local_args.size() > 0) {
     size_t ring_size;
+
     if(!epee::string_tools::get_xtype_from_string(ring_size, local_args[0]))
     {
       fake_outs_count = m_wallet->default_mixin();
@@ -2334,8 +2335,15 @@ bool simple_wallet::transfer_main(int transfer_type, const std::vector<std::stri
     }
     else
     {
-      fake_outs_count = ring_size - 1;
-      local_args.erase(local_args.begin());
+      //limit ring size to prevent too high mixin tx's
+      if((ring_size - 1) > 64){
+        fail_msg_writer() << tr("Ring size too high, max 64");
+        return false;
+      }
+      else{
+        fake_outs_count = ring_size - 1;
+        local_args.erase(local_args.begin());
+      }
     }
   }
 
