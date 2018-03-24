@@ -2336,7 +2336,7 @@ bool simple_wallet::transfer_main(int transfer_type, const std::vector<std::stri
     else
     {
       //limit ring size to prevent too high mixin tx's
-      if((ring_size - 1) > 64){
+      if(ring_size > 64){
         fail_msg_writer() << tr("Ring size too high, max 64");
         return false;
       }
