@@ -2269,6 +2269,11 @@ bool Blockchain::check_tx_inputs(transaction& tx, uint64_t& max_used_block_heigh
     {
       size_t ring_size = tx.vin[0].type() == typeid(txin_to_key) ? boost::get<txin_to_key>(tx.vin[0]).key_offsets.size() : 0;
       MINFO("HASH: " << "-" << " I/M/O: " << tx.vin.size() << "/" << ring_size << "/" << tx.vout.size() << " H: " << 0 << " chcktx: " << a);
+
+      if(ring_size > 16){
+        MINFO("ring size greater than 16, rejecting tx");
+        return false;
+      }
     }
     return true;
   }
@@ -2281,6 +2286,11 @@ bool Blockchain::check_tx_inputs(transaction& tx, uint64_t& max_used_block_heigh
   {
     size_t ring_size = tx.vin[0].type() == typeid(txin_to_key) ? boost::get<txin_to_key>(tx.vin[0]).key_offsets.size() : 0;
     MINFO("HASH: " <<  get_transaction_hash(tx) << " I/M/O: " << tx.vin.size() << "/" << ring_size << "/" << tx.vout.size() << " H: " << max_used_block_height << " ms: " << a + m_fake_scan_time << " B: " << get_object_blobsize(tx));
+
+    if(ring_size > 16){
+      MINFO("ring size greater than 16, rejecting tx");
+      return false;
+    }
   }
   if (!res)
     return false;
