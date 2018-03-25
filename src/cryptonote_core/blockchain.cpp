@@ -2257,8 +2257,8 @@ bool Blockchain::check_tx_inputs(transaction& tx, uint64_t& max_used_block_heigh
 
   size_t mixin = tx.vin[0].type() == typeid(txin_to_key) ? boost::get<txin_to_key>(tx.vin[0]).key_offsets.size() : 0;
   //reject tx with mixin over 16 when blockheight is > 250000
-  if(ring_size > 16 && m_db->height() > 250000){
-    LOG_PRINT_L1("tx " << ring_size << " ring size greater than 16, rejecting tx");
+  if(mixin > 16 && m_db->height() > 250000){
+    LOG_PRINT_L1("tx " << mixin << " ring size greater than 16, rejecting tx");
     return false;
   }
 
