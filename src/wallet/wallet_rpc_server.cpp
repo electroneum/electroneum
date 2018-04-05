@@ -475,7 +475,8 @@ namespace tools
       // reject proposed transactions if there are more than one.  see on_transfer_split below.
       if (ptx_vector.size() != 1)
       {
-        handle_rpc_exception(std::current_exception(), er, WALLET_RPC_ERROR_CODE_UNKNOWN_ERROR);
+        er.code = WALLET_RPC_ERROR_CODE_GENERIC_TRANSFER_ERROR;
+        er.message = "Transaction would be too large.  try /transfer_split.";
         return false;
       }
 
@@ -498,6 +499,7 @@ namespace tools
       }
       return true;
     }
+
     catch (const std::exception& e)
     {
       handle_rpc_exception(std::current_exception(), er, WALLET_RPC_ERROR_CODE_UNKNOWN_ERROR);
@@ -574,6 +576,7 @@ namespace tools
 
       return true;
     }
+
     catch (const std::exception& e)
     {
       handle_rpc_exception(std::current_exception(), er, WALLET_RPC_ERROR_CODE_UNKNOWN_ERROR);
@@ -624,6 +627,7 @@ namespace tools
 
       return true;
     }
+
     catch (const std::exception& e)
     {
       handle_rpc_exception(std::current_exception(), er, WALLET_RPC_ERROR_CODE_UNKNOWN_ERROR);
