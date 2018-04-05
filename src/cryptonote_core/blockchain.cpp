@@ -89,21 +89,11 @@ static const struct {
 } mainnet_hard_forks[] = {
   // version 1 from the start of the blockchain
   { 1, 1, 0, 1341378000 },
-
-  // version 2 starts from block 1009827, which is on or around the 20th of March, 2016. Fork time finalised on 2015-09-20. No fork voting occurs for the v2 fork.
-  //{ 2, 1009827, 0, 1442763710 },
-
-  // version 3 starts from block 1141317, which is on or around the 24th of September, 2016. Fork time finalised on 2016-03-21.
-  //{ 3, 1141317, 0, 1458558528 },
-  
-  // version 4 starts from block 1220516, which is on or around the 5th of January, 2017. Fork time finalised on 2016-09-18.
-  //{ 4, 1220516, 0, 1483574400 },
-  
-  // version 5 starts from block 1288616, which is on or around the 15th of April, 2017. Fork time finalised on 2017-03-14.
-  //{ 5, 1288616, 0, 1489520158 },
-
-  // version 6 starts from block 1400000, which is on or around the 16th of September, 2017. Fork time finalised on 2017-08-18.
-  //{ 6, 1400000, 0, 1503046577 },
+  // TODO: Define the fork height for v2, v3, v4 and v5
+  { 2, 300000, 0, 1525396921 },
+  { 3, 300020, 0, 1525396922 },
+  { 4, 300040, 0, 1525396923 },
+  { 5, 300060, 0, 1525396924 }
 };
 static const uint64_t mainnet_hard_fork_version_1_till = 1009826;
 
@@ -2257,8 +2247,8 @@ bool Blockchain::check_tx_inputs(transaction& tx, uint64_t& max_used_block_heigh
 
   size_t mixin = tx.vin[0].type() == typeid(txin_to_key) ? boost::get<txin_to_key>(tx.vin[0]).key_offsets.size() : 0;
   //reject tx with mixin over 16 when blockheight is > 250000
-  // TODO: define a blockheight 
-  if(mixin > 16 && m_db->height() > 250000){
+  // TODO: Define a fork height
+  if(mixin > 16 && m_db->height() > 300000){
     LOG_PRINT_L1("tx " << mixin << " ring size greater than 16, rejecting tx");
     return false;
   }
