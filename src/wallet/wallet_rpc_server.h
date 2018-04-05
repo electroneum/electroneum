@@ -54,11 +54,11 @@ namespace tools
 
     wallet_rpc_server();
     ~wallet_rpc_server();
-
     bool init(const boost::program_options::variables_map *vm);
     bool run();
     void stop();
     void set_wallet(wallet2 *cr);
+    void handle_rpc_exception(const std::exception_ptr& e, epee::json_rpc::error& er, int default_error_code);
 
   private:
 
@@ -153,7 +153,6 @@ namespace tools
       void fill_transfer_entry(tools::wallet_rpc::transfer_entry &entry, const crypto::hash &payment_id, const tools::wallet2::payment_details &pd);
       bool not_open(epee::json_rpc::error& er);
       uint64_t adjust_mixin(uint64_t mixin);
-      void handle_rpc_exception(const std::exception_ptr& e, epee::json_rpc::error& er, int default_error_code);
 
       wallet2 *m_wallet;
       std::string m_wallet_dir;
