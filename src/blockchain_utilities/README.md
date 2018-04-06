@@ -1,4 +1,4 @@
-# Monero Blockchain Utilities
+# Electroneum Blockchain Utilities
 
 Copyright (c) 2014-2017, The Monero Project
 
@@ -14,13 +14,13 @@ See also each utility's "--help" option.
 
 `$ electroneum-blockchain-export`
 
-This loads the existing blockchain and exports it to `$MONERO_DATA_DIR/export/blockchain.raw`
+This loads the existing blockchain and exports it to `$ELECTRONEUM_DATA_DIR/export/blockchain.raw`
 
 ### Import the exported file
 
 `$ electroneum-blockchain-import`
 
-This imports blocks from `$MONERO_DATA_DIR/export/blockchain.raw` (exported using the
+This imports blocks from `$ELECTRONEUM_DATA_DIR/export/blockchain.raw` (exported using the
 `electroneum-blockchain-export` tool as described above) into the current database.
 
 Defaults: `--batch on`, `--batch size 20000`, `--verify on`

@@ -1,4 +1,5 @@
-// Copyright (c) 2014-2017, The Monero Project
+// Copyrights(c) 2017-2018, The Electroneum Project
+// Copyrights(c) 2014-2017, The Monero Project
 //
 // All rights reserved.
 //
@@ -94,7 +95,7 @@ namespace
 
   constexpr const auto client_auth_field = ceref(u8"Authorization");
   constexpr const auto server_auth_field = ceref(u8"WWW-authenticate");
-  constexpr const auto auth_realm = ceref(u8"monero-rpc");
+  constexpr const auto auth_realm = ceref(u8"electroneum-rpc");
   constexpr const char comma = 44;
   constexpr const char equal_sign = 61;
   constexpr const char quote = 34;

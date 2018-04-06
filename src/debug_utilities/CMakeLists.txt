@@ -1,3 +1,4 @@
+# Copyright (c) 2017-2018, The Electroneum Project
 # Copyright (c) 2014-2017, The Monero Project
 #
 # All rights reserved.
@@ -30,7 +31,7 @@ set(cn_deserialize_sources
   cn_deserialize.cpp
   )
 
-monero_add_executable(cn_deserialize
+electroneum_add_executable(cn_deserialize
   ${cn_deserialize_sources}
   ${cn_deserialize_private_headers})
 
@@ -47,14 +48,14 @@ add_dependencies(cn_deserialize
 	version)
 set_property(TARGET cn_deserialize
 	PROPERTY
-	OUTPUT_NAME "monero-utils-deserialize")
+	OUTPUT_NAME "electroneum-utils-deserialize")
 
 
 set(object_sizes_sources
   object_sizes.cpp
   )
 
-monero_add_executable(object_sizes
+electroneum_add_executable(object_sizes
   ${object_sizes_sources}
   ${object_sizes_private_headers})
 
@@ -70,5 +71,5 @@ add_dependencies(object_sizes
 	version)
 set_property(TARGET object_sizes
 	PROPERTY
-	OUTPUT_NAME "monero-utils-object-sizes")
+	OUTPUT_NAME "electroneum-utils-object-sizes")
 

@@ -1,4 +1,5 @@
-// Copyright (c) 2014-2017, The Monero Project
+// Copyrights(c) 2017-2018, The Electroneum Project
+// Copyrights(c) 2014-2017, The Monero Project
 //
 // All rights reserved.
 //
@@ -407,7 +408,7 @@ TEST(StringTools, GetIpInt32)
   The existing epee conversion function does not work with 255.255.255.255, for
   the reasons specified in the inet_addr documentation. Consider fixing in a
   future patch. This address is not likely to be used for purposes within
-  monero.
+  electroneum.
   EXPECT_TRUE(epee::string_tools::get_ip_int32_from_string(ip, "255.255.255.255"));
   EXPECT_EQ(htonl(0xffffffff), ip);
 */

@@ -1,4 +1,5 @@
-// Copyright (c) 2014-2017, The Monero Project
+// Copyrights(c) 2017-2018, The Electroneum Project
+// Copyrights(c) 2014-2017, The Monero Project
 //
 // All rights reserved.
 //
@@ -35,7 +36,7 @@
 #include <vector>
 
 
-namespace Monero {
+namespace Electroneum {
 
 class WalletImpl;
 class UnsignedTransactionImpl : public UnsignedTransaction
@@ -73,4 +74,4 @@ private:
 
 }
 
-namespace Bitmonero = Monero;
+namespace Bitelectroneum = Electroneum;

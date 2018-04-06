@@ -1,4 +1,5 @@
-// Copyright (c) 2014-2017, The Monero Project
+// Copyrights(c) 2017-2018, The Electroneum Project
+// Copyrights(c) 2014-2017, The Monero Project
 //
 // All rights reserved.
 //
@@ -39,8 +40,8 @@
 using namespace epee;
 namespace bf = boost::filesystem;
 
-#undef MONERO_DEFAULT_LOG_CATEGORY
-#define MONERO_DEFAULT_LOG_CATEGORY "net.dns"
+#undef ELECTRONEUM_DEFAULT_LOG_CATEGORY
+#define ELECTRONEUM_DEFAULT_LOG_CATEGORY "net.dns"
 
 static boost::mutex instance_lock;
 
@@ -358,9 +359,9 @@ std::string address_from_txt_record(const std::string& s)
   return {};
 }
 /**
- * @brief gets a monero address from the TXT record of a DNS entry
+ * @brief gets a electroneum address from the TXT record of a DNS entry
  *
- * gets the monero address from the TXT record of the DNS entry associated
+ * gets the electroneum address from the TXT record of the DNS entry associated
  * with <url>.  If this lookup fails, or the TXT record does not contain an
  * XMR address in the correct format, returns an empty string.  <dnssec_valid>
  * will be set true or false according to whether or not the DNS query passes
@@ -369,7 +370,7 @@ std::string address_from_txt_record(const std::string& s)
  * @param url the url to look up
  * @param dnssec_valid return-by-reference for DNSSEC status of query
  *
- * @return a monero address (as a string) or an empty string
+ * @return a electroneum address (as a string) or an empty string
  */
 std::vector<std::string> addresses_from_url(const std::string& url, bool& dnssec_valid)
 {
@@ -386,7 +387,7 @@ std::vector<std::string> addresses_from_url(const std::string& url, bool& dnssec
   }
   else dnssec_valid = false;
 
-  // for each txt record, try to find a monero address in it.
+  // for each txt record, try to find a electroneum address in it.
   for (auto& rec : records)
   {
     std::string addr = address_from_txt_record(rec);

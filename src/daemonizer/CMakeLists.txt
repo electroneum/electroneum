@@ -1,3 +1,4 @@
+# Copyright (c) 2017-2018, The Electroneum Project
 # Copyright (c) 2014-2017, The Monero Project
 #
 # All rights reserved.
@@ -54,9 +55,9 @@ else()
   )
 endif()
 
-monero_private_headers(daemonizer
+electroneum_private_headers(daemonizer
   ${daemonizer_private_headers})
-monero_add_library(daemonizer
+electroneum_add_library(daemonizer
   ${daemonizer_sources}
   ${daemonizer_headers}
   ${daemonizer_private_headers})

@@ -7,8 +7,6 @@ Portions Copyright (c) 2012-2013, The Cryptonote developers
 ## Development Resources
 
 - Web: [electroneum.com](https://electroneum.com)
-- Forum: [electroneumtalk.proboards.com](https://electroneumtalk.proboards.com)
-- Mail: [support@electroneum.com](mailto:support@electroneum.com)
 - GitHub: [https://github.com/electroneum/electroneum](https://github.com/electroneum/electroneum)
 
 ## Introduction
@@ -39,7 +37,7 @@ If you want to help out, see [CONTRIBUTING](CONTRIBUTING.md) for a set of guidel
 
 ## Vulnerability Response Process
 
-See [Vulnerability Response Process](VULNERABILITY_RESPONSE_PROCESS.md).
+See [HackerOne](https://hackerone.com/electroneum).
 
 ## Installing Electroneum from a Package
 

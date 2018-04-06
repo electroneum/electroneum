@@ -1,3 +1,4 @@
+// Copyright (c) 2017-2018, The Electroneum Project
 // Copyright (c) 2017, The Monero Project
 // 
 // All rights reserved.
@@ -36,8 +37,8 @@
 #include "net/http_client.h"
 #include "download.h"
 
-#undef MONERO_DEFAULT_LOG_CATEGORY
-#define MONERO_DEFAULT_LOG_CATEGORY "net.dl"
+#undef ELECTRONEUM_DEFAULT_LOG_CATEGORY
+#define ELECTRONEUM_DEFAULT_LOG_CATEGORY "net.dl"
 
 namespace tools
 {

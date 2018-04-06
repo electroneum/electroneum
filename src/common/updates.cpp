@@ -1,3 +1,4 @@
+// Copyright (c) 2017-2018, The Electroneum Project
 // Copyright (c) 2017, The Monero Project
 // 
 // All rights reserved.
@@ -31,8 +32,8 @@
 #include "dns_utils.h"
 #include "updates.h"
 
-#undef MONERO_DEFAULT_LOG_CATEGORY
-#define MONERO_DEFAULT_LOG_CATEGORY "updates"
+#undef ELECTRONEUM_DEFAULT_LOG_CATEGORY
+#define ELECTRONEUM_DEFAULT_LOG_CATEGORY "updates"
 
 namespace tools
 {
@@ -43,10 +44,8 @@ namespace tools
 
     MDEBUG("Checking updates for " << buildtag << " " << software);
 
-    // All four MoneroPulse domains have DNSSEC on and valid
-    static const std::vector<std::string> dns_urls = {
-        "updates.electroneum.com"
-    };
+    // All four ElectroneumPulse domains have DNSSEC on and valid
+    static const std::vector<std::string> dns_urls = { "updates.electroneum.com" };
 
     if (!tools::dns_utils::load_txt_records_from_dns(records, dns_urls))
       return false;
@@ -95,7 +94,7 @@ namespace tools
 
   std::string get_update_url(const std::string &software, const std::string &subdir, const std::string &buildtag, const std::string &version, bool user)
   {
-    const char *base = user ? "https://downloads.getmonero.org/" : "http://updates.getmonero.org/";
+    const char *base = user ? "https://downloads.electroneum.com/" : "https://updates.electroneum.com/";
 #ifdef _WIN32
     static const char extension[] = ".zip";
 #else

@@ -1,4 +1,5 @@
-// Copyright (c) 2014-2017, The Monero Project
+// Copyrights(c) 2017-2018, The Electroneum Project
+// Copyrights(c) 2014-2017, The Monero Project
 // 
 // All rights reserved.
 // 
@@ -227,7 +228,7 @@ namespace boost
   {
     a & x.mask;
     a & x.amount;
-    // a & x.senderPk; // not serialized, as we do not use it in monero currently
+    // a & x.senderPk; // not serialized, as we do not use it in electroneum currently
   }
 
   template <class Archive>

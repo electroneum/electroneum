@@ -1,3 +1,4 @@
+# Copyright (c) 2017-2018, The Electroneum Project
 # Copyright (c) 2014-2017, The Monero Project
 #
 # All rights reserved.
@@ -34,9 +35,9 @@ set(simplewallet_headers)
 set(simplewallet_private_headers
   simplewallet.h)
 
-monero_private_headers(simplewallet
+electroneum_private_headers(simplewallet
   ${simplewallet_private_headers})
-monero_add_executable(simplewallet
+electroneum_add_executable(simplewallet
   ${simplewallet_sources}
   ${simplewallet_headers}
   ${simplewallet_private_headers})
