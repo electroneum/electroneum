@@ -158,7 +158,7 @@ int main(int argc, char const * argv[])
     auto data_dir_arg = testnet_mode ? command_line::arg_testnet_data_dir : command_line::arg_data_dir;
 
     // data_dir
-    //   default: e.g. ~/.bitelectroneum/ or ~/.bitelectroneum/testnet
+    //   default: e.g. ~/.electroneum/ or ~/.electroneum/testnet
     //   if data-dir argument given:
     //     absolute path
     //     relative path: relative to cwd
