@@ -4,7 +4,7 @@
 * Running electroneum node, linked to private/public testnet.
   By default, tests expect daemon running at ```localhost:38081```,
   can we overriden with enviroment variable ```TESTNET_DAEMON_ADDRESS=<your_daemon_address>```
-  [Manual](https://github.com/electroneumexamples/private-testnet) explaining how to run private testnet.
+  [Manual](https://github.com/electroneum/private-testnet) explaining how to run private testnet.
 
 * Directory with pre-generated wallets
   (wallet_01.bin, wallet_02.bin,...,wallet_06.bin, some of these wallets might not be used in the tests currently). 
