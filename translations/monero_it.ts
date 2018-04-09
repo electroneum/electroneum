@@ -2,7 +2,7 @@
 <!DOCTYPE TS>
 <TS version="2.1" language="it" sourcelanguage="en">
 <context>
-    <name>Monero::AddressBookImpl</name>
+    <name>Electroneum::AddressBookImpl</name>
     <message>
         <location filename="../src/wallet/api/address_book.cpp" line="55"/>
         <source>Invalid destination address</source>
@@ -25,7 +25,7 @@
     </message>
 </context>
 <context>
-    <name>Monero::PendingTransactionImpl</name>
+    <name>Electroneum::PendingTransactionImpl</name>
     <message>
         <location filename="../src/wallet/api/pending_transaction.cpp" line="90"/>
         <source>Attempting to save transaction to file, but specified file(s) exist. Exiting to not risk overwriting. File:</source>
@@ -68,7 +68,7 @@
     </message>
 </context>
 <context>
-    <name>Monero::UnsignedTransactionImpl</name>
+    <name>Electroneum::UnsignedTransactionImpl</name>
     <message>
         <location filename="../src/wallet/api/unsigned_transaction.cpp" line="75"/>
         <source>This is a watch only wallet</source>
@@ -122,7 +122,7 @@
     </message>
 </context>
 <context>
-    <name>Monero::WalletImpl</name>
+    <name>Electroneum::WalletImpl</name>
     <message>
         <location filename="../src/wallet/api/wallet.cpp" line="942"/>
         <source>payment id has invalid format, expected 16 or 64 character hex string: </source>
@@ -316,7 +316,7 @@
     </message>
 </context>
 <context>
-    <name>Monero::WalletManagerImpl</name>
+    <name>Electroneum::WalletManagerImpl</name>
     <message>
         <location filename="../src/wallet/api/wallet_manager.cpp" line="192"/>
         <source>failed to parse txid</source>
@@ -956,8 +956,8 @@ This transaction will unlock on block %llu, in approximately %s days (assuming 2
     </message>
     <message>
         <location filename="../src/simplewallet/simplewallet.cpp" line="711"/>
-        <source>donate [&lt;mixin_count&gt;] &lt;amount&gt; [payment_id] - Donate &lt;amount&gt; to the development team (donate.getmonero.org)</source>
-        <translation>donate [&lt;mixin_count&gt;] &lt;amount&gt; [payment_id] - Dona &lt;amount&gt; al team di sviluppo (donate.getmonero.org)</translation>
+        <source>donate [&lt;mixin_count&gt;] &lt;amount&gt; [payment_id] - Donate &lt;amount&gt; to the development team (donate.electroneum.com)</source>
+        <translation>donate [&lt;mixin_count&gt;] &lt;amount&gt; [payment_id] - Dona &lt;amount&gt; al team di sviluppo (donate.electroneum.com)</translation>
     </message>
     <message>
         <location filename="../src/simplewallet/simplewallet.cpp" line="714"/>
@@ -1387,7 +1387,7 @@ Warning: Some input keys being spent are from </source>
     </message>
     <message>
         <location filename="../src/simplewallet/simplewallet.cpp" line="723"/>
-        <source>Available options: seed language - set wallet seed language; always-confirm-transfers &lt;1|0&gt; - whether to confirm unsplit txes; print-ring-members &lt;1|0&gt; - whether to print detailed information about ring members during confirmation; store-tx-info &lt;1|0&gt; - whether to store outgoing tx info (destination address, payment ID, tx secret key) for future reference; default-mixin &lt;n&gt; - set default mixin (default is 4); auto-refresh &lt;1|0&gt; - whether to automatically sync new blocks from the daemon; refresh-type &lt;full|optimize-coinbase|no-coinbase|default&gt; - set wallet refresh behaviour; priority [0|1|2|3|4] - default/unimportant/normal/elevated/priority fee; confirm-missing-payment-id &lt;1|0&gt;; ask-password &lt;1|0&gt;; unit &lt;monero|millinero|micronero|nanonero|piconero&gt; - set default monero (sub-)unit; min-outputs-count [n] - try to keep at least that many outputs of value at least min-outputs-value; min-outputs-value [n] - try to keep at least min-outputs-count outputs of at least that value; merge-destinations &lt;1|0&gt; - whether to merge multiple payments to the same destination address</source>
+        <source>Available options: seed language - set wallet seed language; always-confirm-transfers &lt;1|0&gt; - whether to confirm unsplit txes; print-ring-members &lt;1|0&gt; - whether to print detailed information about ring members during confirmation; store-tx-info &lt;1|0&gt; - whether to store outgoing tx info (destination address, payment ID, tx secret key) for future reference; default-mixin &lt;n&gt; - set default mixin (default is 4); auto-refresh &lt;1|0&gt; - whether to automatically sync new blocks from the daemon; refresh-type &lt;full|optimize-coinbase|no-coinbase|default&gt; - set wallet refresh behaviour; priority [0|1|2|3|4] - default/unimportant/normal/elevated/priority fee; confirm-missing-payment-id &lt;1|0&gt;; ask-password &lt;1|0&gt;; unit &lt;electroneum|ecent&gt; - set default electroneum (sub-)unit; min-outputs-count [n] - try to keep at least that many outputs of value at least min-outputs-value; min-outputs-value [n] - try to keep at least min-outputs-count outputs of at least that value; merge-destinations &lt;1|0&gt; - whether to merge multiple payments to the same destination address</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -1467,7 +1467,7 @@ Warning: Some input keys being spent are from </source>
     </message>
     <message>
         <location filename="../src/simplewallet/simplewallet.cpp" line="806"/>
-        <source>monero, millinero, micronero, nanonero, piconero</source>
+        <source>electroneum, ecent</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -2433,8 +2433,8 @@ Outputs per *: </source>
     </message>
     <message>
         <location filename="../src/common/dns_utils.cpp" line="439"/>
-        <source> Monero Address = </source>
-        <translation>Indirizzo Monero = </translation>
+        <source> Electroneum Address = </source>
+        <translation>Indirizzo Electroneum = </translation>
     </message>
     <message>
         <location filename="../src/common/dns_utils.cpp" line="441"/>

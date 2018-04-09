@@ -1,3 +1,4 @@
+// Copyright (c) 2017-2018, The Electroneum Project
 // Copyright (c) 2017, The Monero Project
 //
 // All rights reserved.
@@ -43,8 +44,8 @@
 #include "wallet/api/unsigned_transaction.h"
 #include "wallet/api/pending_transaction.h"
 
-#undef MONERO_DEFAULT_LOG_CATEGORY
-#define MONERO_DEFAULT_LOG_CATEGORY "debugtools.objectsizes"
+#undef ELECTRONEUM_DEFAULT_LOG_CATEGORY
+#define ELECTRONEUM_DEFAULT_LOG_CATEGORY "debugtools.objectsizes"
 
 class size_logger
 {
@@ -105,12 +106,12 @@ int main(int argc, char* argv[])
   SL(tools::wallet2::unsigned_tx_set);
   SL(tools::wallet2::signed_tx_set);
 
-  SL(Monero::WalletImpl);
-  SL(Monero::AddressBookRow);
-  SL(Monero::TransactionInfoImpl);
-  SL(Monero::TransactionHistoryImpl);
-  SL(Monero::PendingTransactionImpl);
-  SL(Monero::UnsignedTransactionImpl);
+  SL(Electroneum::WalletImpl);
+  SL(Electroneum::AddressBookRow);
+  SL(Electroneum::TransactionInfoImpl);
+  SL(Electroneum::TransactionHistoryImpl);
+  SL(Electroneum::PendingTransactionImpl);
+  SL(Electroneum::UnsignedTransactionImpl);
 
   return 0;
 }

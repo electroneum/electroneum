@@ -1,4 +1,5 @@
-// Copyright (c) 2014-2017, The Monero Project
+// Copyrights(c) 2017-2018, The Electroneum Project
+// Copyrights(c) 2014-2017, The Monero Project
 // 
 // All rights reserved.
 // 
@@ -47,8 +48,8 @@
 #include "common/password.h"
 #include "crypto/crypto.h"  // for definition of crypto::secret_key
 
-#undef MONERO_DEFAULT_LOG_CATEGORY
-#define MONERO_DEFAULT_LOG_CATEGORY "wallet.simplewallet"
+#undef ELECTRONEUM_DEFAULT_LOG_CATEGORY
+#define ELECTRONEUM_DEFAULT_LOG_CATEGORY "wallet.simplewallet"
 
 /*!
  * \namespace cryptonote

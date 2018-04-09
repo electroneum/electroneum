@@ -39,9 +39,9 @@ set(ringct_private_headers
   rctSigs.h
   rctTypes.h)
 
-monero_private_headers(ringct
+electroneum_private_headers(ringct
   ${crypto_private_headers})
-monero_add_library(ringct
+electroneum_add_library(ringct
   ${ringct_sources}
   ${ringct_headers}
   ${ringct_private_headers})

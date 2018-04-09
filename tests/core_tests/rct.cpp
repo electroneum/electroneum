@@ -1,4 +1,5 @@
-// Copyright (c) 2014-2017, The Monero Project
+// Copyrights(c) 2017-2018, The Electroneum Project
+// Copyrights(c) 2014-2017, The Monero Project
 // 
 // All rights reserved.
 // 
@@ -399,7 +400,7 @@ bool gen_rct_tx_pre_rct_wrong_key_image::generate(std::vector<test_event_entry>&
   const int mixin = 2;
   const int out_idx[] = {0, -1};
   const uint64_t amount_paid = 10000;
-  // some random key image from the monero blockchain, so we get something that is a valid key image
+  // some random key image from the electroneum blockchain, so we get something that is a valid key image
   static const uint8_t k_image[33] = "\x49\x3b\x56\x16\x54\x76\xa8\x75\xb7\xf4\xa8\x51\xf5\x55\xd3\x44\xe7\x3e\xea\x73\xee\xc1\x06\x7c\x7d\xb6\x57\x28\x46\x85\xe1\x07";
   return generate_with(events, out_idx, mixin, amount_paid, false,
     NULL, [](transaction &tx) {memcpy(&boost::get<txin_to_key>(tx.vin[0]).k_image, k_image, 32);});
@@ -410,7 +411,7 @@ bool gen_rct_tx_rct_wrong_key_image::generate(std::vector<test_event_entry>& eve
   const int mixin = 2;
   const int out_idx[] = {1, -1};
   const uint64_t amount_paid = 10000;
-  // some random key image from the monero blockchain, so we get something that is a valid key image
+  // some random key image from the electroneum blockchain, so we get something that is a valid key image
   static const uint8_t k_image[33] = "\x49\x3b\x56\x16\x54\x76\xa8\x75\xb7\xf4\xa8\x51\xf5\x55\xd3\x44\xe7\x3e\xea\x73\xee\xc1\x06\x7c\x7d\xb6\x57\x28\x46\x85\xe1\x07";
   return generate_with(events, out_idx, mixin, amount_paid, false,
     NULL, [](transaction &tx) {memcpy(&boost::get<txin_to_key>(tx.vin[0]).k_image, k_image, 32);});

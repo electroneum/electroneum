@@ -1,4 +1,5 @@
-// Copyright (c) 2014-2017, The Monero Project
+// Copyrights(c) 2017-2018, The Electroneum Project
+// Copyrights(c) 2014-2017, The Monero Project
 // 
 // All rights reserved.
 // 
@@ -41,8 +42,8 @@ extern "C"
 #include "cryptonote_basic_impl.h"
 #include "cryptonote_format_utils.h"
 
-#undef MONERO_DEFAULT_LOG_CATEGORY
-#define MONERO_DEFAULT_LOG_CATEGORY "account"
+#undef ELECTRONEUM_DEFAULT_LOG_CATEGORY
+#define ELECTRONEUM_DEFAULT_LOG_CATEGORY "account"
 
 using namespace std;
 

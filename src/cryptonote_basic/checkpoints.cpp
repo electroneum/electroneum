@@ -1,4 +1,5 @@
-// Copyright (c) 2014-2017, The Monero Project
+// Copyrights(c) 2017-2018, The Electroneum Project
+// Copyrights(c) 2014-2017, The Monero Project
 //
 // All rights reserved.
 //
@@ -39,8 +40,8 @@ using namespace epee;
 #include <sstream>
 #include <random>
 
-#undef MONERO_DEFAULT_LOG_CATEGORY
-#define MONERO_DEFAULT_LOG_CATEGORY "checkpoints"
+#undef ELECTRONEUM_DEFAULT_LOG_CATEGORY
+#define ELECTRONEUM_DEFAULT_LOG_CATEGORY "checkpoints"
 
 namespace cryptonote
 {
@@ -179,12 +180,10 @@ namespace cryptonote
   {
     std::vector<std::string> records;
 
-    // All four MoneroPulse domains have DNSSEC on and valid
-    static const std::vector<std::string> dns_urls = { "checkpoints.electroneum.com"
-    };
+    // All four ElectroneumPulse domains have DNSSEC on and valid
+    static const std::vector<std::string> dns_urls = { "checkpoints.electroneum.com" };
 
-    static const std::vector<std::string> testnet_dns_urls = { "testpoints.electroneum.com"
-    };
+    static const std::vector<std::string> testnet_dns_urls = { "testpoints.electroneum.com" };
 
     if (!tools::dns_utils::load_txt_records_from_dns(records, testnet ? testnet_dns_urls : dns_urls))
       return true; // why true ?

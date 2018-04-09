@@ -1,4 +1,5 @@
-// Copyright (c) 2014-2017, The Monero Project
+// Copyrights(c) 2017-2018, The Electroneum Project
+// Copyrights(c) 2014-2017, The Monero Project
 // 
 // All rights reserved.
 // 
@@ -50,8 +51,8 @@ using namespace epee;
 #include "rpc/rpc_args.h"
 #include "rpc/core_rpc_server_commands_defs.h"
 
-#undef MONERO_DEFAULT_LOG_CATEGORY
-#define MONERO_DEFAULT_LOG_CATEGORY "wallet.rpc"
+#undef ELECTRONEUM_DEFAULT_LOG_CATEGORY
+#define ELECTRONEUM_DEFAULT_LOG_CATEGORY "wallet.rpc"
 
 namespace
 {
@@ -60,7 +61,7 @@ namespace
   const command_line::arg_descriptor<bool> arg_trusted_daemon = {"trusted-daemon", "Enable commands which rely on a trusted daemon", false};
   const command_line::arg_descriptor<std::string> arg_wallet_dir = {"wallet-dir", "Directory for newly created wallets"};
 
-  constexpr const char default_rpc_username[] = "monero";
+  constexpr const char default_rpc_username[] = "electroneum";
 }
 
 namespace tools
@@ -377,7 +378,7 @@ namespace tools
           }
           if (addresses.empty())
           {
-            er.message = std::string("No Monero address found at ") + url;
+            er.message = std::string("No Electroneum address found at ") + url;
             return {};
           }
           return addresses[0];
@@ -1057,7 +1058,7 @@ namespace tools
         }
         if (addresses.empty())
         {
-          er.message = std::string("No Monero address found at ") + url;
+          er.message = std::string("No Electroneum address found at ") + url;
           return {};
         }
         return addresses[0];
@@ -1468,7 +1469,7 @@ namespace tools
         }
         if (addresses.empty())
         {
-          er.message = std::string("No Monero address found at ") + url;
+          er.message = std::string("No Electroneum address found at ") + url;
           return {};
         }
         return addresses[0];

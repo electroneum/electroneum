@@ -1,4 +1,5 @@
-// Copyright (c) 2014-2017, The Monero Project
+// Copyrights(c) 2017-2018, The Electroneum Project
+// Copyrights(c) 2014-2017, The Monero Project
 //
 // All rights reserved.
 //
@@ -45,10 +46,10 @@
 using namespace std;
 using namespace cryptonote;
 
-#undef MONERO_DEFAULT_LOG_CATEGORY
-#define MONERO_DEFAULT_LOG_CATEGORY "WalletAPI"
+#undef ELECTRONEUM_DEFAULT_LOG_CATEGORY
+#define ELECTRONEUM_DEFAULT_LOG_CATEGORY "WalletAPI"
 
-namespace Monero {
+namespace Electroneum {
 
 namespace {
     // copy-pasted from simplewallet
@@ -1449,4 +1450,4 @@ bool WalletImpl::useForkRules(uint8_t version, int64_t early_blocks) const
 
 } // namespace
 
-namespace Bitmonero = Monero;
+namespace Bitelectroneum = Electroneum;

@@ -1,4 +1,5 @@
-// Copyright (c) 2014-2017, The Monero Project
+// Copyrights(c) 2017-2018, The Electroneum Project
+// Copyrights(c) 2014-2017, The Monero Project
 // 
 // All rights reserved.
 // 
@@ -74,14 +75,14 @@ using boost::lexical_cast;
 namespace po = boost::program_options;
 typedef cryptonote::simple_wallet sw;
 
-#undef MONERO_DEFAULT_LOG_CATEGORY
-#define MONERO_DEFAULT_LOG_CATEGORY "wallet.simplewallet"
+#undef ELECTRONEUM_DEFAULT_LOG_CATEGORY
+#define ELECTRONEUM_DEFAULT_LOG_CATEGORY "wallet.simplewallet"
 
 #define EXTENDED_LOGS_FILE "wallet_details.log"
 
 #define DEFAULT_MIX 4
 
-#define OUTPUT_EXPORT_FILE_MAGIC "Monero output export\003"
+#define OUTPUT_EXPORT_FILE_MAGIC "Electroneum output export\003"
 
 #define LOCK_IDLE_SCOPE() \
   bool auto_refresh_enabled = m_auto_refresh_enabled.load(std::memory_order_relaxed); \
@@ -234,7 +235,7 @@ namespace
     std::stringstream prompt;
     prompt << tr("For URL: ") << url
            << ", " << dnssec_str << std::endl
-           << tr(" Monero Address = ") << addresses[0]
+           << tr(" Electroneum Address = ") << addresses[0]
            << std::endl
            << tr("Is this OK? (Y/n) ")
     ;
@@ -400,7 +401,7 @@ bool simple_wallet::print_fee_info(const std::vector<std::string> &args/* = std:
   }
   const uint64_t per_kb_fee = m_wallet->get_per_kb_fee();
   const uint64_t typical_size_kb = 13;
-  message_writer() << (boost::format(tr("Current fee is %s monero per kB")) % print_money(per_kb_fee)).str();
+  message_writer() << (boost::format(tr("Current fee is %s electroneum per kB")) % print_money(per_kb_fee)).str();
 
   std::vector<uint64_t> fees;
   for (uint32_t priority = 1; priority <= 4; ++priority)
@@ -755,7 +756,7 @@ simple_wallet::simple_wallet()
   m_cmd_binder.set_handler("sweep_unmixable", boost::bind(&simple_wallet::sweep_unmixable, this, _1), tr("Send all unmixable outputs to yourself with ring_size 1"));
   m_cmd_binder.set_handler("sweep_all", boost::bind(&simple_wallet::sweep_all, this, _1), tr("sweep_all [ring_size] address [payment_id] - Send all unlocked balance to an address"));
   m_cmd_binder.set_handler("sweep_below", boost::bind(&simple_wallet::sweep_below, this, _1), tr("sweep_below <amount_threshold> [ring_size] address [payment_id] - Send all unlocked outputs below the threshold to an address"));
-  m_cmd_binder.set_handler("donate", boost::bind(&simple_wallet::donate, this, _1), tr("donate [<ring_size>] <amount> [payment_id] - Donate <amount> to the development team (donate.getmonero.org)"));
+  m_cmd_binder.set_handler("donate", boost::bind(&simple_wallet::donate, this, _1), tr("donate [<ring_size>] <amount> [payment_id] - Donate <amount> to the development team (donate.electroneum.com)"));
   m_cmd_binder.set_handler("sign_transfer", boost::bind(&simple_wallet::sign_transfer, this, _1), tr("Sign a transaction from a file"));
   m_cmd_binder.set_handler("submit_transfer", boost::bind(&simple_wallet::submit_transfer, this, _1), tr("Submit a signed transaction from a file"));
   m_cmd_binder.set_handler("set_log", boost::bind(&simple_wallet::set_log, this, _1), tr("set_log <level>|<categories> - Change current log detail (level must be <0-4>)"));
@@ -2284,7 +2285,7 @@ bool simple_wallet::print_ring_members(const std::vector<tools::wallet2::pending
         ostr << tr(j == source.real_output ? " *" : " ") << res.outs[j].height;
       spent_key_height[i] = res.outs[source.real_output].height;
       spent_key_txid  [i] = res.outs[source.real_output].txid;
-      // visualize the distribution, using the code by moneroexamples onion-monero-viewer
+      // visualize the distribution, using the code by electroneumexamples onion-electroneum-viewer
       const uint64_t resolution = 79;
       std::string ring_str(resolution, '_');
       for (size_t j = 0; j < absolute_offsets.size(); ++j)
@@ -2624,14 +2625,14 @@ bool simple_wallet::transfer_main(int transfer_type, const std::vector<std::stri
     // actually commit the transactions
     if (m_wallet->watch_only())
     {
-      bool r = m_wallet->save_tx(ptx_vector, "unsigned_monero_tx");
+      bool r = m_wallet->save_tx(ptx_vector, "unsigned_electroneum_tx");
       if (!r)
       {
         fail_msg_writer() << tr("Failed to write transaction(s) to file");
       }
       else
       {
-        success_msg_writer(true) << tr("Unsigned transaction(s) successfully written to file: ") << "unsigned_monero_tx";
+        success_msg_writer(true) << tr("Unsigned transaction(s) successfully written to file: ") << "unsigned_electroneum_tx";
       }
     }
     else while (!ptx_vector.empty())
@@ -2802,14 +2803,14 @@ bool simple_wallet::sweep_unmixable(const std::vector<std::string> &args_)
     // actually commit the transactions
     if (m_wallet->watch_only())
     {
-      bool r = m_wallet->save_tx(ptx_vector, "unsigned_monero_tx");
+      bool r = m_wallet->save_tx(ptx_vector, "unsigned_electroneum_tx");
       if (!r)
       {
         fail_msg_writer() << tr("Failed to write transaction(s) to file");
       }
       else
       {
-        success_msg_writer(true) << tr("Unsigned transaction(s) successfully written to file: ") << "unsigned_monero_tx";
+        success_msg_writer(true) << tr("Unsigned transaction(s) successfully written to file: ") << "unsigned_electroneum_tx";
       }
     }
     else while (!ptx_vector.empty())
@@ -3067,14 +3068,14 @@ bool simple_wallet::sweep_main(uint64_t below, const std::vector<std::string> &a
     // actually commit the transactions
     if (m_wallet->watch_only())
     {
-      bool r = m_wallet->save_tx(ptx_vector, "unsigned_monero_tx");
+      bool r = m_wallet->save_tx(ptx_vector, "unsigned_electroneum_tx");
       if (!r)
       {
         fail_msg_writer() << tr("Failed to write transaction(s) to file");
       }
       else
       {
-        success_msg_writer(true) << tr("Unsigned transaction(s) successfully written to file: ") << "unsigned_monero_tx";
+        success_msg_writer(true) << tr("Unsigned transaction(s) successfully written to file: ") << "unsigned_electroneum_tx";
       }
     }
     else while (!ptx_vector.empty())
@@ -3206,7 +3207,7 @@ bool simple_wallet::donate(const std::vector<std::string> &args_)
      return true;
   }
   std::string ring_size_str;
-  // Hardcode Monero's donation address (see #1447)
+  // Hardcode Electroneum's donation address (see #1447)
   const std::string address_str = "44AFFq5kSiGBoZ4NMDwYtN18obc8AemS33DBLWs3H7otXft3XjrpDtQGv7SqSsaBYBb98uNbr2VBBEt7f2wfn3RVGQBEP3A";
   std::string amount_str;
   std::string payment_id_str;
@@ -3234,7 +3235,7 @@ bool simple_wallet::donate(const std::vector<std::string> &args_)
   local_args.push_back(amount_str);
   if (!payment_id_str.empty())
     local_args.push_back(payment_id_str);
-  message_writer() << tr("Donating ") << amount_str << " XMR to The Monero Project (donate.getmonero.org/44AFFq5kSiGBoZ4NMDwYtN18obc8AemS33DBLWs3H7otXft3XjrpDtQGv7SqSsaBYBb98uNbr2VBBEt7f2wfn3RVGQBEP3A).";
+  message_writer() << tr("Donating ") << amount_str << " ETN to The Electroneum Project (donate.electroneum.com/etnjwQwwEY65dhSMfKto64GgY7j7q2RUSZP1r8rXZ615J4egUC596R4crvZ5woWWTWBUztnKMUudzQ22E37LHiV48XWeJDFkkY).";
   transfer_new(local_args);
   return true;
 }
@@ -3388,7 +3389,7 @@ bool simple_wallet::sign_transfer(const std::vector<std::string> &args_)
   std::vector<tools::wallet2::pending_tx> ptx;
   try
   {
-    bool r = m_wallet->sign_tx("unsigned_monero_tx", "signed_monero_tx", ptx, [&](const tools::wallet2::unsigned_tx_set &tx){ return accept_loaded_tx(tx); });
+    bool r = m_wallet->sign_tx("unsigned_electroneum_tx", "signed_electroneum_tx", ptx, [&](const tools::wallet2::unsigned_tx_set &tx){ return accept_loaded_tx(tx); });
     if (!r)
     {
       fail_msg_writer() << tr("Failed to sign transaction");
@@ -3408,7 +3409,7 @@ bool simple_wallet::sign_transfer(const std::vector<std::string> &args_)
       txids_as_text += (", ");
     txids_as_text += epee::string_tools::pod_to_hex(get_transaction_hash(t.tx));
   }
-  success_msg_writer(true) << tr("Transaction successfully signed to file ") << "signed_monero_tx" << ", txid " << txids_as_text;
+  success_msg_writer(true) << tr("Transaction successfully signed to file ") << "signed_electroneum_tx" << ", txid " << txids_as_text;
   return true;
 }
 //----------------------------------------------------------------------------------------------------
@@ -3420,7 +3421,7 @@ bool simple_wallet::submit_transfer(const std::vector<std::string> &args_)
   try
   {
     std::vector<tools::wallet2::pending_tx> ptx_vector;
-    bool r = m_wallet->load_tx("signed_monero_tx", ptx_vector, [&](const tools::wallet2::signed_tx_set &tx){ return accept_loaded_tx(tx); });
+    bool r = m_wallet->load_tx("signed_electroneum_tx", ptx_vector, [&](const tools::wallet2::signed_tx_set &tx){ return accept_loaded_tx(tx); });
     if (!r)
     {
       fail_msg_writer() << tr("Failed to load transaction from file");

@@ -1,4 +1,5 @@
-// Copyright (c) 2014-2017, The Monero Project
+// Copyrights(c) 2017-2018, The Electroneum Project
+// Copyrights(c) 2014-2017, The Monero Project
 // 
 // All rights reserved.
 // 
@@ -1094,7 +1095,7 @@ namespace Language
       "mokadi",
       "molaro",
       "momento",
-      "monero",
+      "electroneum",
       "mopso",
       "mordi",
       "moskito",

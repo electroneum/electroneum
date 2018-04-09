@@ -1,3 +1,4 @@
+# Copyright (c) 2017-2018, The Electroneum Project
 # Copyright (c) 2014-2017, The Monero Project
 #
 # All rights reserved.
@@ -237,7 +238,7 @@ if(STATIC)
 endif()
 
 # Set default blockchain storage location:
-# memory was the default in Cryptonote before Monero implimented LMDB, it still works but is unneccessary.
+# memory was the default in Cryptonote before Electroneum implimented LMDB, it still works but is unneccessary.
 # set(DATABASE memory)
 set(DATABASE lmdb)
 
