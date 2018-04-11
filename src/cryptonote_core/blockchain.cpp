@@ -90,9 +90,9 @@ static const struct {
   // version 1 from the start of the blockchain
   { 1, 1, 0, 1341378000 },
   // TODO: Define the fork height for v2
-  { 2, 300000, 0, 1525396921 }
+  //{ 2, config::forks::V2_HEIGHT, 0, config::forks::V2_TIME }
 };
-static const uint64_t mainnet_hard_fork_version_1_till = 1009826;
+static const uint64_t mainnet_hard_fork_version_1_till = config::forks::V2_HEIGHT - 1;
 
 static const struct {
   uint8_t version;
@@ -104,10 +104,10 @@ static const struct {
   { 1, 1, 0, 1341378000 },
 
   // version 2 starts from block 3000
-  { 2, 3000, 0, 1525546443 },
+  { 2, config::testnet::forks::V2_HEIGHT, 0, config::testnet::forks::V2_TIME },
 
 };
-static const uint64_t testnet_hard_fork_version_1_till = 2999;
+static const uint64_t testnet_hard_fork_version_1_till = config::testnet::forks::V2_HEIGHT - 1;
 
 //------------------------------------------------------------------
 Blockchain::Blockchain(tx_memory_pool& tx_pool) :
@@ -2255,9 +2255,8 @@ bool Blockchain::check_tx_inputs(transaction& tx, uint64_t& max_used_block_heigh
   CRITICAL_REGION_LOCAL(m_blockchain_lock);
 
   size_t mixin = tx.vin[0].type() == typeid(txin_to_key) ? boost::get<txin_to_key>(tx.vin[0]).key_offsets.size() : 0;
-  //reject tx with mixin over 16 when blockheight is > 250000
-  // TODO: Define a fork height
-  if(mixin > 16 && m_db->height() > 300000){
+  //reject tx with mixin over 16
+  if(mixin > 16 && m_db->height() > config::forks::V2_HEIGHT){
     LOG_PRINT_L1("tx " << mixin << " ring size greater than 16, rejecting tx");
     return false;
   }

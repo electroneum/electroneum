@@ -63,7 +63,7 @@
 // COIN - number of smallest units in one coin
 #define COIN                                            ((uint64_t)1000000000000) // pow(10, 12)
 
-#define FEE_PER_KB                                      ((uint64_t)20)
+#define FEE_PER_KB                                      ((uint64_t)15)
 #define DYNAMIC_FEE_PER_KB_BASE_FEE                     ((uint64_t)2000000000) // 2 * pow(10,9)
 #define DYNAMIC_FEE_PER_KB_BASE_BLOCK_REWARD            ((uint64_t)10000000000000) // 10 * pow(10,12)
 #define DYNAMIC_FEE_PER_KB_BASE_FEE_V5                  ((uint64_t)2000000000 * (uint64_t)CRYPTONOTE_BLOCK_GRANTED_FULL_REWARD_ZONE_V2 / CRYPTONOTE_BLOCK_GRANTED_FULL_REWARD_ZONE_V5)
@@ -153,6 +153,15 @@ namespace config
   std::string const GENESIS_TX = "011201ff00011e026bc5c7db8a664f652d78adb587ac4d759c6757258b64ef9cba3c0354e64fb2e42101abca6a39c561d0897be183eb0143990eba201aa7d2c652ab0555d28bb4b70728";
   uint32_t const GENESIS_NONCE = 10000;
 
+  // Mainnet hard-fork configuration
+  namespace forks
+  {
+    // Electroneum V2
+    uint64_t const V2_HEIGHT  = 300000;
+    uint64_t const V2_TIME    = 1525546443;
+  }
+  
+
   namespace testnet
   {
     uint64_t const CRYPTONOTE_PUBLIC_ADDRESS_BASE58_PREFIX = 18018;
@@ -160,9 +169,17 @@ namespace config
     uint16_t const P2P_DEFAULT_PORT = 36967;
     uint16_t const RPC_DEFAULT_PORT = 36968;
     boost::uuids::uuid const NETWORK_ID = { {
-        0x04, 0xF8, 0x23, 0xE1, 0x66, 0xC2, 0xE3, 0xA4, 0xEA, 0x5D, 0xD1, 0x2C, 0x85, 0x8E, 0xC8, 0x40
+        "127.0.0.1"
       } };
     std::string const GENESIS_TX = "011201ff00011e02ec8750a795fcd2a9d776aaac3a89336feea414718c76c0d6680fe625241d4f522101912cba0ab676306a8c958e97ceeddf2d3d1db24b49cf6a3ee96eb6745e0fb1fb";
     uint32_t const GENESIS_NONCE = 10001;
+
+    // Testnet hard-fork configuration
+    namespace forks
+    {
+      // Electroneum V2
+      uint64_t const V2_HEIGHT  = 49;
+      uint64_t const V2_TIME    = 1525546443;
+    }
   }
 }

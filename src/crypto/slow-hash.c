@@ -1344,7 +1344,6 @@ void cn_slow_hash(const void *data, size_t length, char *hash, int variant) {
     copy_block(&long_state[j * AES_BLOCK_SIZE], c);
     assert(j == e2i(a, MEMORY / AES_BLOCK_SIZE));
     swap_blocks(a, b);
-    VARIANT1_2(&long_state[j * AES_BLOCK_SIZE]);
   }
 
   memcpy(text, state.init, INIT_SIZE_BYTE);
