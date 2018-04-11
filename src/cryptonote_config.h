@@ -169,7 +169,7 @@ namespace config
     uint16_t const P2P_DEFAULT_PORT = 36967;
     uint16_t const RPC_DEFAULT_PORT = 36968;
     boost::uuids::uuid const NETWORK_ID = { {
-        "127.0.0.1"
+        0x04, 0xF8, 0x23, 0xE1, 0x66, 0xC2, 0xE3, 0xA4, 0xEA, 0x5D, 0xD1, 0x2C, 0x85, 0x8E, 0xC8, 0x40
       } };
     std::string const GENESIS_TX = "011201ff00011e02ec8750a795fcd2a9d776aaac3a89336feea414718c76c0d6680fe625241d4f522101912cba0ab676306a8c958e97ceeddf2d3d1db24b49cf6a3ee96eb6745e0fb1fb";
     uint32_t const GENESIS_NONCE = 10001;
