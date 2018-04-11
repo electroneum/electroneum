@@ -471,6 +471,11 @@ namespace tools
     try
     {
       uint64_t mixin = adjust_mixin(req.mixin);
+
+      if(mixin > 16){
+        return false;
+      }
+
       std::vector<wallet2::pending_tx> ptx_vector = m_wallet->create_transactions_2(dsts, mixin, req.unlock_time, req.priority, extra, m_trusted_daemon);
 
       // reject proposed transactions if there are more than one.  see on_transfer_split below.

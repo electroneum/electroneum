@@ -90,23 +90,10 @@ static const struct {
 } mainnet_hard_forks[] = {
   // version 1 from the start of the blockchain
   { 1, 1, 0, 1341378000 },
-
-  // version 2 starts from block 1009827, which is on or around the 20th of March, 2016. Fork time finalised on 2015-09-20. No fork voting occurs for the v2 fork.
-  //{ 2, 1009827, 0, 1442763710 },
-
-  // version 3 starts from block 1141317, which is on or around the 24th of September, 2016. Fork time finalised on 2016-03-21.
-  //{ 3, 1141317, 0, 1458558528 },
-  
-  // version 4 starts from block 1220516, which is on or around the 5th of January, 2017. Fork time finalised on 2016-09-18.
-  //{ 4, 1220516, 0, 1483574400 },
-  
-  // version 5 starts from block 1288616, which is on or around the 15th of April, 2017. Fork time finalised on 2017-03-14.
-  //{ 5, 1288616, 0, 1489520158 },
-
-  // version 6 starts from block 1400000, which is on or around the 16th of September, 2017. Fork time finalised on 2017-08-18.
-  //{ 6, 1400000, 0, 1503046577 },
+  // TODO: Define the fork height for v2
+  //{ 2, config::forks::V2_HEIGHT, 0, config::forks::V2_TIME }
 };
-static const uint64_t mainnet_hard_fork_version_1_till = 1009826;
+static const uint64_t mainnet_hard_fork_version_1_till = config::forks::V2_HEIGHT - 1;
 
 static const struct {
   uint8_t version;
@@ -117,17 +104,11 @@ static const struct {
   // version 1 from the start of the blockchain
   { 1, 1, 0, 1341378000 },
 
-  // version 2 starts from block 624634, which is on or around the 23rd of November, 2015. Fork time finalised on 2015-11-20. No fork voting occurs for the v2 fork.
-  //{ 2, 624634, 0, 1445355000 },
+  // version 2 starts from block 3000
+  { 2, config::testnet::forks::V2_HEIGHT, 0, config::testnet::forks::V2_TIME },
 
-  // versions 3-5 were passed in rapid succession from September 18th, 2016
-  //{ 3, 800500, 0, 1472415034 },
-  //{ 4, 801219, 0, 1472415035 },
-  //{ 5, 802660, 0, 1472415036 + 86400*180 }, // add 5 months on testnet to shut the update warning up since there's a large gap to v6
-
-  //{ 6, 971400, 0, 1501709789 },
 };
-static const uint64_t testnet_hard_fork_version_1_till = 624633;
+static const uint64_t testnet_hard_fork_version_1_till = config::testnet::forks::V2_HEIGHT - 1;
 
 //------------------------------------------------------------------
 Blockchain::Blockchain(tx_memory_pool& tx_pool) :
@@ -2273,6 +2254,13 @@ bool Blockchain::check_tx_inputs(transaction& tx, uint64_t& max_used_block_heigh
 {
   LOG_PRINT_L3("Blockchain::" << __func__);
   CRITICAL_REGION_LOCAL(m_blockchain_lock);
+
+  size_t mixin = tx.vin[0].type() == typeid(txin_to_key) ? boost::get<txin_to_key>(tx.vin[0]).key_offsets.size() : 0;
+  //reject tx with mixin over 16
+  if(mixin > 16 && m_db->height() > config::forks::V2_HEIGHT){
+    LOG_PRINT_L1("tx " << mixin << " ring size greater than 16, rejecting tx");
+    return false;
+  }
 
 #if defined(PER_BLOCK_CHECKPOINT)
   // check if we're doing per-block checkpointing
