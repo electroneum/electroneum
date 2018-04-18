@@ -4061,6 +4061,15 @@ bool Blockchain::for_all_txpool_txes(std::function<bool(const crypto::hash&, con
   return m_db->for_all_txpool_txes(f, include_blob);
 }
 
+uint32_t Blockchain::get_mempool_tx_livetime() const
+{
+  if(get_hard_fork_version(get_current_blockchain_height()) >= 6)
+  {
+    return CRYPTONOTE_MEMPOOL_TX_LIVETIME_V6;
+  }
+  return CRYPTONOTE_MEMPOOL_TX_LIVETIME;
+}
+
 void Blockchain::set_user_options(uint64_t maxthreads, uint64_t blocks_per_sync, blockchain_db_sync_mode sync_mode, bool fast_sync)
 {
   if (sync_mode == db_defaultsync)
