@@ -90,7 +90,7 @@ static const struct {
 } mainnet_hard_forks[] = {
   // version 1 from the start of the blockchain
   { 1, 1, 0, 1341378000 },
-
+  { 6, 190250, 0, 1523263057 + 86400*180 },
   // version 2 starts from block 1009827, which is on or around the 20th of March, 2016. Fork time finalised on 2015-09-20. No fork voting occurs for the v2 fork.
   //{ 2, 1009827, 0, 1442763710 },
 
@@ -116,7 +116,6 @@ static const struct {
 } testnet_hard_forks[] = {
   // version 1 from the start of the blockchain
   { 1, 1, 0, 1341378000 },
-
   // version 2 starts from block 624634, which is on or around the 23rd of November, 2015. Fork time finalised on 2015-11-20. No fork voting occurs for the v2 fork.
   //{ 2, 624634, 0, 1445355000 },
 
@@ -752,7 +751,11 @@ difficulty_type Blockchain::get_difficulty_for_next_block()
     m_timestamps = timestamps;
     m_difficulties = difficulties;
   }
+
   size_t target = DIFFICULTY_TARGET;
+  if(m_db->height() >= 192750) {
+      size_t target = DIFFICULTY_TARGET_V6;
+  }
   return next_difficulty(timestamps, difficulties, target);
 }
 //------------------------------------------------------------------
@@ -952,7 +955,7 @@ difficulty_type Blockchain::get_next_difficulty_for_alternative_chain(const std:
     }
   }
 
-  // FIXME: This will fail if fork activation heights are subject to voting
+  // FIXME: This will fail if fork activation heights are subject to voting - Does this need fixing for the V6 fork?
   size_t target = DIFFICULTY_TARGET;
 
   // calculate the difficulty target for the block and return it
