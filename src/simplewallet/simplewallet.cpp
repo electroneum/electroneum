@@ -63,6 +63,7 @@
 #include "ringct/rctSigs.h"
 #include "wallet/wallet_args.h"
 #include <stdexcept>
+#include "cryptonote_config.h"
 
 #ifdef HAVE_READLINE
 #include "readline_buffer.h"
@@ -79,8 +80,6 @@ typedef cryptonote::simple_wallet sw;
 #define ELECTRONEUM_DEFAULT_LOG_CATEGORY "wallet.simplewallet"
 
 #define EXTENDED_LOGS_FILE "wallet_details.log"
-
-#define DEFAULT_MIX 4
 
 #define OUTPUT_EXPORT_FILE_MAGIC "Electroneum output export\003"
 
@@ -495,36 +494,28 @@ bool simple_wallet::set_default_ring_size(const std::vector<std::string> &args/*
   }
   try
   {
-    if (strchr(args[1].c_str(), '-'))
-    {
-      fail_msg_writer() << tr("ring size must be an integer >= 3");
-      return true;
-    }
     uint32_t ring_size = boost::lexical_cast<uint32_t>(args[1]);
-    if (ring_size < 3 && ring_size != 0)
+    if (strchr(args[1].c_str(), '-') || ring_size != 1)
     {
-      fail_msg_writer() << tr("ring size must be an integer >= 3");
-      return true;
+      fail_msg_writer() << tr("In V6, Ring size must be = 1. Setting this now.");
     }
-    if (ring_size == 0)
-      ring_size = DEFAULT_MIX + 1;
- 
+
     const auto pwd_container = get_and_verify_password();
     if (pwd_container)
     {
-      m_wallet->default_mixin(ring_size - 1);
+      m_wallet->default_mixin(DEFAULT_MIX);
       m_wallet->rewrite(m_wallet_file, pwd_container->password());
     }
     return true;
   }
   catch(const boost::bad_lexical_cast &)
   {
-    fail_msg_writer() << tr("ring size must be an integer >= 3");
+    fail_msg_writer() << tr("error changing the ringsize");
     return true;
   }
   catch(...)
   {
-    fail_msg_writer() << tr("could not change default ring size");
+    fail_msg_writer() << tr("error changing the ringsize");
     return true;
   }
 }
@@ -2343,21 +2334,7 @@ bool simple_wallet::transfer_main(int transfer_type, const std::vector<std::stri
     }
   }
 
-  size_t fake_outs_count;
-  if(local_args.size() > 0) {
-    size_t ring_size;
-    if(!epee::string_tools::get_xtype_from_string(ring_size, local_args[0]))
-    {
-      fake_outs_count = m_wallet->default_mixin();
-      if (fake_outs_count == 0)
-        fake_outs_count = DEFAULT_MIX;
-    }
-    else
-    {
-      fake_outs_count = ring_size - 1;
-      local_args.erase(local_args.begin());
-    }
-  }
+  size_t fake_outs_count = DEFAULT_MIX;
 
   const size_t min_args = (transfer_type == TransferLocked) ? 3 : 2;
   if(local_args.size() < min_args)
@@ -2859,7 +2836,7 @@ bool simple_wallet::sweep_unmixable(const std::vector<std::string> &args_)
   catch (const tools::error::not_enough_outs_to_mix& e)
   {
     auto writer = fail_msg_writer();
-    writer << tr("not enough outputs for specified ring size") << " = " << (e.mixin_count() + 1) << ":";
+    writer << tr("not enough outputs for specified ring size") << " = " << (DEFAULT_MIX) << ":";
     for (std::pair<uint64_t, uint64_t> outs_for_amount : e.scanty_outs())
     {
       writer << "\n" << tr("output amount") << " = " << print_money(outs_for_amount.first) << ", " << tr("found outputs to use") << " = " << outs_for_amount.second;
@@ -2920,21 +2897,8 @@ bool simple_wallet::sweep_main(uint64_t below, const std::vector<std::string> &a
 
   std::vector<std::string> local_args = args_;
 
-  size_t fake_outs_count;
-  if(local_args.size() > 0) {
-    size_t ring_size;
-    if(!epee::string_tools::get_xtype_from_string(ring_size, local_args[0]))
-    {
-      fake_outs_count = m_wallet->default_mixin();
-      if (fake_outs_count == 0)
-        fake_outs_count = DEFAULT_MIX;
-    }
-    else
-    {
-      fake_outs_count = ring_size - 1;
-      local_args.erase(local_args.begin());
-    }
-  }
+  size_t fake_outs_count = DEFAULT_MIX;
+
 
   std::vector<uint8_t> extra;
   bool payment_id_seen = false;
@@ -3124,7 +3088,7 @@ bool simple_wallet::sweep_main(uint64_t below, const std::vector<std::string> &a
   catch (const tools::error::not_enough_outs_to_mix& e)
   {
     auto writer = fail_msg_writer();
-    writer << tr("not enough outputs for specified ring size") << " = " << (e.mixin_count() + 1) << ":";
+    writer << tr("not enough outputs for specified ring size") << " = " << (DEFAULT_MIX) << ":";
     for (std::pair<uint64_t, uint64_t> outs_for_amount : e.scanty_outs())
     {
       writer << "\n" << tr("output amount") << " = " << print_money(outs_for_amount.first) << ", " << tr("found outputs to use") << " = " << outs_for_amount.second;
@@ -3475,7 +3439,7 @@ bool simple_wallet::submit_transfer(const std::vector<std::string> &args_)
   catch (const tools::error::not_enough_outs_to_mix& e)
   {
     auto writer = fail_msg_writer();
-    writer << tr("not enough outputs for specified ring size") << " = " << (e.mixin_count() + 1) << ":";
+    writer << tr("not enough outputs for specified ring size") << " = " << (DEFAULT_RINGSIZE) << ":";
     for (std::pair<uint64_t, uint64_t> outs_for_amount : e.scanty_outs())
     {
       writer << "\n" << tr("output amount") << " = " << print_money(outs_for_amount.first) << ", " << tr("found outputs to use") << " = " << outs_for_amount.second;
