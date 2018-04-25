@@ -297,9 +297,14 @@ namespace cryptonote
     m_core.set_target_blockchain_height((hshd.current_height));
     int64_t diff = static_cast<int64_t>(hshd.current_height) - static_cast<int64_t>(m_core.get_current_blockchain_height());
     uint64_t abs_diff = std::abs(diff);
-    // Todo : Fix for V6 fork
-    MCLOG(is_inital ? el::Level::Info : el::Level::Debug, "global", context <<  "Sync data returned a new top block candidate: " << m_core.get_current_blockchain_height() << " -> " << hshd.current_height
-      << " [Your node is " << abs_diff << " blocks (" << (abs_diff / (24 * 60 * 60 / DIFFICULTY_TARGET)) << " days) "
+//    // Todo : Fix for V6 fork
+//    MCLOG(is_inital ? el::Level::Info : el::Level::Debug, "global", context <<  "Sync data returned a new top block candidate: " << m_core.get_current_blockchain_height() << " -> " << hshd.current_height
+//      << " [Your node is " << abs_diff << " blocks (" << (abs_diff / (24 * 60 * 60 / DIFFICULTY_TARGET)) << " days) "
+//      << (0 <= diff ? std::string("behind") : std::string("ahead"))
+//      << "] " << ENDL << "SYNCHRONIZATION started");
+
+    MCLOG(is_inital ? el::Level::Info : el::Level::Debug, "global", context << "Sync data returned a new top block candidate: " << m_core.get_current_blockchain_height() << " -> " << hshd.current_height
+      << " [Your node is " << abs_diff << " blocks (" << ((abs_diff - diff) / (24 * 60 * 60 / DIFFICULTY_TARGET)) + (diff / (24 * 60 * 60 / DIFFICULTY_TARGET_V6)) << " days) "
       << (0 <= diff ? std::string("behind") : std::string("ahead"))
       << "] " << ENDL << "SYNCHRONIZATION started");
       m_core.safesyncmode(false);

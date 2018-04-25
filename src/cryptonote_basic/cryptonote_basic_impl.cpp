@@ -91,10 +91,7 @@ namespace cryptonote {
     static_assert(DIFFICULTY_TARGET%60==0,"difficulty target must be a multiple of 60");
     static_assert(DIFFICULTY_TARGET_V6%60==0,"difficulty target V6 must be a multiple of 60");
 
-    const int target = DIFFICULTY_TARGET_V6;
-    if(version >= 6) {
-      const int target = DIFFICULTY_TARGET;
-    }
+    const int target = version >= 6 ? DIFFICULTY_TARGET_V6 : DIFFICULTY_TARGET;
 
     const int target_minutes = target / 60;
     const int emission_speed_factor = EMISSION_SPEED_FACTOR_PER_MINUTE - (target_minutes-1);
