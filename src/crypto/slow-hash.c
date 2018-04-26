@@ -724,7 +724,7 @@ void slow_hash_free_state(void)
 
 #define U64(x) ((uint64_t *) (x))
 
-STATIC INLINE void xor64(uint64 *a, const uint64 b)
+STATIC INLINE void xor64(uint64_t *a, const uint64_t b)
 {
     *a ^= b;
 }
@@ -1332,6 +1332,7 @@ void cn_slow_hash(const void *data, size_t length, char *hash, int variant) {
     copy_block(&long_state[j * AES_BLOCK_SIZE], c);
     assert(j == e2i(a, MEMORY / AES_BLOCK_SIZE));
     swap_blocks(a, b);
+    VARIANT1_1(&long_state[j * AES_BLOCK_SIZE]);
     /* Iteration 2 */
     j = e2i(a, MEMORY / AES_BLOCK_SIZE);
     copy_block(c, &long_state[j * AES_BLOCK_SIZE]);
