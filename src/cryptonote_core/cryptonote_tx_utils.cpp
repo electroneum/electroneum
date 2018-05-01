@@ -125,7 +125,7 @@ namespace cryptonote
 
     CHECK_AND_ASSERT_MES(summary_amounts == block_reward, false, "Failed to construct miner tx, summary_amounts = " << summary_amounts << " not equal block_reward = " << block_reward);
 
-    if (hard_fork_version >= 4)
+    if (hard_fork_version >= HF_VERSION_ENABLE_RCT)
       tx.version = 2;
     else
       tx.version = 1;
@@ -163,7 +163,7 @@ namespace cryptonote
     tx.set_null();
     amount_keys.clear();
 
-    tx.version = rct ? 2 : 1;
+    tx.version = 1;
     tx.unlock_time = unlock_time;
 
     tx.extra = extra;
