@@ -592,48 +592,6 @@ TEST_F(WalletTest1, WalletTransaction)
     ASSERT_TRUE(wmgr->closeWallet(wallet1));
 }
 
-
-
-TEST_F(WalletTest1, WalletTransactionWithMixin)
-{
-
-    std::vector<int> mixins;
-    // 2,3,4,5,6,7,8,9,10,15,20,25 can we do it like that?
-    mixins.push_back(2); mixins.push_back(3); mixins.push_back(4); mixins.push_back(5); mixins.push_back(6);
-    mixins.push_back(7); mixins.push_back(8); mixins.push_back(9); mixins.push_back(10); mixins.push_back(15);
-    mixins.push_back(20); mixins.push_back(25);
-
-
-    std::string payment_id = "";
-
-    Electroneum::Wallet * wallet1 = wmgr->openWallet(CURRENT_SRC_WALLET, TESTNET_WALLET_PASS, true);
-
-
-    // make sure testnet daemon is running
-    ASSERT_TRUE(wallet1->init(TESTNET_DAEMON_ADDRESS, 0));
-    ASSERT_TRUE(wallet1->refresh());
-    uint64_t balance = wallet1->balance();
-    ASSERT_TRUE(wallet1->status() == Electroneum::PendingTransaction::Status_Ok);
-
-    std::string recepient_address = Utils::get_wallet_address(CURRENT_DST_WALLET, TESTNET_WALLET_PASS);
-    for (auto mixin : mixins) {
-        std::cerr << "Transaction mixin count: " << mixin << std::endl;
-        Electroneum::PendingTransaction * transaction = wallet1->createTransaction(
-                    recepient_address, payment_id, AMOUNT_5XMR, mixin);
-
-        std::cerr << "Transaction status: " << transaction->status() << std::endl;
-        std::cerr << "Transaction fee: " << Electroneum::Wallet::displayAmount(transaction->fee()) << std::endl;
-        std::cerr << "Transaction error: " << transaction->errorString() << std::endl;
-        ASSERT_TRUE(transaction->status() == Electroneum::PendingTransaction::Status_Ok);
-        wallet1->disposeTransaction(transaction);
-    }
-
-    wallet1->refresh();
-
-    ASSERT_TRUE(wallet1->balance() == balance);
-    ASSERT_TRUE(wmgr->closeWallet(wallet1));
-}
-
 TEST_F(WalletTest1, WalletTransactionWithPriority)
 {
 
@@ -648,7 +606,7 @@ TEST_F(WalletTest1, WalletTransactionWithPriority)
     ASSERT_TRUE(wallet1->status() == Electroneum::PendingTransaction::Status_Ok);
 
     std::string recepient_address = Utils::get_wallet_address(CURRENT_DST_WALLET, TESTNET_WALLET_PASS);
-    uint32_t mixin = 2;
+    uint32_t mixin = 0;
     uint64_t fee   = 0;
 
     std::vector<Electroneum::PendingTransaction::Priority> priorities =  {

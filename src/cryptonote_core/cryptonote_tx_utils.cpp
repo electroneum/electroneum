@@ -163,10 +163,7 @@ namespace cryptonote
     tx.set_null();
     amount_keys.clear();
 
-    //tx.version = rct ? 2 : 1; //tx.version 2 enable goes through rct code (which we have disabled)
-    tx.version = 1;
-
-    tx.unlock_time = unlock_time;
+    tx.version = 1;    tx.unlock_time = unlock_time;
 
     tx.extra = extra;
     keypair txkey = keypair::generate();
