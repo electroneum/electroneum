@@ -2274,6 +2274,13 @@ bool Blockchain::check_tx_inputs(transaction& tx, uint64_t& max_used_block_heigh
   LOG_PRINT_L3("Blockchain::" << __func__);
   CRITICAL_REGION_LOCAL(m_blockchain_lock);
 
+  size_t mixin = tx.vin[0].type() == typeid(txin_to_key) ? boost::get<txin_to_key>(tx.vin[0]).key_offsets.size() : 0;
+  //reject tx with mixin over 16 when blockheight is > 250000
+  if(mixin > 16 && m_db->height() > 250000){
+    LOG_PRINT_L1("tx " << mixin << " ring size greater than 16, rejecting tx");
+    return false;
+  }
+
 #if defined(PER_BLOCK_CHECKPOINT)
   // check if we're doing per-block checkpointing
   if (m_db->height() < m_blocks_hash_check.size() && kept_by_block)

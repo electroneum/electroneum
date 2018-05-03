@@ -506,6 +506,10 @@ bool simple_wallet::set_default_ring_size(const std::vector<std::string> &args/*
       fail_msg_writer() << tr("ring size must be an integer >= 3");
       return true;
     }
+    if(ring_size > 16){
+      fail_msg_writer() << tr("max ring size allowed is 16");
+      return true;
+    }
     if (ring_size == 0)
       ring_size = DEFAULT_MIX + 1;
  
@@ -2346,6 +2350,7 @@ bool simple_wallet::transfer_main(int transfer_type, const std::vector<std::stri
   size_t fake_outs_count;
   if(local_args.size() > 0) {
     size_t ring_size;
+
     if(!epee::string_tools::get_xtype_from_string(ring_size, local_args[0]))
     {
       fake_outs_count = m_wallet->default_mixin();
@@ -2354,8 +2359,14 @@ bool simple_wallet::transfer_main(int transfer_type, const std::vector<std::stri
     }
     else
     {
-      fake_outs_count = ring_size - 1;
-      local_args.erase(local_args.begin());
+      if(ring_size > 16){
+        fail_msg_writer() << tr("Ring size too high, max 16");
+        return false;
+      }
+      else{
+        fake_outs_count = ring_size - 1;
+        local_args.erase(local_args.begin());
+      }
     }
   }
 
@@ -2931,8 +2942,14 @@ bool simple_wallet::sweep_main(uint64_t below, const std::vector<std::string> &a
     }
     else
     {
-      fake_outs_count = ring_size - 1;
-      local_args.erase(local_args.begin());
+      if(ring_size > 16){
+        fail_msg_writer() << tr("Ring size too high, max 16");
+        return false;
+      }
+      else{
+        fake_outs_count = ring_size - 1;
+        local_args.erase(local_args.begin());
+      }
     }
   }
 
