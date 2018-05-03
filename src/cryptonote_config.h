@@ -38,7 +38,7 @@
 
 #define CRYPTONOTE_MAX_BLOCK_NUMBER                     500000000
 #define CRYPTONOTE_MAX_BLOCK_SIZE                       500000000  // block header blob limit, never used!
-#define CRYPTONOTE_GETBLOCKTEMPLATE_MAX_BLOCK_SIZE	196608 //size of block (bytes) that is the maximum that miners will produce
+#define CRYPTONOTE_GETBLOCKTEMPLATE_MAX_BLOCK_SIZE	    196608 //size of block (bytes) that is the maximum that miners will produce
 #define CRYPTONOTE_MAX_TX_SIZE                          1000000000
 #define CRYPTONOTE_PUBLIC_ADDRESS_TEXTBLOB_VER          0
 #define CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW            18
@@ -64,14 +64,15 @@
 // COIN - number of smallest units in one coin
 #define COIN                                            ((uint64_t)1000000000000) // pow(10, 12)
 
-#define FEE_PER_KB                                      ((uint64_t)1)
+#define FEE_PER_KB                                      ((uint64_t)1) //Initial fee of 0.01/kb
+#define FEE_PER_KB_V6                                   ((uint64_t)10) //Fee of 0.10/kb from HF V6
 
-#define DEFAULT_MIX                             0
-#define DEFAULT_RINGSIZE                        (DEFAULT_MIX + 1)
+#define DEFAULT_MIX                                     0
+#define DEFAULT_RINGSIZE                                (DEFAULT_MIX + 1)
 
-#define HF_VERSION_ENABLE_RCT                   7 //Make RCT enabled from v7
-#define HF_VERSION_ENFORCE_RCT                  8
-#define HF_VERSION_DYNAMIC_FEE                  7
+#define HF_VERSION_ENABLE_RCT                           7 //Make RCT enabled from v7
+#define HF_VERSION_ENFORCE_RCT                          8
+#define HF_VERSION_DYNAMIC_FEE                          7
 #define DYNAMIC_FEE_PER_KB_BASE_FEE                     ((uint64_t)2000000000) // 2 * pow(10,9)
 #define DYNAMIC_FEE_PER_KB_BASE_BLOCK_REWARD            ((uint64_t)10000000000000) // 10 * pow(10,12)
 #define DYNAMIC_FEE_PER_KB_BASE_FEE_V5                  ((uint64_t)2000000000 * (uint64_t)CRYPTONOTE_BLOCK_GRANTED_FULL_REWARD_ZONE_V2 / CRYPTONOTE_BLOCK_GRANTED_FULL_REWARD_ZONE_V5)

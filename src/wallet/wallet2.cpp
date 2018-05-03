@@ -3524,8 +3524,12 @@ uint64_t wallet2::get_dynamic_per_kb_fee_estimate()
 uint64_t wallet2::get_per_kb_fee()
 {
   bool use_dyn_fee = use_fork_rules(HF_VERSION_DYNAMIC_FEE, -720 * 1);
-  if (!use_dyn_fee)
+  if (!use_dyn_fee) {
+    bool fork_v6 = use_fork_rules(6, 0);
+    if(fork_v6)
+      return FEE_PER_KB_V6;
     return FEE_PER_KB;
+  }
 
   return get_dynamic_per_kb_fee_estimate();
 }
