@@ -52,7 +52,7 @@ namespace
         return false;
 
       commulative_diffic += diffic;
-      if (timestamps.size() == DIFFICULTY_WINDOW)
+      if (timestamps.size() == DIFFICULTY_WINDOW_V6)
       {
         timestamps.erase(timestamps.begin());
         cummulative_difficulties.erase(cummulative_difficulties.begin());
@@ -265,7 +265,7 @@ bool gen_block_unlock_time_is_timestamp_in_future::generate(std::vector<test_eve
   BLOCK_VALIDATION_INIT_GENERATE();
 
   MAKE_MINER_TX_MANUALLY(miner_tx, blk_0);
-  miner_tx.unlock_time = blk_0.timestamp + 3 * CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW * DIFFICULTY_BLOCKS_ESTIMATE_TIMESPAN;
+  miner_tx.unlock_time = blk_0.timestamp + 3 * CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW * DIFFICULTY_BLOCKS_ESTIMATE_TIMESPAN_V6;
 
   block blk_1;
   generator.construct_block_manually(blk_1, blk_0, miner_account, test_generator::bf_miner_tx, 0, 0, 0, crypto::hash(), 0, miner_tx);
@@ -559,7 +559,7 @@ bool gen_block_invalid_binary_format::generate(std::vector<test_event_entry>& ev
 
   // Unlock blk_0 outputs
   block blk_last = blk_0;
-  assert(CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW < DIFFICULTY_WINDOW);
+  assert(CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW < DIFFICULTY_WINDOW_V6);
   for (size_t i = 0; i < CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW; ++i)
   {
     MAKE_NEXT_BLOCK(events, blk_curr, blk_last, miner_account);
