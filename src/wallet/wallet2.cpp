@@ -2048,7 +2048,7 @@ bool wallet2::load_keys(const std::string& keys_file_name, const std::string& pa
     m_always_confirm_transfers = false;
     m_print_ring_members = false;
     m_default_mixin = 0;
-    m_default_priority = 0;
+    m_default_priority = 0; // Todo : Discuss whether to change the default priority
     m_auto_refresh = true;
     m_refresh_type = RefreshType::RefreshDefault;
     m_confirm_missing_payment_id = true;
@@ -2237,7 +2237,7 @@ crypto::secret_key wallet2::generate(const std::string& wallet_, const std::stri
 
   // -1 month for fluctuations in block time and machine date/time setup.
   // avg seconds per block
-  const int seconds_per_block = DIFFICULTY_TARGET;
+  const int seconds_per_block = DIFFICULTY_TARGET; // Todo : Fix for V6 fork
   // ~num blocks per month
   const uint64_t blocks_per_month = 60*60*24*30/seconds_per_block;
 
@@ -3487,6 +3487,7 @@ uint64_t wallet2::get_fee_multiplier(uint32_t priority, int fee_algorithm)
     priority = m_default_priority;
   if (priority == 0)
   {
+    // Todo : Discuss whether to up the priority by default
     if (fee_algorithm >= 2)
       priority = 2;
     else
@@ -5111,7 +5112,7 @@ uint64_t wallet2::get_approximate_blockchain_height() const
   // v2 fork block
   const uint64_t fork_block = m_testnet ? 624634 : 1009827;
   // avg seconds per block
-  const int seconds_per_block = DIFFICULTY_TARGET;
+  const int seconds_per_block = DIFFICULTY_TARGET; // Todo : Fix for V6 fork
   // Calculated blockchain height
   uint64_t approx_blockchain_height = fork_block + (time(NULL) - fork_time)/seconds_per_block;
   LOG_PRINT_L2("Calculated blockchain height: " << approx_blockchain_height);

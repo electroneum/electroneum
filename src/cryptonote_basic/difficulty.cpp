@@ -122,10 +122,10 @@ namespace cryptonote {
 
   difficulty_type next_difficulty(std::vector<std::uint64_t> timestamps, std::vector<difficulty_type> cumulative_difficulties, size_t target_seconds) {
 
-    if(timestamps.size() > DIFFICULTY_WINDOW)
+    if(timestamps.size() > DIFFICULTY_WINDOW) //Todo : Fix for V6 fork
     {
-      timestamps.resize(DIFFICULTY_WINDOW);
-      cumulative_difficulties.resize(DIFFICULTY_WINDOW);
+      timestamps.resize(DIFFICULTY_WINDOW); //Todo : Fix for V6 fork
+      cumulative_difficulties.resize(DIFFICULTY_WINDOW); //Todo : Fix for V6 fork
     }
 
 
@@ -134,17 +134,17 @@ namespace cryptonote {
     if (length <= 1) {
       return 1;
     }
-    static_assert(DIFFICULTY_WINDOW >= 2, "Window is too small");
-    assert(length <= DIFFICULTY_WINDOW);
+    static_assert(DIFFICULTY_WINDOW >= 2, "Window is too small"); //Todo : Fix for V6 fork
+    assert(length <= DIFFICULTY_WINDOW); //Todo : Fix for V6 fork
     sort(timestamps.begin(), timestamps.end());
     size_t cut_begin, cut_end;
-    static_assert(2 * DIFFICULTY_CUT <= DIFFICULTY_WINDOW - 2, "Cut length is too large");
-    if (length <= DIFFICULTY_WINDOW - 2 * DIFFICULTY_CUT) {
+    static_assert(2 * DIFFICULTY_CUT <= DIFFICULTY_WINDOW - 2, "Cut length is too large"); //Todo : Fix for V6 fork
+    if (length <= DIFFICULTY_WINDOW - 2 * DIFFICULTY_CUT) { //Todo : Fix for V6 fork
       cut_begin = 0;
       cut_end = length;
     } else {
-      cut_begin = (length - (DIFFICULTY_WINDOW - 2 * DIFFICULTY_CUT) + 1) / 2;
-      cut_end = cut_begin + (DIFFICULTY_WINDOW - 2 * DIFFICULTY_CUT);
+      cut_begin = (length - (DIFFICULTY_WINDOW - 2 * DIFFICULTY_CUT) + 1) / 2; //Todo : Fix for V6 fork
+      cut_end = cut_begin + (DIFFICULTY_WINDOW - 2 * DIFFICULTY_CUT); //Todo : Fix for V6 fork
     }
     assert(/*cut_begin >= 0 &&*/ cut_begin + 2 <= cut_end && cut_end <= length);
     uint64_t time_span = timestamps[cut_end - 1] - timestamps[cut_begin];
