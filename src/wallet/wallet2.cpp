@@ -3477,16 +3477,17 @@ uint64_t wallet2::get_fee_multiplier(uint32_t priority, int fee_algorithm)
   static const uint64_t old_multipliers[3] = {1, 2, 3};
   static const uint64_t new_multipliers[3] = {1, 20, 166};
   static const uint64_t newer_multipliers[4] = {1, 4, 20, 166};
+  static const uint64_t etn_v6_multipliers[4] = {1, 2, 4, 8};
 
   if (fee_algorithm == -1)
     fee_algorithm = get_fee_algorithm();
 
-  // 0 -> default (here, x1 till fee algorithm 2, x4 from it)
+  // 0 -> default (here, a v5 fork means priority 2, but ETN V6 onwards means priority 1)
   if (priority == 0)
     priority = m_default_priority;
   if (priority == 0)
   {
-    if (fee_algorithm >= 2)
+    if (fee_algorithm == 2)
       priority = 2;
     else
       priority = 1;
@@ -3501,6 +3502,7 @@ uint64_t wallet2::get_fee_multiplier(uint32_t priority, int fee_algorithm)
       case 0: return old_multipliers[priority-1];
       case 1: return new_multipliers[priority-1];
       case 2: return newer_multipliers[priority-1];
+      case 3: return etn_v6_multipliers[priority-1];
       default: THROW_WALLET_EXCEPTION_IF (true, error::invalid_priority);
     }
   }
@@ -3530,7 +3532,9 @@ uint64_t wallet2::get_per_kb_fee()
 //----------------------------------------------------------------------------------------------------
 int wallet2::get_fee_algorithm()
 {
-  // changes at v3 and v5
+  // changes at v3 and v5 and v6
+  if(use_fork_rules(6, 0))
+    return 3;
   if (use_fork_rules(5, 0))
     return 2;
   if (use_fork_rules(3, -720 * 14))
