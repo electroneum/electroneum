@@ -163,7 +163,9 @@ namespace cryptonote
     tx.set_null();
     amount_keys.clear();
 
+    //tx.version = rct ? 2 : 1;
     tx.version = 1;
+
     tx.unlock_time = unlock_time;
 
     tx.extra = extra;

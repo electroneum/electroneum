@@ -98,8 +98,9 @@
 #define BLOCKS_SYNCHRONIZING_DEFAULT_COUNT              20     //by default, blocks count in blocks downloading
 #define CRYPTONOTE_PROTOCOL_HOP_RELAX_COUNT             3      //value of hop, after which we use only announce of new block
 
-#define CRYPTONOTE_MEMPOOL_TX_LIVETIME                    86400 //seconds, one day
-#define CRYPTONOTE_MEMPOOL_TX_FROM_ALT_BLOCK_LIVETIME     604800 //seconds, one week
+#define CRYPTONOTE_MEMPOOL_TX_LIVETIME                    86400       //seconds, one day
+#define CRYPTONOTE_MEMPOOL_TX_LIVETIME_V6                 (86400*3)   //seconds, three days
+#define CRYPTONOTE_MEMPOOL_TX_FROM_ALT_BLOCK_LIVETIME     604800      //seconds, one week
 
 #define COMMAND_RPC_GET_BLOCKS_FAST_MAX_COUNT           1000
 
@@ -135,6 +136,13 @@
 #define MINER_CONFIG_FILE_NAME                  "miner_conf.json"
 
 #define THREAD_STACK_SIZE                       5 * 1024 * 1024
+
+#define HF_VERSION_DYNAMIC_FEE                  4
+#define HF_VERSION_MIN_MIXIN_4                  6
+
+//RingCT
+#define HF_VERSION_ENABLE_RCT                   7 //Make RCT enabled from v7
+#define HF_VERSION_ENFORCE_RCT                  8 //Make RCT a requirment from v8
 
 #define PER_KB_FEE_QUANTIZATION_DECIMALS        8
 
