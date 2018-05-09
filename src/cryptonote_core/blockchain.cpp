@@ -2445,7 +2445,7 @@ bool Blockchain::check_tx_inputs(transaction& tx, tx_verification_context &tvc, 
 
   // from hard fork 2, we require mixin at least 2 unless one output cannot mix with 2 others
   // if one output cannot mix with 2 others, we accept at most 1 output that can mix
-  if (hf_version >= 6 && m_db->height() > 307499)
+  if (hf_version >= 6)
   {
     for (const auto& txin : tx.vin)
     {
