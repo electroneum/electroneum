@@ -177,6 +177,6 @@ namespace config
         0x04, 0xF8, 0x23, 0xE1, 0x66, 0xC2, 0xE3, 0xA4, 0xEA, 0x5D, 0xD1, 0x2C, 0x85, 0x8E, 0xC8, 0x41
       } };
     std::string const GENESIS_TX = "011201ff000180bcf5dace2102a7957ab8394540efaa5bc93d747d6c56d8bf87b1c955574963dfbcf62ab13b5c210120d88af73976c98be9819df7e85bc21167d3194e242afd50601e398243c354b6";
-    uint32_t const GENESIS_NONCE = 10001;
+    uint32_t const GENESIS_NONCE = 10000;
   }
 }
