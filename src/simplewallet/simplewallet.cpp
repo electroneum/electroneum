@@ -4799,7 +4799,7 @@ bool simple_wallet::show_transfer(const std::vector<std::string> &args)
       else
       {
         uint64_t current_time = static_cast<uint64_t>(time(NULL));
-        uint64_t threshold = current_time + CRYPTONOTE_LOCKED_TX_ALLOWED_DELTA_SECONDS_V6;
+        uint64_t threshold = current_time + (m_wallet->use_fork_rules(6, 0) ? CRYPTONOTE_LOCKED_TX_ALLOWED_DELTA_SECONDS_V6 : CRYPTONOTE_LOCKED_TX_ALLOWED_DELTA_SECONDS);
         if (threshold >= pd.m_unlock_time)
           success_msg_writer() << "unlocked for " << get_human_readable_timespan(std::chrono::seconds(threshold - pd.m_unlock_time));
         else
