@@ -2088,7 +2088,6 @@ bool wallet2::load_keys(const std::string& keys_file_name, const std::string& pa
     GET_FIELD_FROM_JSON_RETURN_ON_ERROR(json, store_tx_info, int, Int, false, true);
     m_store_tx_info = ((field_store_tx_keys != 0) || (field_store_tx_info != 0));
     GET_FIELD_FROM_JSON_RETURN_ON_ERROR(json, default_mixin, unsigned int, Uint, false, 0);
-    m_default_mixin = field_default_mixin;
     GET_FIELD_FROM_JSON_RETURN_ON_ERROR(json, default_priority, unsigned int, Uint, false, 0);
     if (field_default_priority_found)
     {
@@ -3478,16 +3477,17 @@ uint64_t wallet2::get_fee_multiplier(uint32_t priority, int fee_algorithm)
   static const uint64_t old_multipliers[3] = {1, 2, 3};
   static const uint64_t new_multipliers[3] = {1, 20, 166};
   static const uint64_t newer_multipliers[4] = {1, 4, 20, 166};
+  static const uint64_t etn_v6_multipliers[4] = {1, 2, 4, 8};
 
   if (fee_algorithm == -1)
     fee_algorithm = get_fee_algorithm();
 
-  // 0 -> default (here, x1 till fee algorithm 2, x4 from it)
+  // 0 -> default (here, a v5 fork means priority 2, but ETN V6 onwards means priority 1)
   if (priority == 0)
     priority = m_default_priority;
   if (priority == 0)
   {
-    if (fee_algorithm >= 2)
+    if (fee_algorithm == 2)
       priority = 2;
     else
       priority = 1;
@@ -3502,6 +3502,7 @@ uint64_t wallet2::get_fee_multiplier(uint32_t priority, int fee_algorithm)
       case 0: return old_multipliers[priority-1];
       case 1: return new_multipliers[priority-1];
       case 2: return newer_multipliers[priority-1];
+      case 3: return etn_v6_multipliers[priority-1];
       default: THROW_WALLET_EXCEPTION_IF (true, error::invalid_priority);
     }
   }
@@ -3531,7 +3532,9 @@ uint64_t wallet2::get_per_kb_fee()
 //----------------------------------------------------------------------------------------------------
 int wallet2::get_fee_algorithm()
 {
-  // changes at v3 and v5
+  // changes at v3 and v5 and v6
+  if(use_fork_rules(6, 0))
+    return 3;
   if (use_fork_rules(5, 0))
     return 2;
   if (use_fork_rules(3, -720 * 14))
@@ -3545,7 +3548,7 @@ int wallet2::get_fee_algorithm()
 // transactions will be required
 std::vector<wallet2::pending_tx> wallet2::create_transactions(std::vector<cryptonote::tx_destination_entry> dsts, const size_t fake_outs_count, const uint64_t unlock_time, uint32_t priority, const std::vector<uint8_t> extra, bool trusted_daemon)
 {
-  const std::vector<size_t> unused_transfers_indices = select_available_outputs_from_histogram(fake_outs_count + 1, true, true, true, trusted_daemon);
+  const std::vector<size_t> unused_transfers_indices = select_available_outputs_from_histogram(DEFAULT_RINGSIZE, true, true, true, trusted_daemon);
 
   const uint64_t fee_per_kb  = get_per_kb_fee();
   const uint64_t fee_multiplier = get_fee_multiplier(priority, get_fee_algorithm());
@@ -3674,7 +3677,7 @@ void wallet2::get_outs(std::vector<std::vector<tools::wallet2::get_outs_entry>> 
     THROW_WALLET_EXCEPTION_IF(resp_t.result.status != CORE_RPC_STATUS_OK, error::get_histogram_error, resp_t.result.status);
 
     // we ask for more, to have spares if some outputs are still locked
-    size_t base_requested_outputs_count = (size_t)((fake_outputs_count + 1) * 1.5 + 1);
+    size_t base_requested_outputs_count = (size_t)((DEFAULT_RINGSIZE) * 1.5 + 1);
     LOG_PRINT_L2("base_requested_outputs_count: " << base_requested_outputs_count);
 
     // generate output indices to request
@@ -3811,7 +3814,7 @@ void wallet2::get_outs(std::vector<std::vector<tools::wallet2::get_outs_entry>> 
       const transfer_details &td = m_transfers[idx];
       size_t requested_outputs_count = base_requested_outputs_count + (td.is_rct() ? CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW - CRYPTONOTE_DEFAULT_TX_SPENDABLE_AGE : 0);
       outs.push_back(std::vector<get_outs_entry>());
-      outs.back().reserve(fake_outputs_count + 1);
+      outs.back().reserve(DEFAULT_RINGSIZE);
       const rct::key mask = td.is_rct() ? rct::commit(td.amount(), td.m_mask) : rct::zeroCommit(td.amount());
 
       // make sure the real outputs we asked for are really included, along
@@ -3842,8 +3845,8 @@ void wallet2::get_outs(std::vector<std::vector<tools::wallet2::get_outs_entry>> 
         order[n] = n;
       std::shuffle(order.begin(), order.end(), std::default_random_engine(crypto::rand<unsigned>()));
 
-      LOG_PRINT_L2("Looking for " << (fake_outputs_count+1) << " outputs of size " << print_money(td.is_rct() ? 0 : td.amount()));
-      for (size_t o = 0; o < requested_outputs_count && outs.back().size() < fake_outputs_count + 1; ++o)
+      LOG_PRINT_L2("Looking for " << (DEFAULT_RINGSIZE) << " outputs of size " << print_money(td.is_rct() ? 0 : td.amount()));
+      for (size_t o = 0; o < requested_outputs_count && outs.back().size() < DEFAULT_RINGSIZE; ++o)
       {
         size_t i = base + order[o];
         LOG_PRINT_L2("Index " << i << "/" << requested_outputs_count << ": idx " << req.outputs[i].index << " (real " << td.m_global_output_index << "), unlocked " << daemon_resp.outs[i].unlocked << ", key " << daemon_resp.outs[i].key);
@@ -3856,7 +3859,7 @@ void wallet2::get_outs(std::vector<std::vector<tools::wallet2::get_outs_entry>> 
           continue;
         outs.back().push_back(item);
       }
-      if (outs.back().size() < fake_outputs_count + 1)
+      if (outs.back().size() < DEFAULT_RINGSIZE)
       {
         scanty_outs[td.is_rct() ? 0 : td.amount()] = outs.back().size();
       }
@@ -3931,7 +3934,7 @@ void wallet2::transfer_selected(const std::vector<cryptonote::tx_destination_ent
     src.rct = td.is_rct();
     //paste keys (fake and real)
 
-    for (size_t n = 0; n < fake_outputs_count + 1; ++n)
+    for (size_t n = 0; n < DEFAULT_RINGSIZE; ++n)
     {
       tx_output_entry oe;
       oe.first = std::get<0>(outs[out_index][n]);
@@ -4178,7 +4181,7 @@ static size_t estimate_rct_tx_size(int n_inputs, int mixin, int n_outputs)
   size += 1 + 6;
 
   // vin
-  size += n_inputs * (1+6+(mixin+1)*2+32);
+  size += n_inputs * (1+6+(DEFAULT_RINGSIZE)*2+32);
 
   // vout
   size += n_outputs * (6+32);
@@ -4195,10 +4198,10 @@ static size_t estimate_rct_tx_size(int n_inputs, int mixin, int n_outputs)
   size += (2*64*32+32+64*32) * n_outputs;
 
   // MGs
-  size += n_inputs * (64 * (mixin+1) + 32);
+  size += n_inputs * (64 * (DEFAULT_RINGSIZE) + 32);
 
   // mixRing - not serialized, can be reconstructed
-  /* size += 2 * 32 * (mixin+1) * n_inputs; */
+  /* size += 2 * 32 * (DEFAULT_RINGSIZE) * n_inputs; */
 
   // pseudoOuts
   size += 32 * n_inputs;
@@ -4209,7 +4212,7 @@ static size_t estimate_rct_tx_size(int n_inputs, int mixin, int n_outputs)
   // txnFee
   size += 4;
 
-  LOG_PRINT_L2("estimated rct tx size for " << n_inputs << " with ring size " << (mixin+1) << " and " << n_outputs << ": " << size << " (" << ((32 * n_inputs/*+1*/) + 2 * 32 * (mixin+1) * n_inputs + 32 * n_outputs) << " saved)");
+  LOG_PRINT_L2("estimated rct tx size for " << n_inputs << " with ring size " << (DEFAULT_RINGSIZE) << " and " << n_outputs << ": " << size << " (" << ((32 * n_inputs/*+1*/) + 2 * 32 * (mixin+1) * n_inputs + 32 * n_outputs) << " saved)");
   return size;
 }
 
@@ -4450,13 +4453,13 @@ std::vector<wallet2::pending_tx> wallet2::create_transactions_2(std::vector<cryp
   // the destination, and one for change.
   LOG_PRINT_L2("checking preferred");
   std::vector<size_t> preferred_inputs;
-  uint64_t rct_outs_needed = 2 * (fake_outs_count + 1);
+  uint64_t rct_outs_needed = 2 * (DEFAULT_RINGSIZE);
   rct_outs_needed += 100; // some fudge factor since we don't know how many are locked
   if (use_rct && get_num_rct_outputs() >= rct_outs_needed)
   {
     // this is used to build a tx that's 1 or 2 inputs, and 2 outputs, which
     // will get us a known fee.
-    uint64_t estimated_fee = calculate_fee(fee_per_kb, estimate_rct_tx_size(2, fake_outs_count + 1, 2), fee_multiplier);
+    uint64_t estimated_fee = calculate_fee(fee_per_kb, estimate_rct_tx_size(2, DEFAULT_RINGSIZE, 2), fee_multiplier);
     preferred_inputs = pick_preferred_rct_inputs(needed_money + estimated_fee);
     if (!preferred_inputs.empty())
     {
@@ -4992,15 +4995,13 @@ const wallet2::transfer_details &wallet2::get_transfer_details(size_t idx) const
 std::vector<size_t> wallet2::select_available_unmixable_outputs(bool trusted_daemon)
 {
   // request all outputs with less than 3 instances
-  const size_t min_mixin = use_fork_rules(6, 10) ? 4 : 2; // v6 increases min mixin from 2 to 4
-  return select_available_outputs_from_histogram(min_mixin + 1, false, true, false, trusted_daemon);
+
+  return select_available_outputs_from_histogram(DEFAULT_RINGSIZE, false, true, false, trusted_daemon);
 }
 //----------------------------------------------------------------------------------------------------
 std::vector<size_t> wallet2::select_available_mixable_outputs(bool trusted_daemon)
 {
-  // request all outputs with at least 3 instances, so we can use mixin 2 with
-  const size_t min_mixin = use_fork_rules(6, 10) ? 4 : 2; // v6 increases min mixin from 2 to 4
-  return select_available_outputs_from_histogram(min_mixin + 1, true, true, true, trusted_daemon);
+  return select_available_outputs_from_histogram(DEFAULT_RINGSIZE, true, true, true, trusted_daemon);
 }
 //----------------------------------------------------------------------------------------------------
 std::vector<wallet2::pending_tx> wallet2::create_unmixable_sweep_transactions(bool trusted_daemon)
