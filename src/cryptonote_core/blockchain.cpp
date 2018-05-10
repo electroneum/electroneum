@@ -90,7 +90,7 @@ static const struct {
 } mainnet_hard_forks[] = {
   // version 1 from the start of the blockchain
   { 1, 1, 0, 1341378000 },
-  { 6, 307500, 0, 1523263057 + 86400*180 },
+  { 6, 307500, 0, 1538815057 }, //1538815057
 };
 static const uint64_t mainnet_hard_fork_version_1_till = 307499;
 
@@ -104,7 +104,7 @@ static const struct {
   { 1, 1, 0, 1341378000 },
   { 6, 190060, 0, 1523263057 + 86400*180 },
 };
-static const uint64_t testnet_hard_fork_version_1_till = 190060;
+static const uint64_t testnet_hard_fork_version_1_till = 190059;
 
 //------------------------------------------------------------------
 Blockchain::Blockchain(tx_memory_pool& tx_pool) :
@@ -2801,10 +2801,7 @@ bool Blockchain::check_fee(size_t blob_size, uint64_t fee) const
   uint64_t fee_per_kb;
   if (version < HF_VERSION_DYNAMIC_FEE)
   {
-    fee_per_kb = FEE_PER_KB;
-    if(version > 1)
-      fee_per_kb = FEE_PER_KB_V6;
-
+    fee_per_kb = version >= 6 ? FEE_PER_KB_V6 : FEE_PER_KB;
   }
   else
   {
