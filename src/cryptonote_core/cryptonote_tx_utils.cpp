@@ -163,9 +163,7 @@ namespace cryptonote
     tx.set_null();
     amount_keys.clear();
 
-    //tx.version = rct ? 2 : 1;
     tx.version = 1;
-
     tx.unlock_time = unlock_time;
 
     tx.extra = extra;
@@ -484,7 +482,7 @@ namespace cryptonote
     blobdata txb = tx_to_blob(bl.miner_tx);
     std::string hex_tx_represent = string_tools::buff_to_hex_nodelimer(txb);
 
-    std::string genesis_coinbase_tx_hex = config::GENESIS_TX;
+    std::string genesis_coinbase_tx_hex = genesis_tx;
 
     blobdata tx_bl;
     string_tools::parse_hexstr_to_binbuff(genesis_coinbase_tx_hex, tx_bl);
