@@ -163,7 +163,8 @@ namespace cryptonote
     tx.set_null();
     amount_keys.clear();
 
-    tx.version = 1;    tx.unlock_time = unlock_time;
+    tx.version = 1;
+    tx.unlock_time = unlock_time;
 
     tx.extra = extra;
     keypair txkey = keypair::generate();

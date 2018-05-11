@@ -2048,7 +2048,7 @@ bool wallet2::load_keys(const std::string& keys_file_name, const std::string& pa
     m_always_confirm_transfers = false;
     m_print_ring_members = false;
     m_default_mixin = 0;
-    m_default_priority = 0; // Todo : Discuss whether to change the default priority
+    m_default_priority = 0;
     m_auto_refresh = true;
     m_refresh_type = RefreshType::RefreshDefault;
     m_confirm_missing_payment_id = true;
