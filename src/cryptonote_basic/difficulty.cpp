@@ -120,12 +120,14 @@ namespace cryptonote {
     return !carry;
   }
 
-  difficulty_type next_difficulty(std::vector<std::uint64_t> timestamps, std::vector<difficulty_type> cumulative_difficulties, size_t target_seconds) {
+  difficulty_type next_difficulty(std::vector<std::uint64_t> timestamps, std::vector<difficulty_type> cumulative_difficulties, size_t target_seconds, uint8_t version) {
 
-    if(timestamps.size() > DIFFICULTY_WINDOW_V6)
+    size_t difficultyWindow = version >= 6 ? DIFFICULTY_WINDOW_V6 : DIFFICULTY_WINDOW;
+
+    if(timestamps.size() > difficultyWindow)
     {
-      timestamps.resize(DIFFICULTY_WINDOW_V6);
-      cumulative_difficulties.resize(DIFFICULTY_WINDOW_V6);
+      timestamps.resize(difficultyWindow);
+      cumulative_difficulties.resize(difficultyWindow);
     }
 
 
@@ -134,17 +136,19 @@ namespace cryptonote {
     if (length <= 1) {
       return 1;
     }
+    static_assert(DIFFICULTY_WINDOW >= 2, "Window is too small");
     static_assert(DIFFICULTY_WINDOW_V6 >= 2, "Window is too small");
-    assert(length <= DIFFICULTY_WINDOW_V6);
+    assert(length <= difficultyWindow);
     sort(timestamps.begin(), timestamps.end());
     size_t cut_begin, cut_end;
+    static_assert(2 * DIFFICULTY_CUT <= DIFFICULTY_WINDOW - 2, "Cut length is too large");
     static_assert(2 * DIFFICULTY_CUT <= DIFFICULTY_WINDOW_V6 - 2, "Cut length is too large");
-    if (length <= DIFFICULTY_WINDOW_V6 - 2 * DIFFICULTY_CUT) {
+    if (length <= difficultyWindow - 2 * DIFFICULTY_CUT) {
       cut_begin = 0;
       cut_end = length;
     } else {
-      cut_begin = (length - (DIFFICULTY_WINDOW_V6 - 2 * DIFFICULTY_CUT) + 1) / 2;
-      cut_end = cut_begin + (DIFFICULTY_WINDOW_V6 - 2 * DIFFICULTY_CUT);
+      cut_begin = (length - (difficultyWindow - 2 * DIFFICULTY_CUT) + 1) / 2;
+      cut_end = cut_begin + (difficultyWindow - 2 * DIFFICULTY_CUT);
     }
     assert(/*cut_begin >= 0 &&*/ cut_begin + 2 <= cut_end && cut_end <= length);
     uint64_t time_span = timestamps[cut_end - 1] - timestamps[cut_begin];
