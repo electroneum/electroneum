@@ -96,7 +96,7 @@ int main(int argc, char* argv[])
     GENERATE_AND_PLAY(one_block);
     GENERATE_AND_PLAY(gen_chain_switch_1);
     GENERATE_AND_PLAY(gen_ring_signature_1);
-    GENERATE_AND_PLAY(gen_ring_signature_2);
+
     //GENERATE_AND_PLAY(gen_ring_signature_big); // Takes up to XXX hours (if CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW == 10)
 
     // Block verification tests
@@ -168,36 +168,36 @@ int main(int argc, char* argv[])
 //    GENERATE_AND_PLAY(gen_v2_tx_unmixable_only);
 //    GENERATE_AND_PLAY(gen_v2_tx_unmixable_one);
 //    GENERATE_AND_PLAY(gen_v2_tx_unmixable_two);
-    GENERATE_AND_PLAY(gen_v2_tx_dust);
+      GENERATE_AND_PLAY(gen_v2_tx_dust);
 
-    GENERATE_AND_PLAY(gen_rct_tx_valid_from_pre_rct);
-    GENERATE_AND_PLAY(gen_rct_tx_valid_from_rct);
-    GENERATE_AND_PLAY(gen_rct_tx_valid_from_mixed);
-    GENERATE_AND_PLAY(gen_rct_tx_pre_rct_bad_real_dest);
-    GENERATE_AND_PLAY(gen_rct_tx_pre_rct_bad_real_mask);
-    GENERATE_AND_PLAY(gen_rct_tx_pre_rct_bad_fake_dest);
-    GENERATE_AND_PLAY(gen_rct_tx_pre_rct_bad_fake_mask);
-    GENERATE_AND_PLAY(gen_rct_tx_rct_bad_real_dest);
-    GENERATE_AND_PLAY(gen_rct_tx_rct_bad_real_mask);
-    GENERATE_AND_PLAY(gen_rct_tx_rct_bad_fake_dest);
-    GENERATE_AND_PLAY(gen_rct_tx_rct_bad_fake_mask);
-    GENERATE_AND_PLAY(gen_rct_tx_rct_spend_with_zero_commit);
-    GENERATE_AND_PLAY(gen_rct_tx_pre_rct_zero_vin_amount);
-    GENERATE_AND_PLAY(gen_rct_tx_rct_non_zero_vin_amount);
-    GENERATE_AND_PLAY(gen_rct_tx_non_zero_vout_amount);
-    GENERATE_AND_PLAY(gen_rct_tx_pre_rct_duplicate_key_image);
-    GENERATE_AND_PLAY(gen_rct_tx_rct_duplicate_key_image);
-    GENERATE_AND_PLAY(gen_rct_tx_pre_rct_wrong_key_image);
-    GENERATE_AND_PLAY(gen_rct_tx_rct_wrong_key_image);
-    GENERATE_AND_PLAY(gen_rct_tx_pre_rct_wrong_fee);
-    GENERATE_AND_PLAY(gen_rct_tx_rct_wrong_fee);
-    GENERATE_AND_PLAY(gen_rct_tx_pre_rct_remove_vin);
-    GENERATE_AND_PLAY(gen_rct_tx_rct_remove_vin);
-    GENERATE_AND_PLAY(gen_rct_tx_pre_rct_add_vout);
-    GENERATE_AND_PLAY(gen_rct_tx_rct_add_vout);
-    GENERATE_AND_PLAY(gen_rct_tx_pre_rct_increase_vin_and_fee);
-    GENERATE_AND_PLAY(gen_rct_tx_pre_rct_altered_extra);
-    GENERATE_AND_PLAY(gen_rct_tx_rct_altered_extra);
+//    GENERATE_AND_PLAY(gen_rct_tx_valid_from_pre_rct);
+//    GENERATE_AND_PLAY(gen_rct_tx_valid_from_rct);
+//    GENERATE_AND_PLAY(gen_rct_tx_valid_from_mixed);
+//    GENERATE_AND_PLAY(gen_rct_tx_pre_rct_bad_real_dest);
+//    GENERATE_AND_PLAY(gen_rct_tx_pre_rct_bad_real_mask);
+//    GENERATE_AND_PLAY(gen_rct_tx_pre_rct_bad_fake_dest);
+//    GENERATE_AND_PLAY(gen_rct_tx_pre_rct_bad_fake_mask);
+//    GENERATE_AND_PLAY(gen_rct_tx_rct_bad_real_dest);
+//    GENERATE_AND_PLAY(gen_rct_tx_rct_bad_real_mask);
+//    GENERATE_AND_PLAY(gen_rct_tx_rct_bad_fake_dest);
+//    GENERATE_AND_PLAY(gen_rct_tx_rct_bad_fake_mask);
+//    GENERATE_AND_PLAY(gen_rct_tx_rct_spend_with_zero_commit);
+//    GENERATE_AND_PLAY(gen_rct_tx_pre_rct_zero_vin_amount);
+//    GENERATE_AND_PLAY(gen_rct_tx_rct_non_zero_vin_amount);
+//    GENERATE_AND_PLAY(gen_rct_tx_non_zero_vout_amount);
+//    GENERATE_AND_PLAY(gen_rct_tx_pre_rct_duplicate_key_image);
+//    GENERATE_AND_PLAY(gen_rct_tx_rct_duplicate_key_image);
+//    GENERATE_AND_PLAY(gen_rct_tx_pre_rct_wrong_key_image);
+//    GENERATE_AND_PLAY(gen_rct_tx_rct_wrong_key_image);
+//    GENERATE_AND_PLAY(gen_rct_tx_pre_rct_wrong_fee);
+//    GENERATE_AND_PLAY(gen_rct_tx_rct_wrong_fee);
+//    GENERATE_AND_PLAY(gen_rct_tx_pre_rct_remove_vin);
+//    GENERATE_AND_PLAY(gen_rct_tx_rct_remove_vin);
+//    GENERATE_AND_PLAY(gen_rct_tx_pre_rct_add_vout);
+//    GENERATE_AND_PLAY(gen_rct_tx_rct_add_vout);
+//    GENERATE_AND_PLAY(gen_rct_tx_pre_rct_increase_vin_and_fee);
+//    GENERATE_AND_PLAY(gen_rct_tx_pre_rct_altered_extra);
+//    GENERATE_AND_PLAY(gen_rct_tx_rct_altered_extra);
 
     el::Level level = (failed_tests.empty() ? el::Level::Info : el::Level::Error);
     MLOG(level, "\nREPORT:");
