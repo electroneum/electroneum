@@ -63,6 +63,10 @@ release-all:
 	mkdir -p build/release
 	cd build/release && cmake -D BUILD_TESTS=ON -D CMAKE_BUILD_TYPE=release ../.. && $(MAKE)
 
+release-all-mingw:
+	mkdir -p build/release
+	cd build/release && cmake -D BUILD_TESTS=ON -D CMAKE_BUILD_TYPE=release -Dgtest_disable_pthreads=On ../.. && $(MAKE) && $(MAKE) test
+
 release-static:
 	mkdir -p build/release
 	cd build/release && cmake -D STATIC=ON -D ARCH="x86-64" -D BUILD_64=ON -D CMAKE_BUILD_TYPE=release ../.. && $(MAKE)
