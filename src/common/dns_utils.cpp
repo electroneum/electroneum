@@ -351,9 +351,9 @@ std::string address_from_txt_record(const std::string& s)
     {
       return s.substr(pos, 98);
     }
-    else if (pos2 - pos == 106) // length of address == 106 --> integrated address
+    else if (pos2 - pos == 109) // length of address == 106 --> integrated address
     {
-      return s.substr(pos, 106);
+      return s.substr(pos, 109);
     }
   }
   return {};
