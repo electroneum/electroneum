@@ -70,8 +70,6 @@
 #define DEFAULT_MIX                                     0
 #define DEFAULT_RINGSIZE                                (DEFAULT_MIX + 1)
 
-#define HF_VERSION_ENABLE_RCT                           7 //Make RCT enabled from v7
-#define HF_VERSION_ENFORCE_RCT                          8
 #define HF_VERSION_DYNAMIC_FEE                          7
 #define DYNAMIC_FEE_PER_KB_BASE_FEE                     ((uint64_t)2000000000) // 2 * pow(10,9)
 #define DYNAMIC_FEE_PER_KB_BASE_BLOCK_REWARD            ((uint64_t)10000000000000) // 10 * pow(10,12)
@@ -159,11 +157,11 @@ namespace config
 
   uint64_t const CRYPTONOTE_PUBLIC_ADDRESS_BASE58_PREFIX = 18018;
   uint64_t const CRYPTONOTE_PUBLIC_INTEGRATED_ADDRESS_BASE58_PREFIX = 18019;
-    uint16_t const P2P_DEFAULT_PORT = 26967;
-    uint16_t const RPC_DEFAULT_PORT = 26968;
-    boost::uuids::uuid const NETWORK_ID = { {
-          0x04, 0xF8, 0x23, 0xE1, 0x66, 0xC2, 0xE3, 0xA4, 0xEA, 0x5D, 0xD1, 0x2C, 0x85, 0x8E, 0xC8, 0x39
-        } };
+  uint16_t const P2P_DEFAULT_PORT = 26967;
+  uint16_t const RPC_DEFAULT_PORT = 26968;
+  boost::uuids::uuid const NETWORK_ID = { {
+      0x04, 0xF8, 0x23, 0xE1, 0x66, 0xC2, 0xE3, 0xA4, 0xEA, 0x5D, 0xD1, 0x2C, 0x85, 0x8E, 0xC8, 0x39
+    } };
   std::string const GENESIS_TX = "011201ff00011e026bc5c7db8a664f652d78adb587ac4d759c6757258b64ef9cba3c0354e64fb2e42101abca6a39c561d0897be183eb0143990eba201aa7d2c652ab0555d28bb4b70728";
   uint32_t const GENESIS_NONCE = 10000;
 

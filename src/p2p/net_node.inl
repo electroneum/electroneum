@@ -411,6 +411,8 @@ namespace nodetool
     if (testnet)
     {
       // Add testnet nodes here
+      full_addrs.insert("18.216.159.199:34567");
+      full_addrs.insert("18.216.237.214:34567");
     }
     else
     {
