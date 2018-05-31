@@ -411,7 +411,8 @@ namespace cryptonote
 
     // now that we have a valid m_blockchain_storage, we can clean out any
     // transactions in the pool that do not conform to the current fork
-    m_mempool.validate(m_blockchain_storage.get_current_hard_fork_version());
+
+    m_mempool.validate(m_blockchain_storage.get_current_hard_fork_version(), m_mempool);
 
     bool show_time_stats = command_line::get_arg(vm, command_line::arg_show_time_stats) != 0;
     m_blockchain_storage.set_show_time_stats(show_time_stats);
