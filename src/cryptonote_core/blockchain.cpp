@@ -61,6 +61,7 @@
 #define ELECTRONEUM_DEFAULT_LOG_CATEGORY "blockchain"
 
 #define FIND_BLOCKCHAIN_SUPPLEMENT_MAX_SIZE (100*1024*1024) // 100 MB
+#define V7_HARDFORK_HEIGHT ((uint64_t)(307517)) //CHANGE THIS IF YOU LIKE TO BE IT NEXT WEEK LOL.
 
 //#include "serialization/json_archive.h"
 
@@ -91,6 +92,7 @@ static const struct {
   // version 1 from the start of the blockchain
   { 1, 1, 0, 1341378000 },
   { 6, 307500, 0, 1538815057 }, //1538815057
+  { 7, V7_HARDFORK_HEIGHT, 0, 1527950581 }, //PLEASE CHANGE THE BLOCK HEIGHT^ AND TIMESTAMP, ALSO CHECK FOR ANY HARDCODES THAT YOU MIGHT'VE POSTPONED TO 7th version!
 };
 static const uint64_t mainnet_hard_fork_version_1_till = 307499;
 
@@ -691,6 +693,11 @@ difficulty_type Blockchain::get_difficulty_for_next_block()
   std::vector<uint64_t> timestamps;
   std::vector<difficulty_type> difficulties;
   auto height = m_db->height();
+  
+   // Basically reset diff to 19200000000 for the new SMA window, please change the difficulty if you WANT.
+  if (!m_testnet && (uint64_t)height >= V7_HARDFORK_HEIGHT && (uint64_t)height <= V7_HARDFORK_HEIGHT + (uint64_t)DIFFICULTY_BLOCKS_COUNT_V6){
+    return (difficulty_type) 19200000000;
+  }
 
   uint64_t v6height = m_testnet ? 190060 : 307500;
   uint32_t difficultyBlocksCount = height >= v6height ? DIFFICULTY_BLOCKS_COUNT_V6 : DIFFICULTY_BLOCKS_COUNT;
