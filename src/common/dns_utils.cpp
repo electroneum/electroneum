@@ -199,10 +199,12 @@ public:
 
 DNSResolver::DNSResolver() : m_data(new DNSResolverData())
 {
-  int use_dns_public = 0;
-  const char* dns_public_addr = "8.8.4.4";
+  std::string DNS_PUBLIC = "tcp"; // Solution sourced from https://github.com/monero-project/monero/issues/2172
+  int use_dns_public = 1;
+  const char* dns_public_addr = "8.8.8.8";
   if (auto res = getenv("DNS_PUBLIC"))
   {
+    LOG_PRINT_L0("Public DNS");
     std::string dns_public(res);
     // TODO: could allow parsing of IP and protocol: e.g. DNS_PUBLIC=tcp:8.8.8.8
     if (dns_public == "tcp")
@@ -435,7 +437,7 @@ namespace
   }
 }
 
-bool load_txt_records_from_dns(std::vector<std::string> &good_records, const std::vector<std::string> &dns_urls)
+bool load_txt_records_from_dns(std::vector<std::string> &good_records, const std::vector<std::string> &dns_urls, std::string type)
 {
   // Prevent infinite recursion when distributing
   if (dns_urls.empty()) return false;
@@ -458,12 +460,12 @@ bool load_txt_records_from_dns(std::vector<std::string> &good_records, const std
     if (!avail)
     {
       records[cur_index].clear();
-      LOG_PRINT_L2("DNSSEC not available for checkpoint update at URL: " << url << ", skipping.");
+      LOG_PRINT_L2("DNSSEC not available for " << type << " at URL: " << url << ", skipping.");
     }
     if (!valid)
     {
       records[cur_index].clear();
-      LOG_PRINT_L2("DNSSEC validation failed for checkpoint update at URL: " << url << ", skipping.");
+      LOG_PRINT_L2("DNSSEC validation failed for " << type << " at URL: " << url << ", skipping.");
     }
 
     cur_index++;
@@ -485,7 +487,7 @@ bool load_txt_records_from_dns(std::vector<std::string> &good_records, const std
 
   if (num_valid_records < 2)
   {
-    LOG_PRINT_L1("WARNING: no two valid ElectroneumPulse DNS checkpoint records were received");
+    LOG_PRINT_L1("WARNING: no two valid ElectroneumPulse DNS " << type << " records were received, only " << num_valid_records);
     return false;
   }
 
@@ -507,7 +509,7 @@ bool load_txt_records_from_dns(std::vector<std::string> &good_records, const std
 
   if (good_records_index < 0)
   {
-    LOG_PRINT_L1("WARNING: no two ElectroneumPulse DNS checkpoint records matched");
+    LOG_PRINT_L1("WARNING: no two ElectroneumPulse DNS " << type << " records matched");
     return false;
   }
 
