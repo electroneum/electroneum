@@ -75,7 +75,7 @@ TEST(DNSResolver, DNSSECSuccess)
 
   bool avail, valid;
 
-  auto ips = resolver.get_ipv4("example.com", avail, valid);
+  auto ips = resolver.get_ipv4("electroneumpulse.com", avail, valid);
 
   ASSERT_EQ(1, ips.size());
 
@@ -141,20 +141,20 @@ TEST(DNSResolver, GetTXTRecord)
 {
   bool avail, valid;
 
-  std::vector<std::string> records = tools::DNSResolver::instance().get_txt_record("donate.electroneum.com", avail, valid);
+  std::vector<std::string> records = tools::DNSResolver::instance().get_txt_record("donate.electroneumpulse.com", avail, valid);
 
   EXPECT_NE(0, records.size());
 
   for (auto& rec : records)
   {
-    std::cout << "TXT record for donate.electroneum.com: " << rec << std::endl;
+    std::cout << "TXT record for donate.electroneumpulse.com: " << rec << std::endl;
   }
 
   // replace first @ with .
-  std::string addr = tools::DNSResolver::instance().get_dns_format_from_oa_address("donate@electroneum.com");
-  EXPECT_STREQ("donate.electroneum.com", addr.c_str());
+  std::string addr = tools::DNSResolver::instance().get_dns_format_from_oa_address("donate@electroneumpulse.com");
+  EXPECT_STREQ("donate.electroneumpulse.com", addr.c_str());
 
   // no change
-  addr = tools::DNSResolver::instance().get_dns_format_from_oa_address("donate.electroneum.com");
-  EXPECT_STREQ("donate.electroneum.com", addr.c_str());
+  addr = tools::DNSResolver::instance().get_dns_format_from_oa_address("donate.electroneumpulse.com");
+  EXPECT_STREQ("donate.electroneumpulse.com", addr.c_str());
 }
