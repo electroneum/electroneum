@@ -77,7 +77,7 @@ TEST(DNSResolver, DNSSECSuccess)
 
   auto ips = resolver.get_ipv4("electroneumpulse.com", avail, valid);
 
-  ASSERT_EQ(1, ips.size());
+  ASSERT_EQ(2, ips.size()); // Cloudflare reports 2 IP's
 
   //ASSERT_STREQ("93.184.216.119", ips[0].c_str());
 
