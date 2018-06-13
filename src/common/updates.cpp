@@ -99,8 +99,7 @@ namespace tools
 
   std::string get_update_url(const std::string &software, const std::string &subdir, const std::string &buildtag, const std::string &version, bool user)
   {
-//    const char *base = user ? "https://downloads.electroneum.com/" : "https://updates.electroneum.com/";
-      const char *base = "https://github.com/electroneum/electroneum/releases/download/v";
+      const char *base = "http://s3-eu-west-1.amazonaws.com/updates.electroneum.com/releases/download/v";
 #ifdef _WIN32
     static const char extension[] = ".zip";
 #else
