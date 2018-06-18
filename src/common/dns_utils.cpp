@@ -209,8 +209,9 @@ namespace tools
 
     DNSResolver::DNSResolver() : m_data(new DNSResolverData())
     {
-        int use_dns_public = 0;
+        int use_dns_public = 1;
         std::vector<std::string> dns_public_addr;
+        setenv("DNS_PUBLIC", "tcp", 1);
         if (auto res = getenv("DNS_PUBLIC"))
         {
             dns_public_addr = tools::dns_utils::parse_dns_public(res);
