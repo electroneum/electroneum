@@ -170,6 +170,7 @@ int main(int argc, char* argv[])
 //    GENERATE_AND_PLAY(gen_v2_tx_unmixable_two);
     GENERATE_AND_PLAY(gen_v2_tx_dust);
 
+    /*
     GENERATE_AND_PLAY(gen_rct_tx_valid_from_pre_rct);
     GENERATE_AND_PLAY(gen_rct_tx_valid_from_rct);
     GENERATE_AND_PLAY(gen_rct_tx_valid_from_mixed);
@@ -198,7 +199,7 @@ int main(int argc, char* argv[])
     GENERATE_AND_PLAY(gen_rct_tx_pre_rct_increase_vin_and_fee);
     GENERATE_AND_PLAY(gen_rct_tx_pre_rct_altered_extra);
     GENERATE_AND_PLAY(gen_rct_tx_rct_altered_extra);
-
+    */
     el::Level level = (failed_tests.empty() ? el::Level::Info : el::Level::Error);
     MLOG(level, "\nREPORT:");
     MLOG(level, "  Test run: " << tests_count);
