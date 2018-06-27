@@ -237,3 +237,5 @@ config](utils/conf/electroneumd.conf).
 
 If you're on Mac, you may need to add the `--max-concurrency 1` option to
 electroneum-wallet-cli, and possibly electroneumd, if you get crashes refreshing.
+
+##Teamcity
