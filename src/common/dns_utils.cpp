@@ -211,7 +211,11 @@ namespace tools
     {
         int use_dns_public = 1;
         std::vector<std::string> dns_public_addr;
+#if defined(__MINGW32__) || defined(__MINGW__)
+        putenv("DNS_PUBLIC=tcp");
+#else
         setenv("DNS_PUBLIC", "tcp", 1);
+#endif
         if (auto res = getenv("DNS_PUBLIC"))
         {
             dns_public_addr = tools::dns_utils::parse_dns_public(res);
