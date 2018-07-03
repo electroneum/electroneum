@@ -739,7 +739,7 @@ difficulty_type Blockchain::get_difficulty_for_next_block()
   }
 
   size_t target = get_difficulty_target();
-  uint8_t version = height >= v6height ? 6 : 1;
+  uint8_t version = (height >= v6height && height < v7height) ? 6 : 1;
   return next_difficulty(timestamps, difficulties, target, version);
 }
 //------------------------------------------------------------------
