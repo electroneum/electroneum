@@ -891,7 +891,8 @@ difficulty_type Blockchain::get_next_difficulty_for_alternative_chain(const std:
 
   auto height = m_db->height();
   uint64_t v6height = m_testnet ? 190060 : 307500;
-  uint32_t difficultyBlocksCount = height >= v6height ? DIFFICULTY_BLOCKS_COUNT_V6 : DIFFICULTY_BLOCKS_COUNT;
+  uint64_t v7height = m_testnet ? 215000 : 324500;
+  uint32_t difficultyBlocksCount = (height >= v6height && height < v7height) ? DIFFICULTY_BLOCKS_COUNT_V6 : DIFFICULTY_BLOCKS_COUNT;
 
   // if the alt chain isn't long enough to calculate the difficulty target
   // based on its blocks alone, need to get more blocks from the main chain
