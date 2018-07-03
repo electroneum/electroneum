@@ -695,7 +695,7 @@ difficulty_type Blockchain::get_difficulty_for_next_block()
   auto height = m_db->height();
 
   uint64_t v6height = m_testnet ? 190060 : 307500;
-  uint64_t v7height = m_testnet ? 215000 : 330000;
+  uint64_t v7height = m_testnet ? 215000 : 324500;
 
   uint32_t difficultyBlocksCount = (height >= v6height && height < v7height) ? DIFFICULTY_BLOCKS_COUNT_V6 : DIFFICULTY_BLOCKS_COUNT;
 
