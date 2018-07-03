@@ -122,7 +122,7 @@ namespace cryptonote {
 
   difficulty_type next_difficulty(std::vector<std::uint64_t> timestamps, std::vector<difficulty_type> cumulative_difficulties, size_t target_seconds, uint8_t version) {
 
-    size_t difficultyWindow = version == 6 ? DIFFICULTY_WINDOW_V6 : DIFFICULTY_WINDOW;
+    size_t difficultyWindow = version >= 6 ? DIFFICULTY_WINDOW_V6 : DIFFICULTY_WINDOW;
 
     if(timestamps.size() > difficultyWindow)
     {
