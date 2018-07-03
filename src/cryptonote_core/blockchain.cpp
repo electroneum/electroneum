@@ -103,6 +103,7 @@ static const struct {
   // version 1 from the start of the blockchain
   { 1, 1, 0, 1341378000 },
   { 6, 190060, 0, 1523263057 + 86400*180 },
+  { 7, 215250, 0, 1530615600 }
 };
 static const uint64_t testnet_hard_fork_version_1_till = 190059;
 
@@ -692,8 +693,15 @@ difficulty_type Blockchain::get_difficulty_for_next_block()
   std::vector<difficulty_type> difficulties;
   auto height = m_db->height();
 
+  uint32_t difficultyBlocksCount = 0
   uint64_t v6height = m_testnet ? 190060 : 307500;
-  uint32_t difficultyBlocksCount = height >= v6height ? DIFFICULTY_BLOCKS_COUNT_V6 : DIFFICULTY_BLOCKS_COUNT;
+  uint64_t v7height = m_testnet ? 215250 : 330000;
+  if(height >= v6height && height <= v7height) {
+    difficultyBlocksCount = DIFFICULTY_BLOCKS_COUNT_V6;
+  } else {
+    difficultyBlocksCount = DIFFICULTY_BLOCKS_COUNT;
+  }
+
   // ND: Speedup
   // 1. Keep a list of the last 735 (or less) blocks that is used to compute difficulty,
   //    then when the next block difficulty is queried, push the latest height data and
