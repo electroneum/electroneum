@@ -56,6 +56,8 @@ Packages are available for
 * Ubuntu and [snap supported](https://snapcraft.io/docs/core/install) systems, via a community contributed build.
 
     snap install electroneum --beta
+    
+    On Ubuntu 16.04 you will also need to install libunbound by sudo apt-get install libunbound-dev
 
 Installing a snap is very quick. Snaps are secure. They are isolated with all of their dependencies. Snaps also auto update when a new version is released.
 
