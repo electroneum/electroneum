@@ -327,7 +327,7 @@ namespace cryptonote
      *
      * @return the number of transactions removed
      */
-    size_t validate(uint8_t version);
+    size_t validate(uint8_t version, tx_memory_pool& pool);
 
 
 #define CURRENT_MEMPOOL_ARCHIVE_VER    11

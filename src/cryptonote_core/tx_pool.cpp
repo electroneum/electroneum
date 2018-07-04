@@ -130,6 +130,17 @@ namespace cryptonote
       return false;
     }
 
+    if(m_blockchain.get_current_hard_fork_version() >=6)
+    {
+        crypto::hash tx_prefix_hash = get_transaction_prefix_hash(tx);
+        for (const auto& txin : tx.vin) {
+            if (boost::get<txin_to_key>(txin).key_offsets.size() != DEFAULT_RINGSIZE) {
+                tvc.m_verifivation_failed = true;
+                return false;
+            }
+        }
+    }
+
     if(!check_inputs_types_supported(tx))
     {
       tvc.m_verifivation_failed = true;
@@ -950,7 +961,7 @@ namespace cryptonote
     return true;
   }
   //---------------------------------------------------------------------------------
-  size_t tx_memory_pool::validate(uint8_t version)
+  size_t tx_memory_pool::validate(uint8_t version, tx_memory_pool& pool)
   {
     CRITICAL_REGION_LOCAL(m_transactions_lock);
     CRITICAL_REGION_LOCAL1(m_blockchain);
@@ -969,6 +980,25 @@ namespace cryptonote
       return true;
     });
 
+   if (version >= 6) {
+
+       std::list<transaction> txs;
+       pool.get_transactions(txs);
+
+       for (auto itr = txs.begin(); itr != txs.end(); itr++) {
+
+           crypto::hash tx_prefix_hash = get_transaction_prefix_hash((*itr));
+
+           for (auto txin : itr->vin) {
+
+               if (boost::get<txin_to_key>(txin).key_offsets.size() != DEFAULT_RINGSIZE) {
+                   crypto::hash txid = get_transaction_hash((*itr));
+                   LOG_PRINT_L1("Transaction " << txid << " has an invalid ringsize, removing it from pool");
+                   remove.insert(txid);
+               }
+           }
+       }
+   }
     size_t n_removed = 0;
     if (!remove.empty())
     {
