@@ -946,7 +946,7 @@ difficulty_type Blockchain::get_next_difficulty_for_alternative_chain(const std:
 
   // FIXME: This will fail if fork activation heights are subject to voting - Does this need fixing for the V6 fork?
   size_t target = get_difficulty_target();
-  uint8_t version = height >= v6height ? 6 : 1;
+  uint8_t version = (height >= v6height && height < v7height) ? 6 : 1;
   // calculate the difficulty target for the block and return it
   return next_difficulty(timestamps, cumulative_difficulties, target, version);
 }
