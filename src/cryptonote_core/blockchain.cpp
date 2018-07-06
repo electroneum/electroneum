@@ -91,6 +91,7 @@ static const struct {
   // version 1 from the start of the blockchain
   { 1, 1, 0, 1341378000 },
   { 6, 307500, 0, 1538815057 }, //1538815057
+  { 7, 324500, 0, 1538985600 }, // Estimated July 5th, 8:30AM UTC
 };
 static const uint64_t mainnet_hard_fork_version_1_till = 307499;
 
@@ -102,7 +103,8 @@ static const struct {
 } testnet_hard_forks[] = {
   // version 1 from the start of the blockchain
   { 1, 1, 0, 1341378000 },
-  { 6, 190060, 0, 1523263057 + 86400*180 },
+  { 6, 190060, 0, 1523263057 },
+  { 7, 215000, 0, 1530615600 }
 };
 static const uint64_t testnet_hard_fork_version_1_till = 190059;
 
@@ -693,7 +695,10 @@ difficulty_type Blockchain::get_difficulty_for_next_block()
   auto height = m_db->height();
 
   uint64_t v6height = m_testnet ? 190060 : 307500;
-  uint32_t difficultyBlocksCount = height >= v6height ? DIFFICULTY_BLOCKS_COUNT_V6 : DIFFICULTY_BLOCKS_COUNT;
+  uint64_t v7height = m_testnet ? 215000 : 324500;
+
+  uint32_t difficultyBlocksCount = (height >= v6height && height < v7height) ? DIFFICULTY_BLOCKS_COUNT_V6 : DIFFICULTY_BLOCKS_COUNT;
+
   // ND: Speedup
   // 1. Keep a list of the last 735 (or less) blocks that is used to compute difficulty,
   //    then when the next block difficulty is queried, push the latest height data and
@@ -734,7 +739,7 @@ difficulty_type Blockchain::get_difficulty_for_next_block()
   }
 
   size_t target = get_difficulty_target();
-  uint8_t version = height >= v6height ? 6 : 1;
+  uint8_t version = (height >= v6height && height < v7height) ? 6 : 1;
   return next_difficulty(timestamps, difficulties, target, version);
 }
 //------------------------------------------------------------------
@@ -886,7 +891,8 @@ difficulty_type Blockchain::get_next_difficulty_for_alternative_chain(const std:
 
   auto height = m_db->height();
   uint64_t v6height = m_testnet ? 190060 : 307500;
-  uint32_t difficultyBlocksCount = height >= v6height ? DIFFICULTY_BLOCKS_COUNT_V6 : DIFFICULTY_BLOCKS_COUNT;
+  uint64_t v7height = m_testnet ? 215000 : 324500;
+  uint32_t difficultyBlocksCount = (height >= v6height && height < v7height) ? DIFFICULTY_BLOCKS_COUNT_V6 : DIFFICULTY_BLOCKS_COUNT;
 
   // if the alt chain isn't long enough to calculate the difficulty target
   // based on its blocks alone, need to get more blocks from the main chain
@@ -940,7 +946,7 @@ difficulty_type Blockchain::get_next_difficulty_for_alternative_chain(const std:
 
   // FIXME: This will fail if fork activation heights are subject to voting - Does this need fixing for the V6 fork?
   size_t target = get_difficulty_target();
-  uint8_t version = height >= v6height ? 6 : 1;
+  uint8_t version = (height >= v6height && height < v7height) ? 6 : 1;
   // calculate the difficulty target for the block and return it
   return next_difficulty(timestamps, cumulative_difficulties, target, version);
 }
