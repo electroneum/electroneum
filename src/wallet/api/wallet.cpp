@@ -53,7 +53,7 @@ namespace Electroneum {
 
 namespace {
     // copy-pasted from simplewallet
-    static const size_t DEFAULT_MIXIN = 4;
+    static const size_t DEFAULT_MIXIN = DEFAULT_MIX;
     static const int    DEFAULT_REFRESH_INTERVAL_MILLIS = 1000 * 10;
     // limit maximum refresh interval as one minute
     static const int    MAX_REFRESH_INTERVAL_MILLIS = 1000 * 60 * 1;
@@ -905,9 +905,7 @@ PendingTransaction *WalletImpl::createTransaction(const string &dst_addr, const 
     bool has_payment_id;
     crypto::hash8 payment_id_short;
     // TODO:  (https://bitcointalk.org/index.php?topic=753252.msg9985441#msg9985441)
-    size_t fake_outs_count = mixin_count > 0 ? mixin_count : m_wallet->default_mixin();
-    if (fake_outs_count == 0)
-        fake_outs_count = DEFAULT_MIXIN;
+    size_t fake_outs_count = DEFAULT_MIX;
 
     PendingTransactionImpl * transaction = new PendingTransactionImpl(*this);
 
@@ -1294,7 +1292,7 @@ void WalletImpl::refreshThreadFunc()
         // if auto refresh enabled, we wait for the "m_refreshIntervalSeconds" interval.
         // if not - we wait forever
         if (m_refreshIntervalMillis > 0) {
-            boost::posix_time::milliseconds wait_for_ms(m_refreshIntervalMillis);
+            boost::posix_time::milliseconds wait_for_ms(m_refreshIntervalMillis.load());
             m_refreshCV.timed_wait(lock, wait_for_ms);
         } else {
             m_refreshCV.wait(lock);

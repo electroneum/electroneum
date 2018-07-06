@@ -80,7 +80,7 @@ typedef cryptonote::simple_wallet sw;
 
 #define EXTENDED_LOGS_FILE "wallet_details.log"
 
-#define DEFAULT_MIX 4
+#define DEFAULT_MIXIN 0
 
 #define OUTPUT_EXPORT_FILE_MAGIC "Electroneum output export\003"
 
@@ -435,7 +435,7 @@ bool simple_wallet::print_fee_info(const std::vector<std::string> &args/* = std:
       std::string msg;
       if (priority == m_wallet->get_default_priority() || (m_wallet->get_default_priority() == 0 && priority == 2))
         msg = tr(" (current)");
-      uint64_t minutes_low = nblocks_low * DIFFICULTY_TARGET / 60, minutes_high = nblocks_high * DIFFICULTY_TARGET / 60;
+      uint64_t minutes_low = nblocks_low * DIFFICULTY_TARGET_V6 / 60, minutes_high = nblocks_high * DIFFICULTY_TARGET_V6 / 60;
       if (nblocks_high == nblocks_low)
         message_writer() << (boost::format(tr("%u block (%u minutes) backlog at priority %u%s")) % nblocks_low % minutes_low % priority % msg).str();
       else
@@ -495,36 +495,28 @@ bool simple_wallet::set_default_ring_size(const std::vector<std::string> &args/*
   }
   try
   {
-    if (strchr(args[1].c_str(), '-'))
-    {
-      fail_msg_writer() << tr("ring size must be an integer >= 3");
-      return true;
-    }
     uint32_t ring_size = boost::lexical_cast<uint32_t>(args[1]);
-    if (ring_size < 3 && ring_size != 0)
+    if (strchr(args[1].c_str(), '-') || ring_size != 1)
     {
-      fail_msg_writer() << tr("ring size must be an integer >= 3");
-      return true;
+      fail_msg_writer() << tr("In V6, Ring size must be = 1. Setting this now.");
     }
-    if (ring_size == 0)
-      ring_size = DEFAULT_MIX + 1;
- 
+
     const auto pwd_container = get_and_verify_password();
     if (pwd_container)
     {
-      m_wallet->default_mixin(ring_size - 1);
+      m_wallet->default_mixin(DEFAULT_MIXIN);
       m_wallet->rewrite(m_wallet_file, pwd_container->password());
     }
     return true;
   }
   catch(const boost::bad_lexical_cast &)
   {
-    fail_msg_writer() << tr("ring size must be an integer >= 3");
+    fail_msg_writer() << tr("error changing the ringsize");
     return true;
   }
   catch(...)
   {
-    fail_msg_writer() << tr("could not change default ring size");
+    fail_msg_writer() << tr("error changing the ringsize");
     return true;
   }
 }
@@ -2343,21 +2335,14 @@ bool simple_wallet::transfer_main(int transfer_type, const std::vector<std::stri
     }
   }
 
-  size_t fake_outs_count;
-  if(local_args.size() > 0) {
-    size_t ring_size;
-    if(!epee::string_tools::get_xtype_from_string(ring_size, local_args[0]))
-    {
-      fake_outs_count = m_wallet->default_mixin();
-      if (fake_outs_count == 0)
-        fake_outs_count = DEFAULT_MIX;
+    size_t fake_outs_count = DEFAULT_MIXIN;
+    if (local_args.size() > 0) {
+        size_t ring_size;
+        if (epee::string_tools::get_xtype_from_string(ring_size, local_args[0])) {
+            local_args.erase(local_args.begin());
+        }
     }
-    else
-    {
-      fake_outs_count = ring_size - 1;
-      local_args.erase(local_args.begin());
-    }
-  }
+
 
   const size_t min_args = (transfer_type == TransferLocked) ? 3 : 2;
   if(local_args.size() < min_args)
@@ -2920,20 +2905,12 @@ bool simple_wallet::sweep_main(uint64_t below, const std::vector<std::string> &a
 
   std::vector<std::string> local_args = args_;
 
-  size_t fake_outs_count;
-  if(local_args.size() > 0) {
-    size_t ring_size;
-    if(!epee::string_tools::get_xtype_from_string(ring_size, local_args[0]))
-    {
-      fake_outs_count = m_wallet->default_mixin();
-      if (fake_outs_count == 0)
-        fake_outs_count = DEFAULT_MIX;
-    }
-    else
-    {
-      fake_outs_count = ring_size - 1;
-      local_args.erase(local_args.begin());
-    }
+  size_t fake_outs_count = DEFAULT_MIXIN;
+  if (local_args.size() > 0) {
+      size_t ring_size;
+      if (epee::string_tools::get_xtype_from_string(ring_size, local_args[0])) {
+          local_args.erase(local_args.begin());
+      }
   }
 
   std::vector<uint8_t> extra;
@@ -3533,6 +3510,7 @@ bool simple_wallet::get_tx_key(const std::vector<std::string> &args_)
     fail_msg_writer() << tr("usage: get_tx_key <txid>");
     return true;
   }
+
   if (m_wallet->ask_password() && !get_and_verify_password()) { return true; }
 
   cryptonote::blobdata txid_data;
@@ -4820,7 +4798,7 @@ bool simple_wallet::show_transfer(const std::vector<std::string> &args)
       else
       {
         uint64_t current_time = static_cast<uint64_t>(time(NULL));
-        uint64_t threshold = current_time + CRYPTONOTE_LOCKED_TX_ALLOWED_DELTA_SECONDS;
+        uint64_t threshold = current_time + (m_wallet->use_fork_rules(6, 0) ? CRYPTONOTE_LOCKED_TX_ALLOWED_DELTA_SECONDS_V6 : CRYPTONOTE_LOCKED_TX_ALLOWED_DELTA_SECONDS);
         if (threshold >= pd.m_unlock_time)
           success_msg_writer() << "unlocked for " << get_human_readable_timespan(std::chrono::seconds(threshold - pd.m_unlock_time));
         else

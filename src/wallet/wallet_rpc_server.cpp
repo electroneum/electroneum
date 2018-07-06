@@ -229,19 +229,6 @@ namespace tools
       return false;
   }
   //------------------------------------------------------------------------------------------------------------------------------
-  uint64_t wallet_rpc_server::adjust_mixin(uint64_t mixin)
-  {
-    if (mixin < 4 && m_wallet->use_fork_rules(6, 10)) {
-      MWARNING("Requested ring size " << (mixin + 1) << " too low for hard fork 6, using 5");
-      mixin = 4;
-    }
-    else if (mixin < 2 && m_wallet->use_fork_rules(2, 10)) {
-      MWARNING("Requested ring size " << (mixin + 1) << " too low for hard fork 2, using 3");
-      mixin = 2;
-    }
-    return mixin;
-  }
-  //------------------------------------------------------------------------------------------------------------------------------
   void wallet_rpc_server::fill_transfer_entry(tools::wallet_rpc::transfer_entry &entry, const crypto::hash &txid, const crypto::hash &payment_id, const tools::wallet2::payment_details &pd)
   {
     entry.txid = string_tools::pod_to_hex(pd.m_tx_hash);
@@ -470,7 +457,7 @@ namespace tools
 
     try
     {
-      uint64_t mixin = adjust_mixin(req.mixin);
+      uint64_t mixin = DEFAULT_MIX;
       std::vector<wallet2::pending_tx> ptx_vector = m_wallet->create_transactions_2(dsts, mixin, req.unlock_time, req.priority, extra, m_trusted_daemon);
 
       // reject proposed transactions if there are more than one.  see on_transfer_split below.
@@ -537,7 +524,7 @@ namespace tools
 
     try
     {
-      uint64_t mixin = adjust_mixin(req.mixin);
+      uint64_t mixin = DEFAULT_MIX;
       uint64_t ptx_amount;
       std::vector<wallet2::pending_tx> ptx_vector;
       LOG_PRINT_L2("on_transfer_split calling create_transactions_2");
@@ -668,7 +655,7 @@ namespace tools
 
     try
     {
-      uint64_t mixin = adjust_mixin(req.mixin);
+      uint64_t mixin = DEFAULT_MIX;
       std::vector<wallet2::pending_tx> ptx_vector = m_wallet->create_transactions_all(req.below_amount, dsts[0].addr, mixin, req.unlock_time, req.priority, extra, m_trusted_daemon);
 
       if (!req.do_not_relay)
