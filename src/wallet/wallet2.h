@@ -647,6 +647,7 @@ namespace tools
     crypto::hash get_payment_id(const pending_tx &ptx) const;
     crypto::hash8 get_short_payment_id(const pending_tx &ptx) const;
     void check_acc_out_precomp(const crypto::public_key &spend_public_key, const cryptonote::tx_out &o, const crypto::key_derivation &derivation, size_t i, bool &received, uint64_t &money_transfered, bool &error) const;
+    void check_acc_out_precomp_once(const crypto::public_key &spend_public_key, const cryptonote::tx_out &o, const crypto::key_derivation &derivation, size_t i, bool &received, uint64_t &money_transfered, bool &error, bool &already_seen) const;
     void parse_block_round(const cryptonote::blobdata &blob, cryptonote::block &bl, crypto::hash &bl_id, bool &error) const;
     uint64_t get_upper_transaction_size_limit();
     std::vector<uint64_t> get_unspent_amounts_vector();
