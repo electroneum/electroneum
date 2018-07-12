@@ -46,6 +46,8 @@ namespace bf = boost::filesystem;
 
 static const char *DEFAULT_DNS_PUBLIC_ADDR[] =
         {
+		"8.8.8.8", 	      // Google DNS
+		//"8.8.4.4",
                 "194.150.168.168",    // CCC (Germany)
                 "81.3.27.54",         // Lightning Wire Labs (Germany)
                 "31.3.135.232",       // OpenNIC (Switzerland)
