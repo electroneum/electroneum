@@ -59,6 +59,10 @@ release-test:
 	mkdir -p build/release
 	cd build/release && cmake -D BUILD_TESTS=ON -D CMAKE_BUILD_TYPE=release ../.. && $(MAKE) && $(MAKE) test
 
+release-test-mingw:
+	mkdir -p build/release
+	cd build/release && cmake -D BUILD_TESTS=ON -D CMAKE_BUILD_TYPE=release -Dgtest_disable_pthreads=On ../.. && $(MAKE) && $(MAKE) test
+
 release-all:
 	mkdir -p build/release
 	cd build/release && cmake -D BUILD_TESTS=ON -D CMAKE_BUILD_TYPE=release ../.. && $(MAKE)
