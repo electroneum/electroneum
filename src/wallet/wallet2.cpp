@@ -4704,11 +4704,11 @@ std::vector<wallet2::pending_tx> wallet2::create_transactions_all(uint64_t below
   const bool use_rct = use_fork_rules(HF_VERSION_ENABLE_RCT, 0);
 
   int x = 0;
-
+  
     // gather all our dust and non dust outputs
   for (size_t i = 0; i < m_transfers.size(); ++i)
   {
-    if(display_progress_indicator())
+    if(m_display_progress_indicator)
       x = tools::display_simple_progress_spinner(x);
     const transfer_details& td = m_transfers[i];
     if (!td.m_spent && (use_rct ? true : !td.is_rct()) && is_transfer_unlocked(td))
@@ -4760,7 +4760,7 @@ std::vector<wallet2::pending_tx> wallet2::create_transactions_from(const crypton
   int x = 0;
   // while we have something to send
   while (!unused_dust_indices.empty() || !unused_transfers_indices.empty()) {
-    if(display_progress_indicator())
+    if(m_display_progress_indicator)
       x = tools::display_simple_progress_spinner(x);
     TX &tx = txes.back();
 

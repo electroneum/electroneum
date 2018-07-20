@@ -2483,6 +2483,7 @@ bool simple_wallet::transfer_main(int transfer_type, const std::vector<std::stri
   }
 
   int x = 0;
+  bool display_progress_indicator = m_wallet->display_progress_indicator();
   try
   {
     // figure out what tx will be necessary
@@ -2526,7 +2527,7 @@ bool simple_wallet::transfer_main(int transfer_type, const std::vector<std::stri
       uint64_t size = 0, fee = 0;
       for (size_t n = 0; n < ptx_vector.size(); ++n)
       {
-        if(m_wallet->display_progress_indicator())
+        if(display_progress_indicator)
           x = tools::display_simple_progress_spinner(x);
         const uint64_t blob_size = cryptonote::tx_to_blob(ptx_vector[n].tx).size();
         const double fee_per_byte = ptx_vector[n].fee / (double)blob_size;
@@ -2579,7 +2580,7 @@ bool simple_wallet::transfer_main(int transfer_type, const std::vector<std::stri
         uint64_t dust_in_fee = 0;
         for (size_t n = 0; n < ptx_vector.size(); ++n)
         {
-          if(m_wallet->display_progress_indicator())
+          if(display_progress_indicator)
             x = tools::display_simple_progress_spinner(x);
           total_fee += ptx_vector[n].fee;
           for (auto i: ptx_vector[n].selected_transfers)
@@ -3044,15 +3045,15 @@ bool simple_wallet::sweep_main(uint64_t below, const std::vector<std::string> &a
     }
 
     int x = 0;
-
+    bool display_progress_indicator = m_wallet->display_progress_indicator();
     // give user total and fee, and prompt to confirm
     uint64_t total_fee = 0, total_sent = 0;
     for (size_t n = 0; n < ptx_vector.size(); ++n) {
-      if(m_wallet->display_progress_indicator())
+      if(display_progress_indicator)
         x = tools::display_simple_progress_spinner(x);
       total_fee += ptx_vector[n].fee;
       for (auto i: ptx_vector[n].selected_transfers) {
-        if(m_wallet->display_progress_indicator())
+        if(display_progress_indicator)
           x = tools::display_simple_progress_spinner(x);
         total_sent += m_wallet->get_transfer_details(i).amount();
       }
