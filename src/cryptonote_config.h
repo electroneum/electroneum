@@ -61,8 +61,8 @@
 #define CRYPTONOTE_BLOCK_GRANTED_FULL_REWARD_ZONE_V5    150000 //size of block (bytes) after which reward for block calculated using block size - second change, from v5
 #define CRYPTONOTE_COINBASE_BLOB_RESERVED_SIZE          600
 #define CRYPTONOTE_DISPLAY_DECIMAL_POINT                2
-// COIN - number of smallest units in one coin
-#define COIN                                            ((uint64_t)1000000000000) // pow(10, 12)
+// COIN - number of smallest units in one coin. This definition is only used for tests.
+#define COIN                                            ((uint64_t)100) // pow(10, 2)
 
 #define FEE_PER_KB                                      ((uint64_t)1) //Initial fee of 0.01/kb
 #define FEE_PER_KB_V6                                   ((uint64_t)10) //Fee of 0.10/kb from HF V6

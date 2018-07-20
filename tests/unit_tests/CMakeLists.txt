@@ -61,7 +61,7 @@ set(unit_tests_sources
   unbound.cpp
   uri.cpp
   varint.cpp
-  ringct.cpp
+#  ringct.cpp
   output_selection.cpp
   vercmp.cpp)
 

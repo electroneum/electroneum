@@ -1,5 +1,5 @@
 // Copyrights(c) 2017-2018, The Electroneum Project
-// Copyrights(c) 2014-2017, The Monero Project
+// Copyright (c) 2014-2017, The Monero Project
 //
 // All rights reserved.
 //
@@ -28,8 +28,6 @@
 // THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "common/dns_utils.h"
-#include "common/i18n.h"
-#include "cryptonote_basic/cryptonote_basic_impl.h"
 // check local first (in the event of static or in-source compilation of libunbound)
 #include "unbound.h"
 
@@ -37,11 +35,23 @@
 #include "include_base_utils.h"
 #include <random>
 #include <boost/filesystem/fstream.hpp>
+#include <boost/thread/mutex.hpp>
+#include <boost/thread/thread.hpp>
+#include <boost/algorithm/string/join.hpp>
 using namespace epee;
 namespace bf = boost::filesystem;
 
 #undef ELECTRONEUM_DEFAULT_LOG_CATEGORY
 #define ELECTRONEUM_DEFAULT_LOG_CATEGORY "net.dns"
+
+static const char *DEFAULT_DNS_PUBLIC_ADDR[] =
+{
+  "194.150.168.168",    // CCC (Germany)
+  "81.3.27.54",         // Lightning Wire Labs (Germany)
+  "31.3.135.232",       // OpenNIC (Switzerland)
+  "80.67.169.40",       // FDN (France)
+  "209.58.179.186",     // Cyberghost (Singapore)
+};
 
 static boost::mutex instance_lock;
 
@@ -200,15 +210,18 @@ public:
 DNSResolver::DNSResolver() : m_data(new DNSResolverData())
 {
   int use_dns_public = 0;
-  const char* dns_public_addr = "8.8.4.4";
+  std::vector<std::string> dns_public_addr;
   if (auto res = getenv("DNS_PUBLIC"))
   {
-    std::string dns_public(res);
-    // TODO: could allow parsing of IP and protocol: e.g. DNS_PUBLIC=tcp:8.8.8.8
-    if (dns_public == "tcp")
+    dns_public_addr = tools::dns_utils::parse_dns_public(res);
+    if (!dns_public_addr.empty())
     {
-      LOG_PRINT_L0("Using public DNS server: " << dns_public_addr << " (TCP)");
+      MGINFO("Using public DNS server(s): " << boost::join(dns_public_addr, ", ") << " (TCP)");
       use_dns_public = 1;
+    }
+    else
+    {
+      MERROR("Failed to parse DNS_PUBLIC");
     }
   }
 
@@ -217,7 +230,8 @@ DNSResolver::DNSResolver() : m_data(new DNSResolverData())
 
   if (use_dns_public)
   {
-    ub_ctx_set_fwd(m_data->m_ub_context, string_copy(dns_public_addr));
+    for (const auto &ip: dns_public_addr)
+      ub_ctx_set_fwd(m_data->m_ub_context, string_copy(ip.c_str()));
     ub_ctx_set_option(m_data->m_ub_context, string_copy("do-udp:"), string_copy("no"));
     ub_ctx_set_option(m_data->m_ub_context, string_copy("do-tcp:"), string_copy("yes"));
   }
@@ -327,14 +341,12 @@ bool DNSResolver::check_address_syntax(const char *addr) const
 namespace dns_utils
 {
 
-const char *tr(const char *str) { return i18n_translate(str, "tools::dns_utils"); }
-
 //-----------------------------------------------------------------------
 // TODO: parse the string in a less stupid way, probably with regex
 std::string address_from_txt_record(const std::string& s)
 {
-  // make sure the txt record has "oa1:xmr" and find it
-  auto pos = s.find("oa1:xmr");
+  // make sure the txt record has "oa1:etn" and find it
+  auto pos = s.find("oa1:etn");
   if (pos == std::string::npos)
     return {};
   // search from there to find "recipient_address="
@@ -346,14 +358,14 @@ std::string address_from_txt_record(const std::string& s)
   auto pos2 = s.find(";", pos);
   if (pos2 != std::string::npos)
   {
-    // length of address == 95, we can at least validate that much here
-    if (pos2 - pos == 95)
+    // length of address == 98, we can at least validate that much here
+    if (pos2 - pos == 98)
     {
-      return s.substr(pos, 95);
+      return s.substr(pos, 98);
     }
-    else if (pos2 - pos == 106) // length of address == 106 --> integrated address
+    else if (pos2 - pos == 109) // length of address == 109 --> integrated address
     {
-      return s.substr(pos, 106);
+      return s.substr(pos, 109);
     }
   }
   return {};
@@ -448,19 +460,28 @@ bool load_txt_records_from_dns(std::vector<std::string> &good_records, const std
   std::uniform_int_distribution<int> dis(0, dns_urls.size() - 1);
   size_t first_index = dis(gen);
 
-  bool avail, valid;
+  // send all requests in parallel
+  std::vector<boost::thread> threads(dns_urls.size());
+  std::deque<bool> avail(dns_urls.size(), false), valid(dns_urls.size(), false);
+  for (size_t n = 0; n < dns_urls.size(); ++n)
+  {
+    threads[n] = boost::thread([n, dns_urls, &records, &avail, &valid](){
+      records[n] = tools::DNSResolver::instance().get_txt_record(dns_urls[n], avail[n], valid[n]); 
+    });
+  }
+  for (size_t n = 0; n < dns_urls.size(); ++n)
+    threads[n].join();
+
   size_t cur_index = first_index;
   do
   {
-    std::string url = dns_urls[cur_index];
-
-    records[cur_index] = tools::DNSResolver::instance().get_txt_record(url, avail, valid);
-    if (!avail)
+    const std::string &url = dns_urls[cur_index];
+    if (!avail[cur_index])
     {
       records[cur_index].clear();
       LOG_PRINT_L2("DNSSEC not available for checkpoint update at URL: " << url << ", skipping.");
     }
-    if (!valid)
+    if (!valid[cur_index])
     {
       records[cur_index].clear();
       LOG_PRINT_L2("DNSSEC validation failed for checkpoint update at URL: " << url << ", skipping.");
@@ -485,7 +506,7 @@ bool load_txt_records_from_dns(std::vector<std::string> &good_records, const std
 
   if (num_valid_records < 2)
   {
-    LOG_PRINT_L1("WARNING: no two valid ElectroneumPulse DNS checkpoint records were received");
+    LOG_PRINT_L0("WARNING: no two valid ElectroneumPulse DNS checkpoint records were received");
     return false;
   }
 
@@ -507,12 +528,41 @@ bool load_txt_records_from_dns(std::vector<std::string> &good_records, const std
 
   if (good_records_index < 0)
   {
-    LOG_PRINT_L1("WARNING: no two ElectroneumPulse DNS checkpoint records matched");
+    LOG_PRINT_L0("WARNING: no two ElectroneumPulse DNS checkpoint records matched");
     return false;
   }
 
   good_records = records[good_records_index];
   return true;
+}
+
+std::vector<std::string> parse_dns_public(const char *s)
+{
+  unsigned ip0, ip1, ip2, ip3;
+  char c;
+  std::vector<std::string> dns_public_addr;
+  if (!strcmp(s, "tcp"))
+  {
+    for (size_t i = 0; i < sizeof(DEFAULT_DNS_PUBLIC_ADDR) / sizeof(DEFAULT_DNS_PUBLIC_ADDR[0]); ++i)
+      dns_public_addr.push_back(DEFAULT_DNS_PUBLIC_ADDR[i]);
+    LOG_PRINT_L0("Using default public DNS server(s): " << boost::join(dns_public_addr, ", ") << " (TCP)");
+  }
+  else if (sscanf(s, "tcp://%u.%u.%u.%u%c", &ip0, &ip1, &ip2, &ip3, &c) == 4)
+  {
+    if (ip0 > 255 || ip1 > 255 || ip2 > 255 || ip3 > 255)
+    {
+      MERROR("Invalid IP: " << s << ", using default");
+    }
+    else
+    {
+      dns_public_addr.push_back(std::string(s + strlen("tcp://")));
+    }
+  }
+  else
+  {
+    MERROR("Invalid DNS_PUBLIC contents, ignored");
+  }
+  return dns_public_addr;
 }
 
 }  // namespace tools::dns_utils

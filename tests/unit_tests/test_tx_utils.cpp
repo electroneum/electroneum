@@ -164,13 +164,13 @@ TEST(parse_and_validate_tx_extra, fails_on_wrong_size_in_extra_nonce)
 TEST(validate_parse_amount_case, validate_parse_amount)
 {
   uint64_t res = 0;
-  bool r = cryptonote::parse_amount(res, "0.0001");
+  bool r = cryptonote::parse_amount(res, "0.01");
   ASSERT_TRUE(r);
-  ASSERT_EQ(res, 100000000);
+  ASSERT_EQ(res, 1);
 
-  r = cryptonote::parse_amount(res, "100.0001");
+  r = cryptonote::parse_amount(res, "100.01");
   ASSERT_TRUE(r);
-  ASSERT_EQ(res, 100000100000000);
+  ASSERT_EQ(res, 10001);
 
   r = cryptonote::parse_amount(res, "000.0000");
   ASSERT_TRUE(r);
@@ -181,13 +181,13 @@ TEST(validate_parse_amount_case, validate_parse_amount)
   ASSERT_EQ(res, 0);
 
 
-  r = cryptonote::parse_amount(res, "   100.0001    ");
+  r = cryptonote::parse_amount(res, "   100.01    ");
   ASSERT_TRUE(r);
-  ASSERT_EQ(res, 100000100000000);
+  ASSERT_EQ(res, 10001);
 
-  r = cryptonote::parse_amount(res, "   100.0000    ");
+  r = cryptonote::parse_amount(res, "   100.00    ");
   ASSERT_TRUE(r);
-  ASSERT_EQ(res, 100000000000000);
+  ASSERT_EQ(res, 10000);
 
   r = cryptonote::parse_amount(res, "   100. 0000    ");
   ASSERT_FALSE(r);
