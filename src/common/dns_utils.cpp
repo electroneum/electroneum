@@ -506,11 +506,7 @@ bool load_txt_records_from_dns(std::vector<std::string> &good_records, const std
 
   if (num_valid_records < 2)
   {
-<<<<<<< HEAD
-    LOG_PRINT_L0("WARNING: no two valid ElectroneumPulse DNS checkpoint records were received");
-=======
     LOG_PRINT_L1("WARNING: no two valid ElectroneumPulse DNS " << type << " records were received, only " << num_valid_records);
->>>>>>> feature/dns-features
     return false;
   }
 
@@ -532,11 +528,7 @@ bool load_txt_records_from_dns(std::vector<std::string> &good_records, const std
 
   if (good_records_index < 0)
   {
-<<<<<<< HEAD
-    LOG_PRINT_L0("WARNING: no two ElectroneumPulse DNS checkpoint records matched");
-=======
     LOG_PRINT_L1("WARNING: no two ElectroneumPulse DNS " << type << " records matched");
->>>>>>> feature/dns-features
     return false;
   }
 
