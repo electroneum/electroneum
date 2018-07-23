@@ -447,7 +447,7 @@ namespace
   }
 }
 
-bool load_txt_records_from_dns(std::vector<std::string> &good_records, const std::vector<std::string> &dns_urls)
+bool load_txt_records_from_dns(std::vector<std::string> &good_records, const std::vector<std::string> &dns_urls, std::string type)
 {
   // Prevent infinite recursion when distributing
   if (dns_urls.empty()) return false;
@@ -479,12 +479,12 @@ bool load_txt_records_from_dns(std::vector<std::string> &good_records, const std
     if (!avail[cur_index])
     {
       records[cur_index].clear();
-      LOG_PRINT_L2("DNSSEC not available for checkpoint update at URL: " << url << ", skipping.");
+      LOG_PRINT_L2("DNSSEC not available for " << type << " at URL: " << url << ", skipping.");
     }
     if (!valid[cur_index])
     {
       records[cur_index].clear();
-      LOG_PRINT_L2("DNSSEC validation failed for checkpoint update at URL: " << url << ", skipping.");
+      LOG_PRINT_L2("DNSSEC validation failed for " << type << " at URL: " << url << ", skipping.");
     }
 
     cur_index++;
@@ -506,7 +506,11 @@ bool load_txt_records_from_dns(std::vector<std::string> &good_records, const std
 
   if (num_valid_records < 2)
   {
+<<<<<<< HEAD
     LOG_PRINT_L0("WARNING: no two valid ElectroneumPulse DNS checkpoint records were received");
+=======
+    LOG_PRINT_L1("WARNING: no two valid ElectroneumPulse DNS " << type << " records were received, only " << num_valid_records);
+>>>>>>> feature/dns-features
     return false;
   }
 
@@ -528,7 +532,11 @@ bool load_txt_records_from_dns(std::vector<std::string> &good_records, const std
 
   if (good_records_index < 0)
   {
+<<<<<<< HEAD
     LOG_PRINT_L0("WARNING: no two ElectroneumPulse DNS checkpoint records matched");
+=======
+    LOG_PRINT_L1("WARNING: no two ElectroneumPulse DNS " << type << " records matched");
+>>>>>>> feature/dns-features
     return false;
   }
 

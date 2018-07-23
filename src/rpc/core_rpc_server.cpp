@@ -1566,7 +1566,7 @@ namespace cryptonote
     static const char buildtag[] = "source";
     static const char subdir[] = "source";
 #endif
-
+    LOG_PRINT_L0(req.command << " for software: " << software << "; buildtag: " << buildtag << "; subdir:" << subdir);
     if (req.command != "check" && req.command != "download" && req.command != "update")
     {
       res.status = std::string("unknown command: '") + req.command + "'";
