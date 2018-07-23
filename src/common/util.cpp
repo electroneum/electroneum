@@ -631,4 +631,21 @@ std::string get_nix_version_display_string()
       return false;
     return true;
   }
+
+  int display_simple_progress_spinner(int x) {
+    std::string s;
+    x++;
+    if (x == 1) {
+      s = "|";
+    } else if (x == 2) {
+      s = "/";
+    } else if (x == 3) {
+      s = "-";
+    } else {
+      s = "\\";
+      x = 0;
+    }
+    std::cout << "\r" << s << std::flush;
+    return x;
+  }
 }

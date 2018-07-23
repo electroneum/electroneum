@@ -720,6 +720,17 @@ bool simple_wallet::set_refresh_from_block_height(const std::vector<std::string>
   return true;
 }
 
+bool simple_wallet::set_display_progress_indicator(const std::vector<std::string> &args/* = std::vector<std::string>()*/)
+{
+    const auto pwd_container = get_and_verify_password();
+    if (pwd_container)
+    {
+        m_wallet->display_progress_indicator(is_it_true(args[1]));
+        m_wallet->rewrite(m_wallet_file, pwd_container->password());
+    }
+    return true;
+}
+
 bool simple_wallet::help(const std::vector<std::string> &args/* = std::vector<std::string>()*/)
 {
   success_msg_writer() << get_commands_str();
@@ -805,6 +816,7 @@ bool simple_wallet::set_variable(const std::vector<std::string> &args)
     success_msg_writer() << "merge-destinations = " << m_wallet->merge_destinations();
     success_msg_writer() << "confirm-backlog = " << m_wallet->confirm_backlog();
     success_msg_writer() << "refresh-from-block-height = " << m_wallet->get_refresh_from_block_height();
+    success_msg_writer() << "display-progress-indicator = " << m_wallet->display_progress_indicator();
     return true;
   }
   else
@@ -852,6 +864,7 @@ bool simple_wallet::set_variable(const std::vector<std::string> &args)
     CHECK_SIMPLE_VARIABLE("merge-destinations", set_merge_destinations, tr("0 or 1"));
     CHECK_SIMPLE_VARIABLE("confirm-backlog", set_confirm_backlog, tr("0 or 1"));
     CHECK_SIMPLE_VARIABLE("refresh-from-block-height", set_refresh_from_block_height, tr("block height"));
+    CHECK_SIMPLE_VARIABLE("display-progress-indicator", set_display_progress_indicator, tr("0 or 1"));
   }
   fail_msg_writer() << tr("set: unrecognized argument(s)");
   return true;
@@ -2229,9 +2242,13 @@ bool simple_wallet::print_ring_members(const std::vector<tools::wallet2::pending
     fail_msg_writer() << tr("failed to get blockchain height: ") << err;
     return false;
   }
+
+  int x = 0;
   // for each transaction
   for (size_t n = 0; n < ptx_vector.size(); ++n)
   {
+    if(m_wallet->display_progress_indicator())
+      x = tools::display_simple_progress_spinner(x);
     const cryptonote::transaction& tx = ptx_vector[n].tx;
     const tools::wallet2::tx_construction_data& construction_data = ptx_vector[n].construction_data;
     ostr << boost::format(tr("\nTransaction %llu/%llu: txid=%s")) % (n + 1) % ptx_vector.size() % cryptonote::get_transaction_hash(tx);
@@ -2240,6 +2257,8 @@ bool simple_wallet::print_ring_members(const std::vector<tools::wallet2::pending
     std::vector<crypto::hash> spent_key_txid  (tx.vin.size());
     for (size_t i = 0; i < tx.vin.size(); ++i)
     {
+      if(m_wallet->display_progress_indicator())
+        x = tools::display_simple_progress_spinner(x);
       if (tx.vin[i].type() != typeid(cryptonote::txin_to_key))
         continue;
       const cryptonote::txin_to_key& in_key = boost::get<cryptonote::txin_to_key>(tx.vin[i]);
@@ -2463,6 +2482,8 @@ bool simple_wallet::transfer_main(int transfer_type, const std::vector<std::stri
      }
   }
 
+  int x = 0;
+  bool display_progress_indicator = m_wallet->display_progress_indicator();
   try
   {
     // figure out what tx will be necessary
@@ -2506,6 +2527,8 @@ bool simple_wallet::transfer_main(int transfer_type, const std::vector<std::stri
       uint64_t size = 0, fee = 0;
       for (size_t n = 0; n < ptx_vector.size(); ++n)
       {
+        if(display_progress_indicator)
+          x = tools::display_simple_progress_spinner(x);
         const uint64_t blob_size = cryptonote::tx_to_blob(ptx_vector[n].tx).size();
         const double fee_per_byte = ptx_vector[n].fee / (double)blob_size;
         if (fee_per_byte < worst_fee_per_byte)
@@ -2557,6 +2580,8 @@ bool simple_wallet::transfer_main(int transfer_type, const std::vector<std::stri
         uint64_t dust_in_fee = 0;
         for (size_t n = 0; n < ptx_vector.size(); ++n)
         {
+          if(display_progress_indicator)
+            x = tools::display_simple_progress_spinner(x);
           total_fee += ptx_vector[n].fee;
           for (auto i: ptx_vector[n].selected_transfers)
             total_sent += m_wallet->get_transfer_details(i).amount();
@@ -2569,7 +2594,7 @@ bool simple_wallet::transfer_main(int transfer_type, const std::vector<std::stri
         }
 
         std::stringstream prompt;
-        prompt << boost::format(tr("Sending %s.  ")) % print_money(total_sent);
+        prompt << boost::format(tr("\rSending %s.  ")) % print_money(total_sent);
         if (ptx_vector.size() > 1)
         {
           prompt << boost::format(tr("Your transaction needs to be split into %llu transactions.  "
@@ -2998,6 +3023,16 @@ bool simple_wallet::sweep_main(uint64_t below, const std::vector<std::string> &a
 
   LOCK_IDLE_SCOPE();
 
+  std::string accepted = command_line::input_line(tr("Sweeping funds can take a few minutes or several hours to build the transaction(s). Is this okay?  (Y/Yes/N/No): "));
+  if (std::cin.eof())
+    return true;
+  if (!command_line::is_yes(accepted))
+  {
+    fail_msg_writer() << tr("transaction cancelled.");
+
+    return true;
+  }
+
   try
   {
     // figure out what tx will be necessary
@@ -3009,18 +3044,25 @@ bool simple_wallet::sweep_main(uint64_t below, const std::vector<std::string> &a
       return true;
     }
 
+    int x = 0;
+    bool display_progress_indicator = m_wallet->display_progress_indicator();
     // give user total and fee, and prompt to confirm
     uint64_t total_fee = 0, total_sent = 0;
-    for (size_t n = 0; n < ptx_vector.size(); ++n)
-    {
+    for (size_t n = 0; n < ptx_vector.size(); ++n) {
+      if(display_progress_indicator)
+        x = tools::display_simple_progress_spinner(x);
       total_fee += ptx_vector[n].fee;
-      for (auto i: ptx_vector[n].selected_transfers)
+      for (auto i: ptx_vector[n].selected_transfers) {
+        if(display_progress_indicator)
+          x = tools::display_simple_progress_spinner(x);
         total_sent += m_wallet->get_transfer_details(i).amount();
+      }
     }
 
     std::ostringstream prompt;
-    if (!print_ring_members(ptx_vector, prompt))
-      return true;
+    if(m_wallet->print_ring_members())
+      if (!print_ring_members(ptx_vector, prompt))
+        return true;
     if (ptx_vector.size() > 1) {
       prompt << boost::format(tr("Sweeping %s in %llu transactions for a total fee of %s.  Is this okay?  (Y/Yes/N/No): ")) %
         print_money(total_sent) %

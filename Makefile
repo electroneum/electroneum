@@ -59,6 +59,10 @@ release-test:
 	mkdir -p build/release
 	cd build/release && cmake -D BUILD_TESTS=ON -D CMAKE_BUILD_TYPE=release ../.. && $(MAKE) && $(MAKE) test
 
+release-test-mingw:
+	mkdir -p build/release
+	cd build/release && cmake -D BUILD_TESTS=ON -D CMAKE_BUILD_TYPE=release -Dgtest_disable_pthreads=On ../.. && $(MAKE) && $(MAKE) test
+
 release-all:
 	mkdir -p build/release
 	cd build/release && cmake -D BUILD_TESTS=ON -D CMAKE_BUILD_TYPE=release ../.. && $(MAKE)
@@ -99,7 +103,7 @@ release-static-freebsd-x86_64:
 
 release-static-mac-x86_64:
 	mkdir -p build/release
-	cd build/release && cmake -D STATIC=ON -D ARCH="x86-64" -D BUILD_64=ON -D CMAKE_BUILD_TYPE=release -D BUILD_TAG="mac-x64" ../.. && $(MAKE)
+	cd build/release && cmake -D STATIC=ON -D ARCH="x86-64" -D BUILD_64=ON -D CMAKE_BUILD_TYPE=release -D BUILD_TAG="macOS-x64" ../.. && $(MAKE)
 
 release-static-linux-i686:
 	mkdir -p build/release
