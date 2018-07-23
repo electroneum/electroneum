@@ -251,8 +251,10 @@ bool gen_block_reward::check_block_rewards(cryptonote::core& /*c*/, size_t /*ev_
 
   std::array<uint64_t, 7> blk_rewards;
   blk_rewards[0] = MONEY_SUPPLY >> EMISSION_SPEED_FACTOR_PER_MINUTE;
-  uint64_t cumulative_reward = blk_rewards[0];
-  for (size_t i = 1; i < blk_rewards.size(); ++i)
+  // Take into account the premine.
+  blk_rewards[1] = 1260000000000;
+  uint64_t cumulative_reward = blk_rewards[0] + blk_rewards[1];
+  for (size_t i = 2; i < blk_rewards.size(); ++i)
   {
     blk_rewards[i] = (MONEY_SUPPLY - cumulative_reward) >> EMISSION_SPEED_FACTOR_PER_MINUTE;
     cumulative_reward += blk_rewards[i];
