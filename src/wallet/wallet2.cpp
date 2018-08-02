@@ -676,6 +676,7 @@ void wallet2::process_new_transaction(const crypto::hash &txid, const cryptonote
     LOG_PRINT_L0("Transaction extra has unsupported format: " << txid);
   }
 
+  std::unordered_set<crypto::public_key> public_keys_seen;
   // Don't try to extract tx public key if tx has no ouputs
   size_t pk_index = 0;
   while (!tx.vout.empty())
@@ -692,6 +693,13 @@ void wallet2::process_new_transaction(const crypto::hash &txid, const cryptonote
 	m_callback->on_skip_transaction(height, txid, tx);
       return;
     }
+
+    if (public_keys_seen.find(pub_key_field.pub_key) != public_keys_seen.end())
+    {
+      MWARNING("The same transaction pubkey is present more than once, ignoring extra instance");
+      continue;
+    }
+    public_keys_seen.insert(pub_key_field.pub_key);
 
     int num_vouts_received = 0;
     tx_pub_key = pub_key_field.pub_key;
