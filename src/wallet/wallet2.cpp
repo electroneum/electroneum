@@ -620,6 +620,16 @@ void wallet2::check_acc_out_precomp(const crypto::public_key &spend_public_key, 
   error = false;
 }
 //----------------------------------------------------------------------------------------------------
+void wallet2::check_acc_out_precomp_once(const crypto::public_key &spend_public_key, const tx_out &o, const crypto::key_derivation &derivation, size_t i, bool &received, uint64_t &money_transfered, bool &error, bool &already_seen) const
+{
+  received = false;
+  if (already_seen)
+    return;
+  check_acc_out_precomp(spend_public_key, o, derivation, i, received, money_transfered, error);
+  if (received)
+    already_seen = true;
+}
+//----------------------------------------------------------------------------------------------------
 static uint64_t decodeRct(const rct::rctSig & rv, const crypto::public_key &pub, const crypto::secret_key &sec, unsigned int i, rct::key & mask)
 {
   crypto::key_derivation derivation;
@@ -676,7 +686,7 @@ void wallet2::process_new_transaction(const crypto::hash &txid, const cryptonote
     LOG_PRINT_L0("Transaction extra has unsupported format: " << txid);
   }
 
-  std::unordered_set<crypto::public_key> public_keys_seen;
+  std::deque<bool> output_found(tx.vout.size(), false);
   // Don't try to extract tx public key if tx has no ouputs
   size_t pk_index = 0;
   while (!tx.vout.empty())
@@ -693,13 +703,6 @@ void wallet2::process_new_transaction(const crypto::hash &txid, const cryptonote
 	m_callback->on_skip_transaction(height, txid, tx);
       return;
     }
-
-    if (public_keys_seen.find(pub_key_field.pub_key) != public_keys_seen.end())
-    {
-      MWARNING("The same transaction pubkey is present more than once, ignoring extra instance");
-      continue;
-    }
-    public_keys_seen.insert(pub_key_field.pub_key);
 
     int num_vouts_received = 0;
     tx_pub_key = pub_key_field.pub_key;
@@ -720,7 +723,7 @@ void wallet2::process_new_transaction(const crypto::hash &txid, const cryptonote
     {
       uint64_t money_transfered = 0;
       bool error = false, received = false;
-      check_acc_out_precomp(keys.m_account_address.m_spend_public_key, tx.vout[0], derivation, 0, received, money_transfered, error);
+      check_acc_out_precomp_once(keys.m_account_address.m_spend_public_key, tx.vout[0], derivation, 0, received, money_transfered, error, output_found[0]);
       if (error)
       {
         r = false;
@@ -758,8 +761,8 @@ void wallet2::process_new_transaction(const crypto::hash &txid, const cryptonote
           // the first one was already checked
           for (size_t i = 1; i < tx.vout.size(); ++i)
           {
-            ioservice.dispatch(boost::bind(&wallet2::check_acc_out_precomp, this, std::cref(keys.m_account_address.m_spend_public_key), std::cref(tx.vout[i]), std::cref(derivation), i,
-              std::ref(received[i]), std::ref(money_transfered[i]), std::ref(error[i])));
+            ioservice.dispatch(boost::bind(&wallet2::check_acc_out_precomp_once, this, std::cref(keys.m_account_address.m_spend_public_key), std::cref(tx.vout[i]), std::cref(derivation), i,
+              std::ref(received[i]), std::ref(money_transfered[i]), std::ref(error[i]), std::ref(output_found[i])));
           }
           KILL_IOSERVICE();
           for (size_t i = 1; i < tx.vout.size(); ++i)
@@ -803,8 +806,8 @@ void wallet2::process_new_transaction(const crypto::hash &txid, const cryptonote
       std::deque<bool> received(tx.vout.size());
       for (size_t i = 0; i < tx.vout.size(); ++i)
       {
-        ioservice.dispatch(boost::bind(&wallet2::check_acc_out_precomp, this, std::cref(keys.m_account_address.m_spend_public_key), std::cref(tx.vout[i]), std::cref(derivation), i,
-          std::ref(received[i]), std::ref(money_transfered[i]), std::ref(error[i])));
+        ioservice.dispatch(boost::bind(&wallet2::check_acc_out_precomp_once, this, std::cref(keys.m_account_address.m_spend_public_key), std::cref(tx.vout[i]), std::cref(derivation), i,
+          std::ref(received[i]), std::ref(money_transfered[i]), std::ref(error[i]), std::ref(output_found[i])));
       }
       KILL_IOSERVICE();
       tx_money_got_in_outs = 0;
@@ -838,7 +841,7 @@ void wallet2::process_new_transaction(const crypto::hash &txid, const cryptonote
       {
         uint64_t money_transfered = 0;
         bool error = false, received = false;
-        check_acc_out_precomp(keys.m_account_address.m_spend_public_key, tx.vout[i], derivation, i, received, money_transfered, error);
+        check_acc_out_precomp_once(keys.m_account_address.m_spend_public_key, tx.vout[i], derivation, i, received, money_transfered, error, output_found[i]);
         if (error)
         {
           r = false;
