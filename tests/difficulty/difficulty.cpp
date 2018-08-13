@@ -42,7 +42,7 @@
 using namespace std;
 
 #define DEFAULT_TEST_DIFFICULTY_TARGET        120
-#define DEFAULT_TEST_DIFFICULTY_WINDOW        360
+#define DEFAULT_TEST_DIFFICULTY_WINDOW        720
 
 int main(int argc, char *argv[]) {
     if (argc != 2) {
@@ -66,7 +66,7 @@ int main(int argc, char *argv[]) {
         }
         uint64_t res = cryptonote::next_difficulty(
             vector<uint64_t>(timestamps.begin() + begin, timestamps.begin() + end),
-            vector<uint64_t>(cumulative_difficulties.begin() + begin, cumulative_difficulties.begin() + end), DEFAULT_TEST_DIFFICULTY_TARGET, 1);
+            vector<uint64_t>(cumulative_difficulties.begin() + begin, cumulative_difficulties.begin() + end), DEFAULT_TEST_DIFFICULTY_TARGET, 7);
         if (res != difficulty) {
             cerr << "Wrong difficulty for block " << n << endl
                 << "Expected: " << difficulty << endl
