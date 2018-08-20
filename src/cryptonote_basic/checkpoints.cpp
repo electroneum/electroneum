@@ -143,17 +143,18 @@ namespace cryptonote
     ADD_CHECKPOINT(100, "e3548600cc0e2991af4f36bbf44addd95051748fc09e8cac5f8237fd841132c0");
     ADD_CHECKPOINT(1000, "d7ec8a6329948fee02cdc95b13f286bd69fe9540863a80dfff7fe14940756293");
     ADD_CHECKPOINT(10000, "95dad4575ba43eb0d4ba9b6081d5d52e6a74fc8fe3391d9628f78ddd3b71c965");
-    ADD_CHECKPOINT(25000, "7c4062b935413c84e5de8e6c27917f5158ec4e39dd322798dcf4772eb4634772");
-    ADD_CHECKPOINT(50000, "1e85615e78d31168a1e7a1c0bf64a607d0adff70d78d3baa7c954adff3cc8c2a");
     ADD_CHECKPOINT(100000, "a7b51ca66b2525903efbd4a32604a7ad5000df4b9da8bdd9cb3062cb014b0cad");
     ADD_CHECKPOINT(150000, "e9b66d3f12f9cedece7d9925721b15f1ec6cb2f6b438b3ddd288237c27ffe20e");
     ADD_CHECKPOINT(179839, "f8631f50ef79b840cba9fe3484764d0c7515ff2884e1f5be2f7298a4d08e88ee");
     ADD_CHECKPOINT(179840, "74958c1b19505ab49babc91dfd14251146256873ae875ac97c26fb2000490e70");
     ADD_CHECKPOINT(179841, "8a793f1aef368e83fa72ac3a236309c06ae7726958120514e0f6d33ff3b24548");
-    ADD_CHECKPOINT(180000, "65193d028c4264dc679ee384d654eff59085976231f93b990ad16a5370961803");
     ADD_CHECKPOINT(200000, "9a7853584fbe0d88746d3d7bb6a3efd02ecaa3f0158808fde9f3c8339b3d5d8f");
-    ADD_CHECKPOINT(225000, "26b00fd2638340dae0b2a479598dd82c6af489b876e85cdc203f41ad90d83233");
-    ADD_CHECKPOINT(230000, "b01bdcc2effb4ccfd9cf41c4412b866b2f13058e759a900cf5d24a308b9a3fcd");
+    ADD_CHECKPOINT(250000, "0b4d542eeaf6fbd5ceb196ca5ed44edb6ee0c0f1cdf391ba62710b04e1da9f29");
+    ADD_CHECKPOINT(300000, "e3d192196c70c259164fec04868d5cf21a57242cccf54ca0ba9fd8eaeddb8d72");
+    ADD_CHECKPOINT(307499, "c08f9eecdebf4f1f99c4c273368df54422e6861829213ad5d0dbde1cf6f4f08c");
+    ADD_CHECKPOINT(307500, "a65844a64acf5d0aa421892dee64e3552ef390fd29894b7d6c77d08d6609952e"); // v6 Fork
+    ADD_CHECKPOINT(307501, "4a5a86a4c6ecee29c2d41d8f633e82a5b3340e354c55f2767f722fc03b950fae");
+    ADD_CHECKPOINT(310000, "82dfd6ee74a5ae7526af923f1637b59082ef917d84ad80944edb1debd557bb96");
     return true;
   }
 
@@ -194,11 +195,21 @@ namespace cryptonote
     std::vector<std::string> records;
 
     // All four ElectroneumPulse domains have DNSSEC on and valid
-    static const std::vector<std::string> dns_urls = { "checkpoints.electroneum.com" };
+    static const std::vector<std::string> dns_urls = {
+      "checkpoints.electroneumpulse.com",
+      "checkpoints.electroneumpulse.info",
+      "checkpoints.electroneumpulse.net",
+      "checkpoints.electroneumpulse.org"
+    };
 
-    static const std::vector<std::string> testnet_dns_urls = { "testpoints.electroneum.com" };
+    static const std::vector<std::string> testnet_dns_urls = {
+      "testpoints.electroneumpulse.com",
+      "testpoints.electroneumpulse.info",
+      "testpoints.electroneumpulse.net",
+      "testpoints.electroneumpulse.org"
+    };
 
-    if (!tools::dns_utils::load_txt_records_from_dns(records, testnet ? testnet_dns_urls : dns_urls))
+    if (!tools::dns_utils::load_txt_records_from_dns(records, testnet ? testnet_dns_urls : dns_urls, "checkpoints"))
       return true; // why true ?
 
     for (const auto& record : records)
