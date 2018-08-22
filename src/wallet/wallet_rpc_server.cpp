@@ -819,6 +819,7 @@ namespace tools
       rpc_payment.payment_id   = req.payment_id;
       rpc_payment.tx_hash      = epee::string_tools::pod_to_hex(payment.m_tx_hash);
       rpc_payment.amount       = payment.m_amount;
+      rpc_payment.timestamp    = payment.m_timestamp;
       rpc_payment.block_height = payment.m_block_height;
       rpc_payment.unlock_time  = payment.m_unlock_time;
       res.payments.push_back(rpc_payment);
@@ -844,6 +845,7 @@ namespace tools
         rpc_payment.payment_id   = epee::string_tools::pod_to_hex(payment.first);
         rpc_payment.tx_hash      = epee::string_tools::pod_to_hex(payment.second.m_tx_hash);
         rpc_payment.amount       = payment.second.m_amount;
+        rpc_payment.timestamp    = payment.second.m_timestamp;
         rpc_payment.block_height = payment.second.m_block_height;
         rpc_payment.unlock_time  = payment.second.m_unlock_time;
         res.payments.push_back(std::move(rpc_payment));
@@ -893,6 +895,7 @@ namespace tools
         rpc_payment.payment_id   = payment_id_str;
         rpc_payment.tx_hash      = epee::string_tools::pod_to_hex(payment.m_tx_hash);
         rpc_payment.amount       = payment.m_amount;
+        rpc_payment.timestamp    = payment.m_timestamp;
         rpc_payment.block_height = payment.m_block_height;
         rpc_payment.unlock_time  = payment.m_unlock_time;
         res.payments.push_back(std::move(rpc_payment));

@@ -317,6 +317,7 @@ namespace wallet_rpc
     std::string payment_id;
     std::string tx_hash;
     uint64_t amount;
+    uint64_t timestamp;
     uint64_t block_height;
     uint64_t unlock_time;
 
@@ -324,6 +325,7 @@ namespace wallet_rpc
       KV_SERIALIZE(payment_id)
       KV_SERIALIZE(tx_hash)
       KV_SERIALIZE(amount)
+      KV_SERIALIZE(timestamp)
       KV_SERIALIZE(block_height)
       KV_SERIALIZE(unlock_time)
     END_KV_SERIALIZE_MAP()
