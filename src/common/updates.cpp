@@ -45,9 +45,14 @@ namespace tools
     MDEBUG("Checking updates for " << buildtag << " " << software);
 
     // All four ElectroneumPulse domains have DNSSEC on and valid
-    static const std::vector<std::string> dns_urls = { "updates.electroneum.com" };
+    static const std::vector<std::string> dns_urls = {
+      "updates.electroneumpulse.com",
+      "updates.electroneumpulse.info",
+      "updates.electroneumpulse.net",
+      "updates.electroneumpulse.org"
+    };
 
-    if (!tools::dns_utils::load_txt_records_from_dns(records, dns_urls))
+    if (!tools::dns_utils::load_txt_records_from_dns(records, dns_urls, "update"))
       return false;
 
     for (const auto& record : records)
@@ -94,7 +99,7 @@ namespace tools
 
   std::string get_update_url(const std::string &software, const std::string &subdir, const std::string &buildtag, const std::string &version, bool user)
   {
-    const char *base = user ? "https://downloads.electroneum.com/" : "https://updates.electroneum.com/";
+      const char *base = "http://s3-eu-west-1.amazonaws.com/updates.electroneum.com/releases/download/v";
 #ifdef _WIN32
     static const char extension[] = ".zip";
 #else
@@ -104,9 +109,9 @@ namespace tools
     std::string url;
 
     url =  base;
-    if (!subdir.empty())
-      url += subdir + "/";
-    url = url + software + "-" + buildtag + "-v" + version + extension;
+//    if (!subdir.empty())
+//      url += subdir + "/";
+    url = url + version + "/" + software + "-" + buildtag + "-v" + version + extension;
     return url;
   }
 }

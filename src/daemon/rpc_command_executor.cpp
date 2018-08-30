@@ -1660,15 +1660,19 @@ bool t_rpc_command_executor::update(const std::string &command)
   req.command = command;
   if (m_is_rpc)
   {
+    LOG_PRINT_L0("is rpc");
     if (!m_rpc_client->rpc_request(req, res, "/update", fail_message.c_str()))
     {
+      LOG_PRINT_L0("update command failed");
       return true;
     }
   }
   else
   {
+    LOG_PRINT_L0("not rpc");
     if (!m_rpc_server->on_update(req, res) || res.status != CORE_RPC_STATUS_OK)
     {
+      LOG_PRINT_L0("rpc error");
       tools::fail_msg_writer() << make_error(fail_message, res.status);
       return true;
     }
@@ -1676,6 +1680,7 @@ bool t_rpc_command_executor::update(const std::string &command)
 
   if (!res.update)
   {
+    LOG_PRINT_L0("no update");
     tools::msg_writer() << "No update available";
     return true;
   }

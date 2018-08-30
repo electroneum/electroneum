@@ -66,7 +66,7 @@
 
 #define NET_MAKE_IP(b1,b2,b3,b4)  ((LPARAM)(((DWORD)(b1)<<24)+((DWORD)(b2)<<16)+((DWORD)(b3)<<8)+((DWORD)(b4))))
 
-#define MIN_WANTED_SEED_NODES 12
+#define MIN_WANTED_SEED_NODES 9 // Because we have 3 servers in each of the 3 regions we use
 
 namespace nodetool
 {
@@ -506,8 +506,9 @@ namespace nodetool
         // if no results for node, thread's lookup likely timed out
         if (result.size())
         {
+          const uint16_t default_port = m_testnet ? ::config::testnet::P2P_DEFAULT_PORT : ::config::P2P_DEFAULT_PORT; // Get the correct port for the seed nodes
           for (const auto& addr_string : result)
-            full_addrs.insert(addr_string + ":18080");
+            full_addrs.insert(addr_string + ":" + std::to_string(default_port));
         }
         ++i;
       }
