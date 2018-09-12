@@ -663,6 +663,30 @@ namespace wallet_rpc
     };
   };
 
+    struct COMMAND_RPC_SAVE_TRANSFERS_TO_CSV
+  {
+    struct request
+    {
+      bool in;
+      bool out;
+      uint64_t min_height;
+      uint64_t max_height;
+
+      BEGIN_KV_SERIALIZE_MAP()
+        KV_SERIALIZE(in);
+        KV_SERIALIZE(out);
+        KV_SERIALIZE(min_height);
+        KV_SERIALIZE(max_height);
+      END_KV_SERIALIZE_MAP()
+    };
+
+    struct response
+    {
+      BEGIN_KV_SERIALIZE_MAP()
+      END_KV_SERIALIZE_MAP()
+    };
+  };
+
   struct COMMAND_RPC_SIGN
   {
     struct request

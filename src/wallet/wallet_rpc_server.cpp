@@ -1323,6 +1323,28 @@ namespace tools
     return false;
   }
   //------------------------------------------------------------------------------------------------------------------------------
+    bool wallet_rpc_server::on_save_transfers_to_csv(const wallet_rpc::COMMAND_RPC_SAVE_TRANSFERS_TO_CSV::request& req, wallet_rpc::COMMAND_RPC_SAVE_TRANSFERS_TO_CSV::response& res, epee::json_rpc::error& er) {
+    if (!m_wallet) return not_open(er);
+    if (m_wallet->restricted()) {
+      er.code = WALLET_RPC_ERROR_CODE_DENIED;
+      er.message = "Command unavailable in restricted mode.";
+      return false;
+    }
+
+    try{
+    m_wallet->save_transfers_to_csv(req.in, req.out, req.min_height, req.max_height);
+    }
+
+    catch (...)
+    {
+      er.code = WALLET_RPC_ERROR_CODE_UNKNOWN_ERROR;
+      er.message = "Failed";
+      return false;
+    }
+
+   return true;
+  }
+  //------------------------------------------------------------------------------------------------------------------------------
   bool wallet_rpc_server::on_export_key_images(const wallet_rpc::COMMAND_RPC_EXPORT_KEY_IMAGES::request& req, wallet_rpc::COMMAND_RPC_EXPORT_KEY_IMAGES::response& res, epee::json_rpc::error& er)
   {
     if (!m_wallet) return not_open(er);

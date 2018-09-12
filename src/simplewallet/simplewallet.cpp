@@ -780,6 +780,7 @@ simple_wallet::simple_wallet()
   m_cmd_binder.set_handler("get_tx_proof", boost::bind(&simple_wallet::get_tx_proof, this, _1), tr("Generate a signature to prove payment to <address> in <txid> using the transaction secret key (r) without revealing it"));
   m_cmd_binder.set_handler("check_tx_proof", boost::bind(&simple_wallet::check_tx_proof, this, _1), tr("Check tx proof for payment going to <address> in <txid>"));
   m_cmd_binder.set_handler("show_transfers", boost::bind(&simple_wallet::show_transfers, this, _1), tr("show_transfers [in|out|pending|failed|pool] [<min_height> [<max_height>]] - Show incoming/outgoing transfers within an optional height range"));
+  m_cmd_binder.set_handler("save_transfers_to_csv", boost::bind(&simple_wallet::save_transfers_to_csv, this, _1), tr("save_transfers_to_csv [in|out|both] [<min_height> [<max_height>]] - Show completed in/out transfers within an optional height range"));
   m_cmd_binder.set_handler("unspent_outputs", boost::bind(&simple_wallet::unspent_outputs, this, _1), tr("unspent_outputs [<min_amount> <max_amount>] - Show unspent outputs within an optional amount range"));
   m_cmd_binder.set_handler("rescan_bc", boost::bind(&simple_wallet::rescan_blockchain, this, _1), tr("Rescan blockchain from scratch"));
   m_cmd_binder.set_handler("set_tx_note", boost::bind(&simple_wallet::set_tx_note, this, _1), tr("Set an arbitrary string note for a txid"));
@@ -4208,6 +4209,66 @@ bool simple_wallet::show_transfers(const std::vector<std::string> &args_)
     }
   }
 
+  return true;
+}
+//----------------------------------------------------------------------------------------------------
+bool simple_wallet::save_transfers_to_csv(const std::vector<std::string> &args_)
+{
+  std::vector<std::string> local_args = args_;
+  bool in = true;
+  bool out = true;
+  uint64_t min_height = 0;
+  uint64_t max_height = (uint64_t)-1;
+
+  if(local_args.size() > 3) {
+    fail_msg_writer() << tr("usage: show_transfers [in|out|all] [<min_height> [<max_height>]]");
+    return true;
+  }
+
+  LOCK_IDLE_SCOPE();
+
+  // optional in/out selector
+  if (local_args.size() > 0) {
+    if (local_args[0] == "in" || local_args[0] == "incoming") {
+      out = false;
+      local_args.erase(local_args.begin());
+    }
+    else if (local_args[0] == "out" || local_args[0] == "outgoing") {
+      in = false;
+      local_args.erase(local_args.begin());
+    }
+    else if (local_args[0] == "all" || local_args[0] == "both") {
+      local_args.erase(local_args.begin());
+    }
+  }
+
+  // min height
+  if (local_args.size() > 0) {
+    try {
+      min_height = boost::lexical_cast<uint64_t>(local_args[0]);
+    }
+    catch (boost::bad_lexical_cast &) {
+      fail_msg_writer() << tr("bad min_height parameter:") << " " << local_args[0];
+      return true;
+    }
+    local_args.erase(local_args.begin());
+  }
+
+  // max height
+  if (local_args.size() > 0) {
+    try {
+      max_height = boost::lexical_cast<uint64_t>(local_args[0]);
+    }
+    catch (boost::bad_lexical_cast &) {
+      fail_msg_writer() << tr("bad max_height parameter:") << " " << local_args[0];
+      return true;
+    }
+    local_args.erase(local_args.begin());
+  }
+
+  //Save data to file.
+  m_wallet->save_transfers_to_csv(in, out, min_height, max_height);
+  success_msg_writer() << "File saved successfully.";
   return true;
 }
 //----------------------------------------------------------------------------------------------------

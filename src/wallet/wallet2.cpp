@@ -5019,6 +5019,109 @@ const wallet2::transfer_details &wallet2::get_transfer_details(size_t idx) const
   return m_transfers[idx];
 }
 //----------------------------------------------------------------------------------------------------
+void wallet2::save_transfers_to_csv(bool in, bool out, uint64_t min_height, uint64_t max_height)
+{
+  auto t = std::time(nullptr);
+  auto tm = *std::localtime(&t);
+  std::ostringstream oss;
+  oss << std::put_time(&tm, "%d-%m-%Y %H-%M-%S");
+  std::string csvFilename = oss.str() + "-etn-transfers.csv";
+
+  std::ofstream ofs;
+  ofs.open(csvFilename, std::ofstream::out | std::ofstream::app);
+
+  // If file does not exist, Create new file
+  if (!ofs)
+  {
+    cout << "Creating new file";
+    ofs.open(csvFilename, std::ofstream::out | std::ofstream::app);
+  }
+
+  struct transferEntry {
+
+   uint64_t block_height;
+   std::string payment_id;
+   std::string note;
+   std::string txid;
+   uint64_t amount;
+   uint64_t change;
+   uint64_t fee;
+   std::string timestamp;
+   std::string status;
+   std::string dests;
+
+  };
+
+  std::multimap<uint64_t, transferEntry> output;
+
+  if (in) {
+    std::list<std::pair<crypto::hash, tools::wallet2::payment_details>> payments;
+    this->get_payments(payments, min_height, max_height);
+    for (std::list<std::pair<crypto::hash, tools::wallet2::payment_details>>::const_iterator i = payments.begin(); i != payments.end(); ++i) {
+
+      transferEntry transfer;
+      const tools::wallet2::payment_details &pd = i->second;
+
+      transfer.payment_id = string_tools::pod_to_hex(i->first);
+      if (transfer.payment_id.substr(16).find_first_not_of('0') == std::string::npos)
+        transfer.payment_id = transfer.payment_id.substr(0,16);
+
+      transfer.note = this->get_tx_note(pd.m_tx_hash);
+      transfer.timestamp = get_human_readable_timestamp(pd.m_timestamp);
+      transfer.amount = pd.m_amount;
+      transfer.txid = string_tools::pod_to_hex(pd.m_tx_hash);
+      transfer.status = "in";
+
+      output.insert(std::make_pair(pd.m_block_height, transfer));
+    }
+  }
+
+    if (out) {
+    std::list<std::pair<crypto::hash, tools::wallet2::confirmed_transfer_details>> payments;
+    this->get_payments_out(payments, min_height, max_height);
+    for (std::list<std::pair<crypto::hash, tools::wallet2::confirmed_transfer_details>>::const_iterator i = payments.begin(); i != payments.end(); ++i) {
+
+      transferEntry transfer;
+      const tools::wallet2::confirmed_transfer_details &pd = i->second;
+
+      transfer.change = pd.m_change == (uint64_t)-1 ? 0 : pd.m_change; // change may not be known
+      transfer.fee = pd.m_amount_in - pd.m_amount_out;
+
+      for (const auto &d: pd.m_dests) {
+        if (!transfer.dests.empty())
+          transfer.dests += ", ";
+        transfer.dests +=  get_account_address_as_str(this->testnet(), d.addr) + ": " + print_money(d.amount);
+      }
+
+      transfer.payment_id = string_tools::pod_to_hex(i->second.m_payment_id);
+      if (transfer.payment_id.substr(16).find_first_not_of('0') == std::string::npos)
+        transfer.payment_id = transfer.payment_id.substr(0,16);
+
+      transfer.note = this->get_tx_note(i->first);
+      transfer.timestamp = get_human_readable_timestamp(pd.m_timestamp);
+      transfer.amount = pd.m_amount_in - transfer.change - transfer.fee;
+      transfer.txid = string_tools::pod_to_hex(i->first);
+      transfer.status = "out";
+
+      output.insert(std::make_pair(pd.m_block_height, transfer));
+    }
+  }
+
+  //Column Headers
+  ofs << "Block Height" << "," << "Direction" << "," << "Date" << "," << "Amount" << "," << "Transaction ID" << ","
+      << "Payment ID" << "," << "Fee" << "," << "Change" << "," << "Destination(s)" << "\n";
+
+  //Data
+  for (std::map<uint64_t, transferEntry>::const_iterator i = output.begin(); i != output.end(); ++i) {
+    ofs << i->first << "," << i->second.status << "," << i->second.timestamp << "," << print_money(i->second.amount)
+        << "," << i->second.txid << "," << i->second.payment_id << "," << i->second.note;
+        if(i->second.status == "in")   { ofs << "\n";}
+        if (i->second.status == "out")
+        { ofs << print_money(i->second.change) << "," << print_money(i->second.fee) << "," << i->second.dests << "\n";}
+  }
+  ofs.close();
+}
+//----------------------------------------------------------------------------------------------------
 std::vector<size_t> wallet2::select_available_unmixable_outputs(bool trusted_daemon)
 {
   // request all outputs with less than 3 instances

@@ -423,6 +423,7 @@ namespace tools
     std::vector<pending_tx> create_unmixable_sweep_transactions(bool trusted_daemon);
     bool check_connection(uint32_t *version = NULL, uint32_t timeout = 200000);
     void get_transfers(wallet2::transfer_container& incoming_transfers) const;
+    void save_transfers_to_csv(bool in, bool out, uint64_t min_height, uint64_t max_height);
     void get_payments(const crypto::hash& payment_id, std::list<wallet2::payment_details>& payments, uint64_t min_height = 0) const;
     void get_payments(std::list<std::pair<crypto::hash,wallet2::payment_details>>& payments, uint64_t min_height, uint64_t max_height = (uint64_t)-1) const;
     void get_payments_out(std::list<std::pair<crypto::hash,wallet2::confirmed_transfer_details>>& confirmed_payments,
@@ -511,6 +512,27 @@ namespace tools
      * \param  file_path      Wallet file path
      * \return                Whether path is valid format
      */
+    static std::string get_human_readable_timestamp(uint64_t ts)
+    {
+      char buffer[64];
+      if (ts < 1234567890)
+        return "<unknown>";
+      time_t tt = ts;
+      struct tm tm;
+      #ifdef WIN32
+      gmtime_s(&tm, &tt);
+      #else
+      gmtime_r(&tt, &tm);
+      #endif
+      uint64_t now = time(NULL);
+      uint64_t diff = ts > now ? ts - now : now - ts;
+      if (diff > 24*3600)
+        strftime(buffer, sizeof(buffer), "%Y-%m-%d", &tm);
+      else
+        strftime(buffer, sizeof(buffer), "%I:%M:%S %p", &tm);
+      return std::string(buffer);
+}
+//----------------------------------------------------------------------------------------------------
     static bool wallet_valid_path_format(const std::string& file_path);
     static bool parse_long_payment_id(const std::string& payment_id_str, crypto::hash& payment_id);
     static bool parse_short_payment_id(const std::string& payment_id_str, crypto::hash8& payment_id);
