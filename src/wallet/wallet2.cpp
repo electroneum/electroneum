@@ -113,6 +113,7 @@ struct options {
   const command_line::arg_descriptor<std::string> daemon_login = {"daemon-login", tools::wallet2::tr("Specify username[:password] for daemon RPC client"), "", true};
   const command_line::arg_descriptor<bool> testnet = {"testnet", tools::wallet2::tr("For testnet. Daemon must also be launched with --testnet flag"), false};
   const command_line::arg_descriptor<bool> restricted = {"restricted-rpc", tools::wallet2::tr("Restricts to view-only commands"), false};
+  const command_line::arg_descriptor<std::string> data_dir = {"data-dir", tools::wallet2::tr("Path to blockchain db"), ""};
 };
 
 void do_prepare_file_names(const std::string& file_path, std::string& keys_file, std::string& wallet_file)
@@ -149,6 +150,10 @@ std::unique_ptr<tools::wallet2> make_basic(const boost::program_options::variabl
   auto daemon_host = command_line::get_arg(vm, opts.daemon_host);
   auto daemon_port = command_line::get_arg(vm, opts.daemon_port);
 
+  auto data_dir = command_line::get_arg(vm, opts.data_dir);
+
+  bool physical_refresh = !data_dir.empty() && data_dir != "";
+
   if (!daemon_address.empty() && !daemon_host.empty() && 0 != daemon_port)
   {
     tools::fail_msg_writer() << tools::wallet2::tr("can't specify daemon host or port more than once");
@@ -180,6 +185,7 @@ std::unique_ptr<tools::wallet2> make_basic(const boost::program_options::variabl
 
   std::unique_ptr<tools::wallet2> wallet(new tools::wallet2(testnet, restricted));
   wallet->init(std::move(daemon_address), std::move(login));
+  wallet->set_physical_refresh(physical_refresh);
   return wallet;
 }
 
@@ -468,6 +474,7 @@ void wallet2::init_options(boost::program_options::options_description& desc_par
   command_line::add_arg(desc_params, opts.daemon_login);
   command_line::add_arg(desc_params, opts.testnet);
   command_line::add_arg(desc_params, opts.restricted);
+  command_line::add_arg(desc_params, opts.data_dir);
 }
 
 boost::optional<password_container> wallet2::password_prompt(const bool new_password)
@@ -1238,7 +1245,14 @@ void wallet2::pull_blocks(uint64_t start_height, uint64_t &blocks_start_height, 
 
   req.start_height = start_height;
   m_daemon_rpc_mutex.lock();
-  bool r = net_utils::invoke_http_bin("/getblocks.bin", req, res, m_http_client, rpc_timeout);
+
+  bool r;
+  if(m_physical_refresh) {
+    r = tools::wallet2::get_blocks_from_db(req, res);
+  } else {
+    r = net_utils::invoke_http_bin("/getblocks.bin", req, res, m_http_client, rpc_timeout);
+  }
+
   m_daemon_rpc_mutex.unlock();
   THROW_WALLET_EXCEPTION_IF(!r, error::no_connection_to_daemon, "getblocks.bin");
   THROW_WALLET_EXCEPTION_IF(res.status == CORE_RPC_STATUS_BUSY, error::daemon_busy, "getblocks.bin");
@@ -1250,6 +1264,11 @@ void wallet2::pull_blocks(uint64_t start_height, uint64_t &blocks_start_height, 
   blocks_start_height = res.start_height;
   blocks = res.blocks;
   o_indices = res.output_indices;
+}
+
+bool wallet2::get_blocks_from_db(cryptonote::COMMAND_RPC_GET_BLOCKS_FAST::request &req, cryptonote::COMMAND_RPC_GET_BLOCKS_FAST::response &res) {
+  //placeholder only
+  return net_utils::invoke_http_bin("/getblocks.bin", req, res, m_http_client, rpc_timeout);
 }
 //----------------------------------------------------------------------------------------------------
 void wallet2::pull_hashes(uint64_t start_height, uint64_t &blocks_start_height, const std::list<crypto::hash> &short_chain_history, std::list<crypto::hash> &hashes)

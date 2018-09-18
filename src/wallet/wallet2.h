@@ -388,6 +388,8 @@ namespace tools
     bool testnet() const { return m_testnet; }
     bool restricted() const { return m_restricted; }
     bool watch_only() const { return m_watch_only; }
+    bool physical_refresh() const { return m_physical_refresh; }
+    void set_physical_refresh(bool physical_refresh) { m_physical_refresh = physical_refresh; }
 
     uint64_t balance() const;
     uint64_t unlocked_balance() const;
@@ -663,6 +665,7 @@ namespace tools
     crypto::public_key get_tx_pub_key_from_received_outs(const tools::wallet2::transfer_details &td) const;
     bool should_pick_a_second_output(bool use_rct, size_t n_transfers, const std::vector<size_t> &unused_transfers_indices, const std::vector<size_t> &unused_dust_indices) const;
     std::vector<size_t> get_only_rct(const std::vector<size_t> &unused_dust_indices, const std::vector<size_t> &unused_transfers_indices) const;
+    bool get_blocks_from_db(cryptonote::COMMAND_RPC_GET_BLOCKS_FAST::request &req, cryptonote::COMMAND_RPC_GET_BLOCKS_FAST::response &res);
 
     cryptonote::account_base m_account;
     boost::optional<epee::net_utils::http::login> m_daemon_login;
@@ -714,6 +717,7 @@ namespace tools
     bool m_is_initialized;
     NodeRPCProxy m_node_rpc_proxy;
     std::unordered_set<crypto::hash> m_scanned_pool_txs[2];
+    bool m_physical_refresh;
   };
 }
 BOOST_CLASS_VERSION(tools::wallet2, 18)
