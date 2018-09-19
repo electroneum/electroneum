@@ -42,7 +42,9 @@ set(wallet_sources
   api/pending_transaction.cpp
   api/utils.cpp
   api/address_book.cpp
-  api/unsigned_transaction.cpp)
+  api/unsigned_transaction.cpp
+  micro_core/MicroCore.cpp
+  micro_core/tools.cpp)
 
 set(wallet_api_headers
     wallet2_api.h)
@@ -63,7 +65,10 @@ set(wallet_private_headers
   api/pending_transaction.h
   api/common_defines.h
   api/address_book.h
-  api/unsigned_transaction.h)
+  api/unsigned_transaction.h
+  micro_core/MicroCore.h
+  micro_core/electroneum_headers.h
+  micro_core/tools.h)
 
 electroneum_private_headers(wallet
   ${wallet_private_headers})

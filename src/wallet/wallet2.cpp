@@ -61,6 +61,7 @@ using namespace epee;
 #include "common/base58.h"
 #include "common/scoped_message_writer.h"
 #include "ringct/rctSigs.h"
+#include "wallet/micro_core/MicroCore.h"
 
 extern "C"
 {
@@ -116,6 +117,9 @@ struct options {
   const command_line::arg_descriptor<std::string> data_dir = {"data-dir", tools::wallet2::tr("Path to blockchain db"), ""};
 };
 
+etneg::MicroCore mcore;
+cryptonote::Blockchain* core_storage;
+
 void do_prepare_file_names(const std::string& file_path, std::string& keys_file, std::string& wallet_file)
 {
   keys_file = file_path;
@@ -153,6 +157,16 @@ std::unique_ptr<tools::wallet2> make_basic(const boost::program_options::variabl
   auto data_dir = command_line::get_arg(vm, opts.data_dir);
 
   bool physical_refresh = !data_dir.empty() && data_dir != "";
+
+  if(physical_refresh) {
+
+    if (!etneg::init_blockchain(data_dir, mcore, core_storage))
+    {
+        cerr << "Error accessing blockchain." << endl;
+        return nullptr;
+    }
+    
+  }
 
   if (!daemon_address.empty() && !daemon_host.empty() && 0 != daemon_port)
   {
@@ -1266,10 +1280,11 @@ void wallet2::pull_blocks(uint64_t start_height, uint64_t &blocks_start_height, 
   o_indices = res.output_indices;
 }
 
-bool wallet2::get_blocks_from_db(cryptonote::COMMAND_RPC_GET_BLOCKS_FAST::request &req, cryptonote::COMMAND_RPC_GET_BLOCKS_FAST::response &res) {
+bool wallet2::get_blocks_from_db(const cryptonote::COMMAND_RPC_GET_BLOCKS_FAST::request &req, cryptonote::COMMAND_RPC_GET_BLOCKS_FAST::response &res) {
   //placeholder only
   return net_utils::invoke_http_bin("/getblocks.bin", req, res, m_http_client, rpc_timeout);
 }
+
 //----------------------------------------------------------------------------------------------------
 void wallet2::pull_hashes(uint64_t start_height, uint64_t &blocks_start_height, const std::list<crypto::hash> &short_chain_history, std::list<crypto::hash> &hashes)
 {
