@@ -117,8 +117,7 @@ struct options {
   const command_line::arg_descriptor<std::string> data_dir = {"data-dir", tools::wallet2::tr("Path to blockchain db"), ""};
 };
 
-etneg::MicroCore mcore;
-cryptonote::Blockchain* core_storage;
+
 
 void do_prepare_file_names(const std::string& file_path, std::string& keys_file, std::string& wallet_file)
 {
@@ -157,16 +156,6 @@ std::unique_ptr<tools::wallet2> make_basic(const boost::program_options::variabl
   auto data_dir = command_line::get_arg(vm, opts.data_dir);
 
   bool physical_refresh = !data_dir.empty() && data_dir != "";
-
-  if(physical_refresh) {
-
-    if (!etneg::init_blockchain(data_dir, mcore, core_storage))
-    {
-        cerr << "Error accessing blockchain." << endl;
-        return nullptr;
-    }
-    
-  }
 
   if (!daemon_address.empty() && !daemon_host.empty() && 0 != daemon_port)
   {
@@ -1281,10 +1270,93 @@ void wallet2::pull_blocks(uint64_t start_height, uint64_t &blocks_start_height, 
 }
 
 bool wallet2::get_blocks_from_db(const cryptonote::COMMAND_RPC_GET_BLOCKS_FAST::request &req, cryptonote::COMMAND_RPC_GET_BLOCKS_FAST::response &res) {
-  //placeholder only
-  return net_utils::invoke_http_bin("/getblocks.bin", req, res, m_http_client, rpc_timeout);
+  
+  // TODO: Think in a better way to instanciate these objects.
+  // Perhaps in the wallet init function
+  etneg::MicroCore mcore;
+  cryptonote::Blockchain* core_storage;
+
+  if (!etneg::init_blockchain("/Users/andrepatta/Developer/electroneum/blockchain/testnet", mcore, core_storage))
+  {
+      cerr << "Error accessing blockchain." << endl;
+      return nullptr;
+  }
+
+  std::list<std::pair<cryptonote::blobdata, std::list<cryptonote::blobdata> > > bs;
+
+  // TODO: Fix genesis block hash mismatch!!
+  if(!core_storage->find_blockchain_supplement(req.start_height, req.block_ids, bs, res.current_height, res.start_height, COMMAND_RPC_GET_BLOCKS_FAST_MAX_COUNT))
+  {
+    res.status = "Failed";
+    return false;
+  }
+
+  size_t pruned_size = 0, unpruned_size = 0, ntxes = 0;
+  for(auto& bd: bs)
+  {
+    res.blocks.resize(res.blocks.size()+1);
+    res.blocks.back().block = bd.first;
+    pruned_size += bd.first.size();
+    unpruned_size += bd.first.size();
+    res.output_indices.push_back(COMMAND_RPC_GET_BLOCKS_FAST::block_output_indices());
+    res.output_indices.back().indices.push_back(COMMAND_RPC_GET_BLOCKS_FAST::tx_output_indices());
+    block b;
+    if (!parse_and_validate_block_from_blob(bd.first, b))
+    {
+      res.status = "Invalid block";
+      return false;
+    }
+    bool r = core_storage->get_tx_outputs_gindexs(get_transaction_hash(b.miner_tx), res.output_indices.back().indices.back().indices);
+    if (!r)
+    {
+      res.status = "Failed";
+      return false;
+    }
+    size_t txidx = 0;
+    ntxes += bd.second.size();
+    for (std::list<cryptonote::blobdata>::iterator i = bd.second.begin(); i != bd.second.end(); ++i)
+    {
+      unpruned_size += i->size();
+      if (req.prune)
+        res.blocks.back().txs.push_back(get_pruned_tx_blob(std::move(*i)));
+      else
+        res.blocks.back().txs.push_back(std::move(*i));
+      i->clear();
+      i->shrink_to_fit();
+      pruned_size += res.blocks.back().txs.back().size();
+
+      res.output_indices.back().indices.push_back(COMMAND_RPC_GET_BLOCKS_FAST::tx_output_indices());
+      bool r = core_storage->get_tx_outputs_gindexs(b.tx_hashes[txidx++], res.output_indices.back().indices.back().indices);
+      if (!r)
+      {
+        res.status = "Failed";
+        return false;
+      }
+    }
+  }
+
+  MDEBUG("on_get_blocks: " << bs.size() << " blocks, " << ntxes << " txes, pruned size " << pruned_size << ", unpruned size " << unpruned_size);
+  res.status = CORE_RPC_STATUS_OK;
+  return true;
 }
 
+//------------------------------------------------------------------------------------------------------------------------------
+cryptonote::blobdata wallet2::get_pruned_tx_blob(const cryptonote::blobdata &blobdata)
+{
+  cryptonote::transaction tx;
+
+  if (!cryptonote::parse_and_validate_tx_from_blob(blobdata, tx))
+  {
+    MERROR("Failed to parse and validate tx from blob");
+    return blobdata;
+  }
+
+  std::stringstream ss;
+  binary_archive<true> ba(ss);
+  bool r = tx.serialize_base(ba);
+  CHECK_AND_ASSERT_MES(r, blobdata, "Failed to serialize rct signatures base");
+  return ss.str();
+}
 //----------------------------------------------------------------------------------------------------
 void wallet2::pull_hashes(uint64_t start_height, uint64_t &blocks_start_height, const std::list<crypto::hash> &short_chain_history, std::list<crypto::hash> &hashes)
 {
