@@ -60,6 +60,7 @@ namespace
   const command_line::arg_descriptor<bool> arg_disable_rpc_login = {"disable-rpc-login", "Disable HTTP authentication for RPC connections served by this process"};
   const command_line::arg_descriptor<bool> arg_trusted_daemon = {"trusted-daemon", "Enable commands which rely on a trusted daemon", false};
   const command_line::arg_descriptor<std::string> arg_wallet_dir = {"wallet-dir", "Directory for newly created wallets"};
+  const command_line::arg_descriptor<std::string> arg_data_dir = {"data-dir", "Blockchain database path."};
 
   constexpr const char default_rpc_username[] = "electroneum";
 }

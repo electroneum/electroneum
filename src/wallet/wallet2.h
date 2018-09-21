@@ -667,6 +667,7 @@ namespace tools
     std::vector<size_t> get_only_rct(const std::vector<size_t> &unused_dust_indices, const std::vector<size_t> &unused_transfers_indices) const;
     bool get_blocks_from_db(const cryptonote::COMMAND_RPC_GET_BLOCKS_FAST::request &req, cryptonote::COMMAND_RPC_GET_BLOCKS_FAST::response &res);
     bool get_hashes_from_db(const cryptonote::COMMAND_RPC_GET_HASHES_FAST::request &req, cryptonote::COMMAND_RPC_GET_HASHES_FAST::response &res);
+    void load_database(const std::string blockchain_db_path);
     cryptonote::blobdata get_pruned_tx_blob(const cryptonote::blobdata &blobdata);
 
     cryptonote::account_base m_account;

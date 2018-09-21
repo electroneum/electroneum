@@ -540,15 +540,7 @@ bool wallet2::init(std::string daemon_address, boost::optional<epee::net_utils::
   m_daemon_address = std::move(daemon_address);
   m_daemon_login = std::move(daemon_login);
 
-  if(!blockchain_db_path.empty() && blockchain_db_path != "") {
-    m_core = new etneg::MicroCore();
-    m_physical_refresh = true;
-    if (!etneg::init_blockchain(blockchain_db_path, m_core, m_blockchain_storage, m_testnet))
-    {
-        cerr << "Error accessing blockchain database file. Disabling physical refresh feature." << endl;
-        m_physical_refresh = false;
-    }
-  }
+  load_database(blockchain_db_path);
   
   return m_http_client.set_server(get_daemon_address(), get_daemon_login());
 }
@@ -1764,6 +1756,19 @@ void wallet2::update_pool_state(bool refreshed)
   }
   MDEBUG("update_pool_state end");
 }
+
+void wallet2::load_database(std::string blockchain_db_path) {
+  if(!blockchain_db_path.empty() && blockchain_db_path != "") {
+    m_core = new etneg::MicroCore();
+    m_physical_refresh = true;
+    if (!etneg::init_blockchain(blockchain_db_path, m_core, m_blockchain_storage, m_testnet))
+    {
+        cerr << "Error accessing blockchain database file. Disabling physical refresh feature." << endl;
+        m_physical_refresh = false;
+    }
+  }
+}
+
 //----------------------------------------------------------------------------------------------------
 void wallet2::fast_refresh(uint64_t stop_height, uint64_t &blocks_start_height, std::list<crypto::hash> &short_chain_history)
 {
