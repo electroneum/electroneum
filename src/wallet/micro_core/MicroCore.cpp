@@ -36,7 +36,7 @@ namespace etneg
      * Open database files located in blockchain_path.
      * Initialize m_blockchain_storage with the BlockchainLMDB object.
      */
-    bool MicroCore::init(const string &_blockchain_path)
+    bool MicroCore::init(const string &_blockchain_path, bool testnet)
     {
         int db_flags = 0;
 
@@ -81,7 +81,7 @@ namespace etneg
 
         // initialize Blockchain object to manage
         // the database.
-        return m_blockchain_storage.init(db, m_hardfork, false);
+        return m_blockchain_storage.init(db, m_hardfork, testnet);
     }
 
     /**
@@ -303,12 +303,12 @@ namespace etneg
     }
 
     bool init_blockchain(const string &path,
-                        MicroCore &mcore,
-                        Blockchain *&core_storage)
+                        MicroCore *&mcore,
+                        Blockchain *&core_storage, bool testnet)
     {
 
         // initialize the core using the blockchain path
-        if (!mcore.init(path))
+        if (!mcore->init(path, testnet))
         {
             cerr << "Error accessing blockchain." << endl;
             return false;
@@ -316,7 +316,7 @@ namespace etneg
 
         // get the high level Blockchain object to interact
         // with the blockchain lmdb database
-        core_storage = &(mcore.get_core());
+        core_storage = &(mcore->get_core());
 
         return true;
     }

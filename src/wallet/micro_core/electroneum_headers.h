@@ -19,8 +19,6 @@
 #include "cryptonote_core/blockchain.h"
 #include "blockchain_db/lmdb/db_lmdb.h"
 
-#include "wallet/wallet2.h"
-
 #include "serialization/binary_utils.h"
 
 #include "ringct/rctTypes.h"

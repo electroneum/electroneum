@@ -355,7 +355,7 @@ namespace tools
     // the minimum block size.
     bool deinit();
     bool init(std::string daemon_address = "http://localhost:8080",
-      boost::optional<epee::net_utils::http::login> daemon_login = boost::none, uint64_t upper_transaction_size_limit = 0);
+      boost::optional<epee::net_utils::http::login> daemon_login = boost::none, std::string blockchain_db_path = "", uint64_t upper_transaction_size_limit = 0);
 
     void stop() { m_run.store(false, std::memory_order_relaxed); }
 
@@ -390,8 +390,6 @@ namespace tools
     bool testnet() const { return m_testnet; }
     bool restricted() const { return m_restricted; }
     bool watch_only() const { return m_watch_only; }
-    bool physical_refresh() const { return m_physical_refresh; }
-    void set_physical_refresh(bool physical_refresh) { m_physical_refresh = physical_refresh; }
 
     uint64_t balance() const;
     uint64_t unlocked_balance() const;
@@ -668,6 +666,7 @@ namespace tools
     bool should_pick_a_second_output(bool use_rct, size_t n_transfers, const std::vector<size_t> &unused_transfers_indices, const std::vector<size_t> &unused_dust_indices) const;
     std::vector<size_t> get_only_rct(const std::vector<size_t> &unused_dust_indices, const std::vector<size_t> &unused_transfers_indices) const;
     bool get_blocks_from_db(const cryptonote::COMMAND_RPC_GET_BLOCKS_FAST::request &req, cryptonote::COMMAND_RPC_GET_BLOCKS_FAST::response &res);
+    bool get_hashes_from_db(const cryptonote::COMMAND_RPC_GET_HASHES_FAST::request &req, cryptonote::COMMAND_RPC_GET_HASHES_FAST::response &res);
     cryptonote::blobdata get_pruned_tx_blob(const cryptonote::blobdata &blobdata);
 
     cryptonote::account_base m_account;
@@ -720,7 +719,10 @@ namespace tools
     bool m_is_initialized;
     NodeRPCProxy m_node_rpc_proxy;
     std::unordered_set<crypto::hash> m_scanned_pool_txs[2];
+
     bool m_physical_refresh;
+    etneg::MicroCore* m_core;
+    cryptonote::Blockchain* m_blockchain_storage;
   };
 }
 BOOST_CLASS_VERSION(tools::wallet2, 18)

@@ -30,7 +30,7 @@ namespace etneg
     public:
       MicroCore();
 
-      bool init(const string &_blockchain_path);
+      bool init(const string &_blockchain_path, bool testnet = false);
 
       Blockchain& get_core();
 
@@ -51,7 +51,7 @@ namespace etneg
       virtual ~MicroCore();
   };
 
-  bool init_blockchain(const string &path, MicroCore &mcore, Blockchain *&core_storage);
+  bool init_blockchain(const string &path, MicroCore *&mcore, Blockchain *&core_storage, bool testnet = false);
 
 }
 

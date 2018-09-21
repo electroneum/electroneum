@@ -155,8 +155,6 @@ std::unique_ptr<tools::wallet2> make_basic(const boost::program_options::variabl
 
   auto data_dir = command_line::get_arg(vm, opts.data_dir);
 
-  bool physical_refresh = !data_dir.empty() && data_dir != "";
-
   if (!daemon_address.empty() && !daemon_host.empty() && 0 != daemon_port)
   {
     tools::fail_msg_writer() << tools::wallet2::tr("can't specify daemon host or port more than once");
@@ -187,8 +185,8 @@ std::unique_ptr<tools::wallet2> make_basic(const boost::program_options::variabl
     daemon_address = std::string("http://") + daemon_host + ":" + std::to_string(daemon_port);
 
   std::unique_ptr<tools::wallet2> wallet(new tools::wallet2(testnet, restricted));
-  wallet->init(std::move(daemon_address), std::move(login));
-  wallet->set_physical_refresh(physical_refresh);
+  wallet->init(std::move(daemon_address), std::move(login), std::move(data_dir));
+
   return wallet;
 }
 
@@ -533,7 +531,7 @@ std::unique_ptr<wallet2> wallet2::make_dummy(const boost::program_options::varia
 }
 
 //----------------------------------------------------------------------------------------------------
-bool wallet2::init(std::string daemon_address, boost::optional<epee::net_utils::http::login> daemon_login, uint64_t upper_transaction_size_limit)
+bool wallet2::init(std::string daemon_address, boost::optional<epee::net_utils::http::login> daemon_login, std::string blockchain_db_path, uint64_t upper_transaction_size_limit)
 {
   if(m_http_client.is_connected())
     m_http_client.disconnect();
@@ -541,6 +539,17 @@ bool wallet2::init(std::string daemon_address, boost::optional<epee::net_utils::
   m_upper_transaction_size_limit = upper_transaction_size_limit;
   m_daemon_address = std::move(daemon_address);
   m_daemon_login = std::move(daemon_login);
+
+  if(!blockchain_db_path.empty() && blockchain_db_path != "") {
+    m_core = new etneg::MicroCore();
+    m_physical_refresh = true;
+    if (!etneg::init_blockchain(blockchain_db_path, m_core, m_blockchain_storage, m_testnet))
+    {
+        cerr << "Error accessing blockchain database file. Disabling physical refresh feature." << endl;
+        m_physical_refresh = false;
+    }
+  }
+  
   return m_http_client.set_server(get_daemon_address(), get_daemon_login());
 }
 //----------------------------------------------------------------------------------------------------
@@ -1271,21 +1280,9 @@ void wallet2::pull_blocks(uint64_t start_height, uint64_t &blocks_start_height, 
 
 bool wallet2::get_blocks_from_db(const cryptonote::COMMAND_RPC_GET_BLOCKS_FAST::request &req, cryptonote::COMMAND_RPC_GET_BLOCKS_FAST::response &res) {
   
-  // TODO: Think in a better way to instanciate these objects.
-  // Perhaps in the wallet init function
-  etneg::MicroCore mcore;
-  cryptonote::Blockchain* core_storage;
-
-  if (!etneg::init_blockchain("/Users/andrepatta/Developer/electroneum/blockchain/testnet", mcore, core_storage))
-  {
-      cerr << "Error accessing blockchain." << endl;
-      return nullptr;
-  }
-
   std::list<std::pair<cryptonote::blobdata, std::list<cryptonote::blobdata> > > bs;
 
-  // TODO: Fix genesis block hash mismatch!!
-  if(!core_storage->find_blockchain_supplement(req.start_height, req.block_ids, bs, res.current_height, res.start_height, COMMAND_RPC_GET_BLOCKS_FAST_MAX_COUNT))
+  if(!m_blockchain_storage->find_blockchain_supplement(req.start_height, req.block_ids, bs, res.current_height, res.start_height, COMMAND_RPC_GET_BLOCKS_FAST_MAX_COUNT))
   {
     res.status = "Failed";
     return false;
@@ -1306,7 +1303,7 @@ bool wallet2::get_blocks_from_db(const cryptonote::COMMAND_RPC_GET_BLOCKS_FAST::
       res.status = "Invalid block";
       return false;
     }
-    bool r = core_storage->get_tx_outputs_gindexs(get_transaction_hash(b.miner_tx), res.output_indices.back().indices.back().indices);
+    bool r = m_blockchain_storage->get_tx_outputs_gindexs(get_transaction_hash(b.miner_tx), res.output_indices.back().indices.back().indices);
     if (!r)
     {
       res.status = "Failed";
@@ -1326,7 +1323,7 @@ bool wallet2::get_blocks_from_db(const cryptonote::COMMAND_RPC_GET_BLOCKS_FAST::
       pruned_size += res.blocks.back().txs.back().size();
 
       res.output_indices.back().indices.push_back(COMMAND_RPC_GET_BLOCKS_FAST::tx_output_indices());
-      bool r = core_storage->get_tx_outputs_gindexs(b.tx_hashes[txidx++], res.output_indices.back().indices.back().indices);
+      bool r = m_blockchain_storage->get_tx_outputs_gindexs(b.tx_hashes[txidx++], res.output_indices.back().indices.back().indices);
       if (!r)
       {
         res.status = "Failed";
@@ -1366,7 +1363,14 @@ void wallet2::pull_hashes(uint64_t start_height, uint64_t &blocks_start_height, 
 
   req.start_height = start_height;
   m_daemon_rpc_mutex.lock();
-  bool r = net_utils::invoke_http_bin("/gethashes.bin", req, res, m_http_client, rpc_timeout);
+
+  bool r;
+  if(m_physical_refresh) {
+    r = tools::wallet2::get_hashes_from_db(req, res);
+  } else {
+    r = net_utils::invoke_http_bin("/gethashes.bin", req, res, m_http_client, rpc_timeout);
+  }
+
   m_daemon_rpc_mutex.unlock();
   THROW_WALLET_EXCEPTION_IF(!r, error::no_connection_to_daemon, "gethashes.bin");
   THROW_WALLET_EXCEPTION_IF(res.status == CORE_RPC_STATUS_BUSY, error::daemon_busy, "gethashes.bin");
@@ -1375,6 +1379,24 @@ void wallet2::pull_hashes(uint64_t start_height, uint64_t &blocks_start_height, 
   blocks_start_height = res.start_height;
   hashes = res.m_block_ids;
 }
+
+bool wallet2::get_hashes_from_db(const cryptonote::COMMAND_RPC_GET_HASHES_FAST::request &req, cryptonote::COMMAND_RPC_GET_HASHES_FAST::response &res) {
+  NOTIFY_RESPONSE_CHAIN_ENTRY::request resp;
+
+  resp.start_height = req.start_height;
+  if(!m_blockchain_storage->find_blockchain_supplement(req.block_ids, resp))
+  {
+    res.status = "Failed";
+    return false;
+  }
+  res.current_height = resp.total_height;
+  res.start_height = resp.start_height;
+  res.m_block_ids = std::move(resp.m_block_ids);
+
+  res.status = CORE_RPC_STATUS_OK;
+  return true;
+}
+
 //----------------------------------------------------------------------------------------------------
 void wallet2::process_blocks(uint64_t start_height, const std::list<cryptonote::block_complete_entry> &blocks, const std::vector<cryptonote::COMMAND_RPC_GET_BLOCKS_FAST::block_output_indices> &o_indices, uint64_t& blocks_added)
 {
