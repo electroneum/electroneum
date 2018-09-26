@@ -95,9 +95,10 @@ namespace cryptonote {
 
     const int target_minutes = target / 60;
     const int emission_speed_factor = EMISSION_SPEED_FACTOR_PER_MINUTE - (target_minutes-1);
+    uint64_t full_reward_zone = get_min_block_size(version);
 
     const uint64_t premine = 1260000000000U;
-    if (median_size > 0 && already_generated_coins < premine) {
+    if (median_size > 0 && already_generated_coins < premine && !(current_block_size >= 2 * full_reward_zone)) {
       reward = premine;
       return true;
     }
@@ -107,8 +108,6 @@ namespace cryptonote {
     {
       base_reward = FINAL_SUBSIDY_PER_MINUTE*target_minutes;
     }
-
-    uint64_t full_reward_zone = get_min_block_size(version);
 
     //make it soft
     if (median_size < full_reward_zone) {

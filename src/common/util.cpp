@@ -538,6 +538,13 @@ std::string get_nix_version_display_string()
 
   bool is_local_address(const std::string &address)
   {
+        // always assume Tor/I2P addresses to be untrusted by default
+    if (boost::ends_with(address, ".onion") || boost::ends_with(address, ".i2p"))
+    {
+      MDEBUG("Address '" << address << "' is Tor/I2P, non local");
+      return false;
+    }
+
     // extract host
     epee::net_utils::http::url_content u_c;
     if (!epee::net_utils::parse_url(address, u_c))
@@ -630,5 +637,22 @@ std::string get_nix_version_display_string()
     if (!SHA256_Final((unsigned char*)hash.data, &ctx))
       return false;
     return true;
+  }
+
+  int display_simple_progress_spinner(int x) {
+    std::string s;
+    x++;
+    if (x == 1) {
+      s = "|";
+    } else if (x == 2) {
+      s = "/";
+    } else if (x == 3) {
+      s = "-";
+    } else {
+      s = "\\";
+      x = 0;
+    }
+    std::cout << "\r" << s << std::flush;
+    return x;
   }
 }

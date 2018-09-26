@@ -43,6 +43,7 @@
 #include <boost/program_options.hpp>
 #include <boost/algorithm/string.hpp>
 #include <boost/format.hpp>
+#include <boost/regex.hpp>
 #include "include_base_utils.h"
 #include "common/i18n.h"
 #include "common/command_line.h"
@@ -720,6 +721,17 @@ bool simple_wallet::set_refresh_from_block_height(const std::vector<std::string>
   return true;
 }
 
+bool simple_wallet::set_display_progress_indicator(const std::vector<std::string> &args/* = std::vector<std::string>()*/)
+{
+    const auto pwd_container = get_and_verify_password();
+    if (pwd_container)
+    {
+        m_wallet->display_progress_indicator(is_it_true(args[1]));
+        m_wallet->rewrite(m_wallet_file, pwd_container->password());
+    }
+    return true;
+}
+
 bool simple_wallet::help(const std::vector<std::string> &args/* = std::vector<std::string>()*/)
 {
   success_msg_writer() << get_commands_str();
@@ -736,6 +748,7 @@ simple_wallet::simple_wallet()
 {
   m_cmd_binder.set_handler("start_mining", boost::bind(&simple_wallet::start_mining, this, _1), tr("start_mining [<number_of_threads>] - Start mining in daemon"));
   m_cmd_binder.set_handler("stop_mining", boost::bind(&simple_wallet::stop_mining, this, _1), tr("Stop mining in daemon"));
+  m_cmd_binder.set_handler("set_daemon", boost::bind(&simple_wallet::set_daemon, this, _1), tr("set_daemon <host>[:<port>] - Set another daemon to connect to."));
   m_cmd_binder.set_handler("save_bc", boost::bind(&simple_wallet::save_bc, this, _1), tr("Save current blockchain data"));
   m_cmd_binder.set_handler("refresh", boost::bind(&simple_wallet::refresh, this, _1), tr("Synchronize transactions and balance"));
   m_cmd_binder.set_handler("balance", boost::bind(&simple_wallet::show_balance, this, _1), tr("Show current wallet balance"));
@@ -805,6 +818,7 @@ bool simple_wallet::set_variable(const std::vector<std::string> &args)
     success_msg_writer() << "merge-destinations = " << m_wallet->merge_destinations();
     success_msg_writer() << "confirm-backlog = " << m_wallet->confirm_backlog();
     success_msg_writer() << "refresh-from-block-height = " << m_wallet->get_refresh_from_block_height();
+    success_msg_writer() << "display-progress-indicator = " << m_wallet->display_progress_indicator();
     return true;
   }
   else
@@ -852,6 +866,7 @@ bool simple_wallet::set_variable(const std::vector<std::string> &args)
     CHECK_SIMPLE_VARIABLE("merge-destinations", set_merge_destinations, tr("0 or 1"));
     CHECK_SIMPLE_VARIABLE("confirm-backlog", set_confirm_backlog, tr("0 or 1"));
     CHECK_SIMPLE_VARIABLE("refresh-from-block-height", set_refresh_from_block_height, tr("block height"));
+    CHECK_SIMPLE_VARIABLE("display-progress-indicator", set_display_progress_indicator, tr("0 or 1"));
   }
   fail_msg_writer() << tr("set: unrecognized argument(s)");
   return true;
@@ -1450,7 +1465,7 @@ bool simple_wallet::try_connect_to_daemon(bool silent, uint32_t* version)
     if (!silent)
       fail_msg_writer() << tr("wallet failed to connect to daemon: ") << m_wallet->get_daemon_address() << ". " <<
         tr("Daemon either is not started or wrong port was passed. "
-        "Please make sure daemon is running or restart the wallet with the correct daemon address.");
+        "Please make sure daemon is running or change the daemon address using the 'set_daemon' command.");
     return false;
   }
   if (!m_allow_mismatched_daemon_version && ((*version >> 16) != CORE_RPC_VERSION_MAJOR))
@@ -1836,6 +1851,69 @@ bool simple_wallet::stop_mining(const std::vector<std::string>& args)
   return true;
 }
 //----------------------------------------------------------------------------------------------------
+
+bool simple_wallet::set_daemon(const std::vector<std::string>& args)
+{
+  std::string daemon_url;
+   if (args.size() < 1)
+  {
+    fail_msg_writer() << tr("missing daemon URL argument");
+    return true;
+  }
+   boost::regex rgx("^(.*://)?([A-Za-z0-9\\-\\.]+)(:[0-9]+)?");
+  boost::cmatch match;
+  // If user input matches URL regex
+  if (boost::regex_match(args[0].c_str(), match, rgx))
+  {
+    if (match.length() < 4)
+    {
+      fail_msg_writer() << tr("Unexpected array length - Exited simple_wallet::set_daemon()");
+      return true;
+    }
+    // If no port has been provided, use the default from config
+    if (!match[3].length())
+    {
+      int daemon_port = m_wallet->testnet() ? config::testnet::RPC_DEFAULT_PORT : config::RPC_DEFAULT_PORT;
+      daemon_url = match[1] + match[2] + std::string(":") + std::to_string(daemon_port);
+    } else {
+      daemon_url = args[0];
+    }
+    LOCK_IDLE_SCOPE();
+    m_wallet->init(daemon_url);
+
+        if (args.size() == 2)
+    {
+      if (args[1] == "trusted")
+        m_trusted_daemon = true;
+      else if (args[1] == "untrusted")
+        m_trusted_daemon = false;
+      else
+      {
+        fail_msg_writer() << tr("Expected trusted or untrusted, got ") << args[1] << ": assuming untrusted";
+        m_trusted_daemon = false;
+      }
+    }
+    else
+    {
+      m_trusted_daemon = false;
+      try
+      {
+        if (tools::is_local_address(m_wallet->get_daemon_address()))
+        {
+          MINFO(tr("Daemon is local, assuming trusted"));
+          m_trusted_daemon = true;
+        }
+      }
+      catch (const std::exception &e) { }
+    }
+    success_msg_writer() << boost::format("Daemon set to %s, %s") % daemon_url % (m_trusted_daemon ? tr("trusted") : tr("untrusted"));
+  } else {
+    fail_msg_writer() << tr("This does not seem to be a valid daemon URL.");
+  }
+  return true;
+}
+//----------------------------------------------------------------------------------------------------
+
 bool simple_wallet::save_bc(const std::vector<std::string>& args)
 {
   if (!try_connect_to_daemon())
@@ -2229,9 +2307,13 @@ bool simple_wallet::print_ring_members(const std::vector<tools::wallet2::pending
     fail_msg_writer() << tr("failed to get blockchain height: ") << err;
     return false;
   }
+
+  int x = 0;
   // for each transaction
   for (size_t n = 0; n < ptx_vector.size(); ++n)
   {
+    if(m_wallet->display_progress_indicator())
+      x = tools::display_simple_progress_spinner(x);
     const cryptonote::transaction& tx = ptx_vector[n].tx;
     const tools::wallet2::tx_construction_data& construction_data = ptx_vector[n].construction_data;
     ostr << boost::format(tr("\nTransaction %llu/%llu: txid=%s")) % (n + 1) % ptx_vector.size() % cryptonote::get_transaction_hash(tx);
@@ -2240,6 +2322,8 @@ bool simple_wallet::print_ring_members(const std::vector<tools::wallet2::pending
     std::vector<crypto::hash> spent_key_txid  (tx.vin.size());
     for (size_t i = 0; i < tx.vin.size(); ++i)
     {
+      if(m_wallet->display_progress_indicator())
+        x = tools::display_simple_progress_spinner(x);
       if (tx.vin[i].type() != typeid(cryptonote::txin_to_key))
         continue;
       const cryptonote::txin_to_key& in_key = boost::get<cryptonote::txin_to_key>(tx.vin[i]);
@@ -2463,6 +2547,8 @@ bool simple_wallet::transfer_main(int transfer_type, const std::vector<std::stri
      }
   }
 
+  int x = 0;
+  bool display_progress_indicator = m_wallet->display_progress_indicator();
   try
   {
     // figure out what tx will be necessary
@@ -2506,6 +2592,8 @@ bool simple_wallet::transfer_main(int transfer_type, const std::vector<std::stri
       uint64_t size = 0, fee = 0;
       for (size_t n = 0; n < ptx_vector.size(); ++n)
       {
+        if(display_progress_indicator)
+          x = tools::display_simple_progress_spinner(x);
         const uint64_t blob_size = cryptonote::tx_to_blob(ptx_vector[n].tx).size();
         const double fee_per_byte = ptx_vector[n].fee / (double)blob_size;
         if (fee_per_byte < worst_fee_per_byte)
@@ -2557,6 +2645,8 @@ bool simple_wallet::transfer_main(int transfer_type, const std::vector<std::stri
         uint64_t dust_in_fee = 0;
         for (size_t n = 0; n < ptx_vector.size(); ++n)
         {
+          if(display_progress_indicator)
+            x = tools::display_simple_progress_spinner(x);
           total_fee += ptx_vector[n].fee;
           for (auto i: ptx_vector[n].selected_transfers)
             total_sent += m_wallet->get_transfer_details(i).amount();
@@ -2569,7 +2659,7 @@ bool simple_wallet::transfer_main(int transfer_type, const std::vector<std::stri
         }
 
         std::stringstream prompt;
-        prompt << boost::format(tr("Sending %s.  ")) % print_money(total_sent);
+        prompt << boost::format(tr("\rSending %s.  ")) % print_money(total_sent);
         if (ptx_vector.size() > 1)
         {
           prompt << boost::format(tr("Your transaction needs to be split into %llu transactions.  "
@@ -2998,6 +3088,16 @@ bool simple_wallet::sweep_main(uint64_t below, const std::vector<std::string> &a
 
   LOCK_IDLE_SCOPE();
 
+  std::string accepted = command_line::input_line(tr("Sweeping funds can take a few minutes or several hours to build the transaction(s). Is this okay?  (Y/Yes/N/No): "));
+  if (std::cin.eof())
+    return true;
+  if (!command_line::is_yes(accepted))
+  {
+    fail_msg_writer() << tr("transaction cancelled.");
+
+    return true;
+  }
+
   try
   {
     // figure out what tx will be necessary
@@ -3009,18 +3109,25 @@ bool simple_wallet::sweep_main(uint64_t below, const std::vector<std::string> &a
       return true;
     }
 
+    int x = 0;
+    bool display_progress_indicator = m_wallet->display_progress_indicator();
     // give user total and fee, and prompt to confirm
     uint64_t total_fee = 0, total_sent = 0;
-    for (size_t n = 0; n < ptx_vector.size(); ++n)
-    {
+    for (size_t n = 0; n < ptx_vector.size(); ++n) {
+      if(display_progress_indicator)
+        x = tools::display_simple_progress_spinner(x);
       total_fee += ptx_vector[n].fee;
-      for (auto i: ptx_vector[n].selected_transfers)
+      for (auto i: ptx_vector[n].selected_transfers) {
+        if(display_progress_indicator)
+          x = tools::display_simple_progress_spinner(x);
         total_sent += m_wallet->get_transfer_details(i).amount();
+      }
     }
 
     std::ostringstream prompt;
-    if (!print_ring_members(ptx_vector, prompt))
-      return true;
+    if(m_wallet->print_ring_members())
+      if (!print_ring_members(ptx_vector, prompt))
+        return true;
     if (ptx_vector.size() > 1) {
       prompt << boost::format(tr("Sweeping %s in %llu transactions for a total fee of %s.  Is this okay?  (Y/Yes/N/No): ")) %
         print_money(total_sent) %

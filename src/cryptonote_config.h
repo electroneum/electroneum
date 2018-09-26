@@ -61,8 +61,8 @@
 #define CRYPTONOTE_BLOCK_GRANTED_FULL_REWARD_ZONE_V5    150000 //size of block (bytes) after which reward for block calculated using block size - second change, from v5
 #define CRYPTONOTE_COINBASE_BLOB_RESERVED_SIZE          600
 #define CRYPTONOTE_DISPLAY_DECIMAL_POINT                2
-// COIN - number of smallest units in one coin
-#define COIN                                            ((uint64_t)1000000000000) // pow(10, 12)
+// COIN - number of smallest units in one coin. This definition is only used for tests.
+#define COIN                                            ((uint64_t)100) // pow(10, 2)
 
 #define FEE_PER_KB                                      ((uint64_t)1) //Initial fee of 0.01/kb
 #define FEE_PER_KB_V6                                   ((uint64_t)10) //Fee of 0.10/kb from HF V6
@@ -70,7 +70,7 @@
 #define DEFAULT_MIX                                     0
 #define DEFAULT_RINGSIZE                                (DEFAULT_MIX + 1)
 
-#define HF_VERSION_DYNAMIC_FEE                          7
+#define HF_VERSION_DYNAMIC_FEE                          10
 #define DYNAMIC_FEE_PER_KB_BASE_FEE                     ((uint64_t)2000000000) // 2 * pow(10,9)
 #define DYNAMIC_FEE_PER_KB_BASE_BLOCK_REWARD            ((uint64_t)10000000000000) // 10 * pow(10,12)
 #define DYNAMIC_FEE_PER_KB_BASE_FEE_V5                  ((uint64_t)2000000000 * (uint64_t)CRYPTONOTE_BLOCK_GRANTED_FULL_REWARD_ZONE_V2 / CRYPTONOTE_BLOCK_GRANTED_FULL_REWARD_ZONE_V5)
@@ -141,8 +141,8 @@
 #define THREAD_STACK_SIZE                       5 * 1024 * 1024
 
 //RingCT
-#define HF_VERSION_ENABLE_RCT                   7 //Make RCT enabled from v7
-#define HF_VERSION_ENFORCE_RCT                  8 //Make RCT a requirment from v8
+#define HF_VERSION_ENABLE_RCT                   10 //Make RCT enabled from v7
+#define HF_VERSION_ENFORCE_RCT                  10 //Make RCT a requirment from v8
 
 #define PER_KB_FEE_QUANTIZATION_DECIMALS        8
 

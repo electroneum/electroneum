@@ -203,6 +203,19 @@ else()
 endif()
 option(STATIC "Link libraries statically" ${DEFAULT_STATIC})
 
+if(WIN32 OR MSVC OR MINGW)
+  # Enable DEP (data execution prevention) and ASLR (address space layout
+  # randomization).
+  # See https://lists.gnu.org/archive/html/bug-binutils/2015-09/msg00204.html
+  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--nxcompat")
+  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--disable-auto-image-base -Wl,--dynamicbase")
+  if("${CMAKE_SIZEOF_VOID_P}" EQUAL "8")
+    # For 64-bit build, enable higher entropy for the memory relocations:
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--high-entropy-va")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--image-base -Wl,0x140000000")
+  endif()
+endif()
+
 # This is a CMake built-in switch that concerns internal libraries
 if (NOT DEFINED BUILD_SHARED_LIBS AND NOT STATIC AND CMAKE_BUILD_TYPE_LOWER STREQUAL "debug")
     set(BUILD_SHARED_LIBS ON)
