@@ -152,6 +152,14 @@ namespace cryptonote
     res.block_size_limit = m_core.get_blockchain_storage().get_current_cumulative_blocksize_limit();
     res.status = CORE_RPC_STATUS_OK;
     res.start_time = (uint64_t)m_core.get_start_time();
+
+
+
+
+    res.daemon_release_name = ELECTRONEUM_RELEASE_NAME;
+    res.daemon_version = ELECTRONEUM_VERSION;
+    res.daemon_version_full = ELECTRONEUM_VERSION_FULL;
+    res.daemon_version_tag = ELECTRONEUM_VERSION_TAG;
     return true;
   }
   //------------------------------------------------------------------------------------------------------------------------------
@@ -1311,6 +1319,11 @@ namespace cryptonote
     res.block_size_limit = m_core.get_blockchain_storage().get_current_cumulative_blocksize_limit();
     res.status = CORE_RPC_STATUS_OK;
     res.start_time = (uint64_t)m_core.get_start_time();
+
+    res.daemon_release_name = ELECTRONEUM_RELEASE_NAME;
+    res.daemon_version = ELECTRONEUM_VERSION;
+    res.daemon_version_full = ELECTRONEUM_VERSION_FULL;
+    res.daemon_version_tag = ELECTRONEUM_VERSION_TAG;
     return true;
   }
   //------------------------------------------------------------------------------------------------------------------------------

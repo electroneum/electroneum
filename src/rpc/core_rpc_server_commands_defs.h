@@ -572,6 +572,11 @@ namespace cryptonote
       uint64_t block_size_limit;
       uint64_t start_time;
 
+      std::string daemon_release_name;
+      std::string daemon_version;
+      std::string daemon_version_full;
+      std::string daemon_version_tag;
+
       BEGIN_KV_SERIALIZE_MAP()
         KV_SERIALIZE(status)
         KV_SERIALIZE(height)
@@ -590,6 +595,11 @@ namespace cryptonote
         KV_SERIALIZE(cumulative_difficulty)
         KV_SERIALIZE(block_size_limit)
         KV_SERIALIZE(start_time)
+
+        KV_SERIALIZE(daemon_release_name)
+        KV_SERIALIZE(daemon_version)
+        KV_SERIALIZE(daemon_version_full)
+        KV_SERIALIZE(daemon_version_tag)
       END_KV_SERIALIZE_MAP()
     };
   };
