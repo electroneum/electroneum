@@ -50,6 +50,7 @@ using namespace epee;
 #include "mnemonics/electrum-words.h"
 #include "rpc/rpc_args.h"
 #include "rpc/core_rpc_server_commands_defs.h"
+#include "wallet/micro_core/MicroCore.h"
 
 #undef ELECTRONEUM_DEFAULT_LOG_CATEGORY
 #define ELECTRONEUM_DEFAULT_LOG_CATEGORY "wallet.rpc"
@@ -61,6 +62,7 @@ namespace
   const command_line::arg_descriptor<bool> arg_trusted_daemon = {"trusted-daemon", "Enable commands which rely on a trusted daemon", false};
   const command_line::arg_descriptor<std::string> arg_wallet_dir = {"wallet-dir", "Directory for newly created wallets"};
   const command_line::arg_descriptor<std::string> arg_data_dir = {"data-dir", "Blockchain database path."};
+  const command_line::arg_descriptor<bool> arg_testnet = {"testnet", "For testnet. Daemon must also be launched with --testnet flag"};
 
   constexpr const char default_rpc_username[] = "electroneum";
 }
@@ -136,11 +138,16 @@ namespace tools
     tools::wallet2 *walvars;
     std::unique_ptr<tools::wallet2> tmpwal;
 
+    auto data_dir = command_line::get_arg(*m_vm, arg_data_dir);
+    m_testnet = command_line::get_arg(*m_vm, arg_testnet);
+
+    load_database(data_dir);
+
     if (m_wallet)
       walvars = m_wallet;
     else
     {
-      tmpwal = tools::wallet2::make_dummy(*m_vm);
+      tmpwal = tools::wallet2::make_dummy(*m_vm, m_core, m_blockchain_storage);
       walvars = tmpwal.get();
     }
     boost::optional<epee::net_utils::http::login> http_login{};
@@ -221,6 +228,32 @@ namespace tools
     return epee::http_server_impl_base<wallet_rpc_server, connection_context>::init(
       std::move(bind_port), std::move(rpc_config->bind_ip), std::move(http_login)
     );
+  }
+  //------------------------------------------------------------------------------------------------------------------------------
+  void wallet_rpc_server::load_database(std::string blockchain_db_path) {
+    if(!blockchain_db_path.empty() && blockchain_db_path != "" && !is_connected_to_db) {
+      m_core = new etneg::MicroCore();
+      m_physical_refresh = true;
+      if (etneg::init_blockchain(blockchain_db_path, m_core, m_blockchain_storage, m_testnet)) {
+        is_connected_to_db = true;
+        return;
+
+      } else {
+        cerr << "Error accessing blockchain database file. Disabling physical refresh feature." << endl;
+        m_physical_refresh = false;
+      }
+    }
+
+    // Make sure m_core and m_blockchain_storage pointers are clean if not connected to db
+    if(!is_connected_to_db) {
+      m_core = nullptr;
+      m_blockchain_storage = nullptr;
+    }
+  }
+  //------------------------------------------------------------------------------------------------------------------------------
+  void wallet_rpc_server::set_blockchain_storage(etneg::MicroCore* core, cryptonote::Blockchain* blockchain_storage) {
+    m_core = core;
+    m_blockchain_storage = blockchain_storage;
   }
   //------------------------------------------------------------------------------------------------------------------------------
   bool wallet_rpc_server::not_open(epee::json_rpc::error& er)
@@ -1692,7 +1725,7 @@ namespace tools
       command_line::add_arg(desc, arg_password);
       po::store(po::parse_command_line(argc, argv, desc), vm2);
     }
-    std::unique_ptr<tools::wallet2> wal = tools::wallet2::make_new(vm2).first;
+    std::unique_ptr<tools::wallet2> wal = tools::wallet2::make_new(vm2, m_core, m_blockchain_storage).first;
     if (!wal)
     {
       er.code = WALLET_RPC_ERROR_CODE_UNKNOWN_ERROR;
@@ -1761,7 +1794,7 @@ namespace tools
     }
     std::unique_ptr<tools::wallet2> wal;
     try {
-      wal = tools::wallet2::make_from_file(vm2, wallet_file).first;
+      wal = tools::wallet2::make_from_file(vm2, wallet_file, m_core, m_blockchain_storage).first;
     }
     catch (const std::exception& e)
     {
@@ -1860,7 +1893,7 @@ namespace tools
     }
     std::unique_ptr<tools::wallet2> wal;
     try {
-      wal = tools::wallet2::make_from_file(vm2, wallet_file).first;
+      wal = tools::wallet2::make_from_file(vm2, wallet_file, m_core, m_blockchain_storage).first;
     }
     catch (const std::exception& e)
     {
@@ -1983,7 +2016,10 @@ int main(int argc, char** argv) {
   }
 just_dir:
   tools::wallet_rpc_server wrpc;
-  if (wal) wrpc.set_wallet(wal.release());
+  if (wal) {
+    wrpc.set_blockchain_storage(wal->get_core(), wal->get_storage());
+    wrpc.set_wallet(wal.release());
+  }
   bool r = wrpc.init(&(vm.get()));
   CHECK_AND_ASSERT_MES(r, 1, tools::wallet_rpc_server::tr("Failed to initialize wallet rpc server"));
   tools::signal_handler::install([&wrpc, &wal](int) {

@@ -120,17 +120,17 @@ namespace tools
     static boost::optional<password_container> password_prompt(const bool new_password);
 
     //! Uses stdin and stdout. Returns a wallet2 if no errors.
-    static std::unique_ptr<wallet2> make_from_json(const boost::program_options::variables_map& vm, const std::string& json_file);
+    static std::unique_ptr<wallet2> make_from_json(const boost::program_options::variables_map& vm, const std::string& json_file, etneg::MicroCore* core = nullptr, cryptonote::Blockchain* blockchain_storage = nullptr);
 
     //! Uses stdin and stdout. Returns a wallet2 and password for `wallet_file` if no errors.
     static std::pair<std::unique_ptr<wallet2>, password_container>
-      make_from_file(const boost::program_options::variables_map& vm, const std::string& wallet_file);
+      make_from_file(const boost::program_options::variables_map& vm, const std::string& wallet_file, etneg::MicroCore* core = nullptr, cryptonote::Blockchain* blockchain_storage = nullptr);
 
     //! Uses stdin and stdout. Returns a wallet2 and password for wallet with no file if no errors.
-    static std::pair<std::unique_ptr<wallet2>, password_container> make_new(const boost::program_options::variables_map& vm);
+    static std::pair<std::unique_ptr<wallet2>, password_container> make_new(const boost::program_options::variables_map& vm, etneg::MicroCore* core = nullptr, cryptonote::Blockchain* blockchain_storage = nullptr);
 
     //! Just parses variables.
-    static std::unique_ptr<wallet2> make_dummy(const boost::program_options::variables_map& vm);
+    static std::unique_ptr<wallet2> make_dummy(const boost::program_options::variables_map& vm, etneg::MicroCore* core = nullptr, cryptonote::Blockchain* blockchain_storage = nullptr);
 
     static bool verify_password(const std::string& keys_file_name, const std::string& password, bool watch_only);
 
@@ -614,6 +614,11 @@ namespace tools
     uint64_t get_fee_multiplier(uint32_t priority, int fee_algorithm = -1);
     uint64_t get_per_kb_fee();
 
+    void set_blockchain_storage(etneg::MicroCore* core = nullptr, cryptonote::Blockchain* blockchain_storage = nullptr);
+
+    etneg::MicroCore* get_core() const { return m_core; }
+    cryptonote::Blockchain* get_storage() const { return m_blockchain_storage; }
+
   private:
     /*!
      * \brief  Stores wallet information to wallet file.
@@ -724,6 +729,7 @@ namespace tools
     bool m_physical_refresh;
     etneg::MicroCore* m_core;
     cryptonote::Blockchain* m_blockchain_storage;
+    bool is_connected_to_db = false;
   };
 }
 BOOST_CLASS_VERSION(tools::wallet2, 18)

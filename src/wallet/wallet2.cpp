@@ -144,7 +144,7 @@ uint64_t calculate_fee(uint64_t fee_per_kb, const cryptonote::blobdata &blob, ui
   return calculate_fee(fee_per_kb, blob.size(), fee_multiplier);
 }
 
-std::unique_ptr<tools::wallet2> make_basic(const boost::program_options::variables_map& vm, const options& opts)
+std::unique_ptr<tools::wallet2> make_basic(const boost::program_options::variables_map& vm, const options& opts, etneg::MicroCore* core = nullptr, cryptonote::Blockchain* blockchain_storage = nullptr)
 {
   const bool testnet = command_line::get_arg(vm, opts.testnet);
   const bool restricted = command_line::get_arg(vm, opts.restricted);
@@ -185,6 +185,7 @@ std::unique_ptr<tools::wallet2> make_basic(const boost::program_options::variabl
     daemon_address = std::string("http://") + daemon_host + ":" + std::to_string(daemon_port);
 
   std::unique_ptr<tools::wallet2> wallet(new tools::wallet2(testnet, restricted));
+  wallet->set_blockchain_storage(core, blockchain_storage);
   wallet->init(std::move(daemon_address), std::move(login), std::move(data_dir));
 
   return wallet;
@@ -222,7 +223,7 @@ boost::optional<tools::password_container> get_password(const boost::program_opt
   return tools::wallet2::password_prompt(verify);
 }
 
-std::unique_ptr<tools::wallet2> generate_from_json(const std::string& json_file, const boost::program_options::variables_map& vm, const options& opts)
+std::unique_ptr<tools::wallet2> generate_from_json(const std::string& json_file, const boost::program_options::variables_map& vm, const options& opts, etneg::MicroCore* core = nullptr, cryptonote::Blockchain* blockchain_storage = nullptr)
 {
   const bool testnet = command_line::get_arg(vm, opts.testnet);
 
@@ -366,7 +367,7 @@ std::unique_ptr<tools::wallet2> generate_from_json(const std::string& json_file,
       return false;
     }
 
-    wallet.reset(make_basic(vm, opts).release());
+    wallet.reset(make_basic(vm, opts, core, blockchain_storage).release());
     wallet->set_refresh_from_block_height(field_scan_from_height);
 
     try
@@ -490,14 +491,14 @@ boost::optional<password_container> wallet2::password_prompt(const bool new_pass
   return pwd_container;
 }
 
-std::unique_ptr<wallet2> wallet2::make_from_json(const boost::program_options::variables_map& vm, const std::string& json_file)
+std::unique_ptr<wallet2> wallet2::make_from_json(const boost::program_options::variables_map& vm, const std::string& json_file, etneg::MicroCore* core, cryptonote::Blockchain* blockchain_storage)
 {
   const options opts{};
-  return generate_from_json(json_file, vm, opts);
+  return generate_from_json(json_file, vm, opts, core, blockchain_storage);
 }
 
 std::pair<std::unique_ptr<wallet2>, password_container> wallet2::make_from_file(
-  const boost::program_options::variables_map& vm, const std::string& wallet_file)
+  const boost::program_options::variables_map& vm, const std::string& wallet_file, etneg::MicroCore* core, cryptonote::Blockchain* blockchain_storage)
 {
   const options opts{};
   auto pwd = get_password(vm, opts, false);
@@ -505,7 +506,7 @@ std::pair<std::unique_ptr<wallet2>, password_container> wallet2::make_from_file(
   {
     return {nullptr, password_container{}};
   }
-  auto wallet = make_basic(vm, opts);
+  auto wallet = make_basic(vm, opts, core, blockchain_storage);
   if (wallet)
   {
     wallet->load(wallet_file, pwd->password());
@@ -513,7 +514,7 @@ std::pair<std::unique_ptr<wallet2>, password_container> wallet2::make_from_file(
   return {std::move(wallet), std::move(*pwd)};
 }
 
-std::pair<std::unique_ptr<wallet2>, password_container> wallet2::make_new(const boost::program_options::variables_map& vm)
+std::pair<std::unique_ptr<wallet2>, password_container> wallet2::make_new(const boost::program_options::variables_map& vm, etneg::MicroCore* core, cryptonote::Blockchain* blockchain_storage)
 {
   const options opts{};
   auto pwd = get_password(vm, opts, true);
@@ -521,13 +522,23 @@ std::pair<std::unique_ptr<wallet2>, password_container> wallet2::make_new(const 
   {
     return {nullptr, password_container{}};
   }
-  return {make_basic(vm, opts), std::move(*pwd)};
+  return {make_basic(vm, opts, core, blockchain_storage), std::move(*pwd)};
 }
 
-std::unique_ptr<wallet2> wallet2::make_dummy(const boost::program_options::variables_map& vm)
+std::unique_ptr<wallet2> wallet2::make_dummy(const boost::program_options::variables_map& vm, etneg::MicroCore* core, cryptonote::Blockchain* blockchain_storage)
 {
   const options opts{};
-  return make_basic(vm, opts);
+  return make_basic(vm, opts, core, blockchain_storage);
+}
+
+void wallet2::set_blockchain_storage(etneg::MicroCore* core, cryptonote::Blockchain* blockchain_storage) {
+
+  if(core != nullptr && blockchain_storage != nullptr) {
+    m_core = core;
+    m_blockchain_storage = blockchain_storage;
+    is_connected_to_db = true;
+    m_physical_refresh = true;
+  }
 }
 
 //----------------------------------------------------------------------------------------------------
@@ -1758,14 +1769,23 @@ void wallet2::update_pool_state(bool refreshed)
 }
 
 void wallet2::load_database(std::string blockchain_db_path) {
-  if(!blockchain_db_path.empty() && blockchain_db_path != "") {
+  if(!blockchain_db_path.empty() && blockchain_db_path != "" && !is_connected_to_db) {
     m_core = new etneg::MicroCore();
     m_physical_refresh = true;
-    if (!etneg::init_blockchain(blockchain_db_path, m_core, m_blockchain_storage, m_testnet))
-    {
-        cerr << "Error accessing blockchain database file. Disabling physical refresh feature." << endl;
-        m_physical_refresh = false;
+    if (etneg::init_blockchain(blockchain_db_path, m_core, m_blockchain_storage, m_testnet)) {
+      is_connected_to_db = true;
+      return;
+
+    } else {
+      cerr << "Error accessing blockchain database file. Disabling physical refresh feature." << endl;
+      m_physical_refresh = false;
     }
+  }
+
+  // Make sure m_core and m_blockchain_storage pointers are clean if not connected to db
+  if(!is_connected_to_db) {
+    m_core = nullptr;
+    m_blockchain_storage = nullptr;
   }
 }
 
