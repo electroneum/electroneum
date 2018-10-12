@@ -126,6 +126,13 @@ namespace tools
       delete m_wallet;
       m_wallet = NULL;
     }
+
+    if(m_core && m_blockchain_storage) {
+      delete m_core;
+      delete m_blockchain_storage;
+      m_core = NULL;
+      m_blockchain_storage = NULL;
+    }
   }
   //------------------------------------------------------------------------------------------------------------------------------
   bool wallet_rpc_server::init(const boost::program_options::variables_map *vm)
