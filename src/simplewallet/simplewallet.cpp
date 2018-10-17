@@ -1314,8 +1314,8 @@ bool simple_wallet::init(const boost::program_options::variables_map& vm)
     
     else if (!m_generate_from_json.empty())
     {
-      m_wallet_file = m_generate_from_json;
-      m_wallet = tools::wallet2::make_from_json(vm, m_wallet_file);
+      m_wallet = tools::wallet2::make_from_json(vm, m_generate_from_json);
+      m_wallet_file = m_wallet->path();
       if (!m_wallet)
         return false;
     }
