@@ -31,6 +31,7 @@
 #include <boost/format.hpp>
 #include <boost/asio/ip/address.hpp>
 #include <boost/filesystem/operations.hpp>
+#include <boost/algorithm/string.hpp>
 #include <cstdint>
 #include "include_base_utils.h"
 using namespace epee;
@@ -485,6 +486,13 @@ namespace tools
         tx_to_blob(ptx_vector.back().tx, blob);
         res.tx_blob = epee::string_tools::buff_to_hex_nodelimer(blob);
       }
+      if (req.get_tx_metadata)
+      {
+        std::ostringstream oss;
+        binary_archive<true> ar(oss);
+        ::serialization::serialize(ar, ptx_vector.back());
+        res.tx_metadata = epee::string_tools::buff_to_hex_nodelimer(oss.str());
+      }
       return true;
     }
 
@@ -539,7 +547,7 @@ namespace tools
       }
 
       // populate response with tx hashes
-      for (auto & ptx : ptx_vector)
+      for (const auto & ptx : ptx_vector)
       {
         res.tx_hash_list.push_back(epee::string_tools::pod_to_hex(cryptonote::get_transaction_hash(ptx.tx)));
         if (req.get_tx_keys)
@@ -559,6 +567,13 @@ namespace tools
           cryptonote::blobdata blob;
           tx_to_blob(ptx.tx, blob);
           res.tx_blob_list.push_back(epee::string_tools::buff_to_hex_nodelimer(blob));
+        }
+        if (req.get_tx_metadata)
+        {
+          std::ostringstream oss;
+          binary_archive<true> ar(oss);
+          ::serialization::serialize(ar, const_cast<tools::wallet2::pending_tx&>(ptx));
+          res.tx_metadata_list.push_back(epee::string_tools::buff_to_hex_nodelimer(oss.str()));
         }
       }
 
@@ -597,7 +612,7 @@ namespace tools
         m_wallet->commit_tx(ptx_vector);
 
       // populate response with tx hashes
-      for (auto & ptx : ptx_vector)
+      for (const auto & ptx : ptx_vector)
       {
         res.tx_hash_list.push_back(epee::string_tools::pod_to_hex(cryptonote::get_transaction_hash(ptx.tx)));
         if (req.get_tx_keys)
@@ -610,6 +625,13 @@ namespace tools
           cryptonote::blobdata blob;
           tx_to_blob(ptx.tx, blob);
           res.tx_blob_list.push_back(epee::string_tools::buff_to_hex_nodelimer(blob));
+        }
+        if (req.get_tx_metadata)
+        {
+          std::ostringstream oss;
+          binary_archive<true> ar(oss);
+          ::serialization::serialize(ar, const_cast<tools::wallet2::pending_tx&>(ptx));
+          res.tx_metadata_list.push_back(epee::string_tools::buff_to_hex_nodelimer(oss.str()));
         }
       }
 
@@ -662,7 +684,7 @@ namespace tools
         m_wallet->commit_tx(ptx_vector);
 
       // populate response with tx hashes
-      for (auto & ptx : ptx_vector)
+      for (const auto & ptx : ptx_vector)
       {
         res.tx_hash_list.push_back(epee::string_tools::pod_to_hex(cryptonote::get_transaction_hash(ptx.tx)));
         if (req.get_tx_keys)
@@ -674,6 +696,13 @@ namespace tools
           cryptonote::blobdata blob;
           tx_to_blob(ptx.tx, blob);
           res.tx_blob_list.push_back(epee::string_tools::buff_to_hex_nodelimer(blob));
+        }
+        if (req.get_tx_metadata)
+        {
+          std::ostringstream oss;
+          binary_archive<true> ar(oss);
+          ::serialization::serialize(ar, const_cast<tools::wallet2::pending_tx&>(ptx));
+          res.tx_metadata_list.push_back(epee::string_tools::buff_to_hex_nodelimer(oss.str()));
         }
       }
 
