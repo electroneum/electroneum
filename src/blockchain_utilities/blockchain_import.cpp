@@ -35,6 +35,7 @@
 #include <boost/filesystem.hpp>
 #include <boost/algorithm/string.hpp>
 #include <unistd.h>
+#include <openssl/sha.h>
 #include "misc_log_ex.h"
 #include "bootstrap_file.h"
 #include "bootstrap_serialization.h"
@@ -44,6 +45,7 @@
 #include "include_base_utils.h"
 #include "blockchain_db/db_types.h"
 #include "cryptonote_core/cryptonote_core.h"
+#include "common/dns_utils.h"
 
 #undef ELECTRONEUM_DEFAULT_LOG_CATEGORY
 #define ELECTRONEUM_DEFAULT_LOG_CATEGORY "bcutil"
@@ -557,6 +559,86 @@ quitting:
   return 0;
 }
 
+void sha256_hash_string (unsigned char hash[SHA256_DIGEST_LENGTH], char outputBuffer[65])
+{
+    int i = 0;
+
+    for(i = 0; i < SHA256_DIGEST_LENGTH; i++)
+    {
+        sprintf(outputBuffer + (i * 2), "%02x", hash[i]);
+    }
+
+    outputBuffer[64] = 0;
+}
+
+void calc_sha256 (const char* path, char output[65])
+{
+    FILE* file = fopen(path, "rb");
+    if(!file) return;
+
+    unsigned char hash[SHA256_DIGEST_LENGTH];
+    SHA256_CTX sha256;
+    SHA256_Init(&sha256);
+    const int bufSize = 32768;
+    char* buffer = (char*)std::malloc(bufSize);
+    int bytesRead = 0;
+    if(!buffer) return;
+    while((bytesRead = fread(buffer, 1, bufSize, file)))
+    {
+        SHA256_Update(&sha256, buffer, bytesRead);
+    }
+    SHA256_Final(hash, &sha256);
+
+    sha256_hash_string(hash, output);
+    fclose(file);
+    free(buffer);
+}
+
+bool validate_file_checksum_against_dns(std::string import_file_path) {
+
+  // Ignore checksum verification if importing testnet blockchain.
+  // Return true right away.
+  if(opt_testnet) {
+    return true;
+  }
+
+  std::vector<std::string> records;
+
+  // All four ElectroneumPulse domains have DNSSEC on and valid
+  static const std::vector<std::string> dns_urls = {
+    "raw.electroneumpulse.com",
+    "raw.electroneumpulse.info",
+    "raw.electroneumpulse.net",
+    "raw.electroneumpulse.org"
+  };
+
+  try {
+    
+    if (!tools::dns_utils::load_txt_records_from_dns(records, dns_urls, "checksum"))
+      return false;
+
+    std::string checksum = records[0];
+
+    // Calculate input-file SHA256 checksum
+    char calc_hash[65];
+    calc_sha256(import_file_path.c_str(), calc_hash);
+
+    // Compare input-file checksum against the DNS hash. Return "false" if hashes differ.
+    if (strcmp(calc_hash, checksum.c_str()) != 0) {
+      MINFO("Invalid input-file checksum (" << calc_hash << "), expected: " << checksum);
+      return false;
+    }
+
+  } catch(const std::exception &ex) {
+
+    // Return false to display warning message if DNS Checksum verification fails for some reason
+    MINFO("Unable to verify input-file checksum due to: " << ex.what());
+    return false;
+  }
+
+  return true;
+}
+
 int main(int argc, char* argv[])
 {
   TRY_ENTRY();
@@ -744,7 +826,7 @@ int main(int argc, char* argv[])
   MINFO("bootstrap file path: " << import_file_path);
   MINFO("database path:       " << m_config_folder);
 
-  if (!opt_verify)
+  if (!opt_verify && !validate_file_checksum_against_dns(import_file_path))
   {
     MCLOG_RED(el::Level::Warning, "global", "\n"
       "Import is set to proceed WITHOUT VERIFICATION.\n"
