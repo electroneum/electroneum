@@ -742,10 +742,10 @@ difficulty_type Blockchain::get_difficulty_for_next_block()
   std::vector<difficulty_type> difficulties;
   auto height = m_db->height();
 
-  uint64_t v6height = m_testnet ? 190060 : 307500;
-  uint64_t v7height = m_testnet ? 215000 : 324500;
+  const uint64_t v6height = m_testnet ? 190060 : 307500;
+  const uint64_t v7height = m_testnet ? 215000 : 324500;
 
-  uint32_t difficultyBlocksCount = (height >= v6height && height < v7height) ? DIFFICULTY_BLOCKS_COUNT_V6 : DIFFICULTY_BLOCKS_COUNT;
+  const uint32_t difficultyBlocksCount = (height >= v6height && height < v7height) ? DIFFICULTY_BLOCKS_COUNT_V6 : DIFFICULTY_BLOCKS_COUNT;
 
   // ND: Speedup
   // 1. Keep a list of the last 735 (or less) blocks that is used to compute difficulty,
@@ -787,7 +787,7 @@ difficulty_type Blockchain::get_difficulty_for_next_block()
   }
 
   size_t target = get_difficulty_target();
-  uint8_t version = (height >= v6height && height < v7height) ? 6 : 1;
+  const uint8_t version = (height >= v6height && height < v7height) ? 6 : 1;
   return next_difficulty(timestamps, difficulties, target, version);
 }
 //------------------------------------------------------------------
@@ -937,10 +937,9 @@ difficulty_type Blockchain::get_next_difficulty_for_alternative_chain(const std:
   std::vector<uint64_t> timestamps;
   std::vector<difficulty_type> cumulative_difficulties;
 
-  auto height = m_db->height();
-  uint64_t v6height = m_testnet ? 190060 : 307500;
-  uint64_t v7height = m_testnet ? 215000 : 324500;
-  uint32_t difficultyBlocksCount = (height >= v6height && height < v7height) ? DIFFICULTY_BLOCKS_COUNT_V6 : DIFFICULTY_BLOCKS_COUNT;
+  const uint64_t v6height = m_testnet ? 190060 : 307500;
+  const uint64_t v7height = m_testnet ? 215000 : 324500;
+  const uint32_t difficultyBlocksCount = (bei.height >= v6height && bei.height < v7height) ? DIFFICULTY_BLOCKS_COUNT_V6 : DIFFICULTY_BLOCKS_COUNT;
 
   // if the alt chain isn't long enough to calculate the difficulty target
   // based on its blocks alone, need to get more blocks from the main chain
@@ -994,7 +993,7 @@ difficulty_type Blockchain::get_next_difficulty_for_alternative_chain(const std:
 
   // FIXME: This will fail if fork activation heights are subject to voting - Does this need fixing for the V6 fork?
   size_t target = get_difficulty_target();
-  uint8_t version = (height >= v6height && height < v7height) ? 6 : 1;
+  const uint8_t version = (bei.height >= v6height && bei.height < v7height) ? 6 : 1;
   // calculate the difficulty target for the block and return it
   return next_difficulty(timestamps, cumulative_difficulties, target, version);
 }
