@@ -140,30 +140,23 @@ namespace cryptonote
     // fee per kilobyte, size rounded up.
     uint64_t fee;
 
-    if (tx.version == 1)
+    uint64_t inputs_amount = 0;
+    if(!get_inputs_money_amount(tx, inputs_amount))
     {
-      uint64_t inputs_amount = 0;
-      if(!get_inputs_money_amount(tx, inputs_amount))
-      {
-        tvc.m_verifivation_failed = true;
-        return false;
-      }
-
-      uint64_t outputs_amount = get_outs_money_amount(tx);
-      if(outputs_amount >= inputs_amount)
-      {
-        LOG_PRINT_L1("transaction use more money then it has: use " << print_money(outputs_amount) << ", have " << print_money(inputs_amount));
-        tvc.m_verifivation_failed = true;
-        tvc.m_overspend = true;
-        return false;
-      }
-
-      fee = inputs_amount - outputs_amount;
+      tvc.m_verifivation_failed = true;
+      return false;
     }
-    else
+
+    uint64_t outputs_amount = get_outs_money_amount(tx);
+    if(outputs_amount >= inputs_amount)
     {
-      fee = tx.rct_signatures.txnFee;
+      LOG_PRINT_L1("transaction use more money then it has: use " << print_money(outputs_amount) << ", have " << print_money(inputs_amount));
+      tvc.m_verifivation_failed = true;
+      tvc.m_overspend = true;
+      return false;
     }
+
+    fee = inputs_amount - outputs_amount;
 
     if (!kept_by_block && !m_blockchain.check_fee(blob_size, fee))
     {

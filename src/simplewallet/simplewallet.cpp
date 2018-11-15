@@ -3827,32 +3827,7 @@ bool simple_wallet::check_tx_key_helper(const crypto::hash &txid, const cryptono
       derive_public_key(derivation, n, address.m_spend_public_key, pubkey);
       if (pubkey == tx_out_to_key.key)
       {
-        uint64_t amount;
-        if (tx.version == 1)
-        {
-          amount = tx.vout[n].amount;
-        }
-        else
-        {
-          try
-          {
-            rct::key Ctmp;
-            //rct::key amount_key = rct::hash_to_scalar(rct::scalarmultKey(rct::pk2rct(address.m_view_public_key), rct::sk2rct(tx_key)));
-            {
-              crypto::secret_key scalar1;
-              crypto::derivation_to_scalar(derivation, n, scalar1);
-              rct::ecdhTuple ecdh_info = tx.rct_signatures.ecdhInfo[n];
-              rct::ecdhDecode(ecdh_info, rct::sk2rct(scalar1));
-              rct::key C = tx.rct_signatures.outPk[n].mask;
-              rct::addKeys2(Ctmp, ecdh_info.mask, ecdh_info.amount, rct::H);
-              if (rct::equalKeys(C, Ctmp))
-                amount = rct::h2d(ecdh_info.amount);
-              else
-                amount = 0;
-            }
-          }
-          catch (...) { amount = 0; }
-        }
+        uint64_t amount = tx.vout[n].amount;
         received += amount;
       }
     }

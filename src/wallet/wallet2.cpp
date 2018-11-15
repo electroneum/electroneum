@@ -912,11 +912,6 @@ void wallet2::process_new_transaction(const crypto::hash &txid, const cryptonote
               td.m_mask = mask[o];
               td.m_rct = true;
             }
-            else if (miner_tx && tx.version == 2)
-            {
-              td.m_mask = rct::identity();
-              td.m_rct = true;
-            }
             else
             {
               td.m_mask = rct::identity();
@@ -969,11 +964,6 @@ void wallet2::process_new_transaction(const crypto::hash &txid, const cryptonote
             if (tx.vout[o].amount == 0)
             {
               td.m_mask = mask[o];
-              td.m_rct = true;
-            }
-            else if (miner_tx && tx.version == 2)
-            {
-              td.m_mask = rct::identity();
               td.m_rct = true;
             }
             else
@@ -1130,10 +1120,7 @@ void wallet2::process_outgoing(const crypto::hash &txid, const cryptonote::trans
     // wallet (eg, we're a cold wallet and the hot wallet sent it). For RCT transactions,
     // we only see 0 input amounts, so have to deduce amount out from other parameters.
     entry.first->second.m_amount_in = spent;
-    if (tx.version == 1)
-      entry.first->second.m_amount_out = get_outs_money_amount(tx);
-    else
-      entry.first->second.m_amount_out = spent - tx.rct_signatures.txnFee;
+    entry.first->second.m_amount_out = get_outs_money_amount(tx);
     entry.first->second.m_change = received;
 
     std::vector<tx_extra_field> tx_extra_fields;
