@@ -744,6 +744,13 @@ difficulty_type Blockchain::get_difficulty_for_next_block()
 
   const uint64_t v6height = m_testnet ? 190060 : 307500;
   const uint64_t v7height = m_testnet ? 215000 : 324500;
+  
+  if(height == 500000) { // V8 Height
+    normalize_v7_difficulties(height, v7height);
+
+    m_timestamps.clear();
+    m_difficulties.clear();
+  }  
 
   const uint32_t difficultyBlocksCount = (height >= v6height && height < v7height) ? DIFFICULTY_BLOCKS_COUNT_V6 : DIFFICULTY_BLOCKS_COUNT;
 
@@ -790,6 +797,49 @@ difficulty_type Blockchain::get_difficulty_for_next_block()
   const uint8_t version = (height >= v6height && height < v7height) ? 6 : 1;
   return next_difficulty(timestamps, difficulties, target, version);
 }
+//------------------------------------------------------------------
+// This function fixes the differing difficulty bug by re-calculate and rewriting
+// the correct cumulative difficulty for blocks starting from V7 based on the
+// correct 735 blocks input in the difficulty algorithm.
+void Blockchain::normalize_v7_difficulties(uint64_t height, uint64_t v7height) {
+
+  const size_t V7_DIFFICULTY_BLOCKS_COUNT = 735;
+  const size_t V7_DIFFICULTY_TARGET = 120;
+
+  std::vector<uint64_t> timestamps;
+  std::vector<difficulty_type> difficulties;
+
+  uint64_t start_height = v7height - V7_DIFFICULTY_BLOCKS_COUNT;
+
+  // Populate the timestamps & difficulties vectors with data from 735 blocks prior to V7 fork height (324500)
+  for(uint64_t i = 0; start_height + i < v7height; i++) {
+    timestamps.push_back(m_db->get_block_timestamp(start_height + i));
+    difficulties.push_back(m_db->get_block_cumulative_difficulty(start_height + i));
+  }
+
+  // Calculate the cumulative difficulty of block 324500 based on the 735 prior blocks' timestamp and difficulty values
+  difficulty_type diff = difficulties.back() + next_difficulty(timestamps, difficulties, V7_DIFFICULTY_TARGET, 1);
+
+  // Override block's 324500 cumulative difficulty
+  m_db->set_block_cumulative_difficulty(v7height, diff);
+
+  // Iterate over V7 blocks, starting from 324500 until current block height
+  for(uint64_t i = v7height; i < height - 1; i++) {
+
+    // Add "324500 + i" timestamp & difficulty into the vectors
+    timestamps.push_back(m_db->get_block_timestamp(i));
+    difficulties.push_back(m_db->get_block_cumulative_difficulty(i));
+
+    // Erase the vector's first position maintaining its 735 size
+    timestamps.erase(timestamps.begin());
+    difficulties.erase(difficulties.begin());
+
+    // Calculate/set the correct cumulative difficulty of block "324500 + i"
+    diff = difficulties.back() + next_difficulty(timestamps, difficulties, V7_DIFFICULTY_TARGET, 1);
+    m_db->set_block_cumulative_difficulty(i + 1, diff);
+  }
+}
+
 //------------------------------------------------------------------
 // This function removes blocks from the blockchain until it gets to the
 // position where the blockchain switch started and then re-adds the blocks

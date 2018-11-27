@@ -194,6 +194,8 @@ public:
 
   virtual size_t get_block_size(const uint64_t& height) const;
 
+  virtual void set_block_cumulative_difficulty(uint64_t height, difficulty_type diff);
+
   virtual difficulty_type get_block_cumulative_difficulty(const uint64_t& height) const;
 
   virtual difficulty_type get_block_difficulty(const uint64_t& height) const;

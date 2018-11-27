@@ -1156,6 +1156,11 @@ namespace cryptonote
     return m_blockchain_storage.get_tail_id();
   }
   //-----------------------------------------------------------------------------------------------
+  void core::set_block_cumulative_difficulty(uint64_t height, difficulty_type diff)
+  {
+    return m_blockchain_storage.get_db().set_block_cumulative_difficulty(height, diff);
+  }
+  //-----------------------------------------------------------------------------------------------
   difficulty_type core::get_block_cumulative_difficulty(uint64_t height) const
   {
     return m_blockchain_storage.get_db().get_block_cumulative_difficulty(height);

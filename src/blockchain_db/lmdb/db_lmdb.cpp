@@ -1827,6 +1827,42 @@ size_t BlockchainLMDB::get_block_size(const uint64_t& height) const
   return ret;
 }
 
+void BlockchainLMDB::set_block_cumulative_difficulty(uint64_t height, difficulty_type diff)
+{
+  LOG_PRINT_L3("BlockchainLMDB::" << __func__ << "  height: " << height);
+  check_open();
+  mdb_txn_cursors *m_cursors = &m_wcursors;
+
+  int result;
+
+  CURSOR(block_info)
+
+  MDB_val_set(val_bi, height);
+  result = mdb_cursor_get(m_cur_block_info, (MDB_val *)&zerokval, &val_bi, MDB_GET_BOTH);
+  if (result == MDB_NOTFOUND)
+  {
+    throw0(BLOCK_DNE(std::string("Attempt to set cumulative difficulty from height ").append(boost::lexical_cast<std::string>(height)).append(" failed -- difficulty not in db").c_str()));
+  }
+  else if (result)
+    throw0(DB_ERROR("Error attempting to set a cumulative difficulty"));
+
+  mdb_block_info *result_bi = (mdb_block_info *)val_bi.mv_data;
+  
+  mdb_block_info bi;
+  bi.bi_height = result_bi->bi_height;
+  bi.bi_timestamp = result_bi->bi_timestamp;
+  bi.bi_coins = result_bi->bi_coins;
+  bi.bi_size = result_bi->bi_size;
+  bi.bi_diff = diff;
+  bi.bi_hash = result_bi->bi_hash;
+
+  MDB_val_set(val, bi);
+  result = mdb_cursor_put(m_cur_block_info, (MDB_val *)&val_bi, &val, MDB_CURRENT);
+  if (result)
+    throw0(DB_ERROR(lmdb_error("Failed to set cumulative difficulty to db transaction: ", result).c_str()));
+  
+}
+
 difficulty_type BlockchainLMDB::get_block_cumulative_difficulty(const uint64_t& height) const
 {
   LOG_PRINT_L3("BlockchainLMDB::" << __func__ << "  height: " << height);
