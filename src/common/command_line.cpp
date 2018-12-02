@@ -138,9 +138,9 @@ namespace command_line
   , "Check for new versions of electroneum: [disabled|notify|download|update]"
   , "notify"
   };
-  const arg_descriptor<bool> arg_fluffy_blocks  = {
-    "fluffy-blocks"
-  , "Relay blocks as fluffy blocks where possible (automatic on testnet)"
+  const arg_descriptor<bool> arg_disable_fluffy_blocks  = {
+    "disable-fluffy-blocks"
+  , "Disable relaying blocks as fluffy blocks where possible"
   , false
   };
 }
