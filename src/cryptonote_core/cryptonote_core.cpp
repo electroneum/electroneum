@@ -1332,12 +1332,11 @@ namespace cryptonote
       boost::split(version_split, ELECTRONEUM_VERSION, [](char c){return c == '.';});
       boost::split(latest_version_split, version, [](char c){return c == '.';});
 
-      // Enforce update to lastest software case major version differs.
+      // Warninig message to update to lastest software case major version differs.
       // This should help users to update their node before a major update or fork.
       for(size_t i = 0; i < 2; i++) {
         if(version_split[i] != latest_version_split[i]) {
           MCLOG_RED(el::Level::Fatal, "global", "Please update your node to the latest software (v" << version << ").");
-          graceful_exit();
           break;
         }
       }
