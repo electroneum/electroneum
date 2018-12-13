@@ -773,6 +773,16 @@ namespace cryptonote
      *
      * @return whether the version queried is enabled 
      */
+
+    /**
+     * @brief checks whether the blockchain is for the testnet or mainnet
+     *
+     * @param
+     *
+     * @return true if testnet, false otherwise.
+     */
+    bool is_testnet() const{return m_testnet;}
+
     bool get_hard_fork_voting_info(uint8_t version, uint32_t &window, uint32_t &votes, uint32_t &threshold, uint64_t &earliest_height, uint8_t &voting) const;
 
     /**
