@@ -211,9 +211,12 @@ namespace cryptonote
     bool ch_inp_res = m_blockchain.check_tx_inputs(tx, max_used_block_height, max_used_block_id, tvc, kept_by_block);
     if(!ch_inp_res)
     {
-      // if the transaction was valid before (kept_by_block), then it
-      // may become valid again, so ignore the failed inputs check.
-      if(kept_by_block)
+      // If a TX has been orphaned, its inputs may fail checks if they reference outputs that were only spent
+      // on the orphaned chain (max_used_block_height > current main chain height).
+      // Therefore, these outputs, and the transaction itself, may become valid again in time.
+      // So skip inputs check unless the tx is never going to pass verification for other reasons
+      // (invalid mixin, invalid version, etc).
+      if(kept_by_block && !tvc.m_low_mixin && !tvc.m_verifivation_failed)
       {
         meta.blob_size = blob_size;
         meta.fee = fee;
