@@ -1325,8 +1325,24 @@ namespace cryptonote
     std::string url = tools::get_update_url(software, subdir, buildtag, version, true);
     MCLOG_CYAN(el::Level::Info, "global", "Version " << version << " of " << software << " for " << buildtag << " is available: " << url << ", SHA256 hash " << hash);
 
-    if (check_updates_level == UPDATES_NOTIFY)
+    if (check_updates_level == UPDATES_NOTIFY) {
+      std::vector<std::string> version_split;
+      std::vector<std::string> latest_version_split;
+
+      boost::split(version_split, ELECTRONEUM_VERSION, [](char c){return c == '.';});
+      boost::split(latest_version_split, version, [](char c){return c == '.';});
+
+      // Warninig message to update to lastest software case major version differs.
+      // This should help users to update their node before a major update or fork.
+      for(size_t i = 0; i < 2; i++) {
+        if(version_split[i] != latest_version_split[i]) {
+          MCLOG_RED(el::Level::Fatal, "global", "Please update your node to the latest software (v" << version << ").");
+          break;
+        }
+      }
+
       return true;
+    }
 
     url = tools::get_update_url(software, subdir, buildtag, version, false);
     std::string filename;
