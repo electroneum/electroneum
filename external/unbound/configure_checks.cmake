@@ -186,15 +186,16 @@ check_include_file(openssl/err.h HAVE_OPENSSL_ERR_H)
 check_include_file(openssl/rand.h HAVE_OPENSSL_RAND_H)
 check_include_file(openssl/ssl.h HAVE_OPENSSL_SSL_H)
 
-set(CMAKE_REQUIRED_INCLUDES)
+set(CMAKE_REQUIRED_LIBRARIES
+  ${OPENSSL_LIBRARIES})
+if (WIN32 AND OPENSSL_VERSION STRGREATER "1.1.0")
+  set(CMAKE_REQUIRED_LIBRARIES "${CMAKE_REQUIRED_LIBRARIES};ws2_32")
+endif()
 
 check_symbol_exists(NID_secp384r1 "openssl/evp.h" HAVE_DECL_NID_SECP384R1)
 check_symbol_exists(NID_X9_62_prime256v1 "openssl/evp.h" HAVE_DECL_NID_X9_62_PRIME256V1)
 check_symbol_exists(sk_SSL_COMP_pop_free "openssl/ssl.h" HAVE_DECL_SK_SSL_COMP_POP_FREE)
 check_symbol_exists(SSL_COMP_get_compression_methods "openssl/ssl.h" HAVE_DECL_SSL_COMP_GET_COMPRESSION_METHODS)
-
-set(CMAKE_REQUIRED_LIBRARIES
-  ${OPENSSL_LIBRARIES})
 
 check_function_exists(EVP_MD_CTX_new HAVE_EVP_MD_CTX_NEW)
 check_function_exists(EVP_sha1 HAVE_EVP_SHA1)
@@ -205,6 +206,7 @@ check_function_exists(HMAC_Update HAVE_HMAC_UPDATE)
 check_function_exists(OPENSSL_config HAVE_OPENSSL_CONFIG)
 check_function_exists(SHA512_Update HAVE_SHA512_UPDATE)
 
+set(CMAKE_REQUIRED_INCLUDES)
 set(CMAKE_REQUIRED_LIBRARIES)
 
 set(UNBOUND_CONFIGFILE "${CMAKE_INSTALL_PREFIX}/etc/unbound/unbound.conf"
