@@ -549,7 +549,7 @@ bool BlockchainLMDB::need_resize(uint64_t threshold_size) const
 #endif
 }
 
-void BlockchainLMDB::check_and_resize_for_batch(uint64_t batch_num_blocks)
+void BlockchainLMDB::check_and_resize_for_batch(uint64_t batch_num_blocks, uint64_t batch_bytes)
 {
   LOG_PRINT_L3("BlockchainLMDB::" << __func__);
   LOG_PRINT_L1("[" << __func__ << "] " << "checking DB size");
@@ -558,8 +558,8 @@ void BlockchainLMDB::check_and_resize_for_batch(uint64_t batch_num_blocks)
   uint64_t increase_size = 0;
   if (batch_num_blocks > 0)
   {
-    threshold_size = get_estimated_batch_size(batch_num_blocks);
-    LOG_PRINT_L1("calculated batch size: " << threshold_size);
+    threshold_size = get_estimated_batch_size(batch_num_blocks, batch_bytes);
+    MDEBUG("calculated batch size: " << threshold_size);
 
     // The increased DB size could be a multiple of threshold_size, a fixed
     // size increase (> threshold_size), or other variations.
@@ -568,7 +568,7 @@ void BlockchainLMDB::check_and_resize_for_batch(uint64_t batch_num_blocks)
     // minimum size increase is used to avoid frequent resizes when the batch
     // size is set to a very small numbers of blocks.
     increase_size = (threshold_size > min_increase_size) ? threshold_size : min_increase_size;
-    LOG_PRINT_L1("increase size: " << increase_size);
+    MDEBUG("increase size: " << increase_size);
   }
 
   // if threshold_size is 0 (i.e. number of blocks for batch not passed in), it
@@ -581,7 +581,7 @@ void BlockchainLMDB::check_and_resize_for_batch(uint64_t batch_num_blocks)
   }
 }
 
-uint64_t BlockchainLMDB::get_estimated_batch_size(uint64_t batch_num_blocks) const
+uint64_t BlockchainLMDB::get_estimated_batch_size(uint64_t batch_num_blocks, uint64_t batch_bytes) const
 {
   LOG_PRINT_L3("BlockchainLMDB::" << __func__);
   uint64_t threshold_size = 0;
@@ -606,16 +606,21 @@ uint64_t BlockchainLMDB::get_estimated_batch_size(uint64_t batch_num_blocks) con
     block_start = block_stop - num_prev_blocks + 1;
   uint32_t num_blocks_used = 0;
   uint64_t total_block_size = 0;
-  LOG_PRINT_L1("[" << __func__ << "] " << "m_height: " << m_height << "  block_start: " << block_start << "  block_stop: " << block_stop);
+  MDEBUG("[" << __func__ << "] " << "m_height: " << m_height << "  block_start: " << block_start << "  block_stop: " << block_stop);
   size_t avg_block_size = 0;
+  if (batch_bytes)
+  {
+    avg_block_size = batch_bytes / batch_num_blocks;
+    goto estim;
+  }
   if (m_height == 0)
   {
-    LOG_PRINT_L1("No existing blocks to check for average block size");
+    MDEBUG("No existing blocks to check for average block size");
   }
   else if (m_cum_count >= num_prev_blocks)
   {
     avg_block_size = m_cum_size / m_cum_count;
-    LOG_PRINT_L1("average block size across recent " << m_cum_count << " blocks: " << avg_block_size);
+    MDEBUG("average block size across recent " << m_cum_count << " blocks: " << avg_block_size);
     m_cum_size = 0;
     m_cum_count = 0;
   }
@@ -623,22 +628,26 @@ uint64_t BlockchainLMDB::get_estimated_batch_size(uint64_t batch_num_blocks) con
   {
     MDB_txn *rtxn;
     mdb_txn_cursors *rcurs;
-    block_rtxn_start(&rtxn, &rcurs);
+    bool my_rtxn = block_rtxn_start(&rtxn, &rcurs);
     for (uint64_t block_num = block_start; block_num <= block_stop; ++block_num)
     {
-      uint32_t block_size = get_block_size(block_num);
-      total_block_size += block_size;
+      // we have access to block weight, which will be greater or equal to block size,
+      // so use this as a proxy. If it's too much off, we might have to check actual size,
+      // which involves reading more data, so is not really wanted
+      size_t block_weight = get_block_weight(block_num);
+      total_block_size += block_weight;
       // Track number of blocks being totalled here instead of assuming, in case
       // some blocks were to be skipped for being outliers.
       ++num_blocks_used;
     }
-    block_rtxn_stop();
+    if (my_rtxn) block_rtxn_stop();
     avg_block_size = total_block_size / num_blocks_used;
-    LOG_PRINT_L1("average block size across recent " << num_blocks_used << " blocks: " << avg_block_size);
+    MDEBUG("average block size across recent " << num_blocks_used << " blocks: " << avg_block_size);
   }
+estim:
   if (avg_block_size < min_block_size)
     avg_block_size = min_block_size;
-  LOG_PRINT_L1("estimated average block size for batch: " << avg_block_size);
+  MDEBUG("estimated average block size for batch: " << avg_block_size);
 
   // bigger safety margin on smaller block sizes
   if (batch_fudge_factor < 5000.0)
@@ -1829,6 +1838,29 @@ size_t BlockchainLMDB::get_block_size(const uint64_t& height) const
   return ret;
 }
 
+size_t BlockchainLMDB::get_block_weight(const uint64_t& height) const
+{
+  LOG_PRINT_L3("BlockchainLMDB::" << __func__);
+  check_open();
+
+  TXN_PREFIX_RDONLY();
+  RCURSOR(block_info);
+
+  MDB_val_set(result, height);
+  auto get_result = mdb_cursor_get(m_cur_block_info, (MDB_val *)&zerokval, &result, MDB_GET_BOTH);
+  if (get_result == MDB_NOTFOUND)
+  {
+    throw0(BLOCK_DNE(std::string("Attempt to get block size from height ").append(boost::lexical_cast<std::string>(height)).append(" failed -- block size not in db").c_str()));
+  }
+  else if (get_result)
+    throw0(DB_ERROR("Error attempting to retrieve a block size from the db"));
+
+  mdb_block_info *bi = (mdb_block_info *)result.mv_data;
+  size_t ret = bi->bi_size;
+  TXN_POSTFIX_RDONLY();
+  return ret;
+}
+
 difficulty_type BlockchainLMDB::get_block_cumulative_difficulty(const uint64_t& height) const
 {
   LOG_PRINT_L3("BlockchainLMDB::" << __func__ << "  height: " << height);
@@ -2543,7 +2575,7 @@ bool BlockchainLMDB::for_all_outputs(std::function<bool(uint64_t amount, const c
 }
 
 // batch_num_blocks: (optional) Used to check if resize needed before batch transaction starts.
-bool BlockchainLMDB::batch_start(uint64_t batch_num_blocks)
+bool BlockchainLMDB::batch_start(uint64_t batch_num_blocks, uint64_t batch_bytes)
 {
   LOG_PRINT_L3("BlockchainLMDB::" << __func__);
   if (! m_batch_transactions)
@@ -2557,7 +2589,7 @@ bool BlockchainLMDB::batch_start(uint64_t batch_num_blocks)
   check_open();
 
   m_writer = boost::this_thread::get_id();
-  check_and_resize_for_batch(batch_num_blocks);
+  check_and_resize_for_batch(batch_num_blocks, batch_bytes);
 
   m_write_batch_txn = new mdb_txn_safe();
 
@@ -2575,6 +2607,12 @@ bool BlockchainLMDB::batch_start(uint64_t batch_num_blocks)
 
   m_batch_active = true;
   memset(&m_wcursors, 0, sizeof(m_wcursors));
+  if (m_tinfo.get())
+  {
+    if (m_tinfo->m_ti_rflags.m_rf_txn)
+      mdb_txn_reset(m_tinfo->m_ti_rtxn);
+    memset(&m_tinfo->m_ti_rflags, 0, sizeof(m_tinfo->m_ti_rflags));
+  }
 
   LOG_PRINT_L3("batch transaction: begin");
   return true;

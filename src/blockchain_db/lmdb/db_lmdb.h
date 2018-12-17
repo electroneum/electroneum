@@ -196,6 +196,8 @@ public:
 
   virtual difficulty_type get_block_cumulative_difficulty(const uint64_t& height) const;
 
+  virtual size_t get_block_weight(const uint64_t& height) const;
+
   virtual difficulty_type get_block_difficulty(const uint64_t& height) const;
 
   virtual uint64_t get_block_already_generated_coins(const uint64_t& height) const;
@@ -265,7 +267,7 @@ public:
                             );
 
   virtual void set_batch_transactions(bool batch_transactions);
-  virtual bool batch_start(uint64_t batch_num_blocks=0);
+  virtual bool batch_start(uint64_t batch_num_blocks=0, uint64_t batch_bytes=0);
   virtual void batch_commit();
   virtual void batch_stop();
   virtual void batch_abort();
@@ -295,8 +297,8 @@ private:
   void do_resize(uint64_t size_increase=0);
 
   bool need_resize(uint64_t threshold_size=0) const;
-  void check_and_resize_for_batch(uint64_t batch_num_blocks);
-  uint64_t get_estimated_batch_size(uint64_t batch_num_blocks) const;
+  void check_and_resize_for_batch(uint64_t batch_num_blocks, uint64_t batch_bytes);
+  uint64_t get_estimated_batch_size(uint64_t batch_num_blocks, uint64_t batch_bytes) const;
 
   virtual void add_block( const block& blk
                 , const size_t& block_size
