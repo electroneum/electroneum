@@ -38,6 +38,8 @@
 #include "wallet_rpc_server_commands_defs.h"
 #include "wallet2.h"
 
+#include "wallet/micro_core/MicroCore.h"
+
 #undef ELECTRONEUM_DEFAULT_LOG_CATEGORY
 #define ELECTRONEUM_DEFAULT_LOG_CATEGORY "wallet.rpc"
 
@@ -60,6 +62,8 @@ namespace tools
     void stop();
     void set_wallet(wallet2 *cr);
     void handle_rpc_exception(const std::exception_ptr& e, epee::json_rpc::error& er, int default_error_code);
+
+    void set_blockchain_storage(etneg::MicroCore* core = nullptr, cryptonote::Blockchain* blockchain_storage = nullptr);
 
   private:
 
@@ -156,6 +160,8 @@ namespace tools
       void fill_transfer_entry(tools::wallet_rpc::transfer_entry &entry, const crypto::hash &payment_id, const tools::wallet2::payment_details &pd);
       bool not_open(epee::json_rpc::error& er);
 
+      void load_database(std::string blockchain_db_path);
+
       wallet2 *m_wallet;
       std::string m_wallet_dir;
       std::string rpc_login_filename;
@@ -163,5 +169,11 @@ namespace tools
       bool m_trusted_daemon;
       epee::net_utils::http::http_simple_client m_http_client;
       const boost::program_options::variables_map *m_vm;
+
+      bool m_testnet;
+      bool m_physical_refresh;
+      etneg::MicroCore* m_core;
+      cryptonote::Blockchain* m_blockchain_storage;
+      bool is_connected_to_db = false;
   };
 }

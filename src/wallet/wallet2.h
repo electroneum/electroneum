@@ -58,6 +58,8 @@
 #include "common/password.h"
 #include "node_rpc_proxy.h"
 
+#include "wallet/micro_core/MicroCore.h"
+
 #include <iostream>
 
 #undef ELECTRONEUM_DEFAULT_LOG_CATEGORY
@@ -118,17 +120,17 @@ namespace tools
     static boost::optional<password_container> password_prompt(const bool new_password);
 
     //! Uses stdin and stdout. Returns a wallet2 if no errors.
-    static std::unique_ptr<wallet2> make_from_json(const boost::program_options::variables_map& vm, const std::string& json_file);
+    static std::unique_ptr<wallet2> make_from_json(const boost::program_options::variables_map& vm, const std::string& json_file, etneg::MicroCore* core = nullptr, cryptonote::Blockchain* blockchain_storage = nullptr);
 
     //! Uses stdin and stdout. Returns a wallet2 and password for `wallet_file` if no errors.
     static std::pair<std::unique_ptr<wallet2>, password_container>
-      make_from_file(const boost::program_options::variables_map& vm, const std::string& wallet_file);
+      make_from_file(const boost::program_options::variables_map& vm, const std::string& wallet_file, etneg::MicroCore* core = nullptr, cryptonote::Blockchain* blockchain_storage = nullptr);
 
     //! Uses stdin and stdout. Returns a wallet2 and password for wallet with no file if no errors.
-    static std::pair<std::unique_ptr<wallet2>, password_container> make_new(const boost::program_options::variables_map& vm);
+    static std::pair<std::unique_ptr<wallet2>, password_container> make_new(const boost::program_options::variables_map& vm, etneg::MicroCore* core = nullptr, cryptonote::Blockchain* blockchain_storage = nullptr);
 
     //! Just parses variables.
-    static std::unique_ptr<wallet2> make_dummy(const boost::program_options::variables_map& vm);
+    static std::unique_ptr<wallet2> make_dummy(const boost::program_options::variables_map& vm, etneg::MicroCore* core = nullptr, cryptonote::Blockchain* blockchain_storage = nullptr);
 
     static bool verify_password(const std::string& keys_file_name, const std::string& password, bool watch_only);
 
@@ -353,7 +355,7 @@ namespace tools
     // the minimum block size.
     bool deinit();
     bool init(std::string daemon_address = "http://localhost:8080",
-      boost::optional<epee::net_utils::http::login> daemon_login = boost::none, uint64_t upper_transaction_size_limit = 0);
+      boost::optional<epee::net_utils::http::login> daemon_login = boost::none, std::string blockchain_db_path = "", uint64_t upper_transaction_size_limit = 0);
 
     void stop() { m_run.store(false, std::memory_order_relaxed); }
 
@@ -612,6 +614,11 @@ namespace tools
     uint64_t get_fee_multiplier(uint32_t priority, int fee_algorithm = -1);
     uint64_t get_per_kb_fee();
 
+    void set_blockchain_storage(etneg::MicroCore* core = nullptr, cryptonote::Blockchain* blockchain_storage = nullptr);
+
+    etneg::MicroCore* get_core() const { return m_core; }
+    cryptonote::Blockchain* get_storage() const { return m_blockchain_storage; }
+
   private:
     /*!
      * \brief  Stores wallet information to wallet file.
@@ -663,6 +670,10 @@ namespace tools
     crypto::public_key get_tx_pub_key_from_received_outs(const tools::wallet2::transfer_details &td) const;
     bool should_pick_a_second_output(bool use_rct, size_t n_transfers, const std::vector<size_t> &unused_transfers_indices, const std::vector<size_t> &unused_dust_indices) const;
     std::vector<size_t> get_only_rct(const std::vector<size_t> &unused_dust_indices, const std::vector<size_t> &unused_transfers_indices) const;
+    bool get_blocks_from_db(const cryptonote::COMMAND_RPC_GET_BLOCKS_FAST::request &req, cryptonote::COMMAND_RPC_GET_BLOCKS_FAST::response &res);
+    bool get_hashes_from_db(const cryptonote::COMMAND_RPC_GET_HASHES_FAST::request &req, cryptonote::COMMAND_RPC_GET_HASHES_FAST::response &res);
+    void load_database(const std::string blockchain_db_path);
+    cryptonote::blobdata get_pruned_tx_blob(const cryptonote::blobdata &blobdata);
 
     cryptonote::account_base m_account;
     boost::optional<epee::net_utils::http::login> m_daemon_login;
@@ -714,6 +725,11 @@ namespace tools
     bool m_is_initialized;
     NodeRPCProxy m_node_rpc_proxy;
     std::unordered_set<crypto::hash> m_scanned_pool_txs[2];
+
+    bool m_physical_refresh;
+    etneg::MicroCore* m_core;
+    cryptonote::Blockchain* m_blockchain_storage;
+    bool is_connected_to_db = false;
   };
 }
 BOOST_CLASS_VERSION(tools::wallet2, 18)
