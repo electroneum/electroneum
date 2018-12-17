@@ -365,7 +365,12 @@ namespace cryptonote
     try
     {
       LockedTXN lock(m_blockchain);
-      txpool_tx_meta_t meta = m_blockchain.get_txpool_tx_meta(id);
+      txpool_tx_meta_t meta;
+      if (!m_blockchain.get_txpool_tx_meta(id, meta))
+      {
+        MERROR("Failed to find tx in txpool");
+        return false;
+      }
       cryptonote::blobdata txblob = m_blockchain.get_txpool_tx_blob(id);
       if (!parse_and_validate_tx_from_blob(txblob, tx))
       {
@@ -508,10 +513,13 @@ namespace cryptonote
     {
       try
       {
-        txpool_tx_meta_t meta = m_blockchain.get_txpool_tx_meta(it->first);
-        meta.relayed = true;
-        meta.last_relayed_time = now;
-        m_blockchain.update_txpool_tx(it->first, meta);
+        txpool_tx_meta_t meta;
+        if (m_blockchain.get_txpool_tx_meta(it->first, meta))
+        {
+          meta.relayed = true;
+          meta.last_relayed_time = now;
+          m_blockchain.update_txpool_tx(it->first, meta);
+        }
       }
       catch (const std::exception &e)
       {
@@ -867,7 +875,12 @@ namespace cryptonote
     auto sorted_it = m_txs_by_fee_and_receive_time.begin();
     while (sorted_it != m_txs_by_fee_and_receive_time.end())
     {
-      txpool_tx_meta_t meta = m_blockchain.get_txpool_tx_meta(sorted_it->second);
+      txpool_tx_meta_t meta;
+      if (!m_blockchain.get_txpool_tx_meta(sorted_it->second, meta))
+      {
+        MERROR("  failed to find tx meta");
+        continue;
+      }
       LOG_PRINT_L2("Considering " << sorted_it->second << ", size " << meta.blob_size << ", current block size " << total_size << "/" << max_total_size << ", current coinbase " << print_money(best_coinbase));
 
       // Can not exceed maximum block size
