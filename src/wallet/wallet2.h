@@ -221,6 +221,17 @@ namespace tools
       uint64_t unlock_time;
       bool use_rct;
       std::vector<cryptonote::tx_destination_entry> dests; // original setup, does not include change
+
+      BEGIN_SERIALIZE_OBJECT()
+        FIELD(sources)
+        FIELD(change_dts)
+        FIELD(splitted_dsts)
+        FIELD(selected_transfers)
+        FIELD(extra)
+        FIELD(unlock_time)
+        FIELD(use_rct)
+        FIELD(dests)
+      END_SERIALIZE()
     };
 
     typedef std::vector<transfer_details> transfer_container;
@@ -238,9 +249,24 @@ namespace tools
       std::list<size_t> selected_transfers;
       std::string key_images;
       crypto::secret_key tx_key;
+        std::vector<crypto::secret_key> additional_tx_keys;
       std::vector<cryptonote::tx_destination_entry> dests;
 
       tx_construction_data construction_data;
+
+      BEGIN_SERIALIZE_OBJECT()
+        FIELD(tx)
+        FIELD(dust)
+        FIELD(fee)
+        FIELD(dust_added_to_fee)
+        FIELD(change_dts)
+        FIELD(selected_transfers)
+        FIELD(key_images)
+        FIELD(tx_key)
+        FIELD(additional_tx_keys)
+        FIELD(dests)
+        FIELD(construction_data)
+      END_SERIALIZE()
     };
 
     // The term "Unsigned tx" is not really a tx since it's not signed yet.

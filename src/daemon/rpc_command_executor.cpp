@@ -1236,7 +1236,8 @@ bool t_rpc_command_executor::start_save_graph()
 			return true;
 		}
 	}
-	
+
+  tools::success_msg_writer() << "Saving graph is now on";	
 	return true;
 }
 
@@ -1262,6 +1263,8 @@ bool t_rpc_command_executor::stop_save_graph()
 			return true;
 		}
 	}
+
+  tools::success_msg_writer() << "Saving graph is now off";
 	return true;
 }
 
@@ -1428,6 +1431,7 @@ bool t_rpc_command_executor::flush_txpool(const std::string &txid)
         }
     }
 
+    tools::success_msg_writer() << "Pool successfully flushed";
     return true;
 }
 
@@ -1734,6 +1738,7 @@ bool t_rpc_command_executor::relay_tx(const std::string &txid)
         }
     }
 
+    tools::success_msg_writer() << "Transaction successfully relayed";
     return true;
 }
 
