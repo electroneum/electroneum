@@ -547,23 +547,6 @@ namespace cryptonote
       return false;
     }
 
-    // resolve outPk references in rct txes
-    // outPk aren't the only thing that need resolving for a fully resolved tx,
-    // but outPk (1) are needed now to check range proof semantics, and
-    // (2) do not need access to the blockchain to find data
-    if (tx.version >= 2)
-    {
-      rct::rctSig &rv = tx.rct_signatures;
-      if (rv.outPk.size() != tx.vout.size())
-      {
-        LOG_PRINT_L1("WRONG TRANSACTION BLOB, Bad outPk size in tx " << tx_hash << ", rejected");
-        tvc.m_verifivation_failed = true;
-        return false;
-      }
-      for (size_t n = 0; n < tx.rct_signatures.outPk.size(); ++n)
-        rv.outPk[n].dest = rct::pk2rct(boost::get<txout_to_key>(tx.vout[n].target).key);
-    }
-
     if (keeped_by_block && get_blockchain_storage().is_within_compiled_block_hash_area())
     {
       MTRACE("Skipping semantics check for tx kept by block in embedded hash area");
@@ -703,14 +686,6 @@ namespace cryptonote
       MERROR_VER("tx with invalid outputs, rejected for tx id= " << get_transaction_hash(tx));
       return false;
     }
-    if (tx.version > 1)
-    {
-      if (tx.rct_signatures.outPk.size() != tx.vout.size())
-      {
-        MERROR_VER("tx with mismatched vout/outPk count, rejected for tx id= " << get_transaction_hash(tx));
-        return false;
-      }
-    }
 
     if(!check_money_overflow(tx))
     {
@@ -718,19 +693,15 @@ namespace cryptonote
       return false;
     }
 
-    if (tx.version == 1)
-    {
-      uint64_t amount_in = 0;
-      get_inputs_money_amount(tx, amount_in);
-      uint64_t amount_out = get_outs_money_amount(tx);
+    uint64_t amount_in = 0;
+    get_inputs_money_amount(tx, amount_in);
+    uint64_t amount_out = get_outs_money_amount(tx);
 
-      if(amount_in <= amount_out)
-      {
-        MERROR_VER("tx with wrong amounts: ins " << amount_in << ", outs " << amount_out << ", rejected for tx id= " << get_transaction_hash(tx));
-        return false;
-      }
+    if(amount_in <= amount_out)
+    {
+      MERROR_VER("tx with wrong amounts: ins " << amount_in << ", outs " << amount_out << ", rejected for tx id= " << get_transaction_hash(tx));
+      return false;
     }
-    // for version > 1, ringct signatures check verifies amounts match
 
     if(!keeped_by_block && get_object_blobsize(tx) >= m_blockchain_storage.get_current_cumulative_blocksize_limit() - CRYPTONOTE_COINBASE_BLOB_RESERVED_SIZE)
     {
@@ -755,34 +726,6 @@ namespace cryptonote
     {
       MERROR_VER("tx uses key image not in the valid domain");
       return false;
-    }
-
-    if (tx.version >= 2)
-    {
-      const rct::rctSig &rv = tx.rct_signatures;
-      switch (rv.type) {
-        case rct::RCTTypeNull:
-          // coinbase should not come here, so we reject for all other types
-          MERROR_VER("Unexpected Null rctSig type");
-          return false;
-        case rct::RCTTypeSimple:
-          if (!rct::verRctSimple(rv, true))
-          {
-            MERROR_VER("rct signature semantics check failed");
-            return false;
-          }
-          break;
-        case rct::RCTTypeFull:
-          if (!rct::verRct(rv, true))
-          {
-            MERROR_VER("rct signature semantics check failed");
-            return false;
-          }
-          break;
-        default:
-          MERROR_VER("Unknown rct type: " << rv.type);
-          return false;
-      }
     }
 
     return true;

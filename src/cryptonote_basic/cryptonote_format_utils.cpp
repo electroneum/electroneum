@@ -192,11 +192,6 @@ namespace cryptonote
   //---------------------------------------------------------------
   bool get_tx_fee(const transaction& tx, uint64_t & fee)
   {
-    if (tx.version > 1)
-    {
-      fee = tx.rct_signatures.txnFee;
-      return true;
-    }
     uint64_t amount_in = 0;
     uint64_t amount_out = 0;
     for(auto& in: tx.vin)
@@ -423,10 +418,7 @@ namespace cryptonote
         << out.target.type().name() << ", expected " << typeid(txout_to_key).name()
         << ", in transaction id=" << get_transaction_hash(tx));
 
-      if (tx.version == 1)
-      {
-        CHECK_AND_NO_ASSERT_MES(0 < out.amount, false, "zero amount output in transaction id=" << get_transaction_hash(tx));
-      }
+      CHECK_AND_NO_ASSERT_MES(0 < out.amount, false, "zero amount output in transaction id=" << get_transaction_hash(tx));
 
       if(!check_key(boost::get<txout_to_key>(out.target).key))
         return false;
