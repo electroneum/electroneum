@@ -296,9 +296,27 @@ namespace cryptonote
     Nz. */
     m_core.set_target_blockchain_height((hshd.current_height));
     int64_t diff = static_cast<int64_t>(hshd.current_height) - static_cast<int64_t>(m_core.get_current_blockchain_height());
+    // Absolute value of difference between your height and the network height.
     uint64_t abs_diff = std::abs(diff);
+    // The highest height of the two.
+    uint64_t max_block_height = max(hshd.current_height, m_core.get_current_blockchain_height());
+    uint64_t last_block_v1 = m_core.get_testnet() ? 190059 : 307499;
+    // Is the longest chain past v1?
+    // If not, set diff_v6 = 0 so two minute blocks aren't factored into the calculation at all.
+    // If so, take smallest from
+    //
+    //    A) The absolute difference between you and the network
+    //       * This is chosen if both you and the network are past v1.
+    //       * First fraction below cancels out and only v6 blocks are factored into the calculation.
+    //
+    //    B) The difference between the longest chain and the last block on v1.
+    //       * This is chosen if one of you and the network is behind v1.
+    //       * The second fraction becomes how many blocks are between you and the network minus the distance between
+    //       * ...the longest chain and the v6 fork, ie how many v1 blocks need to be factored into the calculation.
+    //
+    uint64_t diff_v6 = max_block_height > last_block_v1 ? min(abs_diff, max_block_height - last_block_v1) : 0;
     MCLOG(is_inital ? el::Level::Info : el::Level::Debug, "global", context << "Sync data returned a new top block candidate: " << m_core.get_current_blockchain_height() << " -> " << hshd.current_height
-      << " [Your node is " << abs_diff << " blocks (" << ((abs_diff - diff) / (24 * 60 * 60 / DIFFICULTY_TARGET)) + (diff / (24 * 60 * 60 / DIFFICULTY_TARGET_V6)) << " days) "
+      << " [Your node is " << abs_diff << " blocks (" << ((abs_diff - diff_v6) / (24 * 60 * 60 / DIFFICULTY_TARGET)) + (diff_v6 / (24 * 60 * 60 / DIFFICULTY_TARGET_V6)) << " days) "
       << (0 <= diff ? std::string("behind") : std::string("ahead"))
       << "] " << ENDL << "SYNCHRONIZATION started");
       m_core.safesyncmode(false);
