@@ -430,7 +430,7 @@ namespace tools
       std::string to_string() const
       {
         std::ostringstream ss;
-        ss << transfer_error::to_string() << ", ring size = " << (DEFAULT_RINGSIZE) << ", scanty_outs:";
+        ss << transfer_error::to_string() << "scanty_outs:";
         for (const auto& out: m_scanty_outs)
         {
           ss << '\n' << cryptonote::print_money(out.first) << " - " << out.second;

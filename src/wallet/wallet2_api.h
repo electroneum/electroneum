@@ -555,23 +555,6 @@ struct Wallet
     virtual TransactionHistory * history() const = 0;
     virtual AddressBook * addressBook() const = 0;
     virtual void setListener(WalletListener *) = 0;
-    /*!
-     * \brief defaultMixin - returns number of mixins used in transactions
-     * \return
-     */
-    virtual uint32_t defaultMixin() const = 0;
-    /*!
-     * \brief setDefaultMixin - setum number of mixins to be used for new transactions
-     * \param arg
-     */
-    virtual void setDefaultMixin(uint32_t arg) = 0;
-
-    /*!
-     * \brief setUserNote - attach an arbitrary string note to a txid
-     * \param txid - the transaction id to attach the note to
-     * \param note - the note
-     * \return true if succesful, false otherwise
-     */
     virtual bool setUserNote(const std::string &txid, const std::string &note) = 0;
     /*!
      * \brief getUserNote - return an arbitrary string note attached to a txid
