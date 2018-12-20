@@ -896,6 +896,20 @@ public:
   virtual size_t get_block_size(const uint64_t& height) const = 0;
 
   /**
+   * @brief sets a block's cumulative difficulty
+   *
+   * The subclass should return true if the cumulative difficulty is set successfully
+   *
+   * If the block does not exist, the subclass should throw BLOCK_DNE
+   *
+   * @param height the height requested
+   * @param diff the cumulative difficulty value to be set
+   *
+   * @return true | false
+   */
+  virtual void set_block_cumulative_difficulty(uint64_t height, difficulty_type diff) = 0;
+
+  /**
    * @brief fetch a block's cumulative difficulty
    *
    * The subclass should return the cumulative difficulty of the block with the

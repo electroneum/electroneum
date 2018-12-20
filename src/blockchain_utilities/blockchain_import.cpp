@@ -34,6 +34,7 @@
 
 #include <boost/filesystem.hpp>
 #include <boost/algorithm/string.hpp>
+#include <boost/chrono.hpp>
 #include <unistd.h>
 #include <openssl/sha.h>
 #include "misc_log_ex.h"
@@ -131,7 +132,6 @@ int parse_db_arguments(const std::string& db_arg_str, std::string& db_type, int&
   return 0;
 }
 
-
 int pop_blocks(cryptonote::core& core, int num_blocks)
 {
   bool use_batch = opt_batch;
@@ -142,12 +142,37 @@ int pop_blocks(cryptonote::core& core, int num_blocks)
   int quit = 0;
   block popped_block;
   std::vector<transaction> popped_txs;
-  for (int i=0; i < num_blocks; ++i)
+
+  int i = 0;
+  boost::scoped_ptr<boost::thread> t(new boost::thread([&i, &num_blocks]() {
+    time_t pop_start_time = time(NULL);
+    time_t partial_pop_time;
+    double estimate_time;
+
+    while(i < num_blocks) {
+      partial_pop_time = time(NULL);
+
+      if(i != 0) {
+        estimate_time = (num_blocks - i) * (((partial_pop_time - pop_start_time)*1000) / i);
+        estimate_time = ceil(estimate_time/60000); //Minutes
+      }
+
+
+      std::cout << "\rPoping blocks from database (aprox. " << estimate_time << " minute(s) remaining): " << i + 1 << "/" << num_blocks << "                       ";
+      std::cout.flush();
+      boost::this_thread::sleep_for(boost::chrono::milliseconds{200});
+    }
+
+    std::cout << "\r                                                                                                                                               \r";
+  }));
+
+  for (; i < num_blocks; ++i)
   {
-    // simple_core.m_storage.pop_block_from_blockchain() is private, so call directly through db
     core.get_blockchain_storage().get_db().pop_block(popped_block, popped_txs);
     quit = 1;
   }
+
+  t->join();
 
 
   if (use_batch)
@@ -613,7 +638,7 @@ bool validate_file_checksum_against_dns(std::string import_file_path) {
   };
 
   try {
-    
+
     if (!tools::dns_utils::load_txt_records_from_dns(records, dns_urls, "checksum"))
       return false;
 

@@ -528,6 +528,13 @@ namespace cryptonote
       */
      crypto::hash get_tail_id() const;
 
+    /**
+      * @copydoc Blockchain::set_block_cumulative_difficulty
+      *
+      * @note see Blockchain::set_block_cumulative_difficulty
+      */
+     void set_block_cumulative_difficulty(uint64_t height, difficulty_type diff);
+
      /**
       * @copydoc Blockchain::get_block_cumulative_difficulty
       *

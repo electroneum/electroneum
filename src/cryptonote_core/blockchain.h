@@ -295,6 +295,11 @@ namespace cryptonote
     difficulty_type get_difficulty_for_next_block();
 
     /**
+     * @brief Normalize the cumulative difficulty for V7 blocks, fixing the differing difficulty among nodes
+     */
+    void normalize_v7_difficulties(uint64_t height, uint64_t v7height);   
+
+    /**
      * @brief adds a block to the blockchain
      *
      * Adds a new block to the blockchain.  If the block's parent is not the

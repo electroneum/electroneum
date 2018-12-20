@@ -70,6 +70,7 @@ public:
   virtual uint64_t get_block_timestamp(const uint64_t& height) const { return 0; }
   virtual uint64_t get_top_block_timestamp() const { return 0; }
   virtual size_t get_block_size(const uint64_t& height) const { return 128; }
+  virtual void set_block_cumulative_difficulty(uint64_t height, difficulty_type diff) {}
   virtual difficulty_type get_block_cumulative_difficulty(const uint64_t& height) const { return 10; }
   virtual difficulty_type get_block_difficulty(const uint64_t& height) const { return 0; }
   virtual uint64_t get_block_already_generated_coins(const uint64_t& height) const { return 10000000000; }
