@@ -1042,7 +1042,7 @@ bool Blockchain::validate_miner_transaction(const block& b, size_t cumulative_bl
 
   if (version == 3) {
     for (auto &o: b.miner_tx.vout) {
-      if (!is_valid_decomposed_amount(o.amount)) {
+      if (!is_valid_decomposed_amount(o.amount, m_db->height(), m_testnet)) {
         MERROR_VER("miner tx output " << print_money(o.amount) << " is not a valid decomposed amount");
         return false;
       }
@@ -2349,7 +2349,7 @@ bool Blockchain::check_tx_outputs(const transaction& tx, tx_verification_context
   // from hard fork 2, we forbid dust and compound outputs
   if (m_hardfork->get_current_version() >= 2) {
     for (auto &o: tx.vout) {
-      if (!is_valid_decomposed_amount(o.amount)) {
+        if (!is_valid_decomposed_amount(o.amount, m_db->height(), m_testnet)) {
         tvc.m_invalid_output = true;
         return false;
       }
