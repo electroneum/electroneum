@@ -744,8 +744,9 @@ difficulty_type Blockchain::get_difficulty_for_next_block()
 
   const uint64_t v6height = m_testnet ? 190060 : 307500;
   const uint64_t v7height = m_testnet ? 215000 : 324500;
+  const uint64_t v8height = m_testnet ? 375000 : 475000;
   
-  if(height == 500000) { // V8 Height
+  if(height == v8height) {
     normalize_v7_difficulties(height, v7height);
 
     m_timestamps.clear();
