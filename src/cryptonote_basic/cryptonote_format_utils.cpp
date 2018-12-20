@@ -818,11 +818,14 @@ namespace cryptonote
     return get_tx_tree_hash(txs_ids);
   }
   //---------------------------------------------------------------
-  bool is_valid_decomposed_amount(uint64_t amount)
+  bool is_valid_decomposed_amount(uint64_t amount, uint64_t height, bool testnet)
   {
-    const uint64_t *begin = valid_decomposed_outputs;
-    const uint64_t *end = valid_decomposed_outputs + sizeof(valid_decomposed_outputs) / sizeof(valid_decomposed_outputs[0]);
-    return std::binary_search(begin, end, amount);
+    if(!testnet && height < 475000 || testnet && height < 375000) { //todo: fix height for V8
+      const uint64_t *begin = valid_decomposed_outputs;
+      const uint64_t *end = valid_decomposed_outputs + sizeof(valid_decomposed_outputs) / sizeof(valid_decomposed_outputs[0]);
+      return std::binary_search(begin, end, amount);
+    }
+    else{return true;}
   }
   //---------------------------------------------------------------
   void get_hash_stats(uint64_t &tx_hashes_calculated, uint64_t &tx_hashes_cached, uint64_t &block_hashes_calculated, uint64_t & block_hashes_cached)
