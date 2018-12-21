@@ -44,6 +44,8 @@ using namespace epee;
 #include "common/int-util.h"
 #include "common/dns_utils.h"
 
+#include <math.h>
+
 #undef ELECTRONEUM_DEFAULT_LOG_CATEGORY
 #define ELECTRONEUM_DEFAULT_LOG_CATEGORY "cn"
 
@@ -87,14 +89,14 @@ namespace cryptonote {
     return CRYPTONOTE_MAX_TX_SIZE;
   }
   //-----------------------------------------------------------------------------------------------
-  bool get_block_reward(size_t median_size, size_t current_block_size, uint64_t already_generated_coins, uint64_t &reward, uint8_t version) {
+  bool get_block_reward(size_t median_size, size_t current_block_size, uint64_t already_generated_coins, uint64_t &reward, uint8_t version, uint64_t height, bool testnet = false) {
     static_assert(DIFFICULTY_TARGET%60==0,"difficulty target must be a multiple of 60");
     static_assert(DIFFICULTY_TARGET_V6%60==0,"difficulty target V6 must be a multiple of 60");
 
     const int target = version >= 6 ? DIFFICULTY_TARGET_V6 : DIFFICULTY_TARGET;
 
     const int target_minutes = target / 60;
-    const int emission_speed_factor = EMISSION_SPEED_FACTOR_PER_MINUTE - (target_minutes-1);
+
     uint64_t full_reward_zone = get_min_block_size(version);
 
     const uint64_t premine = 1260000000000U;
@@ -103,7 +105,35 @@ namespace cryptonote {
       return true;
     }
 
-    uint64_t base_reward = (MONEY_SUPPLY - already_generated_coins) >> emission_speed_factor;
+    // PRE V8 ESF
+    double emission_speed_factor = EMISSION_SPEED_FACTOR_PER_MINUTE - (target_minutes-1);
+    // From V8 Taper gradient change towards that of EMISSION_SPEED_FACTOR_PER_MINUTE_V8 as a security measure.
+    // Stages should be spaced out ~ 1 month apart (21600 Blocks).
+    // Heights need changing at the same time the v8 fork blocks are confirmed for both the mainnet and testnet.
+     if(version == 8) {
+        if(!testnet){
+            if     (height < 475001) {emission_speed_factor += 0.5;}
+            else if(height < 475002) {emission_speed_factor += 0.6;}
+            else if(height < 475003) {emission_speed_factor += 0.7;}
+            else if(height < 475004) {emission_speed_factor += 0.8;}
+            else if(height < 475005) {emission_speed_factor += 0.9;}
+            else   {emission_speed_factor = EMISSION_SPEED_FACTOR_PER_MINUTE_V8 - (target_minutes-1);}
+        }
+        else if(testnet){
+            if     (height < 375001) {emission_speed_factor += 0.5;}
+            else if(height < 375002) {emission_speed_factor += 0.6;}
+            else if(height < 375003) {emission_speed_factor += 0.7;}
+            else if(height < 375004) {emission_speed_factor += 0.8;}
+            else if(height < 375005) {emission_speed_factor += 0.9;}
+            else   {emission_speed_factor = EMISSION_SPEED_FACTOR_PER_MINUTE_V8 - (target_minutes-1);}
+        }
+     }
+     else if(version > 8) {
+         emission_speed_factor = EMISSION_SPEED_FACTOR_PER_MINUTE_V8 - (target_minutes-1);
+     }
+
+    uint64_t base_reward = (MONEY_SUPPLY - already_generated_coins) / pow(2, emission_speed_factor);
+
     if (base_reward < FINAL_SUBSIDY_PER_MINUTE*target_minutes)
     {
       base_reward = FINAL_SUBSIDY_PER_MINUTE*target_minutes;
