@@ -424,7 +424,7 @@ bool t_rpc_command_executor::show_status() {
   uint64_t net_height = ires.target_height > ires.height ? ires.target_height : ires.height;
 
   std::stringstream str;
-  str << boost::format("Height: %llu/%llu (%.1f%%) on %s%s, %s, net hash %s, v%u%s, %s, %u(out)+%u(in) connections")
+  str << boost::format("Height: %llu/%llu (%.1f%%) on %s, %s, net hash %s, v%u%s, %s, %u(out)+%u(in) connections")
     % (unsigned long long)ires.height
     % (unsigned long long)net_height
     % get_sync_percentage(ires)
@@ -435,6 +435,7 @@ bool t_rpc_command_executor::show_status() {
     % get_fork_extra_info(hfres.earliest_height, net_height, ires.target)
     % (hfres.state == cryptonote::HardFork::Ready ? "up to date" : hfres.state == cryptonote::HardFork::UpdateNeeded ? "update needed" : "out of date, likely forked")
     % (unsigned)ires.outgoing_connections_count
+    % (unsigned)ires.incoming_connections_count
   ;
 
   // restricted RPC does not disclose start time
