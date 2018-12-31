@@ -139,10 +139,7 @@ namespace cryptonote
     res.cumulative_difficulty = m_core.get_blockchain_storage().get_db().get_block_cumulative_difficulty(res.height - 1);
     res.block_size_limit = m_core.get_blockchain_storage().get_current_cumulative_blocksize_limit();
     res.status = CORE_RPC_STATUS_OK;
-    res.start_time = (uint64_t)m_core.get_start_time();
-
-
-
+    res.start_time = m_restricted ? 0 : (uint64_t)m_core.get_start_time();
 
     res.daemon_release_name = ELECTRONEUM_RELEASE_NAME;
     res.daemon_version = ELECTRONEUM_VERSION;
