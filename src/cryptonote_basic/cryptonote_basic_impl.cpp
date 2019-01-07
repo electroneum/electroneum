@@ -122,11 +122,11 @@ namespace cryptonote {
             else   {emission_speed_factor = EMISSION_SPEED_FACTOR_PER_MINUTE_V8 - (target_minutes-1);}
         }
         else if(testnet){
-            if     (height < 375001) {emission_speed_factor += 0.5;}
-            else if(height < 375002) {emission_speed_factor += 0.6;}
-            else if(height < 375003) {emission_speed_factor += 0.7;}
-            else if(height < 375004) {emission_speed_factor += 0.8;}
-            else if(height < 375005) {emission_speed_factor += 0.9;}
+            if     (height < 346056) {emission_speed_factor += 0.5;}
+            else if(height < 346057) {emission_speed_factor += 0.6;}
+            else if(height < 346058) {emission_speed_factor += 0.7;}
+            else if(height < 346059) {emission_speed_factor += 0.8;}
+            else if(height < 346060) {emission_speed_factor += 0.9;}
             else   {emission_speed_factor = EMISSION_SPEED_FACTOR_PER_MINUTE_V8 - (target_minutes-1);}
         }
      }

@@ -106,7 +106,7 @@ static const struct {
   { 1, 1, 0, 1341378000 },
   { 6, 190060, 0, 1523263057 },
   { 7, 215000, 0, 1530615600 },
-  { 8, 375000, 0, 1553731200 }
+  { 8, 346055, 0, 1553731200 }
 };
 static const uint64_t testnet_hard_fork_version_1_till = 190059;
 
@@ -746,7 +746,7 @@ difficulty_type Blockchain::get_difficulty_for_next_block()
 
   const uint64_t v6height = m_testnet ? 190060 : 307500;
   const uint64_t v7height = m_testnet ? 215000 : 324500;
-  const uint64_t v8height = m_testnet ? 375000 : 475000;
+  const uint64_t v8height = m_testnet ? 346055 : 475000;
   
   if(height == v8height) {
     normalize_v7_difficulties(height, v7height);
