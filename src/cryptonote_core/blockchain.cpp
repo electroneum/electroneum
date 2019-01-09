@@ -745,15 +745,7 @@ difficulty_type Blockchain::get_difficulty_for_next_block()
   auto height = m_db->height();
 
   const uint64_t v6height = m_testnet ? 190060 : 307500;
-  const uint64_t v7height = m_testnet ? 215000 : 324500;
-  const uint64_t v8height = m_testnet ? 375000 : 475000;
-  
-  if(height == v8height) {
-    normalize_v7_difficulties(height, v7height);
-
-    m_timestamps.clear();
-    m_difficulties.clear();
-  }  
+  const uint64_t v7height = m_testnet ? 215000 : 324500; 
 
   const uint32_t difficultyBlocksCount = (height >= v6height && height < v7height) ? DIFFICULTY_BLOCKS_COUNT_V6 : DIFFICULTY_BLOCKS_COUNT;
 
@@ -804,8 +796,16 @@ difficulty_type Blockchain::get_difficulty_for_next_block()
 // This function fixes the differing difficulty bug by re-calculate and rewriting
 // the correct cumulative difficulty for blocks starting from V7 based on the
 // correct 735 blocks input in the difficulty algorithm.
-void Blockchain::normalize_v7_difficulties(uint64_t height, uint64_t v7height) {
+void Blockchain::normalize_v7_difficulties() {
 
+  auto height = m_db->height();
+  const uint64_t v8height = m_testnet ? 375000 : 475000;
+  
+  if(height != v8height) {
+    return;
+  }  
+
+  const uint64_t v7height = m_testnet ? 215000 : 324500;
   const size_t V7_DIFFICULTY_BLOCKS_COUNT = 735;
   const size_t V7_DIFFICULTY_TARGET = 120;
 
@@ -841,6 +841,9 @@ void Blockchain::normalize_v7_difficulties(uint64_t height, uint64_t v7height) {
     diff = difficulties.back() + next_difficulty(timestamps, difficulties, V7_DIFFICULTY_TARGET, 1);
     m_db->set_block_cumulative_difficulty(i + 1, diff);
   }
+
+  m_timestamps.clear();
+  m_difficulties.clear();
 }
 
 //------------------------------------------------------------------
@@ -3333,6 +3336,8 @@ leave:
         << t1 << "/" << t2 << "/" << t3 << "/" << t_exists << "/" << t_pool
         << "/" << t_checktx << "/" << t_dblspnd << "/" << vmt << "/" << addblock << ")ms");
   }
+
+  normalize_v7_difficulties();
 
   bvc.m_added_to_main_chain = true;
   ++m_sync_counter;

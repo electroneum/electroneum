@@ -297,7 +297,7 @@ namespace cryptonote
     /**
      * @brief Normalize the cumulative difficulty for V7 blocks, fixing the differing difficulty among nodes
      */
-    void normalize_v7_difficulties(uint64_t height, uint64_t v7height);   
+    void normalize_v7_difficulties();   
 
     /**
      * @brief adds a block to the blockchain
