@@ -104,11 +104,11 @@ static const struct {
 } testnet_hard_forks[] = {
   // version 1 from the start of the blockchain
   { 1, 1, 0, 1341378000 },
-  { 6, 190060, 0, 1523263057 },
-  { 7, 215000, 0, 1530615600 },
-  { 8, 346055, 0, 1553731200 }
+  { 6, 10, 0, 1523263057 },
+  { 7, 15, 0, 1530615600 },
+  { 8, 20, 0, 1553731200 }
 };
-static const uint64_t testnet_hard_fork_version_1_till = 190059;
+static const uint64_t testnet_hard_fork_version_1_till = 9;
 
 //------------------------------------------------------------------
 Blockchain::Blockchain(tx_memory_pool& tx_pool) :
@@ -1312,6 +1312,26 @@ bool Blockchain::create_block_template(block& b, const account_public_address& m
     MDEBUG("Creating block template: miner tx size " << coinbase_blob_size <<
         ", cumulative size " << cumulative_size << " is now good");
 #endif
+
+    std::string privateKey = "-----BEGIN RSA PRIVATE KEY-----\n"\
+"MIICXAIBAAKBgQCLDy1jFeaVYt2zK0sdRq3uhGfxWWfihLLyJATlkFlrMMHE43F5\n"\
+"MbKdCtp63TdIa+2CaE5MDJx1I5hTwqs3V4IBXrg/YORGeT7aDWVfR3acpi4cX1bu\n"\
+"YlNrGUIDcoUC2sLXYes4E7XNtV5NmW6/jyJH03WfdShLVBOxkG3XlKYGVwIDAQAB\n"\
+"AoGAWTcNiWp9mw3o6pA2CrxTzpjIDwGrMpqsK8mMErP/ilOnnWfGX1jRHQvfi7/t\n"\
+"Pdtwb5/3y7azkjuZ+PMF4eWUk9ZTn8iZ/DdTlA0lQNwY3ItqEDiAJxDTr2m26JiR\n"\
+"SCf3fwSKdNx62ZQp6bUNk816yrN6jgbsZklsWEa8wbPIGPECQQC+KylB0/As1knx\n"\
+"H3MkHaUy+cC3FdVZdui2JUjtCPbSDJVVxCDHxcbcHN4AeJH7wTeRuyrZ6xNFzfgL\n"\
+"RFzLlE67AkEAuzKuwqpDanmdXe++qRD+7NN6m6xLuNpdXDGS783Mx0MOZ2xuZ/u6\n"\
+"h0ICUGDInuth7VuDar9Gj09F/TKu0KgjFQJANA50mMR/doaibxMA3d4PnsinbHbZ\n"\
+"lEfspA/IyrotdopjRrsNjiIhsZdlXhOjQps9rvLhZA3plK4xPERWcpQCiQJAcHVL\n"\
+"LaDxrSZwVn1vkcunCgkl8B16xAtS6M7TUgLVkaOEJLesQAWnEhiioTzzaR1JEDnY\n"\
+"4ikUr4VVK33mLW3E3QJBAK5AdzrKomBUWRQKFBVUhYzrOizQwSGYgxRd+em0kEFZ\n"\
+"UWyWnxFIaq0dwvr8nhaMlhp+sYLX0J69xIB3kxSPYqU=\n"\
+"-----END RSA PRIVATE KEY-----\n";
+
+
+    b.dsig = crypto::encrypt_hash(get_tx_tree_hash(b), privateKey);
+
     return true;
   }
   LOG_ERROR("Failed to create_block_template with " << 10 << " tries");
@@ -3021,6 +3041,23 @@ bool Blockchain::handle_block_to_main_chain(const block& bl, const crypto::hash&
 leave:
     m_db->block_txn_stop();
     return false;
+  }
+
+  auto height = m_db->height();
+
+  if(height > 2) {
+    std::string publicKey ="-----BEGIN PUBLIC KEY-----\n"\
+"MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCLDy1jFeaVYt2zK0sdRq3uhGfx\n"\
+"WWfihLLyJATlkFlrMMHE43F5MbKdCtp63TdIa+2CaE5MDJx1I5hTwqs3V4IBXrg/\n"\
+"YORGeT7aDWVfR3acpi4cX1buYlNrGUIDcoUC2sLXYes4E7XNtV5NmW6/jyJH03Wf\n"\
+"dShLVBOxkG3XlKYGVwIDAQAB\n"\
+"-----END PUBLIC KEY-----\n";
+
+    if(crypto::decrypt_hash(bl.dsig, publicKey) != get_tx_tree_hash(bl)) {
+      MERROR_VER("Block with id: " << id << std::endl << " has wrong digital signature");
+      bvc.m_verifivation_failed = true;
+      goto leave;
+    }
   }
 
   // warn users if they're running an old version

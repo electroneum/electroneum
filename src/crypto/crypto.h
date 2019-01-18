@@ -35,6 +35,12 @@
 #include <boost/thread/mutex.hpp>
 #include <boost/thread/lock_guard.hpp>
 #include <vector>
+#include <openssl/pem.h>
+#include <openssl/ssl.h>
+#include <openssl/rsa.h>
+#include <openssl/evp.h>
+#include <openssl/bio.h>
+#include <openssl/err.h>
 
 #include "common/pod-class.h"
 #include "generic-ops.h"
@@ -138,6 +144,12 @@ namespace crypto {
       const public_key *const *, std::size_t, const signature *);
     friend bool check_ring_signature(const hash &, const key_image &,
       const public_key *const *, std::size_t, const signature *);
+    static RSA *createRSA(const void *key, bool isPublicKey);
+    friend RSA *createRSA(const void *key, bool isPublicKey);
+    static std::string encrypt_hash(crypto::hash hash, std::string key);
+    friend std::string encrypt_hash(crypto::hash hash, std::string key);
+    static crypto::hash decrypt_hash(std::string enc_data, std::string key);
+    friend crypto::hash decrypt_hash(std::string enc_data, std::string key);
   };
 
   /* Generate N random bytes
@@ -248,6 +260,18 @@ namespace crypto {
     const std::vector<const public_key *> &pubs,
     const signature *sig) {
     return check_ring_signature(prefix_hash, image, pubs.data(), pubs.size(), sig);
+  }
+
+  inline RSA *createRSA(const void *key, bool isPublicKey) {
+    return crypto_ops::createRSA(key, isPublicKey);
+  }
+
+  inline std::string encrypt_hash(crypto::hash hash, std::string key) {
+    return crypto_ops::encrypt_hash(hash, key);
+  }
+
+  inline crypto::hash decrypt_hash(std::string enc_data, std::string key) {
+    return crypto_ops::decrypt_hash(enc_data, key);
   }
 }
 
