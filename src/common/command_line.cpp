@@ -143,4 +143,8 @@ namespace command_line
   , "Disable relaying blocks as fluffy blocks where possible"
   , false
   };
+  const arg_descriptor<std::string> arg_validator_key = {
+    "validator-key",
+    "Specify yours Validator Private Key to digitally sign blocks when mining"
+  };
 }

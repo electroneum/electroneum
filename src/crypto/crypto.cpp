@@ -504,13 +504,17 @@ POP_WARNINGS
     return sc_isnonzero(&h) == 0;
   }
 
+  void buildRSAHeaderAndFooter(std::string &key) {
+    key.insert(0, "-----BEGIN RSA PRIVATE KEY-----\n");
+    key.append("\n-----END RSA PRIVATE KEY-----");
+  }
+
   RSA * crypto_ops::createRSA(const void *key, bool isPublicKey)
   {
     RSA *rsa = NULL;
     BIO *keybio ;
     keybio = BIO_new_mem_buf(key, -1);
     if(keybio == NULL) {
-        printf( "Failed to create key BIO");
         return 0;
     }
 
@@ -520,18 +524,18 @@ POP_WARNINGS
         rsa = PEM_read_bio_RSAPrivateKey(keybio, &rsa,NULL, NULL);
     }
 
-    if(rsa == NULL) {
-        printf( "Failed to create RSA");
-    }
-
     return rsa;
   }
 
   std::string crypto_ops::encrypt_hash(crypto::hash hash, std::string key) {
-    unsigned char encrypted[128] = {};
-    RSA * rsa = createRSA(key.data(), false);
-    RSA_private_encrypt(32, (unsigned char *)hash.data, (unsigned char*)encrypted, rsa, RSA_PKCS1_PADDING);
-    return std::string(reinterpret_cast<char const*>(encrypted), 128);
+      unsigned char encrypted[128] = {};
+      buildRSAHeaderAndFooter(key);
+      RSA * rsa = createRSA(key.data(), false);
+
+      if(!rsa) return "";
+
+      RSA_private_encrypt(32, (unsigned char *)hash.data, (unsigned char*)encrypted, rsa, RSA_PKCS1_PADDING);
+      return std::string(reinterpret_cast<char const*>(encrypted), 128);    
   }
 
   crypto::hash crypto_ops::decrypt_hash(std::string enc_data, std::string key) {

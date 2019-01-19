@@ -222,4 +222,5 @@ namespace command_line
   extern const arg_descriptor<size_t> arg_block_sync_size;
   extern const arg_descriptor<std::string> arg_check_updates;
   extern const arg_descriptor<bool> arg_disable_fluffy_blocks;
+  extern const arg_descriptor<std::string> arg_validator_key;
 }

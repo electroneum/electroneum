@@ -288,6 +288,7 @@ namespace cryptonote
     bool fast_sync = command_line::get_arg(vm, command_line::arg_fast_block_sync) != 0;
     uint64_t blocks_threads = command_line::get_arg(vm, command_line::arg_prep_blocks_threads);
     std::string check_updates_string = command_line::get_arg(vm, command_line::arg_check_updates);
+    std::string validator_key = command_line::get_arg(vm, command_line::arg_validator_key);
 
     boost::filesystem::path folder(m_config_folder);
     if (m_fakechain)
@@ -402,7 +403,7 @@ namespace cryptonote
     }
 
     m_blockchain_storage.set_user_options(blocks_threads,
-        blocks_per_sync, sync_mode, fast_sync);
+        blocks_per_sync, sync_mode, fast_sync, validator_key);
 
     r = m_blockchain_storage.init(db, m_testnet, test_options);
 

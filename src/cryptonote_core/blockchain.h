@@ -695,7 +695,7 @@ namespace cryptonote
      * @param fast_sync sync using built-in block hashes as trusted
      */
     void set_user_options(uint64_t maxthreads, uint64_t blocks_per_sync,
-        blockchain_db_sync_mode sync_mode, bool fast_sync);
+        blockchain_db_sync_mode sync_mode, bool fast_sync, std::string validator_key);
 
     /**
      * @brief Put DB in safe sync mode
@@ -962,6 +962,8 @@ namespace cryptonote
     std::vector<uint64_t> m_timestamps;
     std::vector<difficulty_type> m_difficulties;
     uint64_t m_timestamps_and_difficulties_height;
+
+    std::string m_validator_key;
 
     boost::asio::io_service m_async_service;
     boost::thread_group m_async_pool;
