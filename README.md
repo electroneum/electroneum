@@ -108,6 +108,13 @@ library archives (`.a`).
 [^] On Debian/Ubuntu `libgtest-dev` only includes sources and headers. You must
 build the library binary manually. This can be done with the following command ```sudo apt-get install libgtest-dev && cd /usr/src/gtest && sudo cmake . && sudo make && sudo mv libg* /usr/lib/ ```
 
+On OSX:
+Homebrew installs OpenSSL but doesn’t link it to /usr/local/include, where the compiler looks into during #include<…> Thus, you must manually link it instead:
+
+ ```ln -s /usr/local/opt/openssl/include/openssl /usr/local/include```
+```ln -s /usr/local/Cellar/openssl/[version]/include/openssl /usr/bin/openssl```
+```ln -s /usr/local/opt/openssl/lib/libssl.1.0.0.dylib /usr/local/lib/```
+
 ### Build instructions
 
 Electroneum uses the CMake build system and a top-level [Makefile](Makefile) that
