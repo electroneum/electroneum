@@ -111,22 +111,15 @@ namespace cryptonote {
     double emission_speed_factor = EMISSION_SPEED_FACTOR_PER_MINUTE - (target_minutes-1);
     // From V8 Taper gradient change towards that of EMISSION_SPEED_FACTOR_PER_MINUTE_V8 as a security measure.
     // Stages should be spaced out ~ 1 month apart (21600 Blocks).
-    // Heights need changing at the same time the v8 fork blocks are confirmed for both the mainnet and testnet.
      if(version == 8) {
         if(!testnet){
-            if     (height < 475001) {emission_speed_factor += 0.5;}
-            else if(height < 475002) {emission_speed_factor += 0.6;}
-            else if(height < 475003) {emission_speed_factor += 0.7;}
-            else if(height < 475004) {emission_speed_factor += 0.8;}
-            else if(height < 475005) {emission_speed_factor += 0.9;}
+            if     (height < 522600) {emission_speed_factor += 0.15;}
+            else if(height < 544200) {emission_speed_factor += 0.20;}
             else   {emission_speed_factor = EMISSION_SPEED_FACTOR_PER_MINUTE_V8 - (target_minutes-1);}
         }
         else if(testnet){
-            if     (height < 375001) {emission_speed_factor += 0.5;}
-            else if(height < 375002) {emission_speed_factor += 0.6;}
-            else if(height < 375003) {emission_speed_factor += 0.7;}
-            else if(height < 375004) {emission_speed_factor += 0.8;}
-            else if(height < 375005) {emission_speed_factor += 0.9;}
+            if     (height < 385600) {emission_speed_factor += 0.15;}
+            else if(height < 407200) {emission_speed_factor += 0.20;}
             else   {emission_speed_factor = EMISSION_SPEED_FACTOR_PER_MINUTE_V8 - (target_minutes-1);}
         }
      }
