@@ -400,7 +400,7 @@ bool simple_wallet::print_fee_info(const std::vector<std::string> &args/* = std:
     return true;
   }
   const uint64_t per_kb_fee = m_wallet->get_per_kb_fee();
-  const uint64_t typical_size_kb = 13;
+  const uint64_t typical_size_kb = 1;
   message_writer() << (boost::format(tr("Current fee is %s electroneum per kB")) % print_money(per_kb_fee)).str();
 
   std::vector<uint64_t> fees;
