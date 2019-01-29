@@ -745,7 +745,7 @@ difficulty_type Blockchain::get_difficulty_for_next_block()
   auto height = m_db->height();
 
   const uint64_t v6height = m_testnet ? 190060 : 307500;
-  const uint64_t v7height = m_testnet ? 215000 : 324500; 
+  const uint64_t v7height = m_testnet ? 215000 : 324500;
 
   const uint32_t difficultyBlocksCount = (height >= v6height && height < v7height) ? DIFFICULTY_BLOCKS_COUNT_V6 : DIFFICULTY_BLOCKS_COUNT;
 
@@ -800,10 +800,10 @@ void Blockchain::normalize_v7_difficulties() {
 
   auto height = m_db->height();
   const uint64_t v8height = m_testnet ? 364000 : 501000;
-  
+
   if(height != v8height) {
     return;
-  }  
+  }
 
   const uint64_t v7height = m_testnet ? 215000 : 324500;
   const size_t V7_DIFFICULTY_BLOCKS_COUNT = 735;
@@ -1097,7 +1097,7 @@ bool Blockchain::validate_miner_transaction(const block& b, size_t cumulative_bl
 
   if (version == 3) {
     for (auto &o: b.miner_tx.vout) {
-      if (!is_valid_decomposed_amount(o.amount, m_db->height(), m_testnet)) {
+      if (!is_valid_decomposed_amount(o.amount)) {
         MERROR_VER("miner tx output " << print_money(o.amount) << " is not a valid decomposed amount");
         return false;
       }
@@ -2405,9 +2405,12 @@ bool Blockchain::check_tx_outputs(const transaction& tx, tx_verification_context
   // from hard fork 2, we forbid dust and compound outputs
   if (m_hardfork->get_current_version() >= 2) {
     for (auto &o: tx.vout) {
-        if (!is_valid_decomposed_amount(o.amount, m_db->height(), m_testnet)) {
-        tvc.m_invalid_output = true;
-        return false;
+      if (tx.version == 1)
+      {
+        if (!is_valid_decomposed_amount(o.amount)) {
+          tvc.m_invalid_output = true;
+          return false;
+        }
       }
     }
   }
