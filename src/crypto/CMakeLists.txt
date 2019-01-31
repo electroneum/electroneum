@@ -79,7 +79,8 @@ target_link_libraries(cncrypto
   PUBLIC
     ${Boost_SYSTEM_LIBRARY}
   PRIVATE
-    ${EXTRA_LIBRARIES})
+    ${EXTRA_LIBRARIES}
+    ${OPENSSL_LIBRARIES})
 
 if (ARM)
   option(NO_OPTIMIZED_MULTIPLY_ON_ARM
