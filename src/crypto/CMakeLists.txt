@@ -80,7 +80,8 @@ target_link_libraries(cncrypto
     ${Boost_SYSTEM_LIBRARY}
   PRIVATE
     ${EXTRA_LIBRARIES}
-    ${OPENSSL_LIBRARIES})
+    ${OPENSSL_LIBRARIES}
+    ed25519-donna)
 
 if (ARM)
   option(NO_OPTIMIZED_MULTIPLY_ON_ARM
