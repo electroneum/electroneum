@@ -504,46 +504,36 @@ POP_WARNINGS
     return sc_isnonzero(&h) == 0;
   }
 
-  void buildRSAHeaderAndFooter(std::string &key) {
-    key.insert(0, "-----BEGIN RSA PRIVATE KEY-----\n");
-    key.append("\n-----END RSA PRIVATE KEY-----");
-  }
+  std::string crypto_ops::sign_message(unsigned char* message, const std::string publicKey, const std::string privateKey) {
 
-  RSA * crypto_ops::createRSA(const void *key, bool isPublicKey)
-  {
-    RSA *rsa = NULL;
-    BIO *keybio ;
-    keybio = BIO_new_mem_buf(key, -1);
-    if(keybio == NULL) {
-        return 0;
+    if(publicKey.size() != 32 || privateKey.size() != 32) {
+      return std::string("");
     }
 
-    if(isPublicKey) {
-        rsa = PEM_read_bio_RSA_PUBKEY(keybio, &rsa,NULL, NULL);
-    } else {
-        rsa = PEM_read_bio_RSAPrivateKey(keybio, &rsa,NULL, NULL);
+    unsigned char pKey[32];
+    unsigned char sKey[32];
+
+    strcpy((char *)pKey, publicKey.c_str());
+    strcpy((char *)sKey, privateKey.c_str());
+
+    ed25519_signature signature;
+    ed25519_sign(message, sizeof(message), sKey, pKey, signature);
+
+    return std::string(reinterpret_cast<char const*>(signature), 64);
+  }
+
+  bool crypto_ops::verify_signature(unsigned char* message, const std::string publicKey, const std::string signature) {
+
+    if(publicKey.size() != 32 || signature.size() !=64) {
+      return false;
     }
 
-    return rsa;
-  }
+    unsigned char pKey[32];
+    unsigned char sig[32];
 
-  std::string crypto_ops::encrypt_hash(crypto::hash hash, std::string key) {
-      unsigned char encrypted[128] = {};
-      buildRSAHeaderAndFooter(key);
-      RSA * rsa = createRSA(key.data(), false);
+    strcpy((char *)pKey, publicKey.c_str());
+    strcpy((char *)sig, signature.c_str());
 
-      if(!rsa) return "";
-
-      RSA_private_encrypt(32, (unsigned char *)hash.data, (unsigned char*)encrypted, rsa, RSA_PKCS1_PADDING);
-      return std::string(reinterpret_cast<char const*>(encrypted), 128);    
-  }
-
-  crypto::hash crypto_ops::decrypt_hash(std::string enc_data, std::string key) {
-    unsigned char decrypted[32] = {};
-    RSA * rsa = createRSA(key.data(), true);
-    RSA_public_decrypt(128, (unsigned char*)enc_data.data(), (unsigned char*)decrypted, rsa, RSA_PKCS1_PADDING);
-    crypto::hash result;
-    memcpy(result.data, decrypted, 32);
-    return result;
+    return ed25519_sign_open(message, sizeof(message), pKey, sig) == 0;
   }
 }

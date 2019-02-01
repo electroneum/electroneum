@@ -1179,11 +1179,6 @@ bool Blockchain::create_block_template(block& b, const account_public_address& m
   size_t median_size;
   uint64_t already_generated_coins;
 
-  if(m_validator_key.empty()) {
-    LOG_ERROR("Failed to create_block_template. No Validator Private Key found.");
-    return false;
-  }
-
   CRITICAL_REGION_BEGIN(m_blockchain_lock);
   height = m_db->height();
 
@@ -1318,17 +1313,36 @@ bool Blockchain::create_block_template(block& b, const account_public_address& m
         ", cumulative size " << cumulative_size << " is now good");
 #endif
 
-    b.dsig = crypto::encrypt_hash(get_tx_tree_hash(b), m_validator_key);
-    if(b.dsig.empty()) {
-      LOG_ERROR("Failed to sign block template. Please check your Validator Private Key.");
-      return false;
-    }
+    sign_block(b, m_validator_key);
 
     return true;
   }
   LOG_ERROR("Failed to create_block_template with " << 10 << " tries");
   return false;
 }
+
+void Blockchain::sign_block(block& b, const std::string privateKey) {
+  crypto::hash tx_tree_hash = get_tx_tree_hash(b);
+  std::string publicKey = std::string(reinterpret_cast<char*>(b.signature_pkey), 32);
+
+  std::string signature = crypto::sign_message((unsigned char*)tx_tree_hash.data, publicKey, privateKey);
+  if(signature.empty() || signature.size() != 64) {
+    LOG_ERROR("The daemon have failed to digitally sign a recently mined block and it won't be accepted by the network. Please check your validator-key configuration before resume mining.");
+    return;
+  }
+
+  b.dsig = signature;
+}
+
+bool Blockchain::verify_block_signature(const block& b) {
+  crypto::hash tx_tree_hash = get_tx_tree_hash(b);
+  unsigned char* block_pkey = (unsigned char*)b.signature_pkey;
+
+  std::string publicKey = std::string(reinterpret_cast<char*>(block_pkey), 32);
+
+  return crypto::verify_signature((unsigned char*)tx_tree_hash.data, publicKey, b.dsig);
+}
+
 //------------------------------------------------------------------
 // for an alternate chain, get the timestamps from the main chain to complete
 // the needed number of timestamps for the BLOCKCHAIN_TIMESTAMP_CHECK_WINDOW.
@@ -3038,14 +3052,7 @@ leave:
   auto height = m_db->height();
 
   if(height > 2) {
-    std::string publicKey ="-----BEGIN PUBLIC KEY-----\n"\
-"MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCLDy1jFeaVYt2zK0sdRq3uhGfx\n"\
-"WWfihLLyJATlkFlrMMHE43F5MbKdCtp63TdIa+2CaE5MDJx1I5hTwqs3V4IBXrg/\n"\
-"YORGeT7aDWVfR3acpi4cX1buYlNrGUIDcoUC2sLXYes4E7XNtV5NmW6/jyJH03Wf\n"\
-"dShLVBOxkG3XlKYGVwIDAQAB\n"\
-"-----END PUBLIC KEY-----\n";
-
-    if(crypto::decrypt_hash(bl.dsig, publicKey) != get_tx_tree_hash(bl)) {
+    if(verify_block_signature(bl)) {
       MERROR_VER("Block with id: " << id << std::endl << " has wrong digital signature");
       bvc.m_verifivation_failed = true;
       goto leave;

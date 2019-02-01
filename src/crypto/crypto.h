@@ -34,13 +34,13 @@
 #include <cstddef>
 #include <boost/thread/mutex.hpp>
 #include <boost/thread/lock_guard.hpp>
+#include <boost/archive/iterators/binary_from_base64.hpp>
+#include <boost/archive/iterators/base64_from_binary.hpp>
+#include <boost/archive/iterators/transform_width.hpp>
+#include <boost/algorithm/string.hpp>
 #include <vector>
-#include <openssl/pem.h>
-#include <openssl/ssl.h>
-#include <openssl/rsa.h>
-#include <openssl/evp.h>
-#include <openssl/bio.h>
-#include <openssl/err.h>
+
+#include "ed25519-donna/ed25519.h"
 
 #include "common/pod-class.h"
 #include "generic-ops.h"
@@ -144,12 +144,17 @@ namespace crypto {
       const public_key *const *, std::size_t, const signature *);
     friend bool check_ring_signature(const hash &, const key_image &,
       const public_key *const *, std::size_t, const signature *);
-    static RSA *createRSA(const void *key, bool isPublicKey);
-    friend RSA *createRSA(const void *key, bool isPublicKey);
-    static std::string encrypt_hash(crypto::hash hash, std::string key);
-    friend std::string encrypt_hash(crypto::hash hash, std::string key);
-    static crypto::hash decrypt_hash(std::string enc_data, std::string key);
-    friend crypto::hash decrypt_hash(std::string enc_data, std::string key);
+
+    static std::string sign_message(unsigned char* message, std::string publicKey, std::string privateKey);
+    friend std::string sign_message(unsigned char* message, std::string publicKey, std::string privateKey);
+    static bool verify_signature(unsigned char* message, std::string publicKey, std::string signature);
+    friend bool verify_signature(unsigned char* message, std::string publicKey, std::string signature);
+
+    static std::string base64_decode(std::string val);
+    friend std::string base64_decode(std::string val);
+    static std::string base64_encode(std::string val);
+    friend std::string base64_encode(std::string val);
+
   };
 
   /* Generate N random bytes
@@ -262,16 +267,27 @@ namespace crypto {
     return check_ring_signature(prefix_hash, image, pubs.data(), pubs.size(), sig);
   }
 
-  inline RSA *createRSA(const void *key, bool isPublicKey) {
-    return crypto_ops::createRSA(key, isPublicKey);
+  inline std::string sign_message(unsigned char* message, std::string publicKey, std::string privateKey) {
+    return crypto_ops::sign_message(message, publicKey, privateKey);
   }
 
-  inline std::string encrypt_hash(crypto::hash hash, std::string key) {
-    return crypto_ops::encrypt_hash(hash, key);
+  inline bool verify_signature(unsigned char* message, std::string publicKey, std::string signature) {
+    return crypto_ops::verify_signature(message, publicKey, signature);
   }
 
-  inline crypto::hash decrypt_hash(std::string enc_data, std::string key) {
-    return crypto_ops::decrypt_hash(enc_data, key);
+  inline std::string base64_decode(const std::string &val) {
+    using namespace boost::archive::iterators;
+    using It = transform_width<binary_from_base64<std::string::const_iterator>, 8, 6>;
+    return boost::algorithm::trim_right_copy_if(std::string(It(std::begin(val)), It(std::end(val))), [](char c) {
+        return c == '\0';
+    });
+  }
+
+  inline std::string base64_encode(const std::string &val) {
+    using namespace boost::archive::iterators;
+    using It = base64_from_binary<transform_width<std::string::const_iterator, 6, 8>>;
+    auto tmp = std::string(It(std::begin(val)), It(std::end(val)));
+    return tmp.append((3 - val.size() % 3) % 3, '=');
   }
 }
 

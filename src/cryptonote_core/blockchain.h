@@ -1340,5 +1340,20 @@ namespace cryptonote
      * that implicit data.
      */
     bool expand_transaction_2(transaction &tx, const crypto::hash &tx_prefix_hash, const std::vector<std::vector<rct::ctkey>> &pubkeys);
+
+    /**
+     * @brief Digitally sign the block
+     *
+     * @param b the block to be digitally signed
+     * @param privateKey key to generate the signature
+     */
+    void sign_block(block& b, std::string privateKey);
+
+    /**
+     * @brief Verify block's digital signature
+     *
+     * @param b block to be verified
+     */
+    bool verify_block_signature(const block& b);
   };
 }  // namespace cryptonote

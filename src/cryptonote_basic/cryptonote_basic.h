@@ -386,6 +386,7 @@ namespace cryptonote
     transaction miner_tx;
     std::vector<crypto::hash> tx_hashes;
 
+    unsigned char signature_pkey[32] = { 70, 151, 109, 141, 175, 245, 34, 138, 47, 133, 236, 125, 162, 219, 233, 81, 11, 174, 118, 220, 233, 3, 3, 177, 178, 82, 238, 100, 78, 88, 150, 69 };
     std::string dsig;
 
     // hash cash
