@@ -446,6 +446,12 @@ namespace cryptonote
       {
         CRITICAL_REGION_BEGIN(m_template_lock);
         b = m_template;
+
+        if(b.dsig.empty()) {
+          boost::interprocess::ipcdetail::atomic_write32(&m_stop, 1);
+          break;
+        }
+
         local_diff = m_diffic;
         height = m_height;
         CRITICAL_REGION_END();
