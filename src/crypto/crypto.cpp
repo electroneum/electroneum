@@ -504,20 +504,17 @@ POP_WARNINGS
     return sc_isnonzero(&h) == 0;
   }
 
-  std::string crypto_ops::sign_message(unsigned char* message, const std::string publicKey, const std::string privateKey) {
+  std::string crypto_ops::sign_message(unsigned char* message, const std::string privateKey) {
 
-    if(publicKey.size() != 32 || privateKey.size() != 32) {
+    if(privateKey.size() != 32) {
       return std::string("");
     }
 
-    unsigned char pKey[32];
-    unsigned char sKey[32];
-
-    strcpy((char *)pKey, publicKey.c_str());
-    strcpy((char *)sKey, privateKey.c_str());
+    ed25519_public_key pKey;
+    ed25519_publickey((unsigned char*)privateKey.data(), pKey);
 
     ed25519_signature signature;
-    ed25519_sign(message, sizeof(message), sKey, pKey, signature);
+    ed25519_sign(message, sizeof(message), (unsigned char*)privateKey.data(), pKey, signature);
 
     return std::string(reinterpret_cast<char const*>(signature), 64);
   }
@@ -528,12 +525,23 @@ POP_WARNINGS
       return false;
     }
 
-    unsigned char pKey[32];
-    unsigned char sig[32];
+    return ed25519_sign_open(message, sizeof(message), (unsigned char*)publicKey.data(), (unsigned char*)signature.data()) == 0;
+  }
 
-    strcpy((char *)pKey, publicKey.c_str());
-    strcpy((char *)sig, signature.c_str());
+  bool crypto_ops::verify_signature(unsigned char* message, const std::vector<std::string> publicKey, const std::string signature) {
 
-    return ed25519_sign_open(message, sizeof(message), pKey, sig) == 0;
+    if(publicKey.empty() || signature.size() != 64) {
+      return false;
+    }
+
+    bool result = false;
+    for(int i = 0; i < publicKey.size(); ++i) {
+      if(ed25519_sign_open(message, sizeof(message), (unsigned char*)publicKey[i].data(), (unsigned char*)signature.data()) == 0) {
+        result = true;
+        break;
+      }
+    }
+
+    return result;
   }
 }

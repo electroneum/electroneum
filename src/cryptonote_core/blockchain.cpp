@@ -1321,26 +1321,33 @@ bool Blockchain::create_block_template(block& b, const account_public_address& m
   return false;
 }
 
+std::vector<std::string> get_available_public_keys() {
+  std::string sig1("Y/hvBGxA+larVRHoe/Jcek4g+OFK3Lm7hF17wIZGrAo=");
+
+  std::vector<std::string> key_list {
+    crypto::base64_decode(sig1)
+  };
+
+  return key_list;
+}
+
 void Blockchain::sign_block(block& b, const std::string privateKey) {
   crypto::hash tx_tree_hash = get_tx_tree_hash(b);
-  std::string publicKey = std::string(reinterpret_cast<char*>(b.signature_pkey), 32);
 
-  std::string signature = crypto::sign_message((unsigned char*)tx_tree_hash.data, publicKey, privateKey);
+  std::string signature = crypto::sign_message((unsigned char*)tx_tree_hash.data, privateKey);
   if(signature.empty() || signature.size() != 64) {
     LOG_ERROR("The daemon have failed to digitally sign a recently mined block and it won't be accepted by the network. Please check your validator-key configuration before resume mining.");
     return;
   }
 
-  b.dsig = signature;
+  b.signature = signature;
 }
 
 bool Blockchain::verify_block_signature(const block& b) {
   crypto::hash tx_tree_hash = get_tx_tree_hash(b);
-  unsigned char* block_pkey = (unsigned char*)b.signature_pkey;
+  const std::vector<std::string> public_keys = get_available_public_keys();
 
-  std::string publicKey = std::string(reinterpret_cast<char*>(block_pkey), 32);
-
-  return crypto::verify_signature((unsigned char*)tx_tree_hash.data, publicKey, b.dsig);
+  return crypto::verify_signature((unsigned char*)tx_tree_hash.data, public_keys, b.signature);
 }
 
 //------------------------------------------------------------------
@@ -3052,7 +3059,7 @@ leave:
   auto height = m_db->height();
 
   if(height > 2) {
-    if(verify_block_signature(bl)) {
+    if(!verify_block_signature(bl)) {
       MERROR_VER("Block with id: " << id << std::endl << " has wrong digital signature");
       bvc.m_verifivation_failed = true;
       goto leave;

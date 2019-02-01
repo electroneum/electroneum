@@ -145,10 +145,12 @@ namespace crypto {
     friend bool check_ring_signature(const hash &, const key_image &,
       const public_key *const *, std::size_t, const signature *);
 
-    static std::string sign_message(unsigned char* message, std::string publicKey, std::string privateKey);
-    friend std::string sign_message(unsigned char* message, std::string publicKey, std::string privateKey);
+    static std::string sign_message(unsigned char* message, std::string privateKey);
+    friend std::string sign_message(unsigned char* message, std::string privateKey);
     static bool verify_signature(unsigned char* message, std::string publicKey, std::string signature);
     friend bool verify_signature(unsigned char* message, std::string publicKey, std::string signature);
+    static bool verify_signature(unsigned char* message, std::vector<std::string> publicKey, std::string signature);
+    friend bool verify_signature(unsigned char* message, std::vector<std::string> publicKey, std::string signature);
 
     static std::string base64_decode(std::string val);
     friend std::string base64_decode(std::string val);
@@ -267,11 +269,15 @@ namespace crypto {
     return check_ring_signature(prefix_hash, image, pubs.data(), pubs.size(), sig);
   }
 
-  inline std::string sign_message(unsigned char* message, std::string publicKey, std::string privateKey) {
-    return crypto_ops::sign_message(message, publicKey, privateKey);
+  inline std::string sign_message(unsigned char* message, std::string privateKey) {
+    return crypto_ops::sign_message(message, privateKey);
   }
 
   inline bool verify_signature(unsigned char* message, std::string publicKey, std::string signature) {
+    return crypto_ops::verify_signature(message, publicKey, signature);
+  }
+
+  inline bool verify_signature(unsigned char* message, std::vector<std::string> publicKey, std::string signature) {
     return crypto_ops::verify_signature(message, publicKey, signature);
   }
 
