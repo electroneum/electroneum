@@ -1,5 +1,8 @@
+<p align="center">
+  <img width="240" height="60" src="https://discourse-cdn-sjc1.com/business4/uploads/electroneum/original/1X/ef9300fcffa064903d5ce01bc9e1943f913fc795.jpg">
+</p>
 
-# Electroneum
+# Copyright
 
 Copyright (c) 2017-2019, The Electroneum Project
 Copyright (c) 2014-2017, The Monero Project  
