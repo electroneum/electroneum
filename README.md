@@ -1,22 +1,31 @@
+<p align="center">
+  <img width="290" height="70" src="https://discourse-cdn-sjc1.com/business4/uploads/electroneum/original/1X/ef9300fcffa064903d5ce01bc9e1943f913fc795.jpg">
+</p>
 
-# Electroneum
+<h4 align="center">Electroneum is a fast, secure, mobile based cryptocurrency. </h4>
 
-Copyright (c) 2017-2019, The Electroneum Project
-Copyright (c) 2014-2017, The Monero Project  
-Portions Copyright (c) 2012-2013, The Cryptonote developers  
+<p align="center">
+  <img width="525" height="315" src="https://discourse-cdn-sjc1.com/business4/uploads/electroneum/original/2X/9/9219c8414cacc641767f8804eccd740443d05fcb.gif">
+</p>
+
+<p align="center">
+  <a href="#introduction">Introduction</a> •
+  <a href="#development-resources">Development Resources</a> •
+  <a href="#about-this-project">About this Project</a> •
+  <a href="#compiling-electroneum-from-source">Compiling from Source</a> •
+  <a href="#license">License</a>
+</p>
+
+## Introduction
+
+Electroneum uses a cryptographically sound system to allow you to send and receive funds without your transactions being easily revealed on the blockchain. This ensures that your purchases, receipts, and all transfers remain absolutely private by default, but if necessary, can be proven to a third party by providing specific keys.
+
+**Security:** Using the power of a distributed peer-to-peer consensus network, every transaction on the network is cryptographically secured. Individual wallets have a 25 word mnemonic seed that is only displayed once, and can be written down to backup the wallet. Wallet files are encrypted with a passphrase to ensure they are useless if stolen.
 
 ## Development Resources
 
 - Web: [electroneum.com](https://electroneum.com)
 - GitHub: [https://github.com/electroneum/electroneum](https://github.com/electroneum/electroneum)
-
-## Introduction
-
-Electroneum is a fast, secure, mobile based cryptocurrency. You are your own bank, and you control your own funds.
-
-Electroneum uses a cryptographically sound system to allow you to send and receive funds without your transactions being easily revealed on the blockchain. This ensures that your purchases, receipts, and all transfers remain absolutely private by default, but if necessary, can be proven to a third party by providing specific keys.
-
-**Security:** Using the power of a distributed peer-to-peer consensus network, every transaction on the network is cryptographically secured. Individual wallets have a 25 word mnemonic seed that is only displayed once, and can be written down to backup the wallet. Wallet files are encrypted with a passphrase to ensure they are useless if stolen.
 
 ## About this Project
 
@@ -29,6 +38,12 @@ As with many development projects, the repository on Github is considered to be 
 ## License
 
 See [LICENSE](LICENSE).
+
+## Copyright
+
+Copyright (c) 2017-2019, The Electroneum Project
+Copyright (c) 2014-2017, The Monero Project
+Portions Copyright (c) 2012-2013, The Cryptonote developers
 
 # Contributing
 
