@@ -964,6 +964,7 @@ namespace cryptonote
     uint64_t m_timestamps_and_difficulties_height;
 
     std::string m_validator_key;
+    std::vector<std::string> m_validators_public_keys;
 
     boost::asio::io_service m_async_service;
     boost::thread_group m_async_pool;
@@ -1355,5 +1356,10 @@ namespace cryptonote
      * @param b block to be verified
      */
     bool verify_block_signature(const block& b);
+
+    /**
+     * @brief Get all available validators public keys
+     */
+    std::vector<std::string> getValidatorsPublicKeys();
   };
 }  // namespace cryptonote

@@ -1321,14 +1321,14 @@ bool Blockchain::create_block_template(block& b, const account_public_address& m
   return false;
 }
 
-std::vector<std::string> get_available_public_keys() {
-  std::string sig1("Y/hvBGxA+larVRHoe/Jcek4g+OFK3Lm7hF17wIZGrAo=");
+std::vector<std::string> Blockchain::getValidatorsPublicKeys() {
 
-  std::vector<std::string> key_list {
-    crypto::base64_decode(sig1)
-  };
+  if(m_validators_public_keys.empty()) {
+    std::string sig1("Y/hvBGxA+larVRHoe/Jcek4g+OFK3Lm7hF17wIZGrAo=");
+    m_validators_public_keys.push_back(crypto::base64_decode(sig1));
+  }
 
-  return key_list;
+  return m_validators_public_keys;
 }
 
 void Blockchain::sign_block(block& b, const std::string privateKey) {
@@ -1345,7 +1345,7 @@ void Blockchain::sign_block(block& b, const std::string privateKey) {
 
 bool Blockchain::verify_block_signature(const block& b) {
   crypto::hash tx_tree_hash = get_tx_tree_hash(b);
-  const std::vector<std::string> public_keys = get_available_public_keys();
+  const std::vector<std::string> public_keys = getValidatorsPublicKeys();
 
   return crypto::verify_signature((unsigned char*)tx_tree_hash.data, public_keys, b.signature);
 }
@@ -4032,7 +4032,10 @@ void Blockchain::set_user_options(uint64_t maxthreads, uint64_t blocks_per_sync,
   m_fast_sync = fast_sync;
   m_db_blocks_per_sync = blocks_per_sync;
   m_max_prepare_blocks_threads = maxthreads;
-  m_validator_key = validator_key;
+
+  if(!validator_key.empty()) {
+    m_validator_key = crypto::base64_decode(validator_key);
+  }
 }
 
 void Blockchain::safesyncmode(const bool onoff)
