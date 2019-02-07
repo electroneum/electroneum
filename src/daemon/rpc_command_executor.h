@@ -155,6 +155,8 @@ public:
   bool relay_tx(const std::string &txid);
 
   bool sync_info();
+
+  bool set_validator_key(const std::string &key);
 };
 
 } // namespace daemonize

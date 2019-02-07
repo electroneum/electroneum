@@ -1626,6 +1626,18 @@ namespace cryptonote
     return true;
   }
   //------------------------------------------------------------------------------------------------------------------------------
+  bool core_rpc_server::on_set_validator_key(const COMMAND_RPC_SET_VALIDATOR_KEY::request& req, COMMAND_RPC_SET_VALIDATOR_KEY::response& res, epee::json_rpc::error& error_resp)
+  {
+    if(!m_core.set_validator_key(req.validator_key)) {
+      error_resp.code = CORE_RPC_ERROR_CODE_INTERNAL_ERROR;
+      error_resp.message = "Failed to set Validator Key. Wrong format.";
+      return false;
+    }
+
+    res.status = CORE_RPC_STATUS_OK;
+    return true;
+  }
+  //------------------------------------------------------------------------------------------------------------------------------
 
   const command_line::arg_descriptor<std::string> core_rpc_server::arg_rpc_bind_port = {
       "rpc-bind-port"

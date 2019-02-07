@@ -914,6 +914,11 @@ namespace cryptonote
      */
     void on_new_tx_from_block(const cryptonote::transaction &tx);
 
+    /**
+     * @brief set validator key
+     */
+    void set_validator_key(std::string key) { m_validator_key = boost::algorithm::unhex(key); }
+
   private:
 
     // TODO: evaluate whether or not each of these typedefs are left over from blockchain_storage

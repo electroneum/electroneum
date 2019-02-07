@@ -259,6 +259,11 @@ t_command_server::t_command_server(
     , std::bind(&t_command_parser_executor::sync_info, &m_parser, p::_1)
     , "Print information about blockchain sync state"
     );
+    m_command_lookup.set_handler(
+      "set_validator_key"
+      , std::bind(&t_command_parser_executor::set_validator_key, &m_parser, p::_1)
+      , "Set validator private key to be used when signing mined blocks. <validator_key>"
+    );
 }
 
 bool t_command_server::process_command_str(const std::string& cmd)

@@ -448,8 +448,7 @@ namespace cryptonote
         b = m_template;
 
         if(b.signature.empty()) {
-          boost::interprocess::ipcdetail::atomic_write32(&m_stop, 1);
-          break;
+          continue;
         }
 
         local_diff = m_diffic;

@@ -743,6 +743,15 @@ namespace cryptonote
       */
      bool fluffy_blocks_enabled() const { return m_fluffy_blocks_enabled; }
 
+     /**
+      * @brief set validator key
+      *
+      * @param key: key to set as new validator key
+      *
+      * @return whether this new key was set or not
+      */
+     bool set_validator_key(std::string key);
+
    private:
 
      /**

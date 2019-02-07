@@ -1700,4 +1700,25 @@ namespace cryptonote
       END_KV_SERIALIZE_MAP()
     };
   };
+
+  struct COMMAND_RPC_SET_VALIDATOR_KEY
+  {
+      struct request
+      {
+          std::string validator_key;
+
+          BEGIN_KV_SERIALIZE_MAP()
+            KV_SERIALIZE(validator_key)
+          END_KV_SERIALIZE_MAP()
+      };
+
+      struct response
+      {
+          std::string status;
+
+          BEGIN_KV_SERIALIZE_MAP()
+            KV_SERIALIZE(status)
+          END_KV_SERIALIZE_MAP()
+      };
+  };
 }

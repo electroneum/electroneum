@@ -289,7 +289,7 @@ namespace cryptonote
     std::string validator_key = command_line::get_arg(vm, command_line::arg_validator_key);
 
     bool is_validator_key_valid = std::count_if(validator_key.begin(), validator_key.end(), std::not1(std::ptr_fun((int(*)(int))std::isxdigit))) == 0;
-    if(!is_validator_key_valid) {
+    if(!is_validator_key_valid || validator_key.size() % 2 != 0) {
       validator_key.clear();
     }
 
@@ -1375,6 +1375,17 @@ namespace cryptonote
   std::time_t core::get_start_time() const
   {
     return start_time;
+  }
+  //-----------------------------------------------------------------------------------------------
+  bool core::set_validator_key(std::string key) {
+    bool is_validator_key_valid = std::count_if(key.begin(), key.end(), std::not1(std::ptr_fun((int(*)(int))std::isxdigit))) == 0;
+    if(!is_validator_key_valid || key.size() % 2 != 0) {
+      return false;
+    }
+
+    m_blockchain_storage.set_validator_key(key);
+
+    return true;
   }
   //-----------------------------------------------------------------------------------------------
   void core::graceful_exit()
