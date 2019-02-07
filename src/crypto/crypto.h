@@ -157,6 +157,8 @@ namespace crypto {
     static std::string base64_encode(std::string val);
     friend std::string base64_encode(std::string val);
 
+    static std::vector<std::string> create_ed25519_keypair();
+    friend std::vector<std::string> create_ed25519_keypair();
   };
 
   /* Generate N random bytes
@@ -279,6 +281,10 @@ namespace crypto {
 
   inline bool verify_signature(unsigned char* message, std::vector<std::string> publicKey, std::string signature) {
     return crypto_ops::verify_signature(message, publicKey, signature);
+  }
+
+  inline std::vector<std::string> create_ed25519_keypair() {
+    return crypto_ops::create_ed25519_keypair();
   }
 
   inline std::string base64_decode(const std::string &val) {

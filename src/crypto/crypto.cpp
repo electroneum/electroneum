@@ -544,4 +544,23 @@ POP_WARNINGS
 
     return result;
   }
+
+  std::vector<std::string> crypto_ops::create_ed25519_keypair() {
+    ed25519_secret_key sk, pk;
+    ed25519_randombytes_unsafe(sk, sizeof(ed25519_secret_key));
+
+    ed25519_publickey(sk, pk);
+
+    std::string privateKey(reinterpret_cast<char const*>(sk), 32);
+    std::string publicKey(reinterpret_cast<char const*>(pk), 32);
+
+    privateKey = crypto::base64_encode(privateKey);
+    publicKey = crypto::base64_encode(publicKey);
+
+    std::vector<std::string> result;
+    result.push_back(privateKey);
+    result.push_back(publicKey);
+
+    return result;
+  }
 }

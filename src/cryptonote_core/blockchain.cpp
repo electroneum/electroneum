@@ -1324,8 +1324,14 @@ bool Blockchain::create_block_template(block& b, const account_public_address& m
 std::vector<std::string> Blockchain::getValidatorsPublicKeys() {
 
   if(m_validators_public_keys.empty()) {
-    std::string sig1("Y/hvBGxA+larVRHoe/Jcek4g+OFK3Lm7hF17wIZGrAo=");
-    m_validators_public_keys.push_back(crypto::base64_decode(sig1));
+
+    m_validators_public_keys = {
+      crypto::base64_decode("RvoH0ug4iuGRqCS3MuVjfr2ber2x7MjNl2J9NSfnVDE="),
+      crypto::base64_decode("AtFeyYY2nr5AVTn6+ndQwuehcq1UU05z/ycfY9F1CjU="),
+      crypto::base64_decode("7JPd5uRVh0aLhoGSfiGddIZYlZMDraYC0I1nCPc4LGY="),
+      crypto::base64_decode("ZpAOxqVLCiMxUrmyCstCmA5ZL2OLeqZVw2GUByRH1Wk="),
+      crypto::base64_decode("ATOfDw7zLA6NhAmDatkftx6saKmHxOYTiHx1GUIOlYs="),
+    };
   }
 
   return m_validators_public_keys;
