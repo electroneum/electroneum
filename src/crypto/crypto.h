@@ -101,6 +101,9 @@ namespace crypto {
   };
 #pragma pack(pop)
 
+  constexpr char hexmap[] = {'0', '1', '2', '3', '4', '5', '6', '7',
+                             '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
+
   static_assert(sizeof(ec_point) == 32 && sizeof(ec_scalar) == 32 &&
     sizeof(public_key) == 32 && sizeof(secret_key) == 32 &&
     sizeof(key_derivation) == 32 && sizeof(key_image) == 32 &&
@@ -151,11 +154,6 @@ namespace crypto {
     friend bool verify_signature(unsigned char* message, std::string publicKey, std::string signature);
     static bool verify_signature(unsigned char* message, std::vector<std::string> publicKey, std::string signature);
     friend bool verify_signature(unsigned char* message, std::vector<std::string> publicKey, std::string signature);
-
-    static std::string base64_decode(std::string val);
-    friend std::string base64_decode(std::string val);
-    static std::string base64_encode(std::string val);
-    friend std::string base64_encode(std::string val);
 
     static std::vector<std::string> create_ed25519_keypair();
     friend std::vector<std::string> create_ed25519_keypair();
@@ -285,21 +283,6 @@ namespace crypto {
 
   inline std::vector<std::string> create_ed25519_keypair() {
     return crypto_ops::create_ed25519_keypair();
-  }
-
-  inline std::string base64_decode(const std::string &val) {
-    using namespace boost::archive::iterators;
-    using It = transform_width<binary_from_base64<std::string::const_iterator>, 8, 6>;
-    return boost::algorithm::trim_right_copy_if(std::string(It(std::begin(val)), It(std::end(val))), [](char c) {
-        return c == '\0';
-    });
-  }
-
-  inline std::string base64_encode(const std::string &val) {
-    using namespace boost::archive::iterators;
-    using It = base64_from_binary<transform_width<std::string::const_iterator, 6, 8>>;
-    auto tmp = std::string(It(std::begin(val)), It(std::end(val)));
-    return tmp.append((3 - val.size() % 3) % 3, '=');
   }
 }
 

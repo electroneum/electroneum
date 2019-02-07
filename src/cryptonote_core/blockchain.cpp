@@ -1324,13 +1324,12 @@ bool Blockchain::create_block_template(block& b, const account_public_address& m
 std::vector<std::string> Blockchain::getValidatorsPublicKeys() {
 
   if(m_validators_public_keys.empty()) {
-
     m_validators_public_keys = {
-      crypto::base64_decode("RvoH0ug4iuGRqCS3MuVjfr2ber2x7MjNl2J9NSfnVDE="),
-      crypto::base64_decode("AtFeyYY2nr5AVTn6+ndQwuehcq1UU05z/ycfY9F1CjU="),
-      crypto::base64_decode("7JPd5uRVh0aLhoGSfiGddIZYlZMDraYC0I1nCPc4LGY="),
-      crypto::base64_decode("ZpAOxqVLCiMxUrmyCstCmA5ZL2OLeqZVw2GUByRH1Wk="),
-      crypto::base64_decode("ATOfDw7zLA6NhAmDatkftx6saKmHxOYTiHx1GUIOlYs="),
+      boost::algorithm::unhex(string("684F8D23D23E634B3A5F3FBBA80B686B4640811F2CDAB15A5CD45FB60C44718C")),
+      boost::algorithm::unhex(string("87535F05E9D5E47455B872712787765D6EF8362AE325A7DBA22878852492603B")),
+      boost::algorithm::unhex(string("DCBAEF03B27A0786DE88074B366C29CC54E023883D7FD96C17C5F4940B499E7D")),
+      boost::algorithm::unhex(string("ADECB508EB422E6962AFC79AEB09B2449C3E494D5DDD9D4E2559588F10F07BF5")),
+      boost::algorithm::unhex(string("0F45A5A92DE895BD1FCCFB2E989E807B4B7468B7B03BFD313F747B24158C2540")),
     };
   }
 
@@ -4040,7 +4039,7 @@ void Blockchain::set_user_options(uint64_t maxthreads, uint64_t blocks_per_sync,
   m_max_prepare_blocks_threads = maxthreads;
 
   if(!validator_key.empty()) {
-    m_validator_key = crypto::base64_decode(validator_key);
+    m_validator_key = boost::algorithm::unhex(validator_key);
   }
 }
 

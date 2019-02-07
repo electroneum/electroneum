@@ -288,6 +288,11 @@ namespace cryptonote
     std::string check_updates_string = command_line::get_arg(vm, command_line::arg_check_updates);
     std::string validator_key = command_line::get_arg(vm, command_line::arg_validator_key);
 
+    bool is_validator_key_valid = std::count_if(validator_key.begin(), validator_key.end(), std::not1(std::ptr_fun((int(*)(int))std::isxdigit))) == 0;
+    if(!is_validator_key_valid) {
+      validator_key.clear();
+    }
+
     boost::filesystem::path folder(m_config_folder);
     if (m_fakechain)
       folder /= "fake";

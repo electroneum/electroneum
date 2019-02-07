@@ -399,6 +399,15 @@ POP_WARNINGS
     return sizeof(rs_comm) + pubs_count * sizeof(ec_point_pair);
   }
 
+  static inline std::string toHexStr(const unsigned char* data, int len) {
+    std::string s(len * 2, ' ');
+    for (int i = 0; i < len; ++i) {
+      s[2 * i]     = hexmap[(data[i] & 0xF0) >> 4];
+      s[2 * i + 1] = hexmap[data[i] & 0x0F];
+    }
+    return s;
+  }
+
   void crypto_ops::generate_ring_signature(const hash &prefix_hash, const key_image &image,
     const public_key *const *pubs, size_t pubs_count,
     const secret_key &sec, size_t sec_index,
@@ -554,8 +563,8 @@ POP_WARNINGS
     std::string privateKey(reinterpret_cast<char const*>(sk), 32);
     std::string publicKey(reinterpret_cast<char const*>(pk), 32);
 
-    privateKey = crypto::base64_encode(privateKey);
-    publicKey = crypto::base64_encode(publicKey);
+    privateKey = toHexStr(sk, 32);
+    publicKey = toHexStr(pk, 32);
 
     std::vector<std::string> result;
     result.push_back(privateKey);
