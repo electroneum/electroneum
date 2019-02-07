@@ -38,6 +38,7 @@
 #include <boost/archive/iterators/base64_from_binary.hpp>
 #include <boost/archive/iterators/transform_width.hpp>
 #include <boost/algorithm/string.hpp>
+#include <boost/algorithm/hex.hpp>
 #include <vector>
 
 #include "ed25519-donna/ed25519.h"
@@ -100,9 +101,6 @@ namespace crypto {
     friend class crypto_ops;
   };
 #pragma pack(pop)
-
-  constexpr char hexmap[] = {'0', '1', '2', '3', '4', '5', '6', '7',
-                             '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
 
   static_assert(sizeof(ec_point) == 32 && sizeof(ec_scalar) == 32 &&
     sizeof(public_key) == 32 && sizeof(secret_key) == 32 &&
