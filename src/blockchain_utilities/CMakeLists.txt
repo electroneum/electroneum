@@ -83,6 +83,7 @@ target_link_libraries(blockchain_import
     ${Boost_SYSTEM_LIBRARY}
     ${Boost_THREAD_LIBRARY}
     ${CMAKE_THREAD_LIBS_INIT}
+	${OPENSSL_LIBRARIES}
     ${EXTRA_LIBRARIES})
 
 if(ARCH_WIDTH)
