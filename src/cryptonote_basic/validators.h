@@ -42,7 +42,6 @@
 namespace cryptonote {
 
     using namespace std;
-    using namespace boost;
     using namespace epee::serialization;
 
     class Validator {
@@ -116,7 +115,7 @@ namespace cryptonote {
           vector<string> keys;
           all_of(this->_list.begin(), this->_list.end(), [&height, &keys, &convert_to_byte](Validator* &v) {
               if(v->isWithinRange(height)) {
-                const string k = convert_to_byte ? algorithm::unhex(v->getPublicKey()) : v->getPublicKey();
+                const string k = convert_to_byte ? boost::algorithm::unhex(v->getPublicKey()) : v->getPublicKey();
                 keys.push_back(k);
               }
               return true;
@@ -146,8 +145,8 @@ namespace cryptonote {
           res.version = 1;
 
           bool is_signature_valid = crypto::verify_signature(res.blob,
-                                      algorithm::unhex(string(res.public_key)),
-                                      algorithm::unhex(string(res.signature)));
+                                                             boost::algorithm::unhex(string(res.public_key)),
+                                                             boost::algorithm::unhex(string(res.signature)));
 
           if(!is_signature_valid) {
             LOG_PRINT_L1("Validator list has invalid signature and message will be ignored.");
