@@ -155,6 +155,11 @@ namespace crypto {
 
     static std::vector<std::string> create_ed25519_keypair();
     friend std::vector<std::string> create_ed25519_keypair();
+
+    static std::string base64_decode(std::string val);
+    friend std::string base64_decode(std::string val);
+    static std::string base64_encode(std::string val);
+    friend std::string base64_encode(std::string val);
   };
 
   /* Generate N random bytes
@@ -281,6 +286,21 @@ namespace crypto {
 
   inline std::vector<std::string> create_ed25519_keypair() {
     return crypto_ops::create_ed25519_keypair();
+  }
+
+  inline std::string base64_decode(const std::string &val) {
+    using namespace boost::archive::iterators;
+    using It = transform_width<binary_from_base64<std::string::const_iterator>, 8, 6>;
+    return boost::algorithm::trim_right_copy_if(std::string(It(std::begin(val)), It(std::end(val))), [](char c) {
+        return c == '\0';
+    });
+  }
+
+  inline std::string base64_encode(const std::string &val) {
+    using namespace boost::archive::iterators;
+    using It = base64_from_binary<transform_width<std::string::const_iterator, 6, 8>>;
+    auto tmp = std::string(It(std::begin(val)), It(std::end(val)));
+    return tmp.append((3 - val.size() % 3) % 3, '=');
   }
 }
 

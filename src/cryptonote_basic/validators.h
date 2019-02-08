@@ -30,7 +30,6 @@
 #ifndef ELECTRONEUM_VALIDATORS_H
 #define ELECTRONEUM_VALIDATORS_H
 
-#include <boost/beast/core/detail/base64.hpp>
 #include <boost/algorithm/hex.hpp>
 
 #include "include_base_utils.h"
@@ -154,7 +153,7 @@ namespace cryptonote {
           }
 
           json_obj obj;
-          load_t_from_json(obj, boost::beast::detail::base64_decode(res.blob));
+          load_t_from_json(obj, crypto::base64_decode(res.blob));
           for(const auto &v : obj.validators) {
             this->addOrUpdate(v.validation_public_key, v.start_height, v.end_height);
           }
