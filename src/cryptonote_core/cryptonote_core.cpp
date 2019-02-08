@@ -132,6 +132,25 @@ namespace cryptonote
     }
     return res;
   }
+
+  bool core::update_validator_list() {
+
+    //TODO: what about testnet?
+
+    if (m_validator_list_updating.test_and_set()) return true;
+    bool res = true;
+
+    if (time(NULL) - m_last_validator_list_update >= 3600) {
+
+      if(m_blockchain_storage.update_validator_list()) {
+        m_last_validator_list_update = time(NULL);
+      }
+    }
+
+    m_validator_list_updating.clear();
+
+    return res;
+  }
   //-----------------------------------------------------------------------------------
   void core::stop()
   {
@@ -445,6 +464,8 @@ namespace cryptonote
 
     r = m_miner.init(vm, m_testnet);
     CHECK_AND_ASSERT_MES(r, false, "Failed to initialize miner instance");
+
+    update_validator_list();
 
     return load_state_data();
   }
@@ -1062,6 +1083,8 @@ namespace cryptonote
     // load json & DNS checkpoints every 10min/hour respectively,
     // and verify them with respect to what blocks we already have
     CHECK_AND_ASSERT_MES(update_checkpoints(), false, "One or more checkpoints loaded from json or dns conflicted with existing checkpoints.");
+
+    update_validator_list();
 
     bvc = boost::value_initialized<block_verification_context>();
     if(block_blob.size() > get_max_block_size())

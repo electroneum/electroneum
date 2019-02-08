@@ -361,6 +361,8 @@ bool Blockchain::init(BlockchainDB* db, const bool testnet, const cryptonote::te
   // we only need 1
   m_async_pool.create_thread(boost::bind(&boost::asio::io_service::run, &m_async_service));
 
+  m_validators = std::unique_ptr<Validators>(new Validators());
+
 #if defined(PER_BLOCK_CHECKPOINT)
 //This was previously failing on the mainnet for a new chain so keep an eye on it.
   /*if (!fakechain)
@@ -1321,21 +1323,6 @@ bool Blockchain::create_block_template(block& b, const account_public_address& m
   return false;
 }
 
-std::vector<std::string> Blockchain::getValidatorsPublicKeys() {
-
-  if(m_validators_public_keys.empty()) {
-    m_validators_public_keys = {
-      boost::algorithm::unhex(string("684F8D23D23E634B3A5F3FBBA80B686B4640811F2CDAB15A5CD45FB60C44718C")),
-      boost::algorithm::unhex(string("87535F05E9D5E47455B872712787765D6EF8362AE325A7DBA22878852492603B")),
-      boost::algorithm::unhex(string("DCBAEF03B27A0786DE88074B366C29CC54E023883D7FD96C17C5F4940B499E7D")),
-      boost::algorithm::unhex(string("ADECB508EB422E6962AFC79AEB09B2449C3E494D5DDD9D4E2559588F10F07BF5")),
-      boost::algorithm::unhex(string("0F45A5A92DE895BD1FCCFB2E989E807B4B7468B7B03BFD313F747B24158C2540")),
-    };
-  }
-
-  return m_validators_public_keys;
-}
-
 void Blockchain::sign_block(block& b, const std::string privateKey) {
   crypto::hash tx_tree_hash = get_tx_tree_hash(b);
 
@@ -1350,7 +1337,7 @@ void Blockchain::sign_block(block& b, const std::string privateKey) {
 
 bool Blockchain::verify_block_signature(const block& b) {
   crypto::hash tx_tree_hash = get_tx_tree_hash(b);
-  const std::vector<std::string> public_keys = getValidatorsPublicKeys();
+  const std::vector<std::string> public_keys = m_validators->getApplicablePublickKeys(m_db->height(), true);
 
   return crypto::verify_signature(std::string(reinterpret_cast<char const*>(tx_tree_hash.data), sizeof(tx_tree_hash.data)),
           public_keys, b.signature);
@@ -3511,6 +3498,10 @@ bool Blockchain::update_checkpoints(const std::string& file_path, bool check_dns
   check_against_checkpoints(m_checkpoints, true);
 
   return true;
+}
+//------------------------------------------------------------------
+bool Blockchain::update_validator_list() {
+  return m_validators->fetchFromURI();
 }
 //------------------------------------------------------------------
 void Blockchain::set_enforce_dns_checkpoints(bool enforce_checkpoints)

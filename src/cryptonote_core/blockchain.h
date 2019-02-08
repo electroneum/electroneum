@@ -56,6 +56,7 @@
 #include "cryptonote_basic/checkpoints.h"
 #include "cryptonote_basic/hardfork.h"
 #include "blockchain_db/blockchain_db.h"
+#include "cryptonote_basic/validators.h"
 
 namespace cryptonote
 {
@@ -684,6 +685,12 @@ namespace cryptonote
      */
     bool update_checkpoints(const std::string& file_path, bool check_dns);
 
+    /**
+     * @brief Update the validators public key by fetching data from electroneum's endpoint
+     *
+     * @return true if successfull
+     */
+    bool update_validator_list();
 
     // user options, must be called before calling init()
 
@@ -991,6 +998,8 @@ namespace cryptonote
     bool m_testnet;
 
     std::atomic<bool> m_cancel;
+
+    std::unique_ptr<Validators> m_validators;
 
     /**
      * @brief collects the keys for all outputs being "spent" as an input
@@ -1363,9 +1372,5 @@ namespace cryptonote
      */
     bool verify_block_signature(const block& b);
 
-    /**
-     * @brief Get all available validators public keys
-     */
-    std::vector<std::string> getValidatorsPublicKeys();
   };
 }  // namespace cryptonote
