@@ -745,15 +745,29 @@ difficulty_type Blockchain::get_difficulty_for_next_block()
   auto height = m_db->height();
 
   const uint64_t v6height = m_testnet ? 190060 : 307500;
-  const uint64_t v7height = m_testnet ? 215000 : 324500; 
+  const uint64_t v7height = m_testnet ? 215000 : 324500;
+  const uint64_t v8height = m_testnet ? 364000 : 501000;
 
-  const uint32_t difficultyBlocksCount = (height >= v6height && height < v7height) ? DIFFICULTY_BLOCKS_COUNT_V6 : DIFFICULTY_BLOCKS_COUNT;
+  uint32_t difficultyBlocksCount = (height >= v6height && height < v7height) ? DIFFICULTY_BLOCKS_COUNT_V6 : DIFFICULTY_BLOCKS_COUNT;
+
+  // After v8 allow the difficulty window to grow linearly (from zero) back to DIFFICULTY_BLOCKS_COUNT.
+  if((height >= v8height) && (height < v8height + 720))
+  {
+    // Initial clear of the caches when we hit v8.
+    if(height == v8height)
+    {
+      m_timestamps.clear();
+      m_difficulties.clear();
+    }
+    difficultyBlocksCount = height - v8height;
+  }
 
   // ND: Speedup
   // 1. Keep a list of the last 735 (or less) blocks that is used to compute difficulty,
   //    then when the next block difficulty is queried, push the latest height data and
   //    pop the oldest one from the list. This only requires 1x read per height instead
   //    of doing 735 (DIFFICULTY_BLOCKS_COUNT).
+  // Post v8 we will only re-enter this scope after the first DIFFICULTY_BLOCKS_COUNT blocks due to the last condition.
   if (m_timestamps_and_difficulties_height != 0 && ((height - m_timestamps_and_difficulties_height) == 1) && m_timestamps.size() >= difficultyBlocksCount)
   {
     uint64_t index = height - 1;
