@@ -1339,7 +1339,7 @@ std::vector<std::string> Blockchain::getValidatorsPublicKeys() {
 void Blockchain::sign_block(block& b, const std::string privateKey) {
   crypto::hash tx_tree_hash = get_tx_tree_hash(b);
 
-  std::string signature = crypto::sign_message((unsigned char*)tx_tree_hash.data, privateKey);
+  std::string signature = crypto::sign_message(std::string(reinterpret_cast<char const*>(tx_tree_hash.data), sizeof(tx_tree_hash.data)), privateKey);
   if(signature.empty() || signature.size() != 64) {
     LOG_ERROR("The daemon have failed to digitally sign a recently mined block and it won't be accepted by the network. Please check your validator-key configuration before resume mining.");
     return;
@@ -1352,7 +1352,8 @@ bool Blockchain::verify_block_signature(const block& b) {
   crypto::hash tx_tree_hash = get_tx_tree_hash(b);
   const std::vector<std::string> public_keys = getValidatorsPublicKeys();
 
-  return crypto::verify_signature((unsigned char*)tx_tree_hash.data, public_keys, b.signature);
+  return crypto::verify_signature(std::string(reinterpret_cast<char const*>(tx_tree_hash.data), sizeof(tx_tree_hash.data)),
+          public_keys, b.signature);
 }
 
 //------------------------------------------------------------------

@@ -504,7 +504,7 @@ POP_WARNINGS
     return sc_isnonzero(&h) == 0;
   }
 
-  std::string crypto_ops::sign_message(unsigned char* message, const std::string privateKey) {
+  std::string crypto_ops::sign_message(const std::string &message, const std::string &privateKey) {
 
     if(privateKey.size() != 32) {
       return std::string("");
@@ -514,29 +514,28 @@ POP_WARNINGS
     ed25519_publickey((unsigned char*)privateKey.data(), pKey);
 
     ed25519_signature signature;
-    ed25519_sign(message, sizeof(message), (unsigned char*)privateKey.data(), pKey, signature);
+    ed25519_sign((unsigned char*)message.data(), message.size(), (unsigned char*)privateKey.data(), pKey, signature);
 
     return std::string(reinterpret_cast<char const*>(signature), 64);
   }
 
-  bool crypto_ops::verify_signature(unsigned char* message, const std::string publicKey, const std::string signature) {
+  bool crypto_ops::verify_signature(const std::string &message, const std::string &publicKey, const std::string &signature) {
 
     if(publicKey.size() != 32 || signature.size() !=64) {
       return false;
     }
-
-    return ed25519_sign_open(message, sizeof(message), (unsigned char*)publicKey.data(), (unsigned char*)signature.data()) == 0;
+    return ed25519_sign_open((unsigned char*)message.data(), message.size(), (unsigned char*)publicKey.data(), (unsigned char*)signature.data()) == 0;
   }
 
-  bool crypto_ops::verify_signature(unsigned char* message, const std::vector<std::string> publicKey, const std::string signature) {
+  bool crypto_ops::verify_signature(const std::string &message, const std::vector<std::string> publicKey, const std::string &signature) {
 
     if(publicKey.empty() || signature.size() != 64) {
       return false;
     }
 
     bool result = false;
-    for(int i = 0; i < publicKey.size(); ++i) {
-      if(ed25519_sign_open(message, sizeof(message), (unsigned char*)publicKey[i].data(), (unsigned char*)signature.data()) == 0) {
+    for(auto key : publicKey) {
+      if(ed25519_sign_open((unsigned char*)message.data(), message.size(), (unsigned char*)key.data(), (unsigned char*)signature.data()) == 0) {
         result = true;
         break;
       }

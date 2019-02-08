@@ -146,12 +146,12 @@ namespace crypto {
     friend bool check_ring_signature(const hash &, const key_image &,
       const public_key *const *, std::size_t, const signature *);
 
-    static std::string sign_message(unsigned char* message, std::string privateKey);
-    friend std::string sign_message(unsigned char* message, std::string privateKey);
-    static bool verify_signature(unsigned char* message, std::string publicKey, std::string signature);
-    friend bool verify_signature(unsigned char* message, std::string publicKey, std::string signature);
-    static bool verify_signature(unsigned char* message, std::vector<std::string> publicKey, std::string signature);
-    friend bool verify_signature(unsigned char* message, std::vector<std::string> publicKey, std::string signature);
+    static std::string sign_message(const std::string &message, const std::string &privateKey);
+    friend std::string sign_message(const std::string &message, const std::string &privateKey);
+    static bool verify_signature(const std::string &message, const std::string &publicKey, const std::string &signature);
+    friend bool verify_signature(const std::string &message, const std::string &publicKey, const std::string &signature);
+    static bool verify_signature(const std::string &message, std::vector<std::string> publicKey, const std::string &signature);
+    friend bool verify_signature(const std::string &message, std::vector<std::string> publicKey, const std::string &signature);
 
     static std::vector<std::string> create_ed25519_keypair();
     friend std::vector<std::string> create_ed25519_keypair();
@@ -267,15 +267,15 @@ namespace crypto {
     return check_ring_signature(prefix_hash, image, pubs.data(), pubs.size(), sig);
   }
 
-  inline std::string sign_message(unsigned char* message, std::string privateKey) {
+  inline std::string sign_message(const std::string &message, const std::string &privateKey) {
     return crypto_ops::sign_message(message, privateKey);
   }
 
-  inline bool verify_signature(unsigned char* message, std::string publicKey, std::string signature) {
+  inline bool verify_signature(const std::string &message, const std::string &publicKey, const std::string &signature) {
     return crypto_ops::verify_signature(message, publicKey, signature);
   }
 
-  inline bool verify_signature(unsigned char* message, std::vector<std::string> publicKey, std::string signature) {
+  inline bool verify_signature(const std::string &message, std::vector<std::string> publicKey, const std::string &signature) {
     return crypto_ops::verify_signature(message, publicKey, signature);
   }
 
