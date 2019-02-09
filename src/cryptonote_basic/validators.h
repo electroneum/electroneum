@@ -39,9 +39,12 @@
 #include "crypto/crypto.h"
 
 namespace cryptonote {
-
+namespace electroneum {
     using namespace std;
+    using namespace std::chrono;
+    using namespace boost::algorithm;
     using namespace epee::serialization;
+    using namespace epee::net_utils;
 
     class Validator {
     private:
@@ -68,29 +71,33 @@ namespace cryptonote {
 
     class Validators {
     private:
-        vector<Validator*> _list;
+        vector<Validator*> list;
+        http::http_simple_client http_client;
+        string endpoint_addr = "localhost";
+        string endpoint_port = "3000";
+        milliseconds endpoint_timeout = milliseconds(10000);
 
     public:
         Validators();
 
         inline void add(const string &key, uint64_t startHeight, uint64_t endHeight) {
-          if(!this->exists(key)) this->_list.emplace_back(new Validator(key, startHeight, endHeight));
+          if(!this->exists(key)) this->list.emplace_back(new Validator(key, startHeight, endHeight));
         }
 
         inline void addOrUpdate(const string &key, uint64_t startHeight, uint64_t endHeight) {
-          this->exists(key) ? this->update(key, endHeight) : this->_list.emplace_back(new Validator(key, startHeight, endHeight));
+          this->exists(key) ? this->update(key, endHeight) : this->list.emplace_back(new Validator(key, startHeight, endHeight));
         }
 
         inline Validator* find(const string &key) {
-          auto it = find_if(this->_list.begin(), this->_list.end(), [&key](Validator* &v) {
-              return v->getPublicKey() == key ? true : false;
+          auto it = find_if(this->list.begin(), this->list.end(), [&key](Validator* &v) {
+              return v->getPublicKey() == key;
           });
           return *it;
         }
 
         inline bool exists(const string &key) {
           bool found = false;
-          all_of(this->_list.begin(), this->_list.end(), [&key, &found](Validator* &v) {
+          all_of(this->list.begin(), this->list.end(), [&key, &found](Validator* &v) {
             if(v->getPublicKey() == key) {
               found = true;
               return false;
@@ -101,7 +108,7 @@ namespace cryptonote {
         }
 
         inline void update(const string &key, uint64_t endHeight) {
-          find_if(this->_list.begin(), this->_list.end(), [&key, &endHeight](Validator* &v) {
+          find_if(this->list.begin(), this->list.end(), [&key, &endHeight](Validator* &v) {
               if(v->getPublicKey() == key) {
                 v->setEndHeight(endHeight);
                 return true;
@@ -112,9 +119,9 @@ namespace cryptonote {
 
         inline vector<string> getApplicablePublickKeys(uint64_t height, bool convert_to_byte = false) {
           vector<string> keys;
-          all_of(this->_list.begin(), this->_list.end(), [&height, &keys, &convert_to_byte](Validator* &v) {
+          all_of(this->list.begin(), this->list.end(), [&height, &keys, &convert_to_byte](Validator* &v) {
               if(v->isWithinRange(height)) {
-                const string k = convert_to_byte ? boost::algorithm::unhex(v->getPublicKey()) : v->getPublicKey();
+                const string k = convert_to_byte ? unhex(v->getPublicKey()) : v->getPublicKey();
                 keys.push_back(k);
               }
               return true;
@@ -123,32 +130,29 @@ namespace cryptonote {
         }
 
         inline bool isEmpty() {
-          return this->_list.empty();
+          return this->list.empty();
         }
 
         inline bool fetchFromURI() {
-          struct http_request {} req;
-          struct http_response {
-              std::string public_key;
-              std::string blob;
-              std::string signature;
-              int version = 0;
-          } res;
 
+          http::request req;
+          http::response res;
 
-          //TODO: HTTP Request
-          //Mocking the HTTP response for now
-          res.public_key = "684F8D23D23E634B3A5F3FBBA80B686B4640811F2CDAB15A5CD45FB60C44718C";
-          res.blob = "eyJ2YWxpZGF0b3JzIjpbeyJ2YWxpZGF0aW9uX3B1YmxpY19rZXkiOiI2ODRGOEQyM0QyM0U2MzRCM0E1RjNGQkJBODBCNjg2QjQ2NDA4MTFGMkNEQUIxNUE1Q0Q0NUZCNjBDNDQ3MThDIiwidmFsaWRfZnJvbV9oZWlnaHQiOiAwLCJ2YWxpZF90b19oZWlnaHQiOiAtMX0seyJ2YWxpZGF0aW9uX3B1YmxpY19rZXkiOiI4NzUzNUYwNUU5RDVFNDc0NTVCODcyNzEyNzg3NzY1RDZFRjgzNjJBRTMyNUE3REJBMjI4Nzg4NTI0OTI2MDNCIiwidmFsaWRfZnJvbV9oZWlnaHQiOiAwLCJ2YWxpZF90b19oZWlnaHQiOiAtMX0seyJ2YWxpZGF0aW9uX3B1YmxpY19rZXkiOiJEQ0JBRUYwM0IyN0EwNzg2REU4ODA3NEIzNjZDMjlDQzU0RTAyMzg4M0Q3RkQ5NkMxN0M1RjQ5NDBCNDk5RTdEIiwidmFsaWRfZnJvbV9oZWlnaHQiOiAwLCJ2YWxpZF90b19oZWlnaHQiOiAtMX0seyJ2YWxpZGF0aW9uX3B1YmxpY19rZXkiOiJBREVDQjUwOEVCNDIyRTY5NjJBRkM3OUFFQjA5QjI0NDlDM0U0OTRENURERDlENEUyNTU5NTg4RjEwRjA3QkY1IiwidmFsaWRfZnJvbV9oZWlnaHQiOiAwLCJ2YWxpZF90b19oZWlnaHQiOiAtMX0seyJ2YWxpZGF0aW9uX3B1YmxpY19rZXkiOiIwRjQ1QTVBOTJERTg5NUJEMUZDQ0ZCMkU5ODlFODA3QjRCNzQ2OEI3QjAzQkZEMzEzRjc0N0IyNDE1OEMyNTQwIiwidmFsaWRfZnJvbV9oZWlnaHQiOiAwLCJ2YWxpZF90b19oZWlnaHQiOiAtMX1dfQ==";
-          res.signature = "A4B8083257D343309986DD1258FEE97A9CAB8D993D6D03504EBB120E04C21C22F8FCA90C84DAC8971DEBD6B2CEFE0A9E7BFFE3166704B8234445DCC0D241240E";
-          res.version = 1;
+          bool r = invoke_http_json("/", req, res, this->http_client, this->endpoint_timeout);
+          if(!r) {
+            LOG_PRINT_L1("Unable to get validator_list json from " << this->endpoint_addr << ":" << this->endpoint_port);
+            return false;
+          }
 
-          bool is_signature_valid = crypto::verify_signature(res.blob,
-                                                             boost::algorithm::unhex(string(res.public_key)),
-                                                             boost::algorithm::unhex(string(res.signature)));
+          //Check against our hardcoded public-key to make sure it's a valid message
+          if(res.public_key != "F669F5CDD45CE7C540A5E85CAB04F970A30E20D2C939FD5ACEB18280C9319C1D") {
+            LOG_PRINT_L1("Validator list has invalid public_key.");
+            return false;
+          }
 
+          bool is_signature_valid = crypto::verify_signature(res.blob, unhex(string(res.public_key)), unhex(string(res.signature)));
           if(!is_signature_valid) {
-            LOG_PRINT_L1("Validator list has invalid signature and message will be ignored.");
+            LOG_PRINT_L1("Validator list has invalid signature and will be ignored.");
             return false;
           }
 
@@ -158,6 +162,7 @@ namespace cryptonote {
             this->addOrUpdate(v.validation_public_key, v.start_height, v.end_height);
           }
 
+          LOG_PRINT_L1("Validator list successfully updated!");
           return true;
         }
 
@@ -180,7 +185,29 @@ namespace cryptonote {
             KV_SERIALIZE(validators)
           END_KV_SERIALIZE_MAP()
         };
+
+        struct http {
+            struct response {
+                string public_key;
+                string blob;
+                string signature;
+                int version = 0;
+
+              BEGIN_KV_SERIALIZE_MAP()
+                KV_SERIALIZE(public_key)
+                KV_SERIALIZE(blob)
+                KV_SERIALIZE(signature)
+                KV_SERIALIZE(version)
+              END_KV_SERIALIZE_MAP()
+            };
+
+            struct request {
+              BEGIN_KV_SERIALIZE_MAP()
+              END_KV_SERIALIZE_MAP()
+            };
+        };
     };
+}
 }
 
 

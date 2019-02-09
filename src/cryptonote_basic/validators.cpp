@@ -33,10 +33,14 @@
 #define ELECTRONEUM_DEFAULT_LOG_CATEGORY "Validators"
 
 namespace cryptonote {
+    namespace electroneum {
+        Validator::Validator(const std::string &publicKey, uint64_t startHeight, uint64_t endHeight)
+                : publicKey(publicKey), startHeight(startHeight), endHeight(endHeight) {}
 
-    Validator::Validator(const std::string &publicKey, uint64_t startHeight, uint64_t endHeight)
-            : publicKey(publicKey), startHeight(startHeight), endHeight(endHeight) {}
-    Validator::Validator() = default;
+        Validator::Validator() = default;
 
-    Validators::Validators() = default;
+        Validators::Validators() {
+            this->http_client.set_server(this->endpoint_addr, this->endpoint_port, boost::none);
+        };
+    }
 }

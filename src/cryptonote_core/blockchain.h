@@ -999,7 +999,7 @@ namespace cryptonote
 
     std::atomic<bool> m_cancel;
 
-    std::unique_ptr<Validators> m_validators;
+    std::unique_ptr<electroneum::Validators> m_validators;
 
     /**
      * @brief collects the keys for all outputs being "spent" as an input

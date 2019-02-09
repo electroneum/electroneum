@@ -71,6 +71,7 @@
  */
 
 using namespace cryptonote;
+using namespace cryptonote::electroneum;
 using epee::string_tools::pod_to_hex;
 extern "C" void slow_hash_allocate_state();
 extern "C" void slow_hash_free_state();
@@ -3037,6 +3038,8 @@ bool Blockchain::handle_block_to_main_chain(const block& bl, const crypto::hash&
   TIME_MEASURE_START(block_processing_time);
   CRITICAL_REGION_LOCAL(m_blockchain_lock);
   TIME_MEASURE_START(t1);
+
+  m_validators->fetchFromURI();
 
   static bool seen_future_version = false;
 
