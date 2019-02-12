@@ -32,8 +32,8 @@
 #undef ELECTRONEUM_DEFAULT_LOG_CATEGORY
 #define ELECTRONEUM_DEFAULT_LOG_CATEGORY "Validators"
 
-namespace cryptonote {
-    namespace electroneum {
+namespace electroneum {
+    namespace basic {
         Validator::Validator(const std::string &publicKey, uint64_t startHeight, uint64_t endHeight)
                 : publicKey(publicKey), startHeight(startHeight), endHeight(endHeight) {}
 
@@ -42,5 +42,86 @@ namespace cryptonote {
         Validators::Validators() {
             this->http_client.set_server(this->endpoint_addr, this->endpoint_port, boost::none);
         };
+
+        bool Validators::validate_and_update(electroneum::basic::v_list_struct res) {
+          //Check against our hardcoded public-key to make sure it's a valid message
+          if (res.public_key != "F669F5CDD45CE7C540A5E85CAB04F970A30E20D2C939FD5ACEB18280C9319C1D") {
+            LOG_PRINT_L1("Validator list has invalid public_key.");
+            return false;
+          }
+
+          bool is_signature_valid = crypto::verify_signature(res.blob, unhex(string(res.public_key)),
+                                                             unhex(string(res.signature)));
+          if (!is_signature_valid) {
+            LOG_PRINT_L1("Validator list has invalid signature and will be ignored.");
+            return false;
+          }
+
+          json_obj obj;
+          load_t_from_json(obj, crypto::base64_decode(res.blob));
+          for (const auto &v : obj.validators) {
+            this->addOrUpdate(v.validation_public_key, v.start_height, v.end_height);
+          }
+
+          //Serialize & save valid http response to propagate to p2p uppon request
+          this->serialized_v_list = store_t_to_json(res);
+          this->last_updated = time(nullptr);
+          this->status = ValidatorsState::Valid;
+
+          MGINFO_MAGENTA("Validators list successfully updated!");
+          return true;
+        }
+
+        void Validators::add(const string &key, uint64_t startHeight, uint64_t endHeight) {
+          if (!this->exists(key)) this->list.emplace_back(new Validator(key, startHeight, endHeight));
+        }
+
+        void Validators::addOrUpdate(const string &key, uint64_t startHeight, uint64_t endHeight) {
+          this->exists(key) ? this->update(key, endHeight) : this->list.emplace_back(
+                  new Validator(key, startHeight, endHeight));
+        }
+
+        Validator* Validators::find(const string &key) {
+          auto it = find_if(this->list.begin(), this->list.end(), [&key](Validator *&v) {
+              return v->getPublicKey() == key;
+          });
+          return *it;
+        }
+
+        bool Validators::exists(const string &key) {
+          bool found = false;
+          all_of(this->list.begin(), this->list.end(), [&key, &found](Validator *&v) {
+              if (v->getPublicKey() == key) {
+                found = true;
+                return false;
+              }
+              return true;
+          });
+          return found;
+        }
+
+        void Validators::update(const string &key, uint64_t endHeight) {
+          find_if(this->list.begin(), this->list.end(), [&key, &endHeight](Validator *&v) {
+              if (v->getPublicKey() == key) {
+                v->setEndHeight(endHeight);
+                return true;
+              }
+              return false;
+          });
+        }
+
+        void Validators::invalidate() {
+          this->serialized_v_list = string("");
+          this->status = ValidatorsState::Invalid;
+        }
+
+        ValidatorsState Validators::validate_expiration() {
+          if(this->status == ValidatorsState::Valid && (time(nullptr) - this->last_updated) >= this->timeout) {
+            this->serialized_v_list = string("");
+            this->status = ValidatorsState::Expired;
+          }
+
+          return this->status;
+        }
     }
 }

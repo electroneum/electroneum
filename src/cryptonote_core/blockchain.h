@@ -690,7 +690,6 @@ namespace cryptonote
      *
      * @return true if successfull
      */
-    bool update_validator_list();
 
     // user options, must be called before calling init()
 
@@ -926,6 +925,8 @@ namespace cryptonote
      */
     void set_validator_key(std::string key) { m_validator_key = boost::algorithm::unhex(key); }
 
+    void set_validators_list_instance(std::unique_ptr<electroneum::basic::Validators> &v) { m_validators = v.get(); }
+
   private:
 
     // TODO: evaluate whether or not each of these typedefs are left over from blockchain_storage
@@ -999,7 +1000,7 @@ namespace cryptonote
 
     std::atomic<bool> m_cancel;
 
-    std::unique_ptr<electroneum::Validators> m_validators;
+    electroneum::basic::Validators* m_validators;
 
     /**
      * @brief collects the keys for all outputs being "spent" as an input

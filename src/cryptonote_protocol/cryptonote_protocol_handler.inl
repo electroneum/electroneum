@@ -405,10 +405,46 @@ namespace cryptonote
       m_core.get_short_chain_history(r.block_ids);
       LOG_PRINT_CCONTEXT_L2("-->>NOTIFY_REQUEST_CHAIN: m_block_ids.size()=" << r.block_ids.size() );
       post_notify<NOTIFY_REQUEST_CHAIN>(r, context);
+    }else if(bvc.m_validator_list_update_failed)
+    {
+      LOG_PRINT_CCONTEXT_L2("Requesting validators list");
+      NOTIFY_REQUEST_VALIDATORS_LIST::request r = boost::value_initialized<NOTIFY_REQUEST_VALIDATORS_LIST::request>();
+      post_notify<NOTIFY_REQUEST_VALIDATORS_LIST>(r, context);
     }
 
     return 1;
   }
+
+  template<class t_core>
+  bool t_cryptonote_protocol_handler<t_core>::request_validators_list(cryptonote_connection_context& context)
+  {
+    MLOG_P2P_MESSAGE("Requesting Validators List");
+    NOTIFY_REQUEST_VALIDATORS_LIST::request r = boost::value_initialized<NOTIFY_REQUEST_VALIDATORS_LIST::request>();
+    relay_post_notify<NOTIFY_REQUEST_VALIDATORS_LIST>(r, context);
+    return true;
+  }
+
+  template<class t_core>
+  int t_cryptonote_protocol_handler<t_core>::handle_request_validators_list(int command, NOTIFY_REQUEST_VALIDATORS_LIST::request& arg, cryptonote_connection_context& context)
+  {
+    MLOG_P2P_MESSAGE("Received NOTIFY_REQUEST_VALIDATORS_LIST");
+    NOTIFY_RESPONSE_VALIDATORS_LIST::request r = boost::value_initialized<NOTIFY_RESPONSE_VALIDATORS_LIST::request>();
+    r.serialized_v_list = m_core.get_validators_list();
+    post_notify<NOTIFY_RESPONSE_VALIDATORS_LIST>(r, context);
+    return 1;
+  }
+
+  template<class t_core>
+  int t_cryptonote_protocol_handler<t_core>::handle_response_validators_list(int command, NOTIFY_RESPONSE_VALIDATORS_LIST::request& arg, cryptonote_connection_context& context)
+  {
+    MLOG_P2P_MESSAGE("Received NOTIFY_RESPONSE_VALIDATORS_LIST");
+    if(!m_core.set_validators_list(arg.serialized_v_list)) {
+      LOG_ERROR_CCONTEXT("Received invalid Validators List. Dropping connection.");
+      drop_connection(context, false, false);
+    }
+    return 1;
+  }
+
   //------------------------------------------------------------------------------------------------------------------------
   template<class t_core>
   int t_cryptonote_protocol_handler<t_core>::handle_notify_new_fluffy_block(int command, NOTIFY_NEW_FLUFFY_BLOCK::request& arg, cryptonote_connection_context& context)
@@ -675,7 +711,13 @@ namespace cryptonote
           m_core.get_short_chain_history(r.block_ids);
           LOG_PRINT_CCONTEXT_L2("-->>NOTIFY_REQUEST_CHAIN: m_block_ids.size()=" << r.block_ids.size() );
           post_notify<NOTIFY_REQUEST_CHAIN>(r, context);
-        }            
+        }
+        else if(bvc.m_validator_list_update_failed)
+        {
+          LOG_PRINT_CCONTEXT_L2("Requesting validators list");
+          NOTIFY_REQUEST_VALIDATORS_LIST::request r = boost::value_initialized<NOTIFY_REQUEST_VALIDATORS_LIST::request>();
+          post_notify<NOTIFY_REQUEST_VALIDATORS_LIST>(r, context);
+        }
       }
     } 
     else
@@ -1138,6 +1180,15 @@ skip:
 
               // in case the peer had dropped beforehand, remove the span anyway so other threads can wake up and get it
               m_block_queue.remove_spans(span_connection_id, start_height);
+              return 1;
+            }
+            if(bvc.m_validator_list_update_failed)
+            {
+              LOG_PRINT_CCONTEXT_L2("Requesting validators list");
+              m_block_queue.remove_spans(span_connection_id, start_height);
+              m_core.cleanup_handle_incoming_blocks();
+              NOTIFY_REQUEST_VALIDATORS_LIST::request r = boost::value_initialized<NOTIFY_REQUEST_VALIDATORS_LIST::request>();
+              post_notify<NOTIFY_REQUEST_VALIDATORS_LIST>(r, context);
               return 1;
             }
 

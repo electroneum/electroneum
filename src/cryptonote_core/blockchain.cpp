@@ -71,7 +71,6 @@
  */
 
 using namespace cryptonote;
-using namespace cryptonote::electroneum;
 using epee::string_tools::pod_to_hex;
 extern "C" void slow_hash_allocate_state();
 extern "C" void slow_hash_free_state();
@@ -361,8 +360,6 @@ bool Blockchain::init(BlockchainDB* db, const bool testnet, const cryptonote::te
   m_async_work_idle = std::unique_ptr < boost::asio::io_service::work > (new boost::asio::io_service::work(m_async_service));
   // we only need 1
   m_async_pool.create_thread(boost::bind(&boost::asio::io_service::run, &m_async_service));
-
-  m_validators = std::unique_ptr<Validators>(new Validators());
 
 #if defined(PER_BLOCK_CHECKPOINT)
 //This was previously failing on the mainnet for a new chain so keep an eye on it.
@@ -1338,7 +1335,7 @@ void Blockchain::sign_block(block& b, const std::string privateKey) {
 
 bool Blockchain::verify_block_signature(const block& b) {
   crypto::hash tx_tree_hash = get_tx_tree_hash(b);
-  const std::vector<std::string> public_keys = m_validators->getApplicablePublickKeys(m_db->height(), true);
+  const std::vector<std::string> public_keys = m_validators->getApplicablePublicKeys(m_db->height(), true);
 
   return crypto::verify_signature(std::string(reinterpret_cast<char const*>(tx_tree_hash.data), sizeof(tx_tree_hash.data)),
           public_keys, b.signature);
@@ -3039,8 +3036,6 @@ bool Blockchain::handle_block_to_main_chain(const block& bl, const crypto::hash&
   CRITICAL_REGION_LOCAL(m_blockchain_lock);
   TIME_MEASURE_START(t1);
 
-  m_validators->fetchFromURI();
-
   static bool seen_future_version = false;
 
   m_db->block_txn_start(true);
@@ -3501,10 +3496,6 @@ bool Blockchain::update_checkpoints(const std::string& file_path, bool check_dns
   check_against_checkpoints(m_checkpoints, true);
 
   return true;
-}
-//------------------------------------------------------------------
-bool Blockchain::update_validator_list() {
-  return m_validators->fetchFromURI();
 }
 //------------------------------------------------------------------
 void Blockchain::set_enforce_dns_checkpoints(bool enforce_checkpoints)

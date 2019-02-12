@@ -1,22 +1,21 @@
-// Copyrights(c) 2017-2018, The Electroneum Project
-// Copyrights(c) 2014-2017, The Monero Project
-// 
+// Copyrights(c) 2017-2019, The Electroneum Project
+//
 // All rights reserved.
-// 
+//
 // Redistribution and use in source and binary forms, with or without modification, are
 // permitted provided that the following conditions are met:
-// 
+//
 // 1. Redistributions of source code must retain the above copyright notice, this list of
 //    conditions and the following disclaimer.
-// 
+//
 // 2. Redistributions in binary form must reproduce the above copyright notice, this list
 //    of conditions and the following disclaimer in the documentation and/or other
 //    materials provided with the distribution.
-// 
+//
 // 3. Neither the name of the copyright holder nor the names of its contributors may be
 //    used to endorse or promote products derived from this software without specific
 //    prior written permission.
-// 
+//
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
 // EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
 // MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL
@@ -26,38 +25,56 @@
 // INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
 // STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
 // THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-// 
-// Parts of this file are originally copyright (c) 2012-2013 The Cryptonote developers
+//
 
-#pragma once
-namespace cryptonote
-{
-  /************************************************************************/
-  /*                                                                      */
-  /************************************************************************/
-  struct tx_verification_context
-  {
-    bool m_should_be_relayed;
-    bool m_verifivation_failed; //bad tx, should drop connection
-    bool m_verifivation_impossible; //the transaction is related with an alternative blockchain
-    bool m_added_to_pool; 
-    bool m_low_mixin;
-    bool m_double_spend;
-    bool m_invalid_input;
-    bool m_invalid_output;
-    bool m_too_big;
-    bool m_overspend;
-    bool m_fee_too_low;
-    bool m_not_rct;
-  };
+#ifndef ELECTRONEUM_VALIDATORS_COMMANDS_DEFS_H
+#define ELECTRONEUM_VALIDATORS_COMMANDS_DEFS_H
 
-  struct block_verification_context
-  {
-    bool m_added_to_main_chain;
-    bool m_verifivation_failed; //bad block, should drop connection
-    bool m_marked_as_orphaned;
-    bool m_already_exists;
-    bool m_partial_block_reward;
-    bool m_validator_list_update_failed;
-  };
+#include "include_base_utils.h"
+#include "storages/http_abstract_invoke.h"
+
+namespace electroneum {
+    namespace basic {
+
+        struct json_obj {
+            struct validator {
+                std::string validation_public_key;
+                uint64_t start_height;
+                uint64_t end_height;
+
+                BEGIN_KV_SERIALIZE_MAP()
+                KV_SERIALIZE(validation_public_key)
+                KV_SERIALIZE(start_height)
+                KV_SERIALIZE(start_height)
+                END_KV_SERIALIZE_MAP()
+            };
+
+            std::vector<validator> validators;
+
+            BEGIN_KV_SERIALIZE_MAP()
+            KV_SERIALIZE(validators)
+            END_KV_SERIALIZE_MAP()
+        };
+
+        struct v_list_struct_request {
+            BEGIN_KV_SERIALIZE_MAP()
+            END_KV_SERIALIZE_MAP()
+        };
+
+        struct v_list_struct {
+            std::string public_key;
+            std::string blob;
+            std::string signature;
+            int version = 0;
+
+            BEGIN_KV_SERIALIZE_MAP()
+            KV_SERIALIZE(public_key)
+            KV_SERIALIZE(blob)
+            KV_SERIALIZE(signature)
+            KV_SERIALIZE(version)
+            END_KV_SERIALIZE_MAP()
+        };
+    }
 }
+
+#endif //ELECTRONEUM_VALIDATORS_COMMANDS_DEFS_H

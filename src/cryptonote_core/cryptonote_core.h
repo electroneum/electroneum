@@ -49,6 +49,7 @@
 #include "cryptonote_basic/cryptonote_stat_info.h"
 #include "warnings.h"
 #include "crypto/hash.h"
+#include "cryptonote_basic/validators.h"
 
 PUSH_WARNINGS
 DISABLE_VS_WARNINGS(4355)
@@ -684,6 +685,12 @@ namespace cryptonote
 
      bool update_validator_list();
 
+     std::string get_validators_list();
+
+     bool set_validators_list(std::string v_list);
+
+     bool update_validators_scheduler();
+
      /**
       * @brief tells the daemon to wind down operations and stop running
       *
@@ -937,6 +944,7 @@ namespace cryptonote
      epee::math_helper::once_a_time_seconds<60*60*2, true> m_fork_moaner; //!< interval for checking HardFork status
      epee::math_helper::once_a_time_seconds<60*2, false> m_txpool_auto_relayer; //!< interval for checking re-relaying txpool transactions
      epee::math_helper::once_a_time_seconds<60*60*12, true> m_check_updates_interval; //!< interval for checking for new versions
+     epee::math_helper::once_a_time_seconds<60*2, true> m_check_validators_interval;
 
      std::atomic<bool> m_starter_message_showed; //!< has the "daemon will sync now" message been shown?
 
@@ -949,7 +957,6 @@ namespace cryptonote
      std::string m_checkpoints_path; //!< path to json checkpoints file
      time_t m_last_dns_checkpoints_update; //!< time when dns checkpoints were last updated
      time_t m_last_json_checkpoints_update; //!< time when json checkpoints were last updated
-     time_t m_last_validator_list_update; //!< time when validator list were last updated
 
      std::atomic_flag m_checkpoints_updating; //!< set if checkpoints are currently updating to avoid multiple threads attempting to update at once
      std::atomic_flag m_validator_list_updating; //!< set if validators are currently updating to avoid multiple threads attempting to update at once
@@ -963,6 +970,8 @@ namespace cryptonote
      boost::mutex bad_semantics_txes_lock;
 
      tools::thread_group m_threadpool;
+
+     std::unique_ptr<electroneum::basic::Validators> m_validators;
 
      enum {
        UPDATES_DISABLED,
