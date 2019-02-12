@@ -60,7 +60,8 @@ set(cryptonote_basic_private_headers
   miner.h
   tx_extra.h
   verification_context.h
-  validators.h)
+  validators.h
+  validators_commands_defs.h)
 
 electroneum_private_headers(cryptonote_basic
   ${crypto_private_headers})

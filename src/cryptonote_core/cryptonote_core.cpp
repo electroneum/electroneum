@@ -63,6 +63,8 @@ DISABLE_VS_WARNINGS(4355)
 namespace cryptonote
 {
 
+  //using namespace electroneum::basic;
+
   //-----------------------------------------------------------------------------------------------
   core::core(i_cryptonote_protocol* pprotocol):
               m_mempool(m_blockchain_storage),
@@ -132,24 +134,37 @@ namespace cryptonote
     }
     return res;
   }
-
+  //-----------------------------------------------------------------------------------
   bool core::update_validator_list() {
 
     //TODO: what about testnet?
 
     if (m_validator_list_updating.test_and_set()) return true;
+
     bool res = true;
-
-    if (time(NULL) - m_last_validator_list_update >= 3600) {
-
-      if(m_blockchain_storage.update_validator_list()) {
-        m_last_validator_list_update = time(NULL);
-      }
+    if(!m_validators->loadValidatorsList()) {
+      res = false;
     }
 
     m_validator_list_updating.clear();
 
     return res;
+  }
+  //-----------------------------------------------------------------------------------
+  std::string core::get_validators_list() {
+    return m_validators->getSerializedValidatorList();
+  }
+  //-----------------------------------------------------------------------------------
+  bool core::set_validators_list(std::string v_list) {
+    return m_validators->setValidatorsList(v_list);
+  }
+  //-----------------------------------------------------------------------------------
+  bool core::update_validators_scheduler() {
+    if(!update_validator_list()) {
+      cryptonote_connection_context context = boost::value_initialized<cryptonote_connection_context>();
+      m_pprotocol->request_validators_list(context);
+    }
+    return true;
   }
   //-----------------------------------------------------------------------------------
   void core::stop()
@@ -465,7 +480,8 @@ namespace cryptonote
     r = m_miner.init(vm, m_testnet);
     CHECK_AND_ASSERT_MES(r, false, "Failed to initialize miner instance");
 
-    update_validator_list();
+    m_validators = std::unique_ptr<electroneum::basic::Validators>(new electroneum::basic::Validators());
+    m_blockchain_storage.set_validators_list_instance(m_validators);
 
     return load_state_data();
   }
@@ -1084,7 +1100,11 @@ namespace cryptonote
     // and verify them with respect to what blocks we already have
     CHECK_AND_ASSERT_MES(update_checkpoints(), false, "One or more checkpoints loaded from json or dns conflicted with existing checkpoints.");
 
-    update_validator_list();
+    /*if(!update_validator_list()) {
+      LOG_PRINT_L0("List of validators not found or invalid. Requesting from peers...");
+      bvc.m_validator_list_update_failed = true;
+      return false;
+    }*/
 
     bvc = boost::value_initialized<block_verification_context>();
     if(block_blob.size() > get_max_block_size())
@@ -1238,6 +1258,7 @@ namespace cryptonote
     m_fork_moaner.do_call(boost::bind(&core::check_fork_time, this));
     m_txpool_auto_relayer.do_call(boost::bind(&core::relay_txpool_transactions, this));
     m_check_updates_interval.do_call(boost::bind(&core::check_updates, this));
+    m_check_validators_interval.do_call(boost::bind(&core::update_validators_scheduler, this));
     m_miner.on_idle();
     m_mempool.on_idle();
     return true;
