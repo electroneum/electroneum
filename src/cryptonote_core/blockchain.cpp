@@ -71,6 +71,7 @@
  */
 
 using namespace cryptonote;
+using namespace cryptonote::electroneum;
 using epee::string_tools::pod_to_hex;
 extern "C" void slow_hash_allocate_state();
 extern "C" void slow_hash_free_state();
@@ -113,7 +114,7 @@ static const uint64_t testnet_hard_fork_version_1_till = 190059;
 //------------------------------------------------------------------
 Blockchain::Blockchain(tx_memory_pool& tx_pool) :
   m_db(), m_tx_pool(tx_pool), m_hardfork(NULL), m_timestamps_and_difficulties_height(0), m_current_block_cumul_sz_limit(0),
-  m_enforce_dns_checkpoints(false), m_max_prepare_blocks_threads(4), m_db_blocks_per_sync(1), m_db_sync_mode(db_async), m_db_default_sync(false), m_fast_sync(true), m_show_time_stats(false), m_sync_counter(0), m_cancel(false)
+  m_enforce_dns_checkpoints(false), m_max_prepare_blocks_threads(4), m_db_blocks_per_sync(1), m_db_sync_mode(db_async), m_db_default_sync(false), m_fast_sync(true), m_show_time_stats(false), m_sync_counter(0), m_cancel(false), m_validator_key("")
 {
   LOG_PRINT_L3("Blockchain::" << __func__);
 }
@@ -360,6 +361,8 @@ bool Blockchain::init(BlockchainDB* db, const bool testnet, const cryptonote::te
   m_async_work_idle = std::unique_ptr < boost::asio::io_service::work > (new boost::asio::io_service::work(m_async_service));
   // we only need 1
   m_async_pool.create_thread(boost::bind(&boost::asio::io_service::run, &m_async_service));
+
+  m_validators = std::unique_ptr<Validators>(new Validators());
 
 #if defined(PER_BLOCK_CHECKPOINT)
 //This was previously failing on the mainnet for a new chain so keep an eye on it.
@@ -745,7 +748,7 @@ difficulty_type Blockchain::get_difficulty_for_next_block()
   auto height = m_db->height();
 
   const uint64_t v6height = m_testnet ? 190060 : 307500;
-  const uint64_t v7height = m_testnet ? 215000 : 324500; 
+  const uint64_t v7height = m_testnet ? 215000 : 324500;
 
   const uint32_t difficultyBlocksCount = (height >= v6height && height < v7height) ? DIFFICULTY_BLOCKS_COUNT_V6 : DIFFICULTY_BLOCKS_COUNT;
 
@@ -800,10 +803,10 @@ void Blockchain::normalize_v7_difficulties() {
 
   auto height = m_db->height();
   const uint64_t v8height = m_testnet ? 364000 : 501000;
-  
+
   if(height != v8height) {
     return;
-  }  
+  }
 
   const uint64_t v7height = m_testnet ? 215000 : 324500;
   const size_t V7_DIFFICULTY_BLOCKS_COUNT = 735;
@@ -1315,11 +1318,35 @@ bool Blockchain::create_block_template(block& b, const account_public_address& m
     MDEBUG("Creating block template: miner tx size " << coinbase_blob_size <<
         ", cumulative size " << cumulative_size << " is now good");
 #endif
+
+    sign_block(b, m_validator_key);
+
     return true;
   }
   LOG_ERROR("Failed to create_block_template with " << 10 << " tries");
   return false;
 }
+
+void Blockchain::sign_block(block& b, const std::string privateKey) {
+  crypto::hash tx_tree_hash = get_tx_tree_hash(b);
+
+  std::string signature = crypto::sign_message(std::string(reinterpret_cast<char const*>(tx_tree_hash.data), sizeof(tx_tree_hash.data)), privateKey);
+  if(signature.empty() || signature.size() != 64) {
+    LOG_ERROR("The daemon have failed to digitally sign a recently mined block and it won't be accepted by the network. Please check your validator-key configuration before resume mining.");
+    return;
+  }
+
+  b.signature = signature;
+}
+
+bool Blockchain::verify_block_signature(const block& b) {
+  crypto::hash tx_tree_hash = get_tx_tree_hash(b);
+  const std::vector<std::string> public_keys = m_validators->getApplicablePublickKeys(m_db->height(), true);
+
+  return crypto::verify_signature(std::string(reinterpret_cast<char const*>(tx_tree_hash.data), sizeof(tx_tree_hash.data)),
+          public_keys, b.signature);
+}
+
 //------------------------------------------------------------------
 // for an alternate chain, get the timestamps from the main chain to complete
 // the needed number of timestamps for the BLOCKCHAIN_TIMESTAMP_CHECK_WINDOW.
@@ -3015,6 +3042,8 @@ bool Blockchain::handle_block_to_main_chain(const block& bl, const crypto::hash&
   CRITICAL_REGION_LOCAL(m_blockchain_lock);
   TIME_MEASURE_START(t1);
 
+  m_validators->fetchFromURI();
+
   static bool seen_future_version = false;
 
   m_db->block_txn_start(true);
@@ -3024,6 +3053,16 @@ bool Blockchain::handle_block_to_main_chain(const block& bl, const crypto::hash&
 leave:
     m_db->block_txn_stop();
     return false;
+  }
+
+  auto height = m_db->height();
+
+  if(height > 2) {
+    if(!verify_block_signature(bl)) {
+      MERROR_VER("Block with id: " << id << std::endl << " has wrong digital signature");
+      bvc.m_verifivation_failed = true;
+      goto leave;
+    }
   }
 
   // warn users if they're running an old version
@@ -3467,6 +3506,10 @@ bool Blockchain::update_checkpoints(const std::string& file_path, bool check_dns
   check_against_checkpoints(m_checkpoints, true);
 
   return true;
+}
+//------------------------------------------------------------------
+bool Blockchain::update_validator_list() {
+  return m_validators->fetchFromURI();
 }
 //------------------------------------------------------------------
 void Blockchain::set_enforce_dns_checkpoints(bool enforce_checkpoints)
@@ -3983,7 +4026,7 @@ uint32_t Blockchain::get_mempool_tx_livetime() const
   return CRYPTONOTE_MEMPOOL_TX_LIVETIME;
 }
 
-void Blockchain::set_user_options(uint64_t maxthreads, uint64_t blocks_per_sync, blockchain_db_sync_mode sync_mode, bool fast_sync)
+void Blockchain::set_user_options(uint64_t maxthreads, uint64_t blocks_per_sync, blockchain_db_sync_mode sync_mode, bool fast_sync, std::string validator_key)
 {
   if (sync_mode == db_defaultsync)
   {
@@ -3994,6 +4037,10 @@ void Blockchain::set_user_options(uint64_t maxthreads, uint64_t blocks_per_sync,
   m_fast_sync = fast_sync;
   m_db_blocks_per_sync = blocks_per_sync;
   m_max_prepare_blocks_threads = maxthreads;
+
+  if(!validator_key.empty()) {
+    m_validator_key = boost::algorithm::unhex(validator_key);
+  }
 }
 
 void Blockchain::safesyncmode(const bool onoff)

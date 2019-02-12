@@ -164,7 +164,7 @@ namespace cryptonote {
     if (high != 0 || low + time_span - 1 < low) {
       return 0;
     }
-    return (low + time_span - 1) / time_span;
+    return 20; //(low + time_span - 1) / time_span;
   }
 
 }

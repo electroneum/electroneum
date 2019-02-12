@@ -681,6 +681,9 @@ namespace cryptonote
       */
      bool update_checkpoints();
 
+
+     bool update_validator_list();
+
      /**
       * @brief tells the daemon to wind down operations and stop running
       *
@@ -742,6 +745,15 @@ namespace cryptonote
       * @return whether fluffy blocks are enabled
       */
      bool fluffy_blocks_enabled() const { return m_fluffy_blocks_enabled; }
+
+     /**
+      * @brief set validator key
+      *
+      * @param key: key to set as new validator key
+      *
+      * @return whether this new key was set or not
+      */
+     bool set_validator_key(std::string key);
 
    private:
 
@@ -937,8 +949,10 @@ namespace cryptonote
      std::string m_checkpoints_path; //!< path to json checkpoints file
      time_t m_last_dns_checkpoints_update; //!< time when dns checkpoints were last updated
      time_t m_last_json_checkpoints_update; //!< time when json checkpoints were last updated
+     time_t m_last_validator_list_update; //!< time when validator list were last updated
 
      std::atomic_flag m_checkpoints_updating; //!< set if checkpoints are currently updating to avoid multiple threads attempting to update at once
+     std::atomic_flag m_validator_list_updating; //!< set if validators are currently updating to avoid multiple threads attempting to update at once
      bool m_disable_dns_checkpoints;
 
      size_t block_sync_size;
