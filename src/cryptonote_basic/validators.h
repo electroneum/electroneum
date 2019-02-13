@@ -39,18 +39,21 @@
 #include "storages/portable_storage.h"
 #include "crypto/crypto.h"
 #include "cryptonote_protocol/cryptonote_protocol_handler_common.h"
+#include "math_helper.h"
 
 namespace electroneum {
   namespace basic {
     using namespace std;
     using namespace std::chrono;
     using namespace boost::algorithm;
+    using namespace epee::math_helper;
     using namespace epee::serialization;
 
     enum class ValidatorsState{
         Valid,
         Expired,
-        Invalid
+        Invalid,
+        Disabled
     };
 
     class Validator {
@@ -82,12 +85,15 @@ namespace electroneum {
         epee::net_utils::http::http_simple_client http_client;
         string endpoint_addr = "localhost";
         string endpoint_port = "3000";
+        string testnet_endpoint_addr = "localhost";
+        string testnet_endpoint_port = "3000";
         milliseconds endpoint_timeout = milliseconds(10000);
         string serialized_v_list;
-        ValidatorsState status = ValidatorsState::Expired;
+        ValidatorsState status = ValidatorsState::Disabled;
         time_t last_updated;
         uint32_t timeout = 60*60*12; //12 hours
         bool isInitial = true;
+        once_a_time_seconds<60, true> m_load_validators_interval;
 
         cryptonote::i_cryptonote_protocol* m_p2p;
 
@@ -101,8 +107,9 @@ namespace electroneum {
         void invalidate();
 
     public:
-        explicit Validators(cryptonote::i_cryptonote_protocol* pprotocol) {
-          this->http_client.set_server(this->endpoint_addr, this->endpoint_port, boost::none);
+        explicit Validators(cryptonote::i_cryptonote_protocol* pprotocol, bool testnet) {
+          testnet ? this->http_client.set_server(this->testnet_endpoint_addr, this->testnet_endpoint_port, boost::none) :
+                    this->http_client.set_server(this->endpoint_addr, this->endpoint_port, boost::none);
           this->m_p2p = pprotocol;
         };
 
@@ -151,12 +158,20 @@ namespace electroneum {
           return this->status == ValidatorsState::Valid;
         }
 
-        inline void on_idle() {
-          if(validate_expiration() == ValidatorsState::Valid) {
-            return;
-          }
+        inline bool isEnabled() {
+          return this->status != ValidatorsState::Disabled;
+        }
 
-          loadValidatorsList();
+        inline void enable() {
+          this->status = ValidatorsState::Expired;
+        }
+
+        inline void on_idle() {
+          if(this->status != ValidatorsState::Disabled) {
+            if(validate_expiration() != ValidatorsState::Valid) {
+              m_load_validators_interval.do_call(boost::bind(&Validators::loadValidatorsList, this));
+            }
+          }
         }
     };
   }
