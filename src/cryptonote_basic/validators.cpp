@@ -39,10 +39,6 @@ namespace electroneum {
 
         Validator::Validator() = default;
 
-        Validators::Validators() {
-            this->http_client.set_server(this->endpoint_addr, this->endpoint_port, boost::none);
-        };
-
         bool Validators::validate_and_update(electroneum::basic::v_list_struct res) {
           //Check against our hardcoded public-key to make sure it's a valid message
           if (res.public_key != "F669F5CDD45CE7C540A5E85CAB04F970A30E20D2C939FD5ACEB18280C9319C1D") {
@@ -68,7 +64,22 @@ namespace electroneum {
           this->last_updated = time(nullptr);
           this->status = ValidatorsState::Valid;
 
-          MGINFO_MAGENTA("Validators list successfully updated!");
+          if(this->isInitial) {
+            MGINFO_MAGENTA(ENDL << "**********************************************************************" << ENDL
+                                << "List of validator nodes was updated successfully." << ENDL
+                                << ENDL
+                                << "The daemon will start receiving/sending blocks accordingly." << ENDL
+                                << ENDL
+                                << "Only Validators have the right to mine blocks, but every node contributes" << ENDL
+                                << "to the network by verifying mined blocks according to latest consensus rules." << ENDL
+                                << ENDL
+                                << "This list will be refreshed in " << (this->timeout/(60*60)) << " hours." << ENDL
+                                << "**********************************************************************" << ENDL);
+            this->isInitial = false;
+          } else {
+            MGINFO_MAGENTA("Validators list successfully refreshed!");
+          }
+
           return true;
         }
 
@@ -116,8 +127,7 @@ namespace electroneum {
         }
 
         ValidatorsState Validators::validate_expiration() {
-          if(this->status == ValidatorsState::Valid && (time(nullptr) - this->last_updated) >= this->timeout) {
-            this->serialized_v_list = string("");
+          if((time(nullptr) - this->last_updated) >= this->timeout && this->status == ValidatorsState::Valid) {
             this->status = ValidatorsState::Expired;
           }
 

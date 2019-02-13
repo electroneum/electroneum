@@ -3049,7 +3049,7 @@ leave:
 
   auto height = m_db->height();
 
-  if(height > 2) {
+  if(height > 20) {
     if(!verify_block_signature(bl)) {
       MERROR_VER("Block with id: " << id << std::endl << " has wrong digital signature");
       bvc.m_verifivation_failed = true;
