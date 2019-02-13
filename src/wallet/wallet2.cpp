@@ -4071,7 +4071,7 @@ void wallet2::transfer_selected(const std::vector<cryptonote::tx_destination_ent
   uint64_t unlock_time, uint64_t fee, const std::vector<uint8_t>& extra, const tx_dust_policy& dust_policy, cryptonote::transaction& tx, pending_tx &ptx)
 {
   using namespace cryptonote;
-  bool split = (m_testnet && get_blockchain_current_height() > 8) || (!m_testnet && get_blockchain_current_height() > 475000);
+  bool split = (m_testnet && get_blockchain_current_height() > 600000) || (!m_testnet && get_blockchain_current_height() > 700000);
   auto destination_split_strategy = split ? tools::detail::null_split_strategy : tools::detail::digit_split_strategy;
   // throw if attempting a transaction with no destinations
   THROW_WALLET_EXCEPTION_IF(dsts.empty(), error::zero_destination);
@@ -4910,7 +4910,7 @@ void wallet2::transfer(const std::vector<cryptonote::tx_destination_entry>& dsts
     uint64_t unlock_time, uint64_t fee, const std::vector<uint8_t>& extra, const tx_dust_policy& dust_policy, cryptonote::transaction& tx, pending_tx &ptx, bool trusted_daemon)
   {
     using namespace cryptonote;
-    bool split = (m_testnet && get_blockchain_current_height() > 8) || (!m_testnet && get_blockchain_current_height() > 475000);
+    bool split = (m_testnet && get_blockchain_current_height() > 600000) || (!m_testnet && get_blockchain_current_height() > 700000);
     auto destination_split_strategy = split ? tools::detail::null_split_strategy : tools::detail::digit_split_strategy;
     // throw if attempting a transaction with no destinations
     THROW_WALLET_EXCEPTION_IF(dsts.empty(), error::zero_destination);
