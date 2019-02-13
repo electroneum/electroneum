@@ -460,8 +460,12 @@ namespace cryptonote
     r = m_miner.init(vm, m_testnet);
     CHECK_AND_ASSERT_MES(r, false, "Failed to initialize miner instance");
 
-    m_validators = std::unique_ptr<electroneum::basic::Validators>(new electroneum::basic::Validators(m_pprotocol));
+    m_validators = std::unique_ptr<electroneum::basic::Validators>(new electroneum::basic::Validators(m_pprotocol, m_testnet));
     m_blockchain_storage.set_validators_list_instance(m_validators);
+
+    if(m_blockchain_storage.get_current_blockchain_height() >= 20 - 5) { //V8 Height - 1 day
+      m_validators->enable();
+    }
 
     return load_state_data();
   }
@@ -1079,10 +1083,6 @@ namespace cryptonote
     // load json & DNS checkpoints every 10min/hour respectively,
     // and verify them with respect to what blocks we already have
     CHECK_AND_ASSERT_MES(update_checkpoints(), false, "One or more checkpoints loaded from json or dns conflicted with existing checkpoints.");
-    if(!m_validators->isValid()) {
-      bvc.m_validator_list_update_failed = true;
-      return false;
-    }
 
     bvc = boost::value_initialized<block_verification_context>();
     if(block_blob.size() > get_max_block_size())
@@ -1099,6 +1099,16 @@ namespace cryptonote
       bvc.m_verifivation_failed = true;
       return false;
     }
+
+    if(b.minor_version >= 8 && !m_validators->isEnabled()) {
+      m_validators->enable();
+    }
+
+    if(b.major_version >= 8 && !m_validators->isValid()) {
+      bvc.m_validator_list_update_failed = true;
+      return false;
+    }
+
     add_new_block(b, bvc);
     if(update_miner_blocktemplate && bvc.m_added_to_main_chain)
        update_miner_block_template();
