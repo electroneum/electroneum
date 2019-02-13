@@ -1316,7 +1316,9 @@ bool Blockchain::create_block_template(block& b, const account_public_address& m
         ", cumulative size " << cumulative_size << " is now good");
 #endif
 
-    sign_block(b, m_validator_key);
+    if(hf_version >= 8) {
+      sign_block(b, m_validator_key);
+    }
 
     return true;
   }
@@ -3050,9 +3052,7 @@ leave:
     return false;
   }
 
-  auto height = m_db->height();
-
-  if(height > 20) {
+  if(bl.major_version >= 8) {
     if(!verify_block_signature(bl)) {
       MERROR_VER("Block with id: " << id << std::endl << " has wrong digital signature");
       bvc.m_verifivation_failed = true;

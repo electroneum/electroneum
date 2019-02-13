@@ -447,7 +447,7 @@ namespace cryptonote
         CRITICAL_REGION_BEGIN(m_template_lock);
         b = m_template;
 
-        if(b.signature.empty()) {
+        if(b.major_version >= 8 && b.signature.empty()) {
           continue;
         }
 

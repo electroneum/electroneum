@@ -70,8 +70,8 @@ namespace electroneum {
                                 << ENDL
                                 << "The daemon will start receiving/sending blocks accordingly." << ENDL
                                 << ENDL
-                                << "Only Validators have the right to mine blocks, but every node contributes" << ENDL
-                                << "to the network by verifying mined blocks according to latest consensus rules." << ENDL
+                                << "From Electroneum V8, only Validators have the right to mine blocks but every node still" << ENDL
+                                << "contributes to the network by verifying mined blocks according to latest consensus rules." << ENDL
                                 << ENDL
                                 << "This list will be refreshed in " << (this->timeout/(60*60)) << " hours." << ENDL
                                 << "**********************************************************************" << ENDL);
