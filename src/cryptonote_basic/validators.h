@@ -38,6 +38,7 @@
 #include "storages/http_abstract_invoke.h"
 #include "storages/portable_storage.h"
 #include "crypto/crypto.h"
+#include "cryptonote_protocol/cryptonote_protocol_handler_common.h"
 
 namespace electroneum {
   namespace basic {
@@ -45,7 +46,6 @@ namespace electroneum {
     using namespace std::chrono;
     using namespace boost::algorithm;
     using namespace epee::serialization;
-    using namespace epee::net_utils;
 
     enum class ValidatorsState{
         Valid,
@@ -79,15 +79,17 @@ namespace electroneum {
     class Validators {
     private:
         vector<Validator *> list;
-        http::http_simple_client http_client;
+        epee::net_utils::http::http_simple_client http_client;
         string endpoint_addr = "localhost";
         string endpoint_port = "3000";
         milliseconds endpoint_timeout = milliseconds(10000);
         string serialized_v_list;
         ValidatorsState status = ValidatorsState::Expired;
         time_t last_updated;
-        uint32_t timeout = 3600; //In Seconds
-        bool _addOrUpdate_lock = false;
+        uint32_t timeout = 60*60*12; //12 hours
+        bool isInitial = true;
+
+        cryptonote::i_cryptonote_protocol* m_p2p;
 
         void add(const string &key, uint64_t startHeight, uint64_t endHeight);
         void addOrUpdate(const string &key, uint64_t startHeight, uint64_t endHeight);
@@ -99,7 +101,10 @@ namespace electroneum {
         void invalidate();
 
     public:
-        Validators();
+        explicit Validators(cryptonote::i_cryptonote_protocol* pprotocol) {
+          this->http_client.set_server(this->endpoint_addr, this->endpoint_port, boost::none);
+          this->m_p2p = pprotocol;
+        };
 
         inline vector<string> getApplicablePublicKeys(uint64_t height, bool convert_to_byte = false) {
           vector<string> keys;
@@ -118,13 +123,11 @@ namespace electroneum {
           v_list_struct_request req = AUTO_VAL_INIT(req);
           v_list_struct res = AUTO_VAL_INIT(res);
 
-          validate_expiration();
-
           if(this->status == ValidatorsState::Invalid || this->status == ValidatorsState::Expired) {
-            MGINFO_MAGENTA("Getting list of validators...");
             if (!invoke_http_json("/", req, res, this->http_client, this->endpoint_timeout)) {
               LOG_PRINT_L1("Unable to get validator_list json from " << this->endpoint_addr << ":" << this->endpoint_port);
-              return false;
+
+              return m_p2p->request_validators_list_to_all();
             }
 
             return validate_and_update(res);
@@ -146,6 +149,14 @@ namespace electroneum {
 
         inline bool isValid() {
           return this->status == ValidatorsState::Valid;
+        }
+
+        inline void on_idle() {
+          if(validate_expiration() == ValidatorsState::Valid) {
+            return;
+          }
+
+          loadValidatorsList();
         }
     };
   }

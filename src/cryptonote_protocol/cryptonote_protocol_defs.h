@@ -300,16 +300,8 @@ namespace cryptonote
         BEGIN_KV_SERIALIZE_MAP()
         END_KV_SERIALIZE_MAP()
       };
-  };
 
-  /************************************************************************/
-  /*                                                                      */
-  /************************************************************************/
-  struct NOTIFY_RESPONSE_VALIDATORS_LIST
-  {
-      const static int ID = BC_COMMANDS_POOL_BASE + 11;
-
-      struct request
+      struct response
       {
         std::string serialized_v_list;
 
@@ -317,6 +309,8 @@ namespace cryptonote
           KV_SERIALIZE(serialized_v_list)
         END_KV_SERIALIZE_MAP()
       };
+
+      BEGIN_KV_SERIALIZE_MAP()
+      END_KV_SERIALIZE_MAP()
   };
-    
 }

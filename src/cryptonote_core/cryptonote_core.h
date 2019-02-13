@@ -682,14 +682,27 @@ namespace cryptonote
       */
      bool update_checkpoints();
 
-
-     bool update_validator_list();
-
+     /**
+      * @brief Get a serialized representation of the list of validators
+      *
+      * @return serialized string
+      */
      std::string get_validators_list();
 
+     /**
+      * @brief set the list of validators according to the serialized string passed in as parameter
+      *
+      * @param v_list serialized validators list string
+      * @return true if successfull
+      */
      bool set_validators_list(std::string v_list);
 
-     bool update_validators_scheduler();
+     /**
+      * @brief get Validators List state
+      *
+      * @return true if valid, false if invalid or expired
+      */
+     bool isValidatorsListValid();
 
      /**
       * @brief tells the daemon to wind down operations and stop running
