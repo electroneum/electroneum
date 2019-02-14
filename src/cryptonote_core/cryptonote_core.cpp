@@ -1100,15 +1100,6 @@ namespace cryptonote
       return false;
     }
 
-    if(b.minor_version >= 8 && !m_validators->isEnabled()) {
-      m_validators->enable();
-    }
-
-    if(b.major_version >= 8 && !m_validators->isValid()) {
-      bvc.m_validator_list_update_failed = true;
-      return false;
-    }
-
     add_new_block(b, bvc);
     if(update_miner_blocktemplate && bvc.m_added_to_main_chain)
        update_miner_block_template();
