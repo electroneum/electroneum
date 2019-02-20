@@ -1416,7 +1416,9 @@ namespace cryptonote
       return false;
     }
 
+    m_miner.pause();
     m_blockchain_storage.set_validator_key(key);
+    m_miner.resume();
 
     return true;
   }
