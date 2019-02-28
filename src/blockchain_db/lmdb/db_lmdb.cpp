@@ -200,6 +200,8 @@ const char* const LMDB_TXPOOL_BLOB = "txpool_blob";
 const char* const LMDB_HF_STARTING_HEIGHTS = "hf_starting_heights";
 const char* const LMDB_HF_VERSIONS = "hf_versions";
 
+const char* const LMDB_VALIDATORS = "validators";
+
 const char* const LMDB_PROPERTIES = "properties";
 
 const char zerokey[8] = {0};
@@ -1056,6 +1058,29 @@ tx_out BlockchainLMDB::output_from_blob(const blobdata& blob) const
   return o;
 }
 
+blobdata BlockchainLMDB::validator_to_blob(const validator_db& v) const
+{
+  LOG_PRINT_L3("BlockchainLMDB::" << __func__);
+  blobdata b;
+  if (!t_serializable_object_to_blob(v, b))
+    throw1(DB_ERROR("Error serializing validator to blob"));
+  return b;
+}
+
+validator_db BlockchainLMDB::validator_from_blob(const blobdata& blob) const
+{
+  LOG_PRINT_L3("BlockchainLMDB::" << __func__);
+  std::stringstream ss;
+  ss << blob;
+  binary_archive<false> ba(ss);
+  validator_db o;
+
+  if (!(::serialization::serialize(ba, o)))
+    throw1(DB_ERROR("Error deserializing validator blob"));
+
+  return o;
+}
+
 void BlockchainLMDB::check_open() const
 {
 //  LOG_PRINT_L3("BlockchainLMDB::" << __func__);
@@ -1200,6 +1225,8 @@ void BlockchainLMDB::open(const std::string& filename, const int db_flags)
     lmdb_db_open(txn, LMDB_HF_STARTING_HEIGHTS, MDB_CREATE, m_hf_starting_heights, "Failed to open db handle for m_hf_starting_heights");
 
   lmdb_db_open(txn, LMDB_HF_VERSIONS, MDB_INTEGERKEY | MDB_CREATE, m_hf_versions, "Failed to open db handle for m_hf_versions");
+
+  lmdb_db_open(txn, LMDB_VALIDATORS, MDB_INTEGERKEY | MDB_CREATE, m_validators, "Failed to open db handle for m_validators");
 
   lmdb_db_open(txn, LMDB_PROPERTIES, MDB_CREATE, m_properties, "Failed to open db handle for m_properties");
 
@@ -1362,6 +1389,8 @@ void BlockchainLMDB::reset()
   (void)mdb_drop(txn, m_hf_starting_heights, 0); // this one is dropped in new code
   if (auto result = mdb_drop(txn, m_hf_versions, 0))
     throw0(DB_ERROR(lmdb_error("Failed to drop m_hf_versions: ", result).c_str()));
+  if (auto result = mdb_drop(txn, m_validators, 0))
+    throw0(DB_ERROR(lmdb_error("Failed to drop m_validators: ", result).c_str()));
   if (auto result = mdb_drop(txn, m_properties, 0))
     throw0(DB_ERROR(lmdb_error("Failed to drop m_properties: ", result).c_str()));
 
@@ -1859,7 +1888,7 @@ size_t BlockchainLMDB::get_block_weight(const uint64_t& height) const
   TXN_POSTFIX_RDONLY();
   return ret;
 }
-
+//
 void BlockchainLMDB::set_block_cumulative_difficulty(uint64_t height, difficulty_type diff)
 {
   LOG_PRINT_L3("BlockchainLMDB::" << __func__ << "  height: " << height);
@@ -3169,6 +3198,55 @@ void BlockchainLMDB::drop_hard_fork_info()
   mdb_drop(*txn_ptr, m_hf_versions, 1);
 
   TXN_POSTFIX_SUCCESS();
+}
+
+void BlockchainLMDB::set_validator_list(std::string validator_list, uint32_t expiration_date) {
+  LOG_PRINT_L3("BlockchainLMDB::" << __func__);
+  check_open();
+
+  TXN_BLOCK_PREFIX(0);
+
+  validator_db v;
+  v.validators = validator_list;
+  v.expiration_date = expiration_date;
+
+  MDB_val_copy<uint64_t> val_key(0);
+  MDB_val_copy<blobdata> val_value(validator_to_blob(v));
+
+  int result = mdb_put(*txn_ptr, m_validators, &val_key, &val_value, MDB_APPEND);
+  if (result == MDB_KEYEXIST)
+    result = mdb_put(*txn_ptr, m_validators, &val_key, &val_value, 0);
+  if (result)
+    throw1(DB_ERROR(lmdb_error("Error adding validator list to db transaction: ", result).c_str()));
+
+  TXN_BLOCK_POSTFIX_SUCCESS();
+}
+
+std::string BlockchainLMDB::get_validator_list() const {
+  LOG_PRINT_L3("BlockchainLMDB::" << __func__);
+  check_open();
+
+  TXN_PREFIX_RDONLY();
+  RCURSOR(validators);
+
+  MDB_val_copy<uint64_t> val_key(0);
+  MDB_val val_ret;
+  auto result = mdb_cursor_get(m_cur_validators, &val_key, &val_ret, MDB_SET);
+  if (result == MDB_NOTFOUND || result)
+    throw0(DB_ERROR(lmdb_error("Error attempting to retrieve the list of validators from the db: ", result).c_str()));
+
+  blobdata ret;
+  ret.assign(reinterpret_cast<const char*>(val_ret.mv_data), val_ret.mv_size);
+
+  validator_db v = validator_from_blob(ret);
+
+  if((v.expiration_date) - time(nullptr) <= 0) {
+    TXN_POSTFIX_RDONLY();
+    return std::string("");
+  }
+
+  TXN_POSTFIX_RDONLY();
+  return v.validators;
 }
 
 void BlockchainLMDB::set_hard_fork_version(uint64_t height, uint8_t version)

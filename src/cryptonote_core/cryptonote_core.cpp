@@ -460,7 +460,7 @@ namespace cryptonote
     r = m_miner.init(vm, m_testnet);
     CHECK_AND_ASSERT_MES(r, false, "Failed to initialize miner instance");
 
-    m_validators = std::unique_ptr<electroneum::basic::Validators>(new electroneum::basic::Validators(m_pprotocol, m_testnet));
+    m_validators = std::unique_ptr<electroneum::basic::Validators>(new electroneum::basic::Validators(*db, m_pprotocol, m_testnet));
     m_blockchain_storage.set_validators_list_instance(m_validators);
 
     if(m_blockchain_storage.get_current_blockchain_height() >= 20 - 5) { //V8 Height - 1 day
