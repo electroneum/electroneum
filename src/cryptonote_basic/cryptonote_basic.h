@@ -159,6 +159,16 @@ namespace cryptonote
 
   };
 
+  struct validator_db {
+    uint64_t expiration_date;
+    std::string validators;
+
+    BEGIN_SERIALIZE_OBJECT()
+      VARINT_FIELD(expiration_date)
+      FIELD(validators)
+    END_SERIALIZE()
+  };
+
   class transaction_prefix
   {
 

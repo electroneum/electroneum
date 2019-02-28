@@ -972,7 +972,6 @@ namespace cryptonote
      time_t m_last_json_checkpoints_update; //!< time when json checkpoints were last updated
 
      std::atomic_flag m_checkpoints_updating; //!< set if checkpoints are currently updating to avoid multiple threads attempting to update at once
-     std::atomic_flag m_validator_list_updating; //!< set if validators are currently updating to avoid multiple threads attempting to update at once
      bool m_disable_dns_checkpoints;
 
      size_t block_sync_size;

@@ -40,6 +40,7 @@
 #include "crypto/crypto.h"
 #include "cryptonote_protocol/cryptonote_protocol_handler_common.h"
 #include "math_helper.h"
+#include "blockchain_db/blockchain_db.h"
 
 namespace electroneum {
   namespace basic {
@@ -91,9 +92,10 @@ namespace electroneum {
         string serialized_v_list;
         ValidatorsState status = ValidatorsState::Disabled;
         time_t last_updated;
-        uint32_t timeout = 60*60*12; //12 hours
+        uint32_t timeout = 60; //*60*12; //12 hours
         bool isInitial = true;
         once_a_time_seconds<60, true> m_load_validators_interval;
+        cryptonote::BlockchainDB &m_db;
 
         cryptonote::i_cryptonote_protocol* m_p2p;
 
@@ -102,12 +104,12 @@ namespace electroneum {
         void update(const string &key, uint64_t endHeight);
         Validator* find(const string &key);
         bool exists(const string &key);
-        bool validate_and_update(v_list_struct res);
+        bool validate_and_update(v_list_struct res, bool saveToDB = false);
         ValidatorsState validate_expiration();
         void invalidate();
 
     public:
-        explicit Validators(cryptonote::i_cryptonote_protocol* pprotocol, bool testnet) {
+        explicit Validators(cryptonote::BlockchainDB &db, cryptonote::i_cryptonote_protocol* pprotocol, bool testnet) : m_db(db) {
           testnet ? this->http_client.set_server(this->testnet_endpoint_addr, this->testnet_endpoint_port, boost::none) :
                     this->http_client.set_server(this->endpoint_addr, this->endpoint_port, boost::none);
           this->m_p2p = pprotocol;
@@ -130,11 +132,23 @@ namespace electroneum {
           v_list_struct_request req = AUTO_VAL_INIT(req);
           v_list_struct res = AUTO_VAL_INIT(res);
 
+          // Try fetching list of validators from JSON endpoint
           if(this->status == ValidatorsState::Invalid || this->status == ValidatorsState::Expired) {
             if (!invoke_http_json("/", req, res, this->http_client, this->endpoint_timeout)) {
               LOG_PRINT_L1("Unable to get validator_list json from " << this->endpoint_addr << ":" << this->endpoint_port);
 
-              return m_p2p->request_validators_list_to_all();
+              // Try getting list of validators from peers
+              if(m_p2p->request_validators_list_to_all()) {
+                return true;
+              }
+
+              // Try getting list of validators from db
+              string v = m_db.get_validator_list();
+              if(!v.empty()) {
+                return setValidatorsList(v, true);
+              }
+
+              return false;
             }
 
             return validate_and_update(res);
@@ -147,11 +161,11 @@ namespace electroneum {
           return this->serialized_v_list;
         }
 
-        inline bool setValidatorsList(const string &v_list) {
+        inline bool setValidatorsList(const string &v_list, bool saveToDB = false) {
           v_list_struct res = AUTO_VAL_INIT(res);
           load_t_from_json(res, v_list);
 
-          return validate_and_update(res);
+          return validate_and_update(res, saveToDB);
         }
 
         inline bool isValid() {

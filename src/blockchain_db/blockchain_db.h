@@ -1481,6 +1481,10 @@ public:
    */
   virtual uint8_t get_hard_fork_version(uint64_t height) const = 0;
 
+  virtual void set_validator_list(std::string, uint32_t expiration_date) = 0;
+
+  virtual std::string get_validator_list() const = 0;
+
   /**
    * @brief verify hard fork info in database
    */

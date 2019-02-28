@@ -39,7 +39,7 @@ namespace electroneum {
 
         Validator::Validator() = default;
 
-        bool Validators::validate_and_update(electroneum::basic::v_list_struct res) {
+        bool Validators::validate_and_update(electroneum::basic::v_list_struct res, bool saveToDB) {
           //Check against our hardcoded public-key to make sure it's a valid message
           if (res.public_key != "F669F5CDD45CE7C540A5E85CAB04F970A30E20D2C939FD5ACEB18280C9319C1D") {
             LOG_PRINT_L1("Validator list has invalid public_key.");
@@ -78,6 +78,10 @@ namespace electroneum {
             this->isInitial = false;
           } else {
             MGINFO_MAGENTA("Validators list successfully refreshed!");
+          }
+
+          if(saveToDB) {
+            m_db.set_validator_list(this->serialized_v_list, this->last_updated + this->timeout);
           }
 
           return true;
