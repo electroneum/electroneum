@@ -125,6 +125,10 @@ public:
   virtual cryptonote::blobdata get_txpool_tx_blob(const crypto::hash& txid) const { return ""; }
   virtual bool for_all_txpool_txes(std::function<bool(const crypto::hash&, const txpool_tx_meta_t&, const cryptonote::blobdata*)>, bool include_blob = false) const { return false; }
 
+  virtual void set_validator_list(std::string, uint32_t expiration_date) { };
+  virtual std::string get_validator_list() const { return ""; };
+  virtual bool isValidatorsListValid() {return true; };
+
   virtual void add_block( const block& blk
                         , const size_t& block_size
                         , const difficulty_type& cumulative_difficulty

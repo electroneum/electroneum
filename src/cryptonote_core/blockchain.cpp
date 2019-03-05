@@ -92,7 +92,7 @@ static const struct {
   { 1, 1, 0, 1341378000 },
   { 6, 307500, 0, 1538815057 }, //1538815057
   { 7, 324500, 0, 1538985600 }, // Estimated July 5th, 8:30AM UTC
-  { 8, 501000, 0, 1551873600 },
+  { 8, 700000, 0, 1551873600 },
 };
 static const uint64_t mainnet_hard_fork_version_1_till = 307499;
 
@@ -106,14 +106,14 @@ static const struct {
   { 1, 1, 0, 1341378000 },
   { 6, 190060, 0, 1523263057 },
   { 7, 215000, 0, 1530615600 },
-  { 8, 364000, 0, 1549022400 }
+  { 8, 600000, 0, 1549022400 }
 };
 static const uint64_t testnet_hard_fork_version_1_till = 190059;
 
 //------------------------------------------------------------------
 Blockchain::Blockchain(tx_memory_pool& tx_pool) :
   m_db(), m_tx_pool(tx_pool), m_hardfork(NULL), m_timestamps_and_difficulties_height(0), m_current_block_cumul_sz_limit(0),
-  m_enforce_dns_checkpoints(false), m_max_prepare_blocks_threads(4), m_db_blocks_per_sync(1), m_db_sync_mode(db_async), m_db_default_sync(false), m_fast_sync(true), m_show_time_stats(false), m_sync_counter(0), m_cancel(false)
+  m_enforce_dns_checkpoints(false), m_max_prepare_blocks_threads(4), m_db_blocks_per_sync(1), m_db_sync_mode(db_async), m_db_default_sync(false), m_fast_sync(true), m_show_time_stats(false), m_sync_counter(0), m_cancel(false), m_validator_key("")
 {
   LOG_PRINT_L3("Blockchain::" << __func__);
 }
@@ -746,7 +746,7 @@ difficulty_type Blockchain::get_difficulty_for_next_block()
 
   const uint64_t v6height = m_testnet ? 190060 : 307500;
   const uint64_t v7height = m_testnet ? 215000 : 324500;
-  const uint64_t v8height = m_testnet ? 364000 : 501000;
+  const uint64_t v8height = m_testnet ? 600000 : 700000;
 
   uint32_t difficultyBlocksCount = (height >= v6height && height < v7height) ? DIFFICULTY_BLOCKS_COUNT_V6 : DIFFICULTY_BLOCKS_COUNT;
 
@@ -813,11 +813,11 @@ difficulty_type Blockchain::get_difficulty_for_next_block()
 void Blockchain::normalize_v7_difficulties() {
 
   auto height = m_db->height();
-  const uint64_t v8height = m_testnet ? 364000 : 501000;
-  
+  const uint64_t v8height = m_testnet ? 600000 : 700000;
+
   if(height != v8height) {
     return;
-  }  
+  }
 
   const uint64_t v7height = m_testnet ? 215000 : 324500;
   const size_t V7_DIFFICULTY_BLOCKS_COUNT = 735;
@@ -1329,11 +1329,37 @@ bool Blockchain::create_block_template(block& b, const account_public_address& m
     MDEBUG("Creating block template: miner tx size " << coinbase_blob_size <<
         ", cumulative size " << cumulative_size << " is now good");
 #endif
+
+    if(hf_version >= 8) {
+      sign_block(b, m_validator_key);
+    }
+
     return true;
   }
   LOG_ERROR("Failed to create_block_template with " << 10 << " tries");
   return false;
 }
+
+void Blockchain::sign_block(block& b, const std::string privateKey) {
+  crypto::hash tx_tree_hash = get_tx_tree_hash(b);
+
+  std::string signature = crypto::sign_message(std::string(reinterpret_cast<char const*>(tx_tree_hash.data), sizeof(tx_tree_hash.data)), privateKey);
+  if(signature.empty() || signature.size() != 64) {
+    LOG_ERROR("The daemon have failed to digitally sign a recently mined block and it won't be accepted by the network. Please check your validator-key configuration before resume mining.");
+    return;
+  }
+
+  b.signature = signature;
+}
+
+bool Blockchain::verify_block_signature(const block& b) {
+  crypto::hash tx_tree_hash = get_tx_tree_hash(b);
+  const std::vector<std::string> public_keys = m_validators->getApplicablePublicKeys(m_db->height(), true);
+
+  return crypto::verify_signature(std::string(reinterpret_cast<char const*>(tx_tree_hash.data), sizeof(tx_tree_hash.data)),
+          public_keys, b.signature);
+}
+
 //------------------------------------------------------------------
 // for an alternate chain, get the timestamps from the main chain to complete
 // the needed number of timestamps for the BLOCKCHAIN_TIMESTAMP_CHECK_WINDOW.
@@ -3040,6 +3066,14 @@ leave:
     return false;
   }
 
+  if(bl.major_version >= 8) {
+    if(!verify_block_signature(bl)) {
+      MERROR_VER("Block with id: " << id << std::endl << " has wrong digital signature");
+      bvc.m_verifivation_failed = true;
+      goto leave;
+    }
+  }
+
   // warn users if they're running an old version
   if (!seen_future_version && bl.major_version > m_hardfork->get_ideal_version())
   {
@@ -3997,7 +4031,7 @@ uint32_t Blockchain::get_mempool_tx_livetime() const
   return CRYPTONOTE_MEMPOOL_TX_LIVETIME;
 }
 
-void Blockchain::set_user_options(uint64_t maxthreads, uint64_t blocks_per_sync, blockchain_db_sync_mode sync_mode, bool fast_sync)
+void Blockchain::set_user_options(uint64_t maxthreads, uint64_t blocks_per_sync, blockchain_db_sync_mode sync_mode, bool fast_sync, std::string validator_key)
 {
   if (sync_mode == db_defaultsync)
   {
@@ -4008,6 +4042,10 @@ void Blockchain::set_user_options(uint64_t maxthreads, uint64_t blocks_per_sync,
   m_fast_sync = fast_sync;
   m_db_blocks_per_sync = blocks_per_sync;
   m_max_prepare_blocks_threads = maxthreads;
+
+  if(!validator_key.empty()) {
+    m_validator_key = boost::algorithm::unhex(validator_key);
+  }
 }
 
 void Blockchain::safesyncmode(const bool onoff)

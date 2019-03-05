@@ -446,6 +446,11 @@ namespace cryptonote
       {
         CRITICAL_REGION_BEGIN(m_template_lock);
         b = m_template;
+
+        if(b.major_version >= 8 && b.signature.empty()) {
+          continue;
+        }
+
         local_diff = m_diffic;
         height = m_height;
         CRITICAL_REGION_END();

@@ -40,7 +40,8 @@ set(cryptonote_basic_sources
   cryptonote_format_utils.cpp
   difficulty.cpp
   hardfork.cpp
-  miner.cpp)
+  miner.cpp
+  validators.cpp)
 
 set(cryptonote_basic_headers)
 
@@ -58,7 +59,9 @@ set(cryptonote_basic_private_headers
   hardfork.h
   miner.h
   tx_extra.h
-  verification_context.h)
+  verification_context.h
+  validators.h
+  validators_commands_defs.h)
 
 electroneum_private_headers(cryptonote_basic
   ${crypto_private_headers})

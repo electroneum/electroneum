@@ -409,6 +409,56 @@ namespace cryptonote
 
     return 1;
   }
+
+  template<class t_core>
+  bool t_cryptonote_protocol_handler<t_core>::request_validators_list(cryptonote_connection_context& context) {
+    NOTIFY_REQUEST_VALIDATORS_LIST::request r = AUTO_VAL_INIT(r);
+    std::string arg_buff = epee::serialization::store_t_to_binary(r);
+    std::string res_buff;
+    m_p2p->invoke_command_to_peer(NOTIFY_REQUEST_VALIDATORS_LIST::ID, arg_buff, res_buff, context);
+    if(!res_buff.empty()) {
+      NOTIFY_REQUEST_VALIDATORS_LIST::response res = AUTO_VAL_INIT(res);
+      epee::serialization::load_t_from_binary(res, res_buff);
+      if(!res.serialized_v_list.empty()) {
+        if(m_core.set_validators_list(res.serialized_v_list)) {
+          return true;
+        } else {
+          LOG_ERROR_CCONTEXT("Received invalid Validators List. Dropping connection.");
+          drop_connection(context, false, false);
+        }
+      }
+    }
+    return false;
+  }
+
+  template<class t_core>
+  bool t_cryptonote_protocol_handler<t_core>::request_validators_list_to_all()
+  {
+    m_p2p->for_each_connection([&](cryptonote_connection_context& context, nodetool::peerid_type peer_id, uint32_t support_flags)->bool {
+      if (context.m_state >= cryptonote_connection_context::state_before_handshake && !m_core.isValidatorsListValid()) {
+        request_validators_list(context);
+      }
+      return true;
+    });
+
+    return m_core.isValidatorsListValid();
+  }
+
+  template<class t_core>
+  bool t_cryptonote_protocol_handler<t_core>::handle_request_validators_list(int command, NOTIFY_REQUEST_VALIDATORS_LIST::request& req, NOTIFY_REQUEST_VALIDATORS_LIST::response& res, cryptonote_connection_context& context)
+  {
+    MLOG_P2P_MESSAGE("Received NOTIFY_REQUEST_VALIDATORS_LIST");
+    res.serialized_v_list = m_core.get_validators_list();
+
+    //let the socket to send response to handshake, but request callback, to let send request data after response
+    LOG_PRINT_CCONTEXT_L2("requesting callback");
+    ++context.m_callback_request_count;
+    context.m_state = cryptonote_connection_context::state_normal;
+    m_p2p->request_callback(context);
+
+    return true;
+  }
+
   //------------------------------------------------------------------------------------------------------------------------
   template<class t_core>
   int t_cryptonote_protocol_handler<t_core>::handle_notify_new_fluffy_block(int command, NOTIFY_NEW_FLUFFY_BLOCK::request& arg, cryptonote_connection_context& context)
@@ -675,7 +725,7 @@ namespace cryptonote
           m_core.get_short_chain_history(r.block_ids);
           LOG_PRINT_CCONTEXT_L2("-->>NOTIFY_REQUEST_CHAIN: m_block_ids.size()=" << r.block_ids.size() );
           post_notify<NOTIFY_REQUEST_CHAIN>(r, context);
-        }            
+        }
       }
     } 
     else
@@ -1137,6 +1187,17 @@ skip:
               }
 
               // in case the peer had dropped beforehand, remove the span anyway so other threads can wake up and get it
+              m_block_queue.remove_spans(span_connection_id, start_height);
+              return 1;
+            }
+            if(bvc.m_validator_list_update_failed)
+            {
+              if (!m_core.cleanup_handle_incoming_blocks())
+              {
+                LOG_PRINT_CCONTEXT_L0("Failure in cleanup_handle_incoming_blocks");
+                return 1;
+              }
+
               m_block_queue.remove_spans(span_connection_id, start_height);
               return 1;
             }

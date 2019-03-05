@@ -49,6 +49,7 @@
 #include "cryptonote_basic/cryptonote_stat_info.h"
 #include "warnings.h"
 #include "crypto/hash.h"
+#include "cryptonote_basic/validators.h"
 
 PUSH_WARNINGS
 DISABLE_VS_WARNINGS(4355)
@@ -682,6 +683,28 @@ namespace cryptonote
      bool update_checkpoints();
 
      /**
+      * @brief Get a serialized representation of the list of validators
+      *
+      * @return serialized string
+      */
+     std::string get_validators_list();
+
+     /**
+      * @brief set the list of validators according to the serialized string passed in as parameter
+      *
+      * @param v_list serialized validators list string
+      * @return true if successfull
+      */
+     bool set_validators_list(std::string v_list);
+
+     /**
+      * @brief get Validators List state
+      *
+      * @return true if valid, false if invalid or expired
+      */
+     bool isValidatorsListValid();
+
+     /**
       * @brief tells the daemon to wind down operations and stop running
       *
       * Currently this function raises SIGTERM, allowing the installed signal
@@ -742,6 +765,15 @@ namespace cryptonote
       * @return whether fluffy blocks are enabled
       */
      bool fluffy_blocks_enabled() const { return m_fluffy_blocks_enabled; }
+
+     /**
+      * @brief set validator key
+      *
+      * @param key: key to set as new validator key
+      *
+      * @return whether this new key was set or not
+      */
+     bool set_validator_key(std::string key);
 
    private:
 
@@ -925,6 +957,7 @@ namespace cryptonote
      epee::math_helper::once_a_time_seconds<60*60*2, true> m_fork_moaner; //!< interval for checking HardFork status
      epee::math_helper::once_a_time_seconds<60*2, false> m_txpool_auto_relayer; //!< interval for checking re-relaying txpool transactions
      epee::math_helper::once_a_time_seconds<60*60*12, true> m_check_updates_interval; //!< interval for checking for new versions
+     epee::math_helper::once_a_time_seconds<60*2, true> m_check_validators_interval;
 
      std::atomic<bool> m_starter_message_showed; //!< has the "daemon will sync now" message been shown?
 
@@ -949,6 +982,8 @@ namespace cryptonote
      boost::mutex bad_semantics_txes_lock;
 
      tools::thread_group m_threadpool;
+
+     std::unique_ptr<electroneum::basic::Validators> m_validators;
 
      enum {
        UPDATES_DISABLED,

@@ -63,6 +63,8 @@ DISABLE_VS_WARNINGS(4355)
 namespace cryptonote
 {
 
+  //using namespace electroneum::basic;
+
   //-----------------------------------------------------------------------------------------------
   core::core(i_cryptonote_protocol* pprotocol):
               m_mempool(m_blockchain_storage),
@@ -133,6 +135,18 @@ namespace cryptonote
     return res;
   }
   //-----------------------------------------------------------------------------------
+  std::string core::get_validators_list() {
+    return m_validators->getSerializedValidatorList();
+  }
+  //-----------------------------------------------------------------------------------
+  bool core::set_validators_list(std::string v_list) {
+    return m_validators->setValidatorsList(v_list);
+  }
+
+  bool core::isValidatorsListValid() {
+    return m_validators->isValid();
+  }
+  //-----------------------------------------------------------------------------------
   void core::stop()
   {
     m_blockchain_storage.cancel();
@@ -157,11 +171,8 @@ namespace cryptonote
 
     command_line::add_arg(desc, command_line::arg_testnet_on);
     command_line::add_arg(desc, command_line::arg_dns_checkpoints);
-    command_line::add_arg(desc, command_line::arg_db_type);
     command_line::add_arg(desc, command_line::arg_prep_blocks_threads);
     command_line::add_arg(desc, command_line::arg_fast_block_sync);
-    command_line::add_arg(desc, command_line::arg_db_sync_mode);
-    command_line::add_arg(desc, command_line::arg_db_salvage);
     command_line::add_arg(desc, command_line::arg_show_time_stats);
     command_line::add_arg(desc, command_line::arg_block_sync_size);
     command_line::add_arg(desc, command_line::arg_check_updates);
@@ -172,6 +183,7 @@ namespace cryptonote
     command_line::add_arg(desc, nodetool::arg_p2p_bind_port, false);
 
     miner::init_options(desc);
+    BlockchainDB::init_options(desc);
   }
   //-----------------------------------------------------------------------------------------------
   bool core::handle_command_line(const boost::program_options::variables_map& vm)
@@ -282,12 +294,18 @@ namespace cryptonote
       m_config_folder_mempool = m_config_folder_mempool + "/" + m_port;
     }
 
-    std::string db_type = command_line::get_arg(vm, command_line::arg_db_type);
-    std::string db_sync_mode = command_line::get_arg(vm, command_line::arg_db_sync_mode);
-    bool db_salvage = command_line::get_arg(vm, command_line::arg_db_salvage) != 0;
+    std::string db_type = command_line::get_arg(vm, cryptonote::arg_db_type);
+    std::string db_sync_mode = command_line::get_arg(vm, cryptonote::arg_db_sync_mode);
+    bool db_salvage = command_line::get_arg(vm, cryptonote::arg_db_salvage) != 0;
     bool fast_sync = command_line::get_arg(vm, command_line::arg_fast_block_sync) != 0;
     uint64_t blocks_threads = command_line::get_arg(vm, command_line::arg_prep_blocks_threads);
     std::string check_updates_string = command_line::get_arg(vm, command_line::arg_check_updates);
+    std::string validator_key = command_line::get_arg(vm, command_line::arg_validator_key);
+
+    bool is_validator_key_valid = std::count_if(validator_key.begin(), validator_key.end(), std::not1(std::ptr_fun((int(*)(int))std::isxdigit))) == 0;
+    if(!is_validator_key_valid || validator_key.size() % 2 != 0) {
+      validator_key.clear();
+    }
 
     boost::filesystem::path folder(m_config_folder);
     if (m_fakechain)
@@ -402,7 +420,7 @@ namespace cryptonote
     }
 
     m_blockchain_storage.set_user_options(blocks_threads,
-        blocks_per_sync, sync_mode, fast_sync);
+        blocks_per_sync, sync_mode, fast_sync, validator_key);
 
     r = m_blockchain_storage.init(db, m_testnet, test_options);
 
@@ -441,6 +459,13 @@ namespace cryptonote
 
     r = m_miner.init(vm, m_testnet);
     CHECK_AND_ASSERT_MES(r, false, "Failed to initialize miner instance");
+
+    m_validators = std::unique_ptr<electroneum::basic::Validators>(new electroneum::basic::Validators(*db, m_pprotocol, m_testnet));
+    m_blockchain_storage.set_validators_list_instance(m_validators);
+
+    if(m_blockchain_storage.get_current_blockchain_height() >= 20 - 5) { //V8 Height - 1 day
+      m_validators->enable();
+    }
 
     return load_state_data();
   }
@@ -1074,6 +1099,16 @@ namespace cryptonote
       bvc.m_verifivation_failed = true;
       return false;
     }
+
+    if(b.minor_version >= 8 && !m_validators->isEnabled()) {
+      m_validators->enable();
+    }
+
+    if(b.major_version >= 8 && !m_validators->isValid()) {
+      bvc.m_validator_list_update_failed = true;
+      return false;
+    }
+
     add_new_block(b, bvc);
     if(update_miner_blocktemplate && bvc.m_added_to_main_chain)
        update_miner_block_template();
@@ -1213,6 +1248,8 @@ namespace cryptonote
     m_check_updates_interval.do_call(boost::bind(&core::check_updates, this));
     m_miner.on_idle();
     m_mempool.on_idle();
+    m_validators->on_idle();
+
     return true;
   }
   //-----------------------------------------------------------------------------------------------
@@ -1371,6 +1408,19 @@ namespace cryptonote
   std::time_t core::get_start_time() const
   {
     return start_time;
+  }
+  //-----------------------------------------------------------------------------------------------
+  bool core::set_validator_key(std::string key) {
+    bool is_validator_key_valid = std::count_if(key.begin(), key.end(), std::not1(std::ptr_fun((int(*)(int))std::isxdigit))) == 0;
+    if(!is_validator_key_valid || key.size() % 2 != 0) {
+      return false;
+    }
+
+    m_miner.pause();
+    m_blockchain_storage.set_validator_key(key);
+    m_miner.resume();
+
+    return true;
   }
   //-----------------------------------------------------------------------------------------------
   void core::graceful_exit()

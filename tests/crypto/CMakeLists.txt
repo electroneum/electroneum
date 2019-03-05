@@ -43,8 +43,10 @@ add_executable(cncrypto-tests
   ${crypto_headers})
 target_link_libraries(cncrypto-tests
   PRIVATE
+    ${OPENSSL_LIBRARIES}
     ${Boost_SYSTEM_LIBRARY}
-    ${EXTRA_LIBRARIES})
+    ${EXTRA_LIBRARIES}
+    ed25519-donna)
 set_property(TARGET cncrypto-tests
   PROPERTY
     FOLDER "tests")

@@ -587,4 +587,19 @@ bool t_command_parser_executor::sync_info(const std::vector<std::string>& args)
   return m_executor.sync_info();
 }
 
+bool t_command_parser_executor::set_validator_key(const std::vector<std::string>& args)
+{
+  if(args.size() != 1) return false;
+
+  std::string key(args[0]);
+
+  bool is_validator_key_valid = std::count_if(key.begin(), key.end(), std::not1(std::ptr_fun((int(*)(int))std::isxdigit))) == 0;
+  if(!is_validator_key_valid || key.size() % 2 != 0) {
+    std::cout << "Failed to parse validator key (wrong format)." << std::endl;
+    return true;
+  }
+
+  return m_executor.set_validator_key(key);
+}
+
 } // namespace daemonize

@@ -84,6 +84,7 @@ int main(int argc, char const * argv[])
       bf::path default_conf = default_data_dir / std::string(CRYPTONOTE_NAME ".conf");
       command_line::add_arg(visible_options, daemon_args::arg_config_file, default_conf.string());
       command_line::add_arg(visible_options, command_line::arg_test_dbg_lock_sleep);
+      command_line::add_arg(visible_options, command_line::arg_validator_key);
 
       // Settings
       bf::path default_log = default_data_dir / std::string(CRYPTONOTE_NAME ".log");
@@ -143,7 +144,7 @@ int main(int argc, char const * argv[])
 
     epee::debug::g_test_dbg_lock_sleep() = command_line::get_arg(vm, command_line::arg_test_dbg_lock_sleep);
 
-    std::string db_type = command_line::get_arg(vm, command_line::arg_db_type);
+    std::string db_type = command_line::get_arg(vm, cryptonote::arg_db_type);
 
     // verify that blockchaindb type is valid
     if(!cryptonote::blockchain_valid_db_type(db_type))

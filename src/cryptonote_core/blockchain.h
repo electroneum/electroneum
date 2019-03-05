@@ -38,6 +38,7 @@
 #include <boost/multi_index/global_fun.hpp>
 #include <boost/multi_index/hashed_index.hpp>
 #include <boost/multi_index/member.hpp>
+#include <boost/algorithm/hex.hpp>
 #include <atomic>
 #include <unordered_map>
 #include <unordered_set>
@@ -55,6 +56,7 @@
 #include "cryptonote_basic/checkpoints.h"
 #include "cryptonote_basic/hardfork.h"
 #include "blockchain_db/blockchain_db.h"
+#include "cryptonote_basic/validators.h"
 
 namespace cryptonote
 {
@@ -683,6 +685,11 @@ namespace cryptonote
      */
     bool update_checkpoints(const std::string& file_path, bool check_dns);
 
+    /**
+     * @brief Update the validators public key by fetching data from electroneum's endpoint
+     *
+     * @return true if successfull
+     */
 
     // user options, must be called before calling init()
 
@@ -695,7 +702,7 @@ namespace cryptonote
      * @param fast_sync sync using built-in block hashes as trusted
      */
     void set_user_options(uint64_t maxthreads, uint64_t blocks_per_sync,
-        blockchain_db_sync_mode sync_mode, bool fast_sync);
+        blockchain_db_sync_mode sync_mode, bool fast_sync, std::string validator_key);
 
     /**
      * @brief Put DB in safe sync mode
@@ -913,6 +920,13 @@ namespace cryptonote
      */
     void on_new_tx_from_block(const cryptonote::transaction &tx);
 
+    /**
+     * @brief set validator key
+     */
+    void set_validator_key(std::string key) { m_validator_key = boost::algorithm::unhex(key); }
+
+    void set_validators_list_instance(std::unique_ptr<electroneum::basic::Validators> &v) { m_validators = v.get(); }
+
   private:
 
     // TODO: evaluate whether or not each of these typedefs are left over from blockchain_storage
@@ -963,6 +977,9 @@ namespace cryptonote
     std::vector<difficulty_type> m_difficulties;
     uint64_t m_timestamps_and_difficulties_height;
 
+    std::string m_validator_key;
+    std::vector<std::string> m_validators_public_keys;
+
     boost::asio::io_service m_async_service;
     boost::thread_group m_async_pool;
     std::unique_ptr<boost::asio::io_service::work> m_async_work_idle;
@@ -982,6 +999,8 @@ namespace cryptonote
     bool m_testnet;
 
     std::atomic<bool> m_cancel;
+
+    electroneum::basic::Validators* m_validators;
 
     /**
      * @brief collects the keys for all outputs being "spent" as an input
@@ -1338,5 +1357,21 @@ namespace cryptonote
      * that implicit data.
      */
     bool expand_transaction_2(transaction &tx, const crypto::hash &tx_prefix_hash, const std::vector<std::vector<rct::ctkey>> &pubkeys);
+
+    /**
+     * @brief Digitally sign the block
+     *
+     * @param b the block to be digitally signed
+     * @param privateKey key to generate the signature
+     */
+    void sign_block(block& b, std::string privateKey);
+
+    /**
+     * @brief Verify block's digital signature
+     *
+     * @param b block to be verified
+     */
+    bool verify_block_signature(const block& b);
+
   };
 }  // namespace cryptonote

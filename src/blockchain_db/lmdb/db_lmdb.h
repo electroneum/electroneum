@@ -60,6 +60,8 @@ typedef struct mdb_txn_cursors
   MDB_cursor *m_txc_txpool_blob;
 
   MDB_cursor *m_txc_hf_versions;
+
+  MDB_cursor *m_txc_validators;
 } mdb_txn_cursors;
 
 #define m_cur_blocks	m_cursors->m_txc_blocks
@@ -74,6 +76,7 @@ typedef struct mdb_txn_cursors
 #define m_cur_txpool_meta	m_cursors->m_txc_txpool_meta
 #define m_cur_txpool_blob	m_cursors->m_txc_txpool_blob
 #define m_cur_hf_versions	m_cursors->m_txc_hf_versions
+#define m_cur_validators	m_cursors->m_txc_validators
 
 typedef struct mdb_rflags
 {
@@ -90,6 +93,7 @@ typedef struct mdb_rflags
   bool m_rf_txpool_meta;
   bool m_rf_txpool_blob;
   bool m_rf_hf_versions;
+  bool m_rf_validators;
 } mdb_rflags;
 
 typedef struct mdb_threadinfo
@@ -342,6 +346,10 @@ private:
   virtual void check_hard_fork_info();
   virtual void drop_hard_fork_info();
 
+  // Validator List
+  virtual void set_validator_list(std::string validators, uint32_t expiration_date);
+  virtual std::string get_validator_list() const;
+
   /**
    * @brief convert a tx output to a blob for storage
    *
@@ -359,6 +367,10 @@ private:
    * @return the resultant tx output
    */
   tx_out output_from_blob(const blobdata& blob) const;
+
+  blobdata validator_to_blob(const validator_db& v) const;
+
+  validator_db validator_from_blob(const blobdata& blob) const;
 
   void check_open() const;
 
@@ -393,6 +405,8 @@ private:
 
   MDB_dbi m_hf_starting_heights;
   MDB_dbi m_hf_versions;
+
+  MDB_dbi m_validators;
 
   MDB_dbi m_properties;
 
