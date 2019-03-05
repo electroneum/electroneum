@@ -1018,9 +1018,14 @@ difficulty_type Blockchain::get_next_difficulty_for_alternative_chain(const std:
     CRITICAL_REGION_LOCAL(m_blockchain_lock);
 
     // Figure out start and stop offsets for main chain blocks
+    // End of alt chain height
     size_t main_chain_stop_offset = alt_chain.size() ? alt_chain.front()->second.height : bei.height;
+    // How many blocks from the main chain will be needed?
     size_t main_chain_count = difficultyBlocksCount - std::min(static_cast<size_t>(difficultyBlocksCount), alt_chain.size());
+    // If the amount of blocks we said we need from the main chain is more than the top height of the alt chain,
+    // we necessarily take less blocks from the main chain (as many as is possible).
     main_chain_count = std::min(main_chain_count, main_chain_stop_offset);
+    // Height on the main chain to begin pulling the blocks.
     size_t main_chain_start_offset = main_chain_stop_offset - main_chain_count;
 
     if(!main_chain_start_offset)
@@ -1063,7 +1068,8 @@ difficulty_type Blockchain::get_next_difficulty_for_alternative_chain(const std:
 
   // FIXME: This will fail if fork activation heights are subject to voting - Does this need fixing for the V6 fork?
   size_t target = get_difficulty_target();
-  const uint8_t version = (bei.height >= v6height && bei.height < v7height) ? 6 : 1;
+
+  const uint8_t version = m_hardfork->get_ideal_version(bei.height);
   // calculate the difficulty target for the block and return it
   return next_difficulty(timestamps, cumulative_difficulties, target, version);
 }
