@@ -1009,7 +1009,15 @@ difficulty_type Blockchain::get_next_difficulty_for_alternative_chain(const std:
 
   const uint64_t v6height = m_testnet ? 190060 : 307500;
   const uint64_t v7height = m_testnet ? 215000 : 324500;
-  const uint32_t difficultyBlocksCount = (bei.height >= v6height && bei.height < v7height) ? DIFFICULTY_BLOCKS_COUNT_V6 : DIFFICULTY_BLOCKS_COUNT;
+  const uint64_t v8height = m_testnet ? 600000 : 700000;
+  uint32_t difficultyBlocksCount = (bei.height >= v6height && bei.height < v7height) ? DIFFICULTY_BLOCKS_COUNT_V6 : DIFFICULTY_BLOCKS_COUNT;
+
+  // Account for the difficulty reset in v8
+  if((bei.height >= v8height) && (bei.height < v8height + 720))
+  {
+    //No analogous cache to clear (ie m_timestamps, m_difficulties)for alt-chain
+    difficultyBlocksCount = bei.height - v8height;
+  }
 
   // if the alt chain isn't long enough to calculate the difficulty target
   // based on its blocks alone, need to get more blocks from the main chain

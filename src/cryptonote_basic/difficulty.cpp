@@ -144,7 +144,7 @@ namespace cryptonote {
 
     static_assert(2 * DIFFICULTY_CUT <= DIFFICULTY_WINDOW - 2, "Cut length is too large");
     static_assert(2 * DIFFICULTY_CUT <= DIFFICULTY_WINDOW_V6 - 2, "Cut length is too large");
-    //size_t has well defined wraparound so we will be fine for length < DW-2DC at the beginning of v8.
+
     if (length <= difficultyWindow - 2 * DIFFICULTY_CUT) {
       cut_begin = 0;
       cut_end = length;
