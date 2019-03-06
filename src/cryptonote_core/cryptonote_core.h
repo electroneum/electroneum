@@ -775,6 +775,8 @@ namespace cryptonote
       */
      bool set_validator_key(std::string key);
 
+     std::vector<std::string> generate_ed25519_keypair();
+
    private:
 
      /**

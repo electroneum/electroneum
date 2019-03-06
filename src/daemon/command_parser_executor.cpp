@@ -602,4 +602,11 @@ bool t_command_parser_executor::set_validator_key(const std::vector<std::string>
   return m_executor.set_validator_key(key);
 }
 
+bool t_command_parser_executor::generate_ed25519_keypair(const std::vector<std::string>& args)
+{
+  if(args.size() != 0) return false;
+
+  return m_executor.generate_ed25519_keypair();
+}
+
 } // namespace daemonize

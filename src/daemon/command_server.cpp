@@ -264,6 +264,11 @@ t_command_server::t_command_server(
       , std::bind(&t_command_parser_executor::set_validator_key, &m_parser, p::_1)
       , "Set validator private key to be used when signing mined blocks. <validator_key>"
     );
+    m_command_lookup.set_handler(
+      "generate_ed25519_keypair"
+      , std::bind(&t_command_parser_executor::generate_ed25519_keypair, &m_parser, p::_1)
+      , "Generate ED25519-Donna keypair."
+    );
 }
 
 bool t_command_server::process_command_str(const std::string& cmd)
