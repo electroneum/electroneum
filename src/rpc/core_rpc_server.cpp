@@ -1637,6 +1637,23 @@ namespace cryptonote
     res.status = CORE_RPC_STATUS_OK;
     return true;
   }
+
+  //------------------------------------------------------------------------------------------------------------------------------
+  bool core_rpc_server::on_generate_ed25519_keypair(const COMMAND_RPC_GENERATE_ED25519_KEYPAIR::request& req, COMMAND_RPC_GENERATE_ED25519_KEYPAIR::response& res, epee::json_rpc::error& error_resp)
+  {
+    std::vector<std::string> v = m_core.generate_ed25519_keypair();
+    if(v.size() == 0) {
+      error_resp.code = CORE_RPC_ERROR_CODE_INTERNAL_ERROR;
+      error_resp.message = "Failed to generate ED25519-Donna keypair.";
+      return false;
+    }
+
+    res.privateKey = v[0];
+    res.publicKey = v[1];
+
+    res.status = CORE_RPC_STATUS_OK;
+    return true;
+  }
   //------------------------------------------------------------------------------------------------------------------------------
 
   const command_line::arg_descriptor<std::string> core_rpc_server::arg_rpc_bind_port = {

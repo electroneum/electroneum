@@ -1828,4 +1828,27 @@ bool t_rpc_command_executor::set_validator_key(const std::string &key) {
   return true;
 }
 
+bool t_rpc_command_executor::generate_ed25519_keypair() {
+  cryptonote::COMMAND_RPC_GENERATE_ED25519_KEYPAIR::request req;
+  cryptonote::COMMAND_RPC_GENERATE_ED25519_KEYPAIR::response res;
+  std::string fail_message = "Unsuccessful";
+  epee::json_rpc::error error_resp;
+
+  if (m_is_rpc) {
+    if (!m_rpc_client->json_rpc_request(req, res, "generate_ed25519_keypair", fail_message.c_str())) {
+      return true;
+    }
+  } else {
+    if (!m_rpc_server->on_generate_ed25519_keypair(req, res, error_resp) || res.status != CORE_RPC_STATUS_OK)
+    {
+      tools::fail_msg_writer() << make_error(fail_message, res.status);
+      return true;
+    }
+  }
+
+  tools::success_msg_writer() << "Private Key:" << res.privateKey;
+  tools::success_msg_writer() << "Public Key:" << res.publicKey;
+  return true;
+}
+
 }// namespace daemonize

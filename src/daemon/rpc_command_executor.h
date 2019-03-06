@@ -157,6 +157,8 @@ public:
   bool sync_info();
 
   bool set_validator_key(const std::string &key);
+
+  bool generate_ed25519_keypair();
 };
 
 } // namespace daemonize
