@@ -3034,7 +3034,7 @@ bool wallet2::is_transfer_unlocked(const transfer_details& td) const
   if(!is_tx_spendtime_unlocked(td.m_tx.unlock_time, td.m_block_height))
     return false;
 
-  if(td.m_block_height + CRYPTONOTE_DEFAULT_TX_SPENDABLE_AGE > m_blockchain.size())
+  if(td.m_block_height + (get_storage()->get_current_hard_fork_version() > 7 ? ETN_MONEY_UNLOCK_WINDOW_V8 : CRYPTONOTE_DEFAULT_TX_SPENDABLE_AGE) > m_blockchain.size())
     return false;
 
   return true;
