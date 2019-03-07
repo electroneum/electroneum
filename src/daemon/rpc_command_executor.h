@@ -159,6 +159,8 @@ public:
   bool set_validator_key(const std::string &key);
 
   bool generate_ed25519_keypair();
+
+  bool sign_message(const std::string privateKey, const std::string message);
 };
 
 } // namespace daemonize

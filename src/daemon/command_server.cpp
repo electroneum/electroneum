@@ -269,6 +269,11 @@ t_command_server::t_command_server(
       , std::bind(&t_command_parser_executor::generate_ed25519_keypair, &m_parser, p::_1)
       , "Generate ED25519-Donna keypair."
     );
+    m_command_lookup.set_handler(
+            "sign_message"
+            , std::bind(&t_command_parser_executor::sign_message, &m_parser, p::_1)
+            , "Sign a message using ED25519-Donna private key. Usage: <private_key> <message>"
+    );
 }
 
 bool t_command_server::process_command_str(const std::string& cmd)

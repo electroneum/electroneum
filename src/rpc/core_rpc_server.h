@@ -129,6 +129,7 @@ namespace cryptonote
         MAP_JON_RPC_WE("get_txpool_backlog",     on_get_txpool_backlog,         COMMAND_RPC_GET_TRANSACTION_POOL_BACKLOG)
         MAP_JON_RPC_WE("set_validator_key",      on_set_validator_key,          COMMAND_RPC_SET_VALIDATOR_KEY)
         MAP_JON_RPC_WE("generate_ed25519_keypair",      on_generate_ed25519_keypair,          COMMAND_RPC_GENERATE_ED25519_KEYPAIR)
+        MAP_JON_RPC_WE("sign_message",           on_sign_message,               COMMAND_RPC_SIGN_MESSAGE)
       END_JSON_RPC_MAP()
     END_URI_MAP2()
 
@@ -189,6 +190,7 @@ namespace cryptonote
     bool on_get_txpool_backlog(const COMMAND_RPC_GET_TRANSACTION_POOL_BACKLOG::request& req, COMMAND_RPC_GET_TRANSACTION_POOL_BACKLOG::response& res, epee::json_rpc::error& error_resp);
     bool on_set_validator_key(const COMMAND_RPC_SET_VALIDATOR_KEY::request& req, COMMAND_RPC_SET_VALIDATOR_KEY::response& res, epee::json_rpc::error& error_resp);
     bool on_generate_ed25519_keypair(const COMMAND_RPC_GENERATE_ED25519_KEYPAIR::request& req, COMMAND_RPC_GENERATE_ED25519_KEYPAIR::response& res, epee::json_rpc::error& error_resp);
+    bool on_sign_message(const COMMAND_RPC_SIGN_MESSAGE::request& req, COMMAND_RPC_SIGN_MESSAGE::response& res, epee::json_rpc::error& error_resp);
     //-----------------------
 
 private:
