@@ -1721,4 +1721,26 @@ namespace cryptonote
           END_KV_SERIALIZE_MAP()
       };
   };
+
+  struct COMMAND_RPC_GENERATE_ED25519_KEYPAIR
+  {
+      struct request
+      {
+        BEGIN_KV_SERIALIZE_MAP()
+        END_KV_SERIALIZE_MAP()
+      };
+
+      struct response
+      {
+        std::string privateKey;
+        std::string publicKey;
+        std::string status;
+
+        BEGIN_KV_SERIALIZE_MAP()
+          KV_SERIALIZE(privateKey)
+          KV_SERIALIZE(publicKey)
+          KV_SERIALIZE(status)
+        END_KV_SERIALIZE_MAP()
+      };
+  };
 }

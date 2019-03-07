@@ -1423,6 +1423,10 @@ namespace cryptonote
     return true;
   }
   //-----------------------------------------------------------------------------------------------
+  std::vector<std::string> core::generate_ed25519_keypair() {
+    return crypto::create_ed25519_keypair();
+  }
+  //-----------------------------------------------------------------------------------------------
   void core::graceful_exit()
   {
     raise(SIGTERM);
