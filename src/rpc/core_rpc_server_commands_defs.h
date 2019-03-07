@@ -1743,4 +1743,29 @@ namespace cryptonote
         END_KV_SERIALIZE_MAP()
       };
   };
+
+  struct COMMAND_RPC_SIGN_MESSAGE
+  {
+      struct request
+      {
+        std::string privateKey;
+        std::string message;
+
+        BEGIN_KV_SERIALIZE_MAP()
+          KV_SERIALIZE(privateKey)
+          KV_SERIALIZE(message)
+        END_KV_SERIALIZE_MAP()
+      };
+
+      struct response
+      {
+        std::string signature;
+        std::string status;
+
+        BEGIN_KV_SERIALIZE_MAP()
+          KV_SERIALIZE(signature)
+          KV_SERIALIZE(status)
+        END_KV_SERIALIZE_MAP()
+      };
+  };
 }

@@ -1851,4 +1851,29 @@ bool t_rpc_command_executor::generate_ed25519_keypair() {
   return true;
 }
 
+bool t_rpc_command_executor::sign_message(const std::string privateKey, const std::string message) {
+  cryptonote::COMMAND_RPC_SIGN_MESSAGE::request req;
+  cryptonote::COMMAND_RPC_SIGN_MESSAGE::response res;
+  std::string fail_message = "Unsuccessful";
+  epee::json_rpc::error error_resp;
+
+  req.privateKey = privateKey;
+  req.message = message;
+
+  if (m_is_rpc) {
+    if (!m_rpc_client->json_rpc_request(req, res, "sign_message", fail_message.c_str())) {
+      return true;
+    }
+  } else {
+    if (!m_rpc_server->on_sign_message(req, res, error_resp) || res.status != CORE_RPC_STATUS_OK)
+    {
+      tools::fail_msg_writer() << make_error(fail_message, res.status);
+      return true;
+    }
+  }
+
+  tools::success_msg_writer() << "Signature: " << res.signature;
+  return true;
+}
+
 }// namespace daemonize

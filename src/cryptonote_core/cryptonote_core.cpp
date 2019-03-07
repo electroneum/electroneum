@@ -1427,6 +1427,12 @@ namespace cryptonote
     return crypto::create_ed25519_keypair();
   }
   //-----------------------------------------------------------------------------------------------
+
+  std::string core::sign_message(std::string sk, std::string msg) {
+    std::string b_str = crypto::sign_message(msg, sk);
+    return boost::algorithm::hex(b_str);
+  }
+  //-----------------------------------------------------------------------------------------------
   void core::graceful_exit()
   {
     raise(SIGTERM);

@@ -777,6 +777,8 @@ namespace cryptonote
 
      std::vector<std::string> generate_ed25519_keypair();
 
+     std::string sign_message(std::string sk, std::string msg);
+
    private:
 
      /**

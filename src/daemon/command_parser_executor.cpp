@@ -609,4 +609,14 @@ bool t_command_parser_executor::generate_ed25519_keypair(const std::vector<std::
   return m_executor.generate_ed25519_keypair();
 }
 
+bool t_command_parser_executor::sign_message(const std::vector<std::string>& args)
+{
+  if(args.size() != 2) return false;
+
+  std::string key(args[0]);
+  bool is_validator_key_valid = std::count_if(key.begin(), key.end(), std::not1(std::ptr_fun((int(*)(int))std::isxdigit))) == 0;
+
+  return m_executor.sign_message(key, args[1]);
+}
+
 } // namespace daemonize
