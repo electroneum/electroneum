@@ -746,14 +746,28 @@ difficulty_type Blockchain::get_difficulty_for_next_block()
 
   const uint64_t v6height = m_testnet ? 190060 : 307500;
   const uint64_t v7height = m_testnet ? 215000 : 324500;
+  const uint64_t v8height = m_testnet ? 600000 : 700000;
 
-  const uint32_t difficultyBlocksCount = (height >= v6height && height < v7height) ? DIFFICULTY_BLOCKS_COUNT_V6 : DIFFICULTY_BLOCKS_COUNT;
+  uint32_t difficultyBlocksCount = (height >= v6height && height < v7height) ? DIFFICULTY_BLOCKS_COUNT_V6 : DIFFICULTY_BLOCKS_COUNT;
+
+  // After v8 allow the difficulty window to grow linearly (from zero) back to DIFFICULTY_BLOCKS_COUNT.
+  if((height >= v8height) && (height < v8height + 720))
+  {
+    // Initial clear of the caches when we hit v8.
+    if(height == v8height)
+    {
+      m_timestamps.clear();
+      m_difficulties.clear();
+    }
+    difficultyBlocksCount = height - v8height;
+  }
 
   // ND: Speedup
   // 1. Keep a list of the last 735 (or less) blocks that is used to compute difficulty,
   //    then when the next block difficulty is queried, push the latest height data and
   //    pop the oldest one from the list. This only requires 1x read per height instead
   //    of doing 735 (DIFFICULTY_BLOCKS_COUNT).
+  // Post v8 we will only re-enter this scope after the first DIFFICULTY_BLOCKS_COUNT blocks due to the last condition.
   if (m_timestamps_and_difficulties_height != 0 && ((height - m_timestamps_and_difficulties_height) == 1) && m_timestamps.size() >= difficultyBlocksCount)
   {
     uint64_t index = height - 1;
@@ -995,7 +1009,15 @@ difficulty_type Blockchain::get_next_difficulty_for_alternative_chain(const std:
 
   const uint64_t v6height = m_testnet ? 190060 : 307500;
   const uint64_t v7height = m_testnet ? 215000 : 324500;
-  const uint32_t difficultyBlocksCount = (bei.height >= v6height && bei.height < v7height) ? DIFFICULTY_BLOCKS_COUNT_V6 : DIFFICULTY_BLOCKS_COUNT;
+  const uint64_t v8height = m_testnet ? 600000 : 700000;
+  uint32_t difficultyBlocksCount = (bei.height >= v6height && bei.height < v7height) ? DIFFICULTY_BLOCKS_COUNT_V6 : DIFFICULTY_BLOCKS_COUNT;
+
+  // Account for the difficulty reset in v8
+  if((bei.height >= v8height) && (bei.height < v8height + 720))
+  {
+    //No analogous cache to clear (ie m_timestamps, m_difficulties)for alt-chain
+    difficultyBlocksCount = bei.height - v8height;
+  }
 
   // if the alt chain isn't long enough to calculate the difficulty target
   // based on its blocks alone, need to get more blocks from the main chain
@@ -1004,9 +1026,14 @@ difficulty_type Blockchain::get_next_difficulty_for_alternative_chain(const std:
     CRITICAL_REGION_LOCAL(m_blockchain_lock);
 
     // Figure out start and stop offsets for main chain blocks
+    // End of alt chain height
     size_t main_chain_stop_offset = alt_chain.size() ? alt_chain.front()->second.height : bei.height;
+    // How many blocks from the main chain will be needed?
     size_t main_chain_count = difficultyBlocksCount - std::min(static_cast<size_t>(difficultyBlocksCount), alt_chain.size());
+    // If the amount of blocks we said we need from the main chain is more than the top height of the alt chain,
+    // we necessarily take less blocks from the main chain (as many as is possible).
     main_chain_count = std::min(main_chain_count, main_chain_stop_offset);
+    // Height on the main chain to begin pulling the blocks.
     size_t main_chain_start_offset = main_chain_stop_offset - main_chain_count;
 
     if(!main_chain_start_offset)
@@ -1049,7 +1076,8 @@ difficulty_type Blockchain::get_next_difficulty_for_alternative_chain(const std:
 
   // FIXME: This will fail if fork activation heights are subject to voting - Does this need fixing for the V6 fork?
   size_t target = get_difficulty_target();
-  const uint8_t version = (bei.height >= v6height && bei.height < v7height) ? 6 : 1;
+
+  const uint8_t version = m_hardfork->get_ideal_version(bei.height);
   // calculate the difficulty target for the block and return it
   return next_difficulty(timestamps, cumulative_difficulties, target, version);
 }

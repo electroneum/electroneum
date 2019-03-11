@@ -130,19 +130,21 @@ namespace cryptonote {
       cumulative_difficulties.resize(difficultyWindow);
     }
 
-
     size_t length = timestamps.size();
     assert(length == cumulative_difficulties.size());
     if (length <= 1) {
       return 1;
     }
+
     static_assert(DIFFICULTY_WINDOW >= 2, "Window is too small");
     static_assert(DIFFICULTY_WINDOW_V6 >= 2, "Window is too small");
     assert(length <= difficultyWindow);
     sort(timestamps.begin(), timestamps.end());
     size_t cut_begin, cut_end;
+
     static_assert(2 * DIFFICULTY_CUT <= DIFFICULTY_WINDOW - 2, "Cut length is too large");
     static_assert(2 * DIFFICULTY_CUT <= DIFFICULTY_WINDOW_V6 - 2, "Cut length is too large");
+
     if (length <= difficultyWindow - 2 * DIFFICULTY_CUT) {
       cut_begin = 0;
       cut_end = length;
