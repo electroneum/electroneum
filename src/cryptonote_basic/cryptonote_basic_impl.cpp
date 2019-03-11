@@ -91,7 +91,7 @@ namespace cryptonote {
     return CRYPTONOTE_MAX_TX_SIZE;
   }
   //-----------------------------------------------------------------------------------------------
-  bool get_block_reward(size_t median_size, size_t current_block_size, uint64_t already_generated_coins, uint64_t &reward, uint8_t version, uint64_t height, bool testnet) {
+  bool get_block_reward(size_t median_size, size_t current_block_size, uint64_t already_generated_coins, uint64_t &reward, uint8_t version) {
     static_assert(DIFFICULTY_TARGET%60==0,"difficulty target must be a multiple of 60");
     static_assert(DIFFICULTY_TARGET_V6%60==0,"difficulty target V6 must be a multiple of 60");
 
@@ -107,25 +107,8 @@ namespace cryptonote {
       return true;
     }
 
-    // PRE V8 ESF
-    double emission_speed_factor = EMISSION_SPEED_FACTOR_PER_MINUTE - (target_minutes-1);
-    // From V8 Taper gradient change towards that of EMISSION_SPEED_FACTOR_PER_MINUTE_V8 as a security measure.
-    // Stages should be spaced out ~ 1 month apart (21600 Blocks).
-     if(version == 8) {
-        if(!testnet){
-            if     (height < 522600) {emission_speed_factor += 0.15;}
-            else if(height < 544200) {emission_speed_factor += 0.20;}
-            else   {emission_speed_factor = EMISSION_SPEED_FACTOR_PER_MINUTE_V8 - (target_minutes-1);}
-        }
-        else if(testnet){
-            if     (height < 385600) {emission_speed_factor += 0.15;}
-            else if(height < 407200) {emission_speed_factor += 0.20;}
-            else   {emission_speed_factor = EMISSION_SPEED_FACTOR_PER_MINUTE_V8 - (target_minutes-1);}
-        }
-     }
-     else if(version > 8) {
-         emission_speed_factor = EMISSION_SPEED_FACTOR_PER_MINUTE_V8 - (target_minutes-1);
-     }
+    //After v8 the reward drops by ~80%
+    double emission_speed_factor = (version == 8 ? EMISSION_SPEED_FACTOR_PER_MINUTE_V8 : EMISSION_SPEED_FACTOR_PER_MINUTE) - (target_minutes-1);
 
     uint64_t base_reward = (MONEY_SUPPLY - already_generated_coins) / pow(2, emission_speed_factor);
 
