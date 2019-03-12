@@ -176,6 +176,7 @@ namespace cryptonote
     command_line::add_arg(desc, command_line::arg_show_time_stats);
     command_line::add_arg(desc, command_line::arg_block_sync_size);
     command_line::add_arg(desc, command_line::arg_check_updates);
+    command_line::add_arg(desc, command_line::arg_validator_key);
     command_line::add_arg(desc, command_line::arg_disable_fluffy_blocks);
 
     // we now also need some of net_node's options (p2p bind arg, for separate data dir)
