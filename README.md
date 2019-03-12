@@ -18,7 +18,7 @@
 
 ## Introduction
 
-Electroneum uses a cryptographically sound system to allow you to send and receive funds without your transactions being easily revealed on the blockchain. This ensures that your purchases, receipts, and all transfers remain absolutely private by default, but if necessary, can be proven to a third party by providing specific keys.
+Electroneum uses a cryptographically sound system to allow you to send and receive your tokens without your transactions being easily revealed on the blockchain. This ensures that all token transfers remain absolutely private by default, but if necessary, can be proven to a third party by providing specific keys.
 
 **Security:** Using the power of a distributed peer-to-peer consensus network, every transaction on the network is cryptographically secured. Individual wallets have a 25 word mnemonic seed that is only displayed once, and can be written down to backup the wallet. Wallet files are encrypted with a passphrase to ensure they are useless if stolen.
 
