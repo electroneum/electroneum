@@ -84,7 +84,6 @@ int main(int argc, char const * argv[])
       bf::path default_conf = default_data_dir / std::string(CRYPTONOTE_NAME ".conf");
       command_line::add_arg(visible_options, daemon_args::arg_config_file, default_conf.string());
       command_line::add_arg(visible_options, command_line::arg_test_dbg_lock_sleep);
-      command_line::add_arg(visible_options, command_line::arg_validator_key);
 
       // Settings
       bf::path default_log = default_data_dir / std::string(CRYPTONOTE_NAME ".log");
