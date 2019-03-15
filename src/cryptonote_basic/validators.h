@@ -90,7 +90,7 @@ namespace electroneum {
         string testnet_endpoint_port = "3000";
         milliseconds endpoint_timeout = milliseconds(10000);
         string serialized_v_list;
-        ValidatorsState status = ValidatorsState::Disabled;
+        ValidatorsState status = ValidatorsState::Invalid;
         time_t last_updated;
         uint32_t timeout = 60; //*60*12; //12 hours
         bool isInitial = true;
