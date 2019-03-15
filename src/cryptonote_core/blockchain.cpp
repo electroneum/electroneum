@@ -1414,6 +1414,25 @@ bool Blockchain::handle_alternative_block(const block& b, const crypto::hash& id
     bvc.m_verifivation_failed = true;
     return false;
   }
+
+  if(b.minor_version >= 8 && !m_validators->isEnabled()) {
+    m_validators->enable();
+  }
+
+  if(b.major_version >= 8) {
+
+    if(!m_validators->isValid()) {
+      bvc.m_validator_list_update_failed = true;
+      return false;
+    }
+
+    if(!verify_block_signature(b)) {
+      MERROR_VER("Block with id: " << id << std::endl << " has wrong digital signature");
+      bvc.m_verifivation_failed = true;
+      return false;
+    }
+  }
+
   // this basically says if the blockchain is smaller than the first
   // checkpoint then alternate blocks are allowed.  Alternatively, if the
   // last checkpoint *before* the end of the current chain is also before
