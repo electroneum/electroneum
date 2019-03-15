@@ -3080,7 +3080,17 @@ leave:
     return false;
   }
 
+  if(bl.minor_version >= 8 && !m_validators->isEnabled()) {
+    m_validators->enable();
+  }
+
   if(bl.major_version >= 8) {
+
+    if(!m_validators->isValid()) {
+      bvc.m_validator_list_update_failed = true;
+      return false;
+    }
+
     if(!verify_block_signature(bl)) {
       MERROR_VER("Block with id: " << id << std::endl << " has wrong digital signature");
       bvc.m_verifivation_failed = true;
