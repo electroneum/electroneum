@@ -92,10 +92,11 @@ namespace electroneum {
         string serialized_v_list;
         ValidatorsState status = ValidatorsState::Invalid;
         time_t last_updated;
-        uint32_t timeout = 60; //*60*12; //12 hours
+        uint32_t timeout = 60*60*12; //12 hours
         bool isInitial = true;
         once_a_time_seconds<60, true> m_load_validators_interval;
         cryptonote::BlockchainDB &m_db;
+        bool testnet = false;
 
         cryptonote::i_cryptonote_protocol* m_p2p;
 
@@ -112,6 +113,7 @@ namespace electroneum {
         explicit Validators(cryptonote::BlockchainDB &db, cryptonote::i_cryptonote_protocol* pprotocol, bool testnet) : m_db(db) {
           testnet ? this->http_client.set_server(this->testnet_endpoint_addr, this->testnet_endpoint_port, boost::none) :
                     this->http_client.set_server(this->endpoint_addr, this->endpoint_port, boost::none);
+          this->testnet = testnet;
           this->m_p2p = pprotocol;
         };
 

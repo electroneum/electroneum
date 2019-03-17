@@ -40,8 +40,13 @@ namespace electroneum {
         Validator::Validator() = default;
 
         bool Validators::validate_and_update(electroneum::basic::v_list_struct res, bool saveToDB) {
+
+          string vl_publicKey = this->testnet ?
+                  "BC41B6767BCCF23AD25A2D9A528FF47C7FABA4790B8FC2E61D11050E95E01878" :
+                  "F669F5CDD45CE7C540A5E85CAB04F970A30E20D2C939FD5ACEB18280C9319C1D";
+
           //Check against our hardcoded public-key to make sure it's a valid message
-          if (res.public_key != "F669F5CDD45CE7C540A5E85CAB04F970A30E20D2C939FD5ACEB18280C9319C1D") {
+          if (res.public_key != vl_publicKey) {
             LOG_PRINT_L1("Validator list has invalid public_key.");
             return false;
           }
@@ -56,7 +61,7 @@ namespace electroneum {
           json_obj obj;
           load_t_from_json(obj, crypto::base64_decode(res.blob));
           for (const auto &v : obj.validators) {
-            this->addOrUpdate(v.validation_public_key, v.start_height, v.end_height);
+            this->addOrUpdate(v.validation_public_key, v.valid_from_height, v.valid_to_height);
           }
 
           //Serialize & save valid http response to propagate to p2p uppon request
