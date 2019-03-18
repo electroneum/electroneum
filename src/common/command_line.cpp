@@ -128,6 +128,6 @@ namespace command_line
   };
   const arg_descriptor<std::string> arg_validator_key = {
     "validator-key",
-    "Specify yours Validator Private Key to digitally sign blocks when mining"
+    "Specify your Validator Private Key to digitally sign blocks when mining"
   };
 }
