@@ -93,24 +93,24 @@ namespace electroneum {
         }
 
         void Validators::add(const string &key, uint64_t startHeight, uint64_t endHeight) {
-          if (!this->exists(key)) this->list.emplace_back(new Validator(key, startHeight, endHeight));
+          if (!this->exists(key)) this->list.emplace_back(std::unique_ptr<Validator>(new Validator(key, startHeight, endHeight)));
         }
 
         void Validators::addOrUpdate(const string &key, uint64_t startHeight, uint64_t endHeight) {
           this->exists(key) ? this->update(key, endHeight) : this->list.emplace_back(
-                  new Validator(key, startHeight, endHeight));
+                  std::unique_ptr<Validator>(new Validator(key, startHeight, endHeight)));
         }
 
-        Validator* Validators::find(const string &key) {
-          auto it = find_if(this->list.begin(), this->list.end(), [&key](Validator *&v) {
+        std::unique_ptr<Validator> Validators::find(const string &key) {
+          auto it = find_if(this->list.begin(), this->list.end(), [&key](std::unique_ptr<Validator> &v) {
               return v->getPublicKey() == key;
           });
-          return *it;
+          return std::move(*it);
         }
 
         bool Validators::exists(const string &key) {
           bool found = false;
-          all_of(this->list.begin(), this->list.end(), [&key, &found](Validator *&v) {
+          all_of(this->list.begin(), this->list.end(), [&key, &found](std::unique_ptr<Validator> &v) {
               if (v->getPublicKey() == key) {
                 found = true;
                 return false;
@@ -121,7 +121,7 @@ namespace electroneum {
         }
 
         void Validators::update(const string &key, uint64_t endHeight) {
-          find_if(this->list.begin(), this->list.end(), [&key, &endHeight](Validator *&v) {
+          find_if(this->list.begin(), this->list.end(), [&key, &endHeight](std::unique_ptr<Validator> &v) {
               if (v->getPublicKey() == key) {
                 v->setEndHeight(endHeight);
                 return true;

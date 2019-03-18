@@ -82,7 +82,7 @@ namespace electroneum {
 
     class Validators {
     private:
-        vector<Validator *> list;
+        vector<std::unique_ptr<Validator>> list;
         epee::net_utils::http::http_simple_client http_client;
         string endpoint_addr = "localhost";
         string endpoint_port = "3000";
@@ -103,7 +103,7 @@ namespace electroneum {
         void add(const string &key, uint64_t startHeight, uint64_t endHeight);
         void addOrUpdate(const string &key, uint64_t startHeight, uint64_t endHeight);
         void update(const string &key, uint64_t endHeight);
-        Validator* find(const string &key);
+        std::unique_ptr<Validator> find(const string &key);
         bool exists(const string &key);
         bool validate_and_update(v_list_struct res, bool saveToDB = false);
         ValidatorsState validate_expiration();
@@ -119,7 +119,7 @@ namespace electroneum {
 
         inline vector<string> getApplicablePublicKeys(uint64_t height, bool convert_to_byte = false) {
           vector<string> keys;
-          all_of(this->list.begin(), this->list.end(), [&height, &keys, &convert_to_byte](Validator *&v) {
+          all_of(this->list.begin(), this->list.end(), [&height, &keys, &convert_to_byte](std::unique_ptr<Validator> &v) {
               if (v->isWithinRange(height)) {
                 const string k = convert_to_byte ? unhex(v->getPublicKey()) : v->getPublicKey();
                 keys.push_back(k);
