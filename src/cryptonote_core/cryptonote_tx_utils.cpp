@@ -128,7 +128,7 @@ namespace cryptonote
     tx.version = 1;
 
     //lock
-    tx.unlock_time = height + hard_fork_version > 7 ? ETN_MONEY_UNLOCK_WINDOW_V8 : CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW;
+    tx.unlock_time = height + (hard_fork_version > 7 ? ETN_MONEY_UNLOCK_WINDOW_V8 : CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW);
     tx.vin.push_back(in);
 
     tx.invalidate_hashes();
