@@ -1359,7 +1359,7 @@ void Blockchain::sign_block(block& b, const std::string privateKey) {
 
   std::string signature = crypto::sign_message(std::string(reinterpret_cast<char const*>(tx_tree_hash.data), sizeof(tx_tree_hash.data)), privateKey);
   if(signature.empty() || signature.size() != 64) {
-    LOG_ERROR("The daemon have failed to digitally sign a recently mined block and it won't be accepted by the network. Please check your validator-key configuration before resume mining.");
+    LOG_ERROR("The daemon has failed to digitally sign a block and therefore it cannot be accepted by the network. Please check your validator-key configuration before resuming mining.");
     return;
   }
 
