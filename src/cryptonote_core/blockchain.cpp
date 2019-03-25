@@ -113,7 +113,9 @@ static const uint64_t testnet_hard_fork_version_1_till = 190059;
 //------------------------------------------------------------------
 Blockchain::Blockchain(tx_memory_pool& tx_pool) :
   m_db(), m_tx_pool(tx_pool), m_hardfork(NULL), m_timestamps_and_difficulties_height(0), m_current_block_cumul_sz_limit(0),
-  m_enforce_dns_checkpoints(false), m_max_prepare_blocks_threads(4), m_db_blocks_per_sync(1), m_db_sync_mode(db_async), m_db_default_sync(false), m_fast_sync(true), m_show_time_stats(false), m_sync_counter(0), m_cancel(false), m_validator_key("")
+  m_enforce_dns_checkpoints(false), m_max_prepare_blocks_threads(4), m_db_blocks_per_sync(1), m_db_sync_mode(db_async), m_db_default_sync(false), m_fast_sync(true), m_show_time_stats(false), m_sync_counter(0), m_cancel(false), m_validator_key(""),
+  m_difficulty_for_next_block_top_hash(cryptonote::null_hash),
+  m_difficulty_for_next_block(1)
 {
   LOG_PRINT_L3("Blockchain::" << __func__);
 }
@@ -739,7 +741,17 @@ void Blockchain::get_all_known_block_ids(std::list<crypto::hash> &main, std::lis
 difficulty_type Blockchain::get_difficulty_for_next_block()
 {
   LOG_PRINT_L3("Blockchain::" << __func__);
-  CRITICAL_REGION_LOCAL(m_blockchain_lock);
+
+  CRITICAL_REGION_LOCAL(m_difficulty_lock);
+  // we can call this without the blockchain lock, it might just give us
+  // something a bit out of date, but that's fine since anything which
+  // requires the blockchain lock will have acquired it in the first place,
+  // and it will be unlocked only when called from the getinfo RPC
+  crypto::hash top_hash = get_tail_id();
+  if (top_hash == m_difficulty_for_next_block_top_hash)
+    return m_difficulty_for_next_block;
+
+   CRITICAL_REGION_LOCAL1(m_blockchain_lock);
   std::vector<uint64_t> timestamps;
   std::vector<difficulty_type> difficulties;
   auto height = m_db->height();
@@ -804,7 +816,10 @@ difficulty_type Blockchain::get_difficulty_for_next_block()
 
   size_t target = get_difficulty_target();
   const uint8_t version = (height >= v6height && height < v7height) ? 6 : 1;
-  return next_difficulty(timestamps, difficulties, target, version);
+  difficulty_type diff = next_difficulty(timestamps, difficulties, target, version);
+  m_difficulty_for_next_block_top_hash = top_hash;
+  m_difficulty_for_next_block = diff;
+  return diff;
 }
 //------------------------------------------------------------------
 // This function fixes the differing difficulty bug by re-calculate and rewriting

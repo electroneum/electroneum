@@ -977,6 +977,11 @@ namespace cryptonote
     std::vector<difficulty_type> m_difficulties;
     uint64_t m_timestamps_and_difficulties_height;
 
+    epee::critical_section m_difficulty_lock;
+    crypto::hash m_difficulty_for_next_block_top_hash;
+    difficulty_type m_difficulty_for_next_block;
+
+
     std::string m_validator_key;
     std::vector<std::string> m_validators_public_keys;
 
