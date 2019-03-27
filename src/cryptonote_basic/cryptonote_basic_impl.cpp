@@ -107,7 +107,7 @@ namespace cryptonote {
       return true;
     }
 
-    //After v8 the reward drops by ~80%
+    //After v8 the reward drops by ~50%
     double emission_speed_factor = (version == 8 ? EMISSION_SPEED_FACTOR_PER_MINUTE_V8 : EMISSION_SPEED_FACTOR_PER_MINUTE) - (target_minutes-1);
 
     uint64_t base_reward = (MONEY_SUPPLY - already_generated_coins) / pow(2, emission_speed_factor);
