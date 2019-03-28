@@ -977,6 +977,11 @@ namespace cryptonote
     std::vector<difficulty_type> m_difficulties;
     uint64_t m_timestamps_and_difficulties_height;
 
+    epee::critical_section m_difficulty_lock;
+    crypto::hash m_difficulty_for_next_block_top_hash;
+    difficulty_type m_difficulty_for_next_block;
+
+
     std::string m_validator_key;
     std::vector<std::string> m_validators_public_keys;
 
@@ -999,6 +1004,16 @@ namespace cryptonote
     bool m_testnet;
 
     std::atomic<bool> m_cancel;
+
+    // block template cache
+    block m_btc;
+    account_public_address m_btc_address;
+    blobdata m_btc_nonce;
+    difficulty_type m_btc_difficulty;
+    uint64_t m_btc_pool_cookie;
+    uint64_t m_btc_expected_reward;
+    bool m_btc_valid;
+
 
     electroneum::basic::Validators* m_validators;
 
@@ -1358,6 +1373,17 @@ namespace cryptonote
      */
     bool expand_transaction_2(transaction &tx, const crypto::hash &tx_prefix_hash, const std::vector<std::vector<rct::ctkey>> &pubkeys);
 
+     /**
+     * @brief invalidates any cached block template
+     */
+    void invalidate_block_template_cache();
+
+     /**
+     * @brief stores a new cached block template
+     *
+     * At some point, may be used to push an update to miners
+     */
+    void cache_block_template(const block &b, const cryptonote::account_public_address &address, const blobdata &nonce, const difficulty_type &diff, uint64_t expected_reward, uint64_t pool_cookie);
     /**
      * @brief Digitally sign the block
      *

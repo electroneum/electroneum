@@ -329,6 +329,12 @@ namespace cryptonote
      */
     size_t validate(uint8_t version);
 
+    /**
+      * @brief return the cookie
+      *
+      * @return the cookie
+      */
+    uint64_t cookie() const { return m_cookie; }
 
 #define CURRENT_MEMPOOL_ARCHIVE_VER    11
 #define CURRENT_MEMPOOL_TX_DETAILS_ARCHIVE_VER    12
@@ -485,6 +491,8 @@ private:
     //TODO: look into doing this better
     //!< container for transactions organized by fee per size and receive time
     sorted_tx_container m_txs_by_fee_and_receive_time;
+
+    std::atomic<uint64_t> m_cookie; //!< incremented at each change
 
     /**
      * @brief get an iterator to a transaction in the sorted container

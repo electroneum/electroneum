@@ -101,7 +101,7 @@ namespace cryptonote
   }
   //---------------------------------------------------------------------------------
   //---------------------------------------------------------------------------------
-  tx_memory_pool::tx_memory_pool(Blockchain& bchs): m_blockchain(bchs)
+  tx_memory_pool::tx_memory_pool(Blockchain& bchs): m_blockchain(bchs), m_cookie(0)
   {
 
   }
@@ -282,10 +282,8 @@ namespace cryptonote
         tvc.m_should_be_relayed = true;
     }
 
-    // assume failure during verification steps until success is certain
-    tvc.m_verifivation_failed = true;
-
     tvc.m_verifivation_failed = false;
+    ++m_cookie;
 
     MINFO("Transaction added to pool: txid " << id << " bytes: " << blob_size << " fee/byte: " << (fee / (double)blob_size));
     return true;
@@ -312,6 +310,7 @@ namespace cryptonote
       auto ins_res = kei_image_set.insert(id);
       CHECK_AND_ASSERT_MES(ins_res.second, false, "internal error: try to insert duplicate iterator in key_image set");
     }
+    ++m_cookie;
     return true;
   }
   //---------------------------------------------------------------------------------
@@ -346,6 +345,7 @@ namespace cryptonote
       }
 
     }
+    ++m_cookie;
     return true;
   }
   //---------------------------------------------------------------------------------
@@ -388,6 +388,7 @@ namespace cryptonote
 
     if (sorted_it != m_txs_by_fee_and_receive_time.end())
     m_txs_by_fee_and_receive_time.erase(sorted_it);
+    ++m_cookie;
     return true;
   }
   //---------------------------------------------------------------------------------
@@ -460,6 +461,7 @@ namespace cryptonote
           // ignore error
         }
       }
+      ++m_cookie;
     }
     return true;
   }
@@ -1012,6 +1014,8 @@ namespace cryptonote
         }
       }
     }
+    if (n_removed > 0)
+      ++m_cookie;
     return n_removed;
   }
   //---------------------------------------------------------------------------------
@@ -1022,7 +1026,7 @@ namespace cryptonote
 
     m_txs_by_fee_and_receive_time.clear();
     m_spent_key_images.clear();
-    return m_blockchain.for_all_txpool_txes([this](const crypto::hash &txid, const txpool_tx_meta_t &meta, const cryptonote::blobdata *bd) {
+    bool r = m_blockchain.for_all_txpool_txes([this](const crypto::hash &txid, const txpool_tx_meta_t &meta, const cryptonote::blobdata *bd) {
       cryptonote::transaction tx;
       if (!parse_and_validate_tx_from_blob(*bd, tx))
       {
@@ -1037,6 +1041,13 @@ namespace cryptonote
       m_txs_by_fee_and_receive_time.emplace(std::pair<double, time_t>(meta.fee / (double)meta.blob_size, meta.receive_time), txid);
       return true;
     }, true);
+
+    if (!r){return false;}
+
+    m_cookie = 0;
+
+    // Ignore deserialization error
+    return true;
   }
 
   //---------------------------------------------------------------------------------
