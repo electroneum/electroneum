@@ -594,7 +594,7 @@ bool t_command_parser_executor::set_validator_key(const std::vector<std::string>
   std::string key(args[0]);
 
   bool is_validator_key_valid = std::count_if(key.begin(), key.end(), std::not1(std::ptr_fun((int(*)(int))std::isxdigit))) == 0;
-  if(!is_validator_key_valid || key.size() % 2 != 0) {
+  if(!is_validator_key_valid || key.size() != 64) {
     std::cout << "Failed to parse validator key (wrong format)." << std::endl;
     return true;
   }
