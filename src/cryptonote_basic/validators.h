@@ -141,18 +141,21 @@ namespace electroneum {
 
               // Try getting list of validators from peers
               if(m_p2p->request_validators_list_to_all()) {
+                this->timeout = 60*60*1;
                 return true;
               }
 
               // Try getting list of validators from db
               string v = m_db.get_validator_list();
               if(!v.empty()) {
+                this->timeout = 60*60*1;
                 return setValidatorsList(v, true);
               }
 
               return false;
             }
 
+            this->timeout = 60*60*12;
             return validate_and_update(res);
           }
 
