@@ -41,6 +41,8 @@ namespace electroneum {
 
         bool Validators::validate_and_update(electroneum::basic::v_list_struct res, bool saveToDB) {
 
+          LOG_PRINT_L2("Validator List Struct received: " << store_t_to_json(res));
+
           string vl_publicKey = this->testnet ?
                   "BC41B6767BCCF23AD25A2D9A528FF47C7FABA4790B8FC2E61D11050E95E01878" :
                   "F669F5CDD45CE7C540A5E85CAB04F970A30E20D2C939FD5ACEB18280C9319C1D";
@@ -58,11 +60,29 @@ namespace electroneum {
             return false;
           }
 
+          LOG_PRINT_L2("Validator List received: " << crypto::base64_decode(res.blob));
+
+          LOG_PRINT_L2("BEFORE");
+          int v_counter = 0;
+          all_of(this->list.begin(), this->list.end(), [&v_counter](std::unique_ptr<Validator> &v) {
+              LOG_PRINT_L2("Validator " << v_counter << " :: PublicKey=" << v->getPublicKey() << ",\n FromHeight=" << v->getStartHeight() << ", ToHeight=" << v->getEndHeight());
+              v_counter++;
+              return true;
+          });
+
           json_obj obj;
           load_t_from_json(obj, crypto::base64_decode(res.blob));
           for (const auto &v : obj.validators) {
             this->addOrUpdate(v.validation_public_key, v.valid_from_height, v.valid_to_height);
           }
+
+          LOG_PRINT_L2("AFTER");
+          v_counter = 0;
+          all_of(this->list.begin(), this->list.end(), [&v_counter](std::unique_ptr<Validator> &v) {
+            LOG_PRINT_L2("Validator " << v_counter << " :: PublicKey=" << v->getPublicKey() << ",\n FromHeight=" << v->getStartHeight() << ", ToHeight=" << v->getEndHeight());
+            v_counter++;
+            return true;
+          });
 
           //Serialize & save valid http response to propagate to p2p uppon request
           this->serialized_v_list = store_t_to_json(res);
@@ -81,8 +101,6 @@ namespace electroneum {
                                 << "This list will be refreshed in " << (this->timeout/(60*60)) << " hours." << ENDL
                                 << "**********************************************************************" << ENDL);
             this->isInitial = false;
-          } else {
-            MGINFO_MAGENTA("Validators list successfully refreshed!");
           }
 
           if(saveToDB) {

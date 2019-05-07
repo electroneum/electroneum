@@ -66,6 +66,30 @@ namespace epee
       return serialization::load_t_from_json(result_struct, pri->m_body);
     }
 
+    template<class t_response, class t_transport>
+    bool get_http_json(const boost::string_ref uri, t_response& result_struct, t_transport& transport, std::chrono::milliseconds timeout = std::chrono::seconds(15), const boost::string_ref method = "GET") {
+
+      const http::http_response_info* pri = NULL;
+      if(!transport.invoke(uri, method, "", timeout, std::addressof(pri)))
+      {
+        LOG_PRINT_L1("Failed to invoke http request to  " << uri);
+        return false;
+      }
+
+      if(!pri)
+      {
+        LOG_PRINT_L1("Failed to invoke http request to  " << uri << ", internal error (null response ptr)");
+        return false;
+      }
+
+      if(pri->m_response_code != 200)
+      {
+        LOG_PRINT_L1("Failed to invoke http request to  " << uri << ", wrong response code: " << pri->m_response_code);
+        return false;
+      }
+
+      return serialization::load_t_from_json(result_struct, pri->m_body);
+    }
 
 
     template<class t_request, class t_response, class t_transport>
