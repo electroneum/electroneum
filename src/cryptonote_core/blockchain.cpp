@@ -1408,8 +1408,14 @@ bool Blockchain::verify_block_signature(const block& b) {
   crypto::hash tx_tree_hash = get_tx_tree_hash(b);
   const std::vector<std::string> public_keys = m_validators->getApplicablePublicKeys(m_db->height(), true);
 
-  return crypto::verify_signature(std::string(reinterpret_cast<char const*>(tx_tree_hash.data), sizeof(tx_tree_hash.data)),
-          public_keys, b.signature);
+  for(auto &key : public_keys) {
+    if(crypto::verify_signature(std::string(reinterpret_cast<char const *>(tx_tree_hash.data), sizeof(tx_tree_hash.data)),
+                             key, b.signature)){
+        b.signatory = key;
+        return true;
+    }
+  }
+  return false;
 }
 
 //------------------------------------------------------------------
@@ -1513,6 +1519,10 @@ bool Blockchain::handle_alternative_block(const block& b, const crypto::hash& id
     // main chain -- that is, if we're adding on to an alternate chain
     if(alt_chain.size())
     {
+      if(b.major_version >= 8) {
+        CHECK_AND_ASSERT_MES(b.signatory != alt_chain.back()->second.bl.signatory, false,
+                             "a single validator can't mine blocks in sequence");
+      }
       // make sure alt chain doesn't somehow start past the end of the main chain
       CHECK_AND_ASSERT_MES(m_db->height() > alt_chain.front()->second.height, false, "main blockchain wrong height");
 
@@ -3150,6 +3160,11 @@ leave:
 
     if(!verify_block_signature(bl)) {
       MERROR_VER("Block with id: " << id << std::endl << " has wrong digital signature");
+      bvc.m_verifivation_failed = true;
+      goto leave;
+    }
+    if(bl.signatory == m_db->get_block(bl.prev_id).signatory){
+      MERROR_VER("Block with id: " << id << std::endl << " has the same signatory as the previous block, which is not allowed");
       bvc.m_verifivation_failed = true;
       goto leave;
     }
