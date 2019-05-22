@@ -60,4 +60,5 @@ namespace cryptonote
     bool m_partial_block_reward;
     bool m_validator_list_update_failed;
   };
+
 }

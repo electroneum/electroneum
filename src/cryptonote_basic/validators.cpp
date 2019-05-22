@@ -39,7 +39,7 @@ namespace electroneum {
 
         Validator::Validator() = default;
 
-        bool Validators::validate_and_update(electroneum::basic::v_list_struct res, bool saveToDB) {
+        list_update_outcome Validators::validate_and_update(electroneum::basic::v_list_struct res, bool saveToDB) {
 
           LOG_PRINT_L2("Validator List Struct received: " << store_t_to_json(res));
 
@@ -50,14 +50,14 @@ namespace electroneum {
           //Check against our hardcoded public-key to make sure it's a valid message
           if (res.public_key != vl_publicKey) {
             LOG_PRINT_L1("Validator list has invalid public_key.");
-            return false;
+            return list_update_outcome::Invalid_Etn_Pubkey;
           }
 
           bool is_signature_valid = crypto::verify_signature(res.blob, unhex(string(res.public_key)),
                                                              unhex(string(res.signature)));
           if (!is_signature_valid) {
             LOG_PRINT_L1("Validator list has invalid signature and will be ignored.");
-            return false;
+            return list_update_outcome::Invalid_Sig;
           }
 
           LOG_PRINT_L2("Validator List received: " << crypto::base64_decode(res.blob));
@@ -72,6 +72,13 @@ namespace electroneum {
 
           json_obj obj;
           load_t_from_json(obj, crypto::base64_decode(res.blob));
+
+          if(obj.list_timestamp < this->current_list_timestamp){
+              return list_update_outcome::Old_List;
+          } else if(obj.list_timestamp == this->current_list_timestamp){
+              return list_update_outcome::Same_List;
+          }
+
           for (const auto &v : obj.validators) {
             this->addOrUpdate(v.validation_public_key, v.valid_from_height, v.valid_to_height);
           }
@@ -87,6 +94,7 @@ namespace electroneum {
           //Serialize & save valid http response to propagate to p2p uppon request
           this->serialized_v_list = store_t_to_json(res);
           this->last_updated = time(nullptr);
+          this->current_list_timestamp = obj.list_timestamp;
           this->status = ValidatorsState::Valid;
 
           if(this->isInitial) {
@@ -107,7 +115,7 @@ namespace electroneum {
             m_db.set_validator_list(this->serialized_v_list, this->last_updated + this->timeout);
           }
 
-          return true;
+          return list_update_outcome::Success;
         }
 
         void Validators::add(const string &key, uint64_t startHeight, uint64_t endHeight) {

@@ -57,6 +57,14 @@ namespace electroneum {
         Disabled
     };
 
+    enum class list_update_outcome{
+        Success,
+        Invalid_Sig,
+        Invalid_Etn_Pubkey,
+        Old_List,
+        Same_List
+    };
+
     class Validator {
     private:
         string publicKey;
@@ -91,6 +99,7 @@ namespace electroneum {
     class Validators {
     private:
         vector<std::unique_ptr<Validator>> list;
+        uint64_t current_list_timestamp;
         epee::net_utils::http::http_simple_client http_client;
         string endpoint_addr = "vl.electroneum.com";
         string endpoint_port = "80";
@@ -113,7 +122,7 @@ namespace electroneum {
         void update(const string &key, uint64_t endHeight);
         std::unique_ptr<Validator> find(const string &key);
         bool exists(const string &key);
-        bool validate_and_update(v_list_struct res, bool saveToDB = false);
+        list_update_outcome validate_and_update(v_list_struct res, bool saveToDB = false);
         ValidatorsState validate_expiration();
         void invalidate();
 
@@ -149,31 +158,30 @@ namespace electroneum {
             }
 
             this->timeout = 60*60*12;
-            bool isJsonValid = validate_and_update(res, true);
+            list_update_outcome isJsonValid = validate_and_update(res, true);
 
-            if(isJsonValid) {
+            if(isJsonValid == list_update_outcome::Success || isJsonValid == list_update_outcome::Same_List) {
               MGINFO_MAGENTA("Validators list successfully refreshed from JSON endpoint! Timeout = 12 hours");
               return true;
             }
 
-            if(!isJsonValid) {
-              // Try getting list of validators from peers
+            //If the list was old, invalid, or had an invalid public key, try getting list of validators from peers
               if(m_p2p->request_validators_list_to_all()) {
                 this->timeout = 60*60*1;
                 MGINFO_MAGENTA("Validators list successfully refreshed from peers! Timeout = 1 hour");
                 return true;
               }
 
-              // Try getting list of validators from db
+              // If we there was an issue with getting the list from peers, try getting list of validators from db
               string v = m_db.get_validator_list();
               if(!v.empty()) {
                 this->timeout = 60*60*1;
-                if(setValidatorsList(v, true)) {
-                  MGINFO_MAGENTA("Validators list successfully refreshed from databse! Timeout = 1 hour");
+                if(setValidatorsList(v, true) == electroneum::basic::list_update_outcome::Success || isJsonValid == list_update_outcome::Same_List) {
+                  MGINFO_MAGENTA("Validators list successfully refreshed from database! Timeout = 1 hour");
                   return true;
                 }
               }
-            }
+
 
             return false;
           }
@@ -185,7 +193,7 @@ namespace electroneum {
           return this->serialized_v_list;
         }
 
-        inline bool setValidatorsList(const string &v_list, bool saveToDB = false) {
+        inline list_update_outcome setValidatorsList(const string &v_list, bool saveToDB = false) {
           v_list_struct res = AUTO_VAL_INIT(res);
           load_t_from_json(res, v_list);
 

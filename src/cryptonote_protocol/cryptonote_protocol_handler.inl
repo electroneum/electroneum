@@ -43,6 +43,7 @@
 #include "cryptonote_basic/cryptonote_format_utils.h"
 #include "profile_tools.h"
 #include "p2p/network_throttle-detail.hpp"
+#include "cryptonote_basic/validators.h"
 
 #undef ELECTRONEUM_DEFAULT_LOG_CATEGORY
 #define ELECTRONEUM_DEFAULT_LOG_CATEGORY "net.cn"
@@ -420,10 +421,18 @@ namespace cryptonote
       NOTIFY_REQUEST_VALIDATORS_LIST::response res = AUTO_VAL_INIT(res);
       epee::serialization::load_t_from_binary(res, res_buff);
       if(!res.serialized_v_list.empty()) {
-        if(m_core.set_validators_list(res.serialized_v_list)) {
+
+        electroneum::basic::list_update_outcome outcome = m_core.set_validators_list(res.serialized_v_list);
+
+        if(outcome == electroneum::basic::list_update_outcome::Success) {
           return true;
-        } else {
-          LOG_ERROR_CCONTEXT("Received invalid Validators List. Dropping connection.");
+        }
+        else if(outcome == electroneum::basic::list_update_outcome::Old_List || outcome == electroneum::basic::list_update_outcome::Same_List){
+          LOG_PRINT_CCONTEXT_L2("Peer" << context.m_connection_id << " does not have a newer list than you.");
+          return true;
+        }
+        else {
+          LOG_ERROR_CCONTEXT("Received invalid Validators List from" << context.m_connection_id << ". Dropping connection.");
           drop_connection(context, false, false);
         }
       }
@@ -435,7 +444,7 @@ namespace cryptonote
   bool t_cryptonote_protocol_handler<t_core>::request_validators_list_to_all()
   {
     m_p2p->for_each_connection([&](cryptonote_connection_context& context, nodetool::peerid_type peer_id, uint32_t support_flags)->bool {
-      if (context.m_state >= cryptonote_connection_context::state_before_handshake && !m_core.isValidatorsListValid()) {
+      if (context.m_state >= cryptonote_connection_context::state_before_handshake) {
         request_validators_list(context);
       }
       return true;
