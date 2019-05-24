@@ -62,16 +62,17 @@ namespace electroneum {
         };
 
         struct v_list_struct {
-            std::string public_key;
+
             std::string blob;
-            std::string signature;
             int version = 0;
+            std::vector<std::string> signatures;
+            std::vector<std::string> pubkeys;
 
             BEGIN_KV_SERIALIZE_MAP()
-            KV_SERIALIZE(public_key)
             KV_SERIALIZE(blob)
-            KV_SERIALIZE(signature)
             KV_SERIALIZE(version)
+            KV_SERIALIZE(signatures)
+            KV_SERIALIZE(pubkeys)
             END_KV_SERIALIZE_MAP()
         };
     }
