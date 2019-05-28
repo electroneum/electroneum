@@ -1,31 +1,19 @@
-Copyright (c) 2014-2017, The Monero Project
+1	Copyright (c) Electroneum Limited 2017-2019 and licenced under the following terms:
+1.1	Subject to the terms and conditions set out below we grant to you free of charge a worldwide, non-exclusive, royalty-free, licence to use, modify, redistribute, prepare derivative works of, display, sublicense and/or distribute the code in the Electroneum Project which has been created by us or our contributors (“Code”).
+1.2	Redistribution of the Code (whether in source or object form) must retain the terms of this licence in full and must prominently display the terms of this licence.
+1.3	You must not:
+1.3.1	use Electroneum Limited’s (or any group company’s) name, brand, logo or trade marks to endorse or promote any works derived from Code without the prior written permission of Electroneum Limited; or
+1.3.2	use the Code in any way which may directly or indirectly harm or interfere with the functioning of Electroneum Limited’s blockchain, the exchange token operating on that blockchain (known as ETN) or any other product or service made available by Electroneum Limited (or any group company) from time to time. 
+1.4	The Code is provided to you on an “as is” basis. All express and implied warranties, including but not limited to warranties as to non-infringement, fitness for any particular purpose, quality or merchantability, are excluded to the fullest extent permissible by law. You are responsible for, and assume any risk associated with, the use and distribution of the Code. 
+1.5	Electroneum Limited (and its group companies) shall not be liable to any person for any claims, losses or damages which may be suffered, whether the same are suffered directly or indirectly, whether immediate or consequential, and whether the same arise in contract, tort (including negligence) or otherwise, including (without limitation) loss of goodwill, loss of profits, loss of anticipated savings, loss of business opportunities, loss or corruption of data and computer failure or malfunction. 
+1.6	In your redistribution of the Code you shall not provide to any person any representation, warranty or condition not contained in the terms of this licence. You agree to indemnify us against all claims, losses or damages which we may incur by reason of your breach of this clause. 
+2	Parts of this project are originally copyright (c) The Monero Project and distributed under the following licence terms:
+2.1	All rights reserved.
+2.2	Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
+2.2.1	Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
+2.2.2	Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
+2.3	Neither the name of the copyright holder nor the names of its contributors may be used to endorse or promote products derived from this software without specific prior written permission.
+2.4	THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+3	Parts of this project are originally copyright (c) The Cryptonote developers, distributed under the MIT licence.
+4	[Parts of this project are originally copyright (c) The Boolberry developers, distributed under the MIT licence.]
 
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions are met:
-
-1. Redistributions of source code must retain the above copyright notice, this
-list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright notice,
-this list of conditions and the following disclaimer in the documentation
-and/or other materials provided with the distribution.
-
-3. Neither the name of the copyright holder nor the names of its contributors
-may be used to endorse or promote products derived from this software without
-specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
-FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
-SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
-OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
-Parts of the project are originally copyright (c) 2012-2013 The Cryptonote
-developers
