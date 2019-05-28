@@ -43,21 +43,39 @@ namespace electroneum {
 
           LOG_PRINT_L2("Validator List Struct received: " << store_t_to_json(res));
 
-          string vl_publicKey = this->testnet ?
-                  "BC41B6767BCCF23AD25A2D9A528FF47C7FABA4790B8FC2E61D11050E95E01878" :
-                  "F669F5CDD45CE7C540A5E85CAB04F970A30E20D2C939FD5ACEB18280C9319C1D";
+          std::vector<std::string> testnet_vl_publicKeys = {"BC41B6767BCCF23AD25A2D9A528FF47C7FABA4790B8FC2E61D11050E95E01878",
+                                    "1B74C1751E67E01AF775201AF37554B1B62AF43454CA26E8621BAD81A1CFBC9B",
+                                    "953C06A618F276D19B303B04BA9858ECFFD885895D84A72F32C559DC5B82323C"};
 
-          //Check against our hardcoded public-key to make sure it's a valid message
-          if (res.public_key != vl_publicKey) {
-            LOG_PRINT_L1("Validator list has invalid public_key.");
+          std::vector<std::string> mainnet_vl_publicKeys = {"F669F5CDD45CE7C540A5E85CAB04F970A30E20D2C939FD5ACEB18280C9319C1D",
+                                   "0CACB4F4691FC0CE024064BCC16E1288B0FEB5A2424CACEEBFB82C11DE3C070C",
+                                   "9C4D0765201F78C46A7FA0EBDDF556AB98F624193FCDB1352194AAAE93F6461B"};
+
+          std::vector<std::string> vl_publicKeys = this->testnet ? testnet_vl_publicKeys : mainnet_vl_publicKeys;
+
+           //Check against our hardcoded public-keys to make sure it's a valid message
+          if (res.pubkeys.size() != vl_publicKeys.size()) {
+            LOG_PRINT_L1("Validator list has too few public keys.");
             return false;
           }
 
-          bool is_signature_valid = crypto::verify_signature(res.blob, unhex(string(res.public_key)),
-                                                             unhex(string(res.signature)));
-          if (!is_signature_valid) {
-            LOG_PRINT_L1("Validator list has invalid signature and will be ignored.");
+          if (res.signatures.size() != vl_publicKeys.size()) {
+            LOG_PRINT_L1("Validator list has too few signatures.");
             return false;
+          }
+
+          //Check against our hardcoded public-keys to make sure it's a valid message
+          if (res.pubkeys != vl_publicKeys) {
+            LOG_PRINT_L1("Validator list has one or more invalid public keys.");
+            return false;
+          }
+
+          //We sign our validator lists with multiple keys for security purposes.
+          for (unsigned int i = 0; i < vl_publicKeys.size(); ++i){
+              if(!crypto::verify_signature(res.blob, unhex(string(vl_publicKeys[i])), unhex(string(res.signatures[i])))){
+                  LOG_PRINT_L1("Validator list has an invalid signature and will be ignored.");
+                  return false;
+              }
           }
 
           LOG_PRINT_L2("Validator List received: " << crypto::base64_decode(res.blob));
@@ -84,7 +102,7 @@ namespace electroneum {
             return true;
           });
 
-          //Serialize & save valid http response to propagate to p2p uppon request
+          //Serialize & save valid http response to propagate to p2p upon request
           this->serialized_v_list = store_t_to_json(res);
           this->last_updated = time(nullptr);
           this->status = ValidatorsState::Valid;
