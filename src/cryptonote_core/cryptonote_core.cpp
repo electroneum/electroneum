@@ -1010,8 +1010,10 @@ namespace cryptonote
     cleanup_handle_incoming_blocks(true);
     //anyway - update miner template
     update_miner_block_template();
-    m_miner.resume();
 
+    CHECK_AND_ASSERT(!bvc.m_sequential_block, false);
+
+    m_miner.resume();
 
     CHECK_AND_ASSERT_MES(!bvc.m_verifivation_failed, false, "mined block failed verification");
     if(bvc.m_added_to_main_chain)
@@ -1102,8 +1104,14 @@ namespace cryptonote
     }
 
     add_new_block(b, bvc);
-    if(update_miner_blocktemplate && bvc.m_added_to_main_chain)
-       update_miner_block_template();
+
+    if(bvc.m_added_to_main_chain) {
+      m_miner.resume();
+
+      if(update_miner_blocktemplate)
+        update_miner_block_template();
+    }
+
     return true;
 
     CATCH_ENTRY_L0("core::handle_incoming_block()", false);
