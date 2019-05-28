@@ -3169,6 +3169,7 @@ leave:
     if(bl.signatory == m_db->get_block(bl.prev_id).signatory){
       MERROR_VER("Block with id: " << id << std::endl << " has the same signatory as the previous block, which is not allowed");
       bvc.m_verifivation_failed = true;
+      bvc.m_sequential_block = true;
       goto leave;
     }
   }
