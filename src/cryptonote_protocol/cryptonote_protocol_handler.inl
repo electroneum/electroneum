@@ -428,7 +428,7 @@ namespace cryptonote
           return true;
         }
         else if(outcome == electroneum::basic::list_update_outcome::Old_List || outcome == electroneum::basic::list_update_outcome::Same_List){
-          LOG_PRINT_CCONTEXT_L2("Peer" << context.m_connection_id << " does not have a newer list than you.");
+          LOG_PRINT_CCONTEXT_L2("Peer " << context.m_connection_id << " does not have a newer list than you.");
           return true;
         }
         else {
@@ -444,7 +444,7 @@ namespace cryptonote
   bool t_cryptonote_protocol_handler<t_core>::request_validators_list_to_all()
   {
     m_p2p->for_each_connection([&](cryptonote_connection_context& context, nodetool::peerid_type peer_id, uint32_t support_flags)->bool {
-      if (context.m_state >= cryptonote_connection_context::state_before_handshake) {
+      if (peer_id && context.m_state >= cryptonote_connection_context::state_before_handshake) {
         request_validators_list(context);
       }
       return true;

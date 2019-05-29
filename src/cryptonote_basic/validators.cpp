@@ -91,10 +91,17 @@ namespace electroneum {
           json_obj obj;
           load_t_from_json(obj, crypto::base64_decode(res.blob));
 
-          if(obj.list_timestamp < this->current_list_timestamp){
-              return list_update_outcome::Old_List;
-          } else if(obj.list_timestamp == this->current_list_timestamp){
-              return list_update_outcome::Same_List;
+          if(obj.list_timestamp < this->current_list_timestamp) {
+            LOG_PRINT_L1("Validator list received is older than our local list.");
+            return list_update_outcome::Old_List;
+          } else if(obj.list_timestamp == this->current_list_timestamp) {
+
+            this->last_updated = time(nullptr);
+            this->status = ValidatorsState::Valid;
+
+            LOG_PRINT_L1("Validator list received has the same timestamp than our local list.");
+
+            return list_update_outcome::Same_List;
           }
 
           for (const auto &v : obj.validators) {
@@ -181,6 +188,10 @@ namespace electroneum {
 
         ValidatorsState Validators::validate_expiration() {
           if((time(nullptr) - this->last_updated) >= this->timeout && this->status == ValidatorsState::Valid) {
+            this->status = ValidatorsState::NeedsUpdate;
+          }
+
+          if((time(nullptr) - this->last_updated) >= this->timeout + this->timeout_grace_period && this->status == ValidatorsState::Valid) {
             this->status = ValidatorsState::Expired;
           }
 
