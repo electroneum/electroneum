@@ -404,7 +404,6 @@ namespace cryptonote
     if(m_pausers_count < 0)
     {
       m_pausers_count = 0;
-      MERROR("Unexpected miner::resume() called");
     }
     if(!m_pausers_count && is_mining())
       MDEBUG("MINING RESUMED");
