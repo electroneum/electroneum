@@ -127,7 +127,7 @@ namespace electroneum {
         void invalidate();
 
     public:
-        explicit Validators(cryptonote::BlockchainDB &db, cryptonote::i_cryptonote_protocol* pprotocol, bool testnet) : m_db(db) {
+        explicit Validators(cryptonote::BlockchainDB &db, cryptonote::i_cryptonote_protocol* pprotocol, bool testnet) : m_db(db), current_list_timestamp(0) {
           testnet ? this->http_client.set_server(this->testnet_endpoint_addr, this->testnet_endpoint_port, boost::none) :
                     this->http_client.set_server(this->endpoint_addr, this->endpoint_port, boost::none);
           this->testnet = testnet;
