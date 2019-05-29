@@ -3232,8 +3232,11 @@ std::string BlockchainLMDB::get_validator_list() const {
   MDB_val_copy<uint64_t> val_key(0);
   MDB_val val_ret;
   auto result = mdb_cursor_get(m_cur_validators, &val_key, &val_ret, MDB_SET);
-  if (result == MDB_NOTFOUND || result)
+  if (result == MDB_NOTFOUND || result) {
     LOG_PRINT_L1("Error attempting to retrieve the list of validators from the db.");
+    TXN_POSTFIX_RDONLY();
+    return std::string("");
+  }
 
   blobdata ret;
   ret.assign(reinterpret_cast<const char*>(val_ret.mv_data), val_ret.mv_size);
