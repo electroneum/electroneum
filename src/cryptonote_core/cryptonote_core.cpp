@@ -1008,14 +1008,8 @@ namespace cryptonote
     prepare_handle_incoming_blocks(blocks);
     m_blockchain_storage.add_new_block(b, bvc);
     cleanup_handle_incoming_blocks(true);
-    //anyway - update miner template
-    update_miner_block_template();
 
-    CHECK_AND_ASSERT(!bvc.m_sequential_block, false);
-
-    m_miner.resume();
-
-    CHECK_AND_ASSERT_MES(!bvc.m_verifivation_failed, false, "mined block failed verification");
+    CHECK_AND_ASSERT_MES(!bvc.m_verifivation_failed, false, "Mined block failed verification");
     if(bvc.m_added_to_main_chain)
     {
       cryptonote_connection_context exclude_context = boost::value_initialized<cryptonote_connection_context>();
@@ -1039,6 +1033,9 @@ namespace cryptonote
         arg.b.txs.push_back(tx);
 
       m_pprotocol->relay_block(arg, exclude_context);
+    } else {
+      update_miner_block_template();
+      m_miner.resume();
     }
     return bvc.m_added_to_main_chain;
   }
