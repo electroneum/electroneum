@@ -92,7 +92,12 @@ namespace electroneum {
           load_t_from_json(obj, crypto::base64_decode(res.blob));
 
           if(obj.list_timestamp < this->current_list_timestamp) {
+
+            this->last_updated = time(nullptr);
+            this->status = ValidatorsState::Valid;
+            
             LOG_PRINT_L1("Validator list received is older than our local list.");
+
             return list_update_outcome::Old_List;
           } else if(obj.list_timestamp == this->current_list_timestamp) {
 
