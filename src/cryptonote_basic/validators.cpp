@@ -186,17 +186,12 @@ namespace electroneum {
           });
         }
 
-        void Validators::invalidate() {
-          this->serialized_v_list = string("");
-          this->status = ValidatorsState::Invalid;
-        }
-
         ValidatorsState Validators::validate_expiration() {
           if((time(nullptr) - this->last_updated) >= this->timeout && this->status == ValidatorsState::Valid) {
             this->status = ValidatorsState::NeedsUpdate;
           }
 
-          if((time(nullptr) - this->last_updated) >= this->timeout + this->timeout_grace_period && this->status == ValidatorsState::Valid) {
+          if((time(nullptr) - this->last_updated) >= this->timeout + this->timeout_grace_period && this->status == ValidatorsState::NeedsUpdate) {
             this->status = ValidatorsState::Expired;
           }
 

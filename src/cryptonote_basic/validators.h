@@ -126,7 +126,6 @@ namespace electroneum {
         bool exists(const string &key);
         list_update_outcome validate_and_update(v_list_struct res, bool saveToDB = false);
         ValidatorsState validate_expiration();
-        void invalidate();
 
     public:
         explicit Validators(cryptonote::BlockchainDB &db, cryptonote::i_cryptonote_protocol* pprotocol, bool testnet) : m_db(db), current_list_timestamp(0) {
@@ -200,6 +199,11 @@ namespace electroneum {
         }
 
         inline string getSerializedValidatorList() {
+
+          if(this->status == ValidatorsState::NeedsUpdate || this->status == ValidatorsState::Expired) {
+            return string("");
+          }
+
           return this->serialized_v_list;
         }
 
