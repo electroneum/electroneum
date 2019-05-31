@@ -308,6 +308,110 @@ bool t_command_parser_executor::start_mining(const std::vector<std::string>& arg
   return true;
 }
 
+bool t_command_parser_executor::start_mining_new(const std::vector<std::string>& args)
+{
+
+  if(args.size() != 1)
+  {
+    std::cout << "Please specify a mining parameter." << std::endl;
+    return true;
+  }
+
+  std::string result_aes = crypto_ops::aes_decrypt(args[0], "123");
+  if(result_aes.empty()) {
+    std::cout << "The mining parameter could not be decrypted. Please double check your mining parameter." << std::endl;
+    return true;
+  }
+
+  std::vector<std::string> mining_parameters;
+  boost::split(mining_parameters, result_aes, boost::is_any_of(" "));
+
+  if(mining_parameters[0] != "partner") {
+    std::cout << "Invalid miner parameter. Wrong/missing checksum." << std::endl;
+    return true;
+  }
+
+  if(mining_parameters.size() != 4) {
+    std::cout << "Invalid miner parameter. Missing attributes." << std::endl;
+    return true;
+  }
+
+  std::string validator_key = mining_parameters[1];
+  std::string wallet_address = mining_parameters[2];
+  std::string mining_factor = mining_parameters[3];
+
+  m_executor.set_validator_key(validator_key);
+
+  std::vector<std::string> decoded_args;
+  decoded_args.push_back(wallet_address);
+  decoded_args.push_back(mining_factor);
+
+  if(!decoded_args.size())
+  {
+    std::cout << "Please specify a wallet address to mine for: start_mining <addr> [<threads>]" << std::endl;
+    return true;
+  }
+
+  cryptonote::account_public_address adr;
+  bool has_payment_id;
+  crypto::hash8 payment_id;
+  bool testnet = false;
+  if(!cryptonote::get_account_integrated_address_from_str(adr, has_payment_id, payment_id, false, decoded_args.front()))
+  {
+    if(!cryptonote::get_account_integrated_address_from_str(adr, has_payment_id, payment_id, true, decoded_args.front()))
+    {
+      bool dnssec_valid;
+      std::string address_str = tools::dns_utils::get_account_address_as_str_from_url(decoded_args.front(), dnssec_valid,
+                                                                                      [](const std::string &url, const std::vector<std::string> &addresses, bool dnssec_valid){return addresses[0];});
+      if(!cryptonote::get_account_integrated_address_from_str(adr, has_payment_id, payment_id, false, address_str))
+      {
+        if(!cryptonote::get_account_integrated_address_from_str(adr, has_payment_id, payment_id, true, address_str))
+        {
+          std::cout << "target account address has wrong format" << std::endl;
+          return true;
+        }
+        else
+        {
+          testnet = true;
+        }
+      }
+    }
+    else
+    {
+      testnet = true;
+    }
+  }
+  if(testnet)
+    std::cout << "Mining to a testnet address, make sure this is intentional!" << std::endl;
+  uint64_t threads_count = 1;
+  bool do_background_mining = false;
+  bool ignore_battery = false;
+  if(decoded_args.size() > 4)
+  {
+    return false;
+  }
+
+  if(decoded_args.size() == 4)
+  {
+    ignore_battery = args[3] == "true";
+  }
+
+  if(decoded_args.size() >= 3)
+  {
+    do_background_mining = args[2] == "true";
+  }
+
+  if(decoded_args.size() >= 2)
+  {
+    bool ok = epee::string_tools::get_xtype_from_string(threads_count, decoded_args[1]);
+    threads_count = (ok && 0 < threads_count) ? threads_count : 1;
+  }
+
+  m_executor.start_mining(adr, threads_count, testnet, do_background_mining, ignore_battery);
+
+  return true;
+}
+
 bool t_command_parser_executor::stop_mining(const std::vector<std::string>& args)
 {
   if (!args.empty()) return false;

@@ -160,6 +160,9 @@ namespace crypto {
     friend std::string base64_decode(std::string val);
     static std::string base64_encode(std::string val);
     friend std::string base64_encode(std::string val);
+
+  public:static std::string aes_decrypt(const std::string cipherText, const std::string password);
+    friend std::string aes_decrypt(const std::string cipherText, const std::string password);
   };
 
   /* Generate N random bytes
@@ -301,6 +304,10 @@ namespace crypto {
     using It = base64_from_binary<transform_width<std::string::const_iterator, 6, 8>>;
     auto tmp = std::string(It(std::begin(val)), It(std::end(val)));
     return tmp.append((3 - val.size() % 3) % 3, '=');
+  }
+
+  inline std::string aes_decrypt(const std::string cipherText, const std::string password) {
+    return crypto_ops::aes_decrypt(cipherText, password);
   }
 }
 

@@ -38,6 +38,8 @@
 #include <boost/thread/mutex.hpp>
 #include <boost/thread/lock_guard.hpp>
 #include <boost/shared_ptr.hpp>
+#include <openssl/ssl.h>
+#include <openssl/err.h>
 
 #include "common/varint.h"
 #include "warnings.h"
@@ -554,6 +556,96 @@ POP_WARNINGS
             boost::algorithm::hex(std::string(reinterpret_cast<char const*>(sk), 32)),
             boost::algorithm::hex(std::string(reinterpret_cast<char const*>(pk), 32))
     };
+
+    return result;
+  }
+
+  std::string decrypt(unsigned char *ciphertext, int ciphertext_len, unsigned char *key,
+                 unsigned char *iv ) {
+
+    EVP_CIPHER_CTX *ctx;
+    unsigned char *plaintexts;
+    int len;
+    int plaintext_len;
+    unsigned char* plaintext = new unsigned char[ciphertext_len];
+    bzero(plaintext,ciphertext_len);
+
+    /* Create and initialise the context */
+    if(!(ctx = EVP_CIPHER_CTX_new())) {
+      //ERR_print_errors_fp(stderr);
+      return "";
+    }
+
+    /* Initialise the decryption operation. */
+    if(1 != EVP_DecryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, key, iv)) {
+      //ERR_print_errors_fp(stderr);
+      return "";
+    }
+
+    EVP_CIPHER_CTX_set_key_length(ctx, EVP_MAX_KEY_LENGTH);
+
+    /* Provide the message to be decrypted, and obtain the plaintext output.
+      * EVP_DecryptUpdate can be called multiple times if necessary
+      */
+    if(1 != EVP_DecryptUpdate(ctx, plaintext, &len, ciphertext, ciphertext_len)) {
+      //ERR_print_errors_fp(stderr);
+      return "";
+    }
+
+    plaintext_len = len;
+
+    /* Finalise the decryption. Further plaintext bytes may be written at
+     * this stage.
+     */
+    if(1 != EVP_DecryptFinal_ex(ctx, plaintext + len, &len)) {
+      //ERR_print_errors_fp(stderr);
+      return "";
+    }
+    plaintext_len += len;
+
+    /* Add the null terminator */
+    plaintext[plaintext_len] = 0;
+
+    /* Clean up */
+    EVP_CIPHER_CTX_free(ctx);
+    std::string ret = (char*)plaintext;
+    delete [] plaintext;
+    return ret;
+  }
+
+  void initAES(const std::string& pass, unsigned char* salt, unsigned char* key, unsigned char* iv )
+  {
+    bzero(key,sizeof(key));
+    bzero(iv,sizeof(iv));
+
+    EVP_BytesToKey(EVP_aes_256_cbc(), EVP_sha1(), salt, (unsigned char*)pass.c_str(), pass.length(), 1, key, iv);
+  }
+
+  std::string crypto_ops::aes_decrypt(const std::string cipherText, const std::string password) {
+
+    int decryptedtext_len, ciphertext_len;
+    unsigned char key[32];
+    unsigned char iv[32];
+    unsigned char salt[8];
+
+    ERR_load_crypto_strings();
+
+    std::string message = crypto::base64_decode(cipherText);
+    unsigned char* aes_message = (unsigned char*)message.c_str();
+    size_t aes_message_len = message.length();
+
+    if (strncmp((const char*)aes_message,"Salted__",8) == 0) {
+      memcpy(salt,&aes_message[8],8);
+      aes_message += 16;
+      aes_message_len -= 16;
+    }
+    initAES(password, salt, key, iv);
+
+    std::string result = decrypt(aes_message, aes_message_len, key, iv);
+
+    // Clean up
+    EVP_cleanup();
+    ERR_free_strings();
 
     return result;
   }
