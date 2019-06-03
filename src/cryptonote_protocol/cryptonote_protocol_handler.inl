@@ -459,6 +459,26 @@ namespace cryptonote
     return true;
   }
 
+  template<class t_core>
+  int t_cryptonote_protocol_handler<t_core>::handle_notify_emergency_validators_list(int command, NOTIFY_EMERGENCY_VALIDATORS_LIST::request& arg, cryptonote_connection_context& context)
+  {
+    MLOG_P2P_MESSAGE("Received NOTIFY_EMERGENCY_VALIDATORS_LIST");
+      if(!arg.serialized_v_list.empty()) {
+        if(m_core.set_validators_list(arg.serialized_v_list)) {
+          relay_emergency_validator_list(arg, context);
+          return true;
+        } else {
+          LOG_ERROR_CCONTEXT("Received invalid emergency Validators List. Dropping connection.");
+          drop_connection(context, false, false);
+        }
+      }
+      else{
+        drop_connection(context, false, false);
+        LOG_ERROR_CCONTEXT("Received empty emergency Validators List. Dropping connection.");
+      }
+    return 1;
+  }
+
   //------------------------------------------------------------------------------------------------------------------------
   template<class t_core>
   int t_cryptonote_protocol_handler<t_core>::handle_notify_new_fluffy_block(int command, NOTIFY_NEW_FLUFFY_BLOCK::request& arg, cryptonote_connection_context& context)
@@ -1718,6 +1738,22 @@ skip:
     m_p2p->relay_notify_to_list(NOTIFY_NEW_BLOCK::ID, fullBlob, fullConnections);
 
     return 1;
+  }
+    //------------------------------------------------------------------------------------------------------------------------
+  template<class t_core>
+  bool t_cryptonote_protocol_handler<t_core>::relay_emergency_validator_list(NOTIFY_EMERGENCY_VALIDATORS_LIST::request& arg, cryptonote_connection_context& context)
+  {
+    if(!arg.serialized_v_list.empty()) {
+
+      std::string arg_buff;
+      epee::serialization::store_t_to_binary(arg, arg_buff);
+
+      m_p2p->relay_notify_to_all(NOTIFY_EMERGENCY_VALIDATORS_LIST::ID, arg_buff, context);
+
+      return true;
+    }
+
+    return false;
   }
   //------------------------------------------------------------------------------------------------------------------------
   template<class t_core>
