@@ -160,7 +160,7 @@ namespace electroneum {
               LOG_PRINT_L1("Unable to get validator_list json from " << this->endpoint_addr << ":" << this->endpoint_port);
             }
 
-            this->timeout = 60*60*12;
+            this->timeout = 60*60*24;
             list_update_outcome isJsonValid = validate_and_update(res, true);
 
             if(isJsonValid == list_update_outcome::Success || isJsonValid == list_update_outcome::Same_List) {
