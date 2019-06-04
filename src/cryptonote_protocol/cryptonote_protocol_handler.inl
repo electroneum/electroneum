@@ -471,6 +471,21 @@ namespace cryptonote
   template<class t_core>
   int t_cryptonote_protocol_handler<t_core>::handle_notify_emergency_validators_list(int command, NOTIFY_EMERGENCY_VALIDATORS_LIST::request& arg, cryptonote_connection_context& context)
   {
+    auto it = std::find_if( context.emergency_lists_recv.begin(), context.emergency_lists_recv.end(),
+    [&arg](const std::pair<std::string, uint8_t>& element){ return element.first == arg.serialized_v_list;} );
+
+    if(it == context.emergency_lists_recv.end()){
+      context.emergency_lists_recv.push_back(std::make_pair(arg.serialized_v_list, 1));
+    }
+    //allow for peer restarting node 4 times per e-list.
+    else if(it->second > 4){
+      LOG_ERROR_CCONTEXT("Peer has sent us this emergency list too many times. Dropping connection.");
+      drop_connection(context, false, false);
+    }
+    else{
+      ++it->second;
+    }
+
     MLOG_P2P_MESSAGE("Received NOTIFY_EMERGENCY_VALIDATORS_LIST");
       if(!arg.serialized_v_list.empty()) {
           electroneum::basic::list_update_outcome outcome = m_core.set_validators_list(arg.serialized_v_list, true);

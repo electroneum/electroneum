@@ -59,6 +59,7 @@ namespace cryptonote
     boost::posix_time::ptime m_last_request_time;
     epee::copyable_atomic m_callback_request_count; //in debug purpose: problem with double callback rise
     crypto::hash m_last_known_hash;
+    std::list<std::pair<std::string, uint8_t>> emergency_lists_recv;
     //size_t m_score;  TODO: add score calculations
   };
 
