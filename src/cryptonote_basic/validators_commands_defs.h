@@ -50,9 +50,11 @@ namespace electroneum {
             };
 
             std::vector<validator> validators;
+            std::uint64_t list_timestamp;
 
             BEGIN_KV_SERIALIZE_MAP()
             KV_SERIALIZE(validators)
+            KV_SERIALIZE(list_timestamp)
             END_KV_SERIALIZE_MAP()
         };
 

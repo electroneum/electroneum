@@ -39,7 +39,7 @@ namespace electroneum {
 
         Validator::Validator() = default;
 
-        bool Validators::validate_and_update(electroneum::basic::v_list_struct res, bool saveToDB) {
+        list_update_outcome Validators::validate_and_update(electroneum::basic::v_list_struct res, bool saveToDB) {
 
           LOG_PRINT_L2("Validator List Struct received: " << store_t_to_json(res));
 
@@ -56,25 +56,25 @@ namespace electroneum {
            //Check against our hardcoded public-keys to make sure it's a valid message
           if (res.pubkeys.size() != vl_publicKeys.size()) {
             LOG_PRINT_L1("Validator list has too few public keys.");
-            return false;
+            return list_update_outcome::Invalid_Etn_Pubkey;
           }
 
           if (res.signatures.size() != vl_publicKeys.size()) {
             LOG_PRINT_L1("Validator list has too few signatures.");
-            return false;
+            return list_update_outcome::Invalid_Sig;
           }
 
           //Check against our hardcoded public-keys to make sure it's a valid message
           if (res.pubkeys != vl_publicKeys) {
             LOG_PRINT_L1("Validator list has one or more invalid public keys.");
-            return false;
+            return list_update_outcome::Invalid_Etn_Pubkey;
           }
 
           //We sign our validator lists with multiple keys for security purposes.
           for (unsigned int i = 0; i < vl_publicKeys.size(); ++i){
               if(!crypto::verify_signature(res.blob, unhex(string(vl_publicKeys[i])), unhex(string(res.signatures[i])))){
                   LOG_PRINT_L1("Validator list has an invalid signature and will be ignored.");
-                  return false;
+                  return list_update_outcome::Invalid_Sig;
               }
           }
 
@@ -90,6 +90,25 @@ namespace electroneum {
 
           json_obj obj;
           load_t_from_json(obj, crypto::base64_decode(res.blob));
+
+          if(obj.list_timestamp < this->current_list_timestamp) {
+
+            this->last_updated = time(nullptr);
+            this->status = ValidatorsState::Valid;
+            
+            LOG_PRINT_L1("Validator list received is older than our local list.");
+
+            return list_update_outcome::Old_List;
+          } else if(obj.list_timestamp == this->current_list_timestamp) {
+
+            this->last_updated = time(nullptr);
+            this->status = ValidatorsState::Valid;
+
+            LOG_PRINT_L1("Validator list received has the same timestamp than our local list.");
+
+            return list_update_outcome::Same_List;
+          }
+
           for (const auto &v : obj.validators) {
             this->addOrUpdate(v.validation_public_key, v.valid_from_height, v.valid_to_height);
           }
@@ -105,6 +124,7 @@ namespace electroneum {
           //Serialize & save valid http response to propagate to p2p upon request
           this->serialized_v_list = store_t_to_json(res);
           this->last_updated = time(nullptr);
+          this->current_list_timestamp = obj.list_timestamp;
           this->status = ValidatorsState::Valid;
 
           if(this->isInitial) {
@@ -125,7 +145,7 @@ namespace electroneum {
             m_db.set_validator_list(this->serialized_v_list, this->last_updated + this->timeout);
           }
 
-          return true;
+          return list_update_outcome::Success;
         }
 
         void Validators::add(const string &key, uint64_t startHeight, uint64_t endHeight) {
@@ -166,13 +186,12 @@ namespace electroneum {
           });
         }
 
-        void Validators::invalidate() {
-          this->serialized_v_list = string("");
-          this->status = ValidatorsState::Invalid;
-        }
-
         ValidatorsState Validators::validate_expiration() {
           if((time(nullptr) - this->last_updated) >= this->timeout && this->status == ValidatorsState::Valid) {
+            this->status = ValidatorsState::NeedsUpdate;
+          }
+
+          if((time(nullptr) - this->last_updated) >= this->timeout + this->timeout_grace_period && this->status == ValidatorsState::NeedsUpdate) {
             this->status = ValidatorsState::Expired;
           }
 
