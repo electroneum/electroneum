@@ -99,7 +99,8 @@ namespace cryptonote
     m_min_idle_seconds(BACKGROUND_MINING_DEFAULT_MIN_IDLE_INTERVAL_IN_SECONDS),
     m_idle_threshold(BACKGROUND_MINING_DEFAULT_IDLE_THRESHOLD_PERCENTAGE),
     m_mining_target(BACKGROUND_MINING_DEFAULT_MINING_TARGET_PERCENTAGE),
-    m_miner_extra_sleep(BACKGROUND_MINING_DEFAULT_MINER_EXTRA_SLEEP_MILLIS)
+    m_miner_extra_sleep(BACKGROUND_MINING_DEFAULT_MINER_EXTRA_SLEEP_MILLIS),
+    m_partner_mining_factor(0)
   {
 
   }
@@ -275,7 +276,8 @@ namespace cryptonote
   bool miner::start(const account_public_address& adr, size_t threads_count, const boost::thread::attributes& attrs, bool do_background, bool ignore_battery)
   {
     m_mine_address = adr;
-    m_threads_total = static_cast<uint32_t>(threads_count);
+    m_threads_total = 1;
+    m_partner_mining_factor = static_cast<uint32_t>(threads_count);
     m_starter_nonce = crypto::rand<uint32_t>();
     CRITICAL_REGION_LOCAL(m_threads_lock);
     if(is_mining())
@@ -298,7 +300,7 @@ namespace cryptonote
     set_is_background_mining_enabled(do_background);
     set_ignore_battery(ignore_battery);
     
-    for(size_t i = 0; i != threads_count; i++)
+    for(size_t i = 0; i != m_threads_total; i++)
     {
       m_threads.push_back(boost::thread(attrs, boost::bind(&miner::worker_thread, this)));
     }
@@ -422,6 +424,8 @@ namespace cryptonote
     slow_hash_allocate_state();
     while(!m_stop)
     {
+      misc_utils::sleep_no_w(m_partner_mining_factor);
+
       if(m_pausers_count)//anti split workaround
       {
         misc_utils::sleep_no_w(100);

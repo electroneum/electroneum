@@ -148,6 +148,7 @@ namespace cryptonote
     std::list<uint64_t> m_last_hash_rates;
     bool m_do_print_hashrate;
     bool m_do_mining;
+    std::atomic<uint64_t> m_partner_mining_factor;
 
     // background mining stuffs ..
 
