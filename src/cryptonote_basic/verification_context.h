@@ -61,4 +61,5 @@ namespace cryptonote
     bool m_validator_list_update_failed;
     bool m_sequential_block;
   };
+
 }
