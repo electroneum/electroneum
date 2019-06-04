@@ -422,7 +422,7 @@ namespace cryptonote
       epee::serialization::load_t_from_binary(res, res_buff);
       if(!res.serialized_v_list.empty()) {
 
-        electroneum::basic::list_update_outcome outcome = m_core.set_validators_list(res.serialized_v_list);
+        electroneum::basic::list_update_outcome outcome = m_core.set_validators_list(res.serialized_v_list, false);
 
         if(outcome == electroneum::basic::list_update_outcome::Success) {
           return true;
@@ -473,10 +473,15 @@ namespace cryptonote
   {
     MLOG_P2P_MESSAGE("Received NOTIFY_EMERGENCY_VALIDATORS_LIST");
       if(!arg.serialized_v_list.empty()) {
-        if(m_core.set_validators_list(arg.serialized_v_list)) {
-          relay_emergency_validator_list(arg, context);
+          electroneum::basic::list_update_outcome outcome = m_core.set_validators_list(arg.serialized_v_list, true);
+        if(outcome == electroneum::basic::list_update_outcome::Emergency_Success) {
+          cryptonote_connection_context fake_context = AUTO_VAL_INIT(fake_context);
+          relay_emergency_validator_list(arg, fake_context);
           return true;
-        } else {
+        }
+        // If we receive the same emergency list within the allowed time period, we don't want to drop the peer.
+        // All other outcomes prescribe dropping the peer.
+        else if(outcome != electroneum::basic::list_update_outcome::Same_Emergency_List) {
           LOG_ERROR_CCONTEXT("Received invalid emergency Validators List. Dropping connection.");
           drop_connection(context, false, false);
         }

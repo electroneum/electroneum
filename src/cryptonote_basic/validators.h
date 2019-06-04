@@ -60,10 +60,12 @@ namespace electroneum {
 
     enum class list_update_outcome{
         Success,
+        Emergency_Success,
         Invalid_Sig,
         Invalid_Etn_Pubkey,
         Old_List,
-        Same_List
+        Same_List,
+        Same_Emergency_List
     };
 
     class Validator {
@@ -124,7 +126,7 @@ namespace electroneum {
         void update(const string &key, uint64_t endHeight);
         std::unique_ptr<Validator> find(const string &key);
         bool exists(const string &key);
-        list_update_outcome validate_and_update(v_list_struct res, bool saveToDB = false);
+        list_update_outcome validate_and_update(v_list_struct res, bool saveToDB, bool isEmergencyUpdate = false);
         ValidatorsState validate_expiration();
 
     public:
@@ -207,11 +209,11 @@ namespace electroneum {
           return this->serialized_v_list;
         }
 
-        inline list_update_outcome setValidatorsList(const string &v_list, bool saveToDB = false) {
+        inline list_update_outcome setValidatorsList(const string &v_list, bool saveToDB, bool isEmergencyUpdate = false) {
           v_list_struct res = AUTO_VAL_INIT(res);
           load_t_from_json(res, v_list);
 
-          return validate_and_update(res, saveToDB);
+          return validate_and_update(res, saveToDB, isEmergencyUpdate);
         }
 
         inline bool isValid() {

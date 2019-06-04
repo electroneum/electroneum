@@ -39,7 +39,7 @@ namespace electroneum {
 
         Validator::Validator() = default;
 
-        list_update_outcome Validators::validate_and_update(electroneum::basic::v_list_struct res, bool saveToDB) {
+        list_update_outcome Validators::validate_and_update(electroneum::basic::v_list_struct res, bool saveToDB, bool isEmergencyUpdate) {
 
           LOG_PRINT_L2("Validator List Struct received: " << store_t_to_json(res));
 
@@ -105,8 +105,10 @@ namespace electroneum {
             this->status = ValidatorsState::Valid;
 
             LOG_PRINT_L1("Validator list received has the same timestamp than our local list.");
-
-            return list_update_outcome::Same_List;
+            if(isEmergencyUpdate && (std::time(nullptr) - obj.list_timestamp < 18000)){
+                return list_update_outcome::Same_Emergency_List;
+            }
+            else return list_update_outcome::Same_List;
           }
 
           for (const auto &v : obj.validators) {
@@ -145,6 +147,12 @@ namespace electroneum {
             m_db.set_validator_list(this->serialized_v_list, this->last_updated + this->timeout);
           }
 
+          // Only relay emergency lists within a 5 hour window to prevent p2p spam.
+          // Regular list updates at the endpoint will be time-stamped so that they cannot fall into this timezone
+          // and be propagated by spammers as if they were emergency lists.
+          if (isEmergencyUpdate && (std::time(nullptr) - obj.list_timestamp < 18000)){
+              return list_update_outcome::Emergency_Success;
+          }
           return list_update_outcome::Success;
         }
 
