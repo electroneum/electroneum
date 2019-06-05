@@ -65,7 +65,8 @@ namespace electroneum {
         Invalid_Etn_Pubkey,
         Old_List,
         Same_List,
-        Same_Emergency_List
+        Same_Emergency_List,
+        Recent_Emergency_List,
     };
 
     class Validator {

@@ -496,7 +496,8 @@ namespace cryptonote
         }
         // If we receive the same emergency list within the allowed time period, we don't want to drop the peer.
         // All other outcomes prescribe dropping the peer.
-        else if(outcome != electroneum::basic::list_update_outcome::Same_Emergency_List) {
+        else if(outcome != electroneum::basic::list_update_outcome::Same_Emergency_List
+                || outcome != electroneum::basic::list_update_outcome::Recent_Emergency_List) {
           LOG_ERROR_CCONTEXT("Received invalid emergency Validators List. Dropping connection.");
           drop_connection(context, false, false);
         }

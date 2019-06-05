@@ -98,7 +98,11 @@ namespace electroneum {
             
             LOG_PRINT_L1("Validator list received is older than our local list.");
 
-            return list_update_outcome::Old_List;
+            if(isEmergencyUpdate && (std::time(nullptr) - obj.list_timestamp < 18000)){
+                return list_update_outcome::Recent_Emergency_List;
+            }else {
+                return list_update_outcome::Old_List;
+            }
           } else if(obj.list_timestamp == this->current_list_timestamp) {
 
             this->last_updated = time(nullptr);
