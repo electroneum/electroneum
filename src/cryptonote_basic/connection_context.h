@@ -60,6 +60,7 @@ namespace cryptonote
     epee::copyable_atomic m_callback_request_count; //in debug purpose: problem with double callback rise
     crypto::hash m_last_known_hash;
     std::list<std::pair<std::string, uint8_t>> emergency_lists_recv;
+    std::list<std::string> emergency_lists_sent;
     //size_t m_score;  TODO: add score calculations
   };
 

@@ -477,7 +477,7 @@ namespace cryptonote
     if(it == context.emergency_lists_recv.end()){
       context.emergency_lists_recv.push_back(std::make_pair(arg.serialized_v_list, 1));
     }
-    //allow for peer restarting node 4 times per e-list.
+    //allow for peer restarting node 3 times per e-list.
     else if(it->second > 2){
       LOG_ERROR_CCONTEXT("Peer has sent us this emergency list too many times. Dropping connection.");
       drop_connection(context, false, false);
@@ -1771,14 +1771,34 @@ skip:
   }
     //------------------------------------------------------------------------------------------------------------------------
   template<class t_core>
-  bool t_cryptonote_protocol_handler<t_core>::relay_emergency_validator_list(NOTIFY_EMERGENCY_VALIDATORS_LIST::request& arg, cryptonote_connection_context& context)
+  bool t_cryptonote_protocol_handler<t_core>::relay_emergency_validator_list(NOTIFY_EMERGENCY_VALIDATORS_LIST::request& arg, cryptonote_connection_context& exclude_context)
   {
     if(!arg.serialized_v_list.empty()) {
 
       std::string arg_buff;
       epee::serialization::store_t_to_binary(arg, arg_buff);
 
-      m_p2p->relay_notify_to_all(NOTIFY_EMERGENCY_VALIDATORS_LIST::ID, arg_buff, context);
+    // Only send to peers that haven't received this list before
+    std::list<boost::uuids::uuid> relevant_connections;
+    m_p2p->for_each_connection([this, &arg, &exclude_context, &relevant_connections](connection_context& context, nodetool::peerid_type peer_id, uint32_t support_flags)
+    {
+       // There is no need to send the list in future to the peer who just sent us the list, so mark as sent too.
+      context.emergency_lists_sent.push_back(arg.serialized_v_list);
+      if (peer_id && exclude_context.m_connection_id != context.m_connection_id)
+      {
+        auto it = std::find_if( context.emergency_lists_sent.begin(), context.emergency_lists_sent.end(),
+        [&arg](const std::string& element){ return element == arg.serialized_v_list;} );
+
+        //If we haven't sent the peer this list before, then send it over.
+        if(it == context.emergency_lists_sent.end()){
+          LOG_DEBUG_CC(context, "PEER HAS NOT RECEIVED THIS LIST YET. Adding to list of recipients.");
+          relevant_connections.push_back(context.m_connection_id);
+        }
+      }
+      return true;
+    });
+
+      m_p2p->relay_notify_to_list(NOTIFY_EMERGENCY_VALIDATORS_LIST::ID, arg_buff, relevant_connections);
 
       return true;
     }
