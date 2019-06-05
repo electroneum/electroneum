@@ -481,6 +481,7 @@ namespace cryptonote
     else if(it->second > 2){
       LOG_ERROR_CCONTEXT("Peer has sent us this emergency list too many times. Dropping connection.");
       drop_connection(context, false, false);
+      return 1;
     }
     else{
       ++it->second;
@@ -489,7 +490,7 @@ namespace cryptonote
 
     MLOG_P2P_MESSAGE("Received NOTIFY_EMERGENCY_VALIDATORS_LIST");
       if(!arg.serialized_v_list.empty()) {
-          electroneum::basic::list_update_outcome outcome = m_core.set_validators_list(arg.serialized_v_list, true);
+        electroneum::basic::list_update_outcome outcome = m_core.set_validators_list(arg.serialized_v_list, true);
         if(outcome == electroneum::basic::list_update_outcome::Emergency_Success) {
           relay_emergency_validator_list(arg, context);
           return true;
@@ -497,7 +498,7 @@ namespace cryptonote
         // If we receive the same emergency list within the allowed time period, we don't want to drop the peer.
         // All other outcomes prescribe dropping the peer.
         else if(outcome != electroneum::basic::list_update_outcome::Same_Emergency_List
-                || outcome != electroneum::basic::list_update_outcome::Recent_Emergency_List) {
+                && outcome != electroneum::basic::list_update_outcome::Recent_Emergency_List) {
           LOG_ERROR_CCONTEXT("Received invalid emergency Validators List. Dropping connection.");
           drop_connection(context, false, false);
         }
@@ -1783,7 +1784,6 @@ skip:
     m_p2p->for_each_connection([this, &arg, &exclude_context, &relevant_connections](connection_context& context, nodetool::peerid_type peer_id, uint32_t support_flags)
     {
        // There is no need to send the list in future to the peer who just sent us the list, so mark as sent too.
-      context.emergency_lists_sent.push_back(arg.serialized_v_list);
       if (peer_id && exclude_context.m_connection_id != context.m_connection_id)
       {
         auto it = std::find_if( context.emergency_lists_sent.begin(), context.emergency_lists_sent.end(),
@@ -1793,6 +1793,7 @@ skip:
         if(it == context.emergency_lists_sent.end()){
           LOG_DEBUG_CC(context, "PEER HAS NOT RECEIVED THIS LIST YET. Adding to list of recipients.");
           relevant_connections.push_back(context.m_connection_id);
+          context.emergency_lists_sent.push_back(arg.serialized_v_list);
         }
       }
       return true;
