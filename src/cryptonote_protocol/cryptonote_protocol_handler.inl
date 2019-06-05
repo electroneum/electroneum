@@ -478,20 +478,20 @@ namespace cryptonote
       context.emergency_lists_recv.push_back(std::make_pair(arg.serialized_v_list, 1));
     }
     //allow for peer restarting node 4 times per e-list.
-    else if(it->second > 4){
+    else if(it->second > 2){
       LOG_ERROR_CCONTEXT("Peer has sent us this emergency list too many times. Dropping connection.");
       drop_connection(context, false, false);
     }
     else{
       ++it->second;
+      return 1;
     }
 
     MLOG_P2P_MESSAGE("Received NOTIFY_EMERGENCY_VALIDATORS_LIST");
       if(!arg.serialized_v_list.empty()) {
           electroneum::basic::list_update_outcome outcome = m_core.set_validators_list(arg.serialized_v_list, true);
         if(outcome == electroneum::basic::list_update_outcome::Emergency_Success) {
-          cryptonote_connection_context fake_context = AUTO_VAL_INIT(fake_context);
-          relay_emergency_validator_list(arg, fake_context);
+          relay_emergency_validator_list(arg, context);
           return true;
         }
         // If we receive the same emergency list within the allowed time period, we don't want to drop the peer.
