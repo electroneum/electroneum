@@ -1672,6 +1672,33 @@ namespace cryptonote
   }
   //------------------------------------------------------------------------------------------------------------------------------
 
+  bool core_rpc_server::on_inject_emergency_vlist(const COMMAND_RPC_INJECT_EMERGENCY_VLIST::request& req, COMMAND_RPC_INJECT_EMERGENCY_VLIST::response& res, epee::json_rpc::error& error_resp)
+  {
+      if(!req.blob.empty()) {
+
+      NOTIFY_EMERGENCY_VALIDATORS_LIST::request arg = AUTO_VAL_INIT(arg);
+      arg.serialized_v_list = electroneum::basic::store_t_to_json(req);
+      cryptonote_connection_context context = boost::value_initialized<cryptonote_connection_context>();
+
+        if(m_core.set_validators_list(arg.serialized_v_list)) {
+        LOG_PRINT_CCONTEXT_L0("Emergency List Set on Local node.");
+
+          if(m_core.get_protocol()->relay_emergency_validator_list(arg, context)){
+            LOG_PRINT_CCONTEXT_L0("List successfully deployed to peers via p2p.");
+            return true;
+          }
+        }
+        else {
+          LOG_ERROR_CCONTEXT("Received incorrect emergency Validators List for relay.");
+          return false;
+        }
+      }
+
+    return false;
+  }
+
+  //------------------------------------------------------------------------------------------------------------------------------
+
   const command_line::arg_descriptor<std::string> core_rpc_server::arg_rpc_bind_port = {
       "rpc-bind-port"
     , "Port for RPC server"
