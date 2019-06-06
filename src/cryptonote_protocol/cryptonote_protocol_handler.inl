@@ -1783,7 +1783,6 @@ skip:
     std::list<boost::uuids::uuid> relevant_connections;
     m_p2p->for_each_connection([this, &arg, &exclude_context, &relevant_connections](connection_context& context, nodetool::peerid_type peer_id, uint32_t support_flags)
     {
-       // There is no need to send the list in future to the peer who just sent us the list, so mark as sent too.
       if (peer_id && exclude_context.m_connection_id != context.m_connection_id && !context.m_is_income)
       {
         auto it = std::find_if( context.emergency_lists_sent.begin(), context.emergency_lists_sent.end(),
@@ -1795,6 +1794,10 @@ skip:
           relevant_connections.push_back(context.m_connection_id);
           context.emergency_lists_sent.push_back(arg.serialized_v_list);
         }
+      }
+      else if(!context.m_is_income){
+       // There is no need to send the list in future to the peer who just sent us the list, so mark as sent too.
+       context.emergency_lists_sent.push_back(arg.serialized_v_list);
       }
       return true;
     });
