@@ -139,8 +139,8 @@ namespace cryptonote
     return m_validators->getSerializedValidatorList();
   }
   //-----------------------------------------------------------------------------------
-  electroneum::basic::list_update_outcome core::set_validators_list(std::string v_list) {
-    return m_validators->setValidatorsList(v_list);
+  electroneum::basic::list_update_outcome core::set_validators_list(std::string v_list, bool isEmergencyUpdate) {
+    return m_validators->setValidatorsList(v_list, false, isEmergencyUpdate);
   }
 
   bool core::isValidatorsListValid() {

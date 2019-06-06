@@ -695,7 +695,7 @@ namespace cryptonote
       * @param v_list serialized validators list string
       * @return true if successfull
       */
-     electroneum::basic::list_update_outcome set_validators_list(std::string v_list);
+     electroneum::basic::list_update_outcome set_validators_list(std::string v_list, bool isEmergencyUpdate);
 
      /**
       * @brief get Validators List state

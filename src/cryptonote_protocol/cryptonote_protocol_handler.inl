@@ -422,7 +422,7 @@ namespace cryptonote
       epee::serialization::load_t_from_binary(res, res_buff);
       if(!res.serialized_v_list.empty()) {
 
-        electroneum::basic::list_update_outcome outcome = m_core.set_validators_list(res.serialized_v_list);
+        electroneum::basic::list_update_outcome outcome = m_core.set_validators_list(res.serialized_v_list, false);
 
         if(outcome == electroneum::basic::list_update_outcome::Success) {
           return true;
@@ -444,7 +444,7 @@ namespace cryptonote
   bool t_cryptonote_protocol_handler<t_core>::request_validators_list_to_all()
   {
     m_p2p->for_each_connection([&](cryptonote_connection_context& context, nodetool::peerid_type peer_id, uint32_t support_flags)->bool {
-      if (peer_id && context.m_state >= cryptonote_connection_context::state_before_handshake) {
+      if (peer_id && context.m_state >= cryptonote_connection_context::state_before_handshake && !context.m_is_income) {
         request_validators_list(context);
       }
       return true;
@@ -466,6 +466,48 @@ namespace cryptonote
     m_p2p->request_callback(context);
 
     return true;
+  }
+
+  template<class t_core>
+  int t_cryptonote_protocol_handler<t_core>::handle_notify_emergency_validators_list(int command, NOTIFY_EMERGENCY_VALIDATORS_LIST::request& arg, cryptonote_connection_context& context)
+  {
+    auto it = std::find_if( context.emergency_lists_recv.begin(), context.emergency_lists_recv.end(),
+    [&arg](const std::pair<std::string, uint8_t>& element){ return element.first == arg.serialized_v_list;} );
+
+    if(it == context.emergency_lists_recv.end()){
+      context.emergency_lists_recv.push_back(std::make_pair(arg.serialized_v_list, 1));
+    }
+    //allow for peer restarting node 3 times per e-list.
+    else if(it->second > 2){
+      LOG_ERROR_CCONTEXT("Peer has sent us this emergency list too many times. Dropping connection.");
+      drop_connection(context, false, false);
+      return 1;
+    }
+    else{
+      ++it->second;
+      return 1;
+    }
+
+    MLOG_P2P_MESSAGE("Received NOTIFY_EMERGENCY_VALIDATORS_LIST");
+      if(!arg.serialized_v_list.empty()) {
+        electroneum::basic::list_update_outcome outcome = m_core.set_validators_list(arg.serialized_v_list, true);
+        if(outcome == electroneum::basic::list_update_outcome::Emergency_Success) {
+          relay_emergency_validator_list(arg, context);
+          return true;
+        }
+        // If we receive the same emergency list within the allowed time period, we don't want to drop the peer.
+        // All other outcomes prescribe dropping the peer.
+        else if(outcome != electroneum::basic::list_update_outcome::Same_Emergency_List
+                && outcome != electroneum::basic::list_update_outcome::Recent_Emergency_List) {
+          LOG_ERROR_CCONTEXT("Received invalid emergency Validators List. Dropping connection.");
+          drop_connection(context, false, false);
+        }
+      }
+      else{
+        drop_connection(context, false, false);
+        LOG_ERROR_CCONTEXT("Received empty emergency Validators List. Dropping connection.");
+      }
+    return 1;
   }
 
   //------------------------------------------------------------------------------------------------------------------------
@@ -1727,6 +1769,45 @@ skip:
     m_p2p->relay_notify_to_list(NOTIFY_NEW_BLOCK::ID, fullBlob, fullConnections);
 
     return 1;
+  }
+    //------------------------------------------------------------------------------------------------------------------------
+  template<class t_core>
+  bool t_cryptonote_protocol_handler<t_core>::relay_emergency_validator_list(NOTIFY_EMERGENCY_VALIDATORS_LIST::request& arg, cryptonote_connection_context& exclude_context)
+  {
+    if(!arg.serialized_v_list.empty()) {
+
+      std::string arg_buff;
+      epee::serialization::store_t_to_binary(arg, arg_buff);
+
+    // Only send to peers that haven't received this list before
+    std::list<boost::uuids::uuid> relevant_connections;
+    m_p2p->for_each_connection([this, &arg, &exclude_context, &relevant_connections](connection_context& context, nodetool::peerid_type peer_id, uint32_t support_flags)
+    {
+      if (peer_id && exclude_context.m_connection_id != context.m_connection_id && !context.m_is_income)
+      {
+        auto it = std::find_if( context.emergency_lists_sent.begin(), context.emergency_lists_sent.end(),
+        [&arg](const std::string& element){ return element == arg.serialized_v_list;} );
+
+        //If we haven't sent the peer this list before, then send it over.
+        if(it == context.emergency_lists_sent.end()){
+          LOG_DEBUG_CC(context, "PEER HAS NOT RECEIVED THIS LIST YET. Adding to list of recipients.");
+          relevant_connections.push_back(context.m_connection_id);
+          context.emergency_lists_sent.push_back(arg.serialized_v_list);
+        }
+      }
+      else if(!context.m_is_income){
+       // There is no need to send the list in future to the peer who just sent us the list, so mark as sent too.
+       context.emergency_lists_sent.push_back(arg.serialized_v_list);
+      }
+      return true;
+    });
+
+      m_p2p->relay_notify_to_list(NOTIFY_EMERGENCY_VALIDATORS_LIST::ID, arg_buff, relevant_connections);
+
+      return true;
+    }
+
+    return false;
   }
   //------------------------------------------------------------------------------------------------------------------------
   template<class t_core>
