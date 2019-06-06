@@ -1380,7 +1380,7 @@ bool Blockchain::create_block_template(block& b, const account_public_address& m
         ", cumulative size " << cumulative_size << " is now good");
 #endif
 
-    cache_block_template(b, miner_address, ex_nonce, diffic, expected_reward, pool_cookie);
+    //cache_block_template(b, miner_address, ex_nonce, diffic, expected_reward, pool_cookie);
 
     if(hf_version >= 8) {
       sign_block(b, m_validator_key);
