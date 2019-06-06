@@ -444,7 +444,7 @@ namespace cryptonote
   bool t_cryptonote_protocol_handler<t_core>::request_validators_list_to_all()
   {
     m_p2p->for_each_connection([&](cryptonote_connection_context& context, nodetool::peerid_type peer_id, uint32_t support_flags)->bool {
-      if (peer_id && context.m_state >= cryptonote_connection_context::state_before_handshake) {
+      if (peer_id && context.m_state >= cryptonote_connection_context::state_before_handshake && !context.m_is_income) {
         request_validators_list(context);
       }
       return true;
@@ -1784,7 +1784,7 @@ skip:
     m_p2p->for_each_connection([this, &arg, &exclude_context, &relevant_connections](connection_context& context, nodetool::peerid_type peer_id, uint32_t support_flags)
     {
        // There is no need to send the list in future to the peer who just sent us the list, so mark as sent too.
-      if (peer_id && exclude_context.m_connection_id != context.m_connection_id)
+      if (peer_id && exclude_context.m_connection_id != context.m_connection_id && !context.m_is_income)
       {
         auto it = std::find_if( context.emergency_lists_sent.begin(), context.emergency_lists_sent.end(),
         [&arg](const std::string& element){ return element == arg.serialized_v_list;} );
