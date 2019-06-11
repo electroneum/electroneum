@@ -1768,4 +1768,29 @@ namespace cryptonote
         END_KV_SERIALIZE_MAP()
       };
   };
+
+  struct COMMAND_RPC_INJECT_EMERGENCY_VLIST
+  {
+     struct request {
+
+        std::string blob;
+        int version = 0;
+        std::vector<std::string> signatures;
+        std::vector<std::string> pubkeys;
+
+        BEGIN_KV_SERIALIZE_MAP()
+          KV_SERIALIZE(blob)
+          KV_SERIALIZE(version)
+          KV_SERIALIZE(signatures)
+          KV_SERIALIZE(pubkeys)
+        END_KV_SERIALIZE_MAP()
+        };
+
+    struct response
+    {
+      BEGIN_KV_SERIALIZE_MAP()
+      END_KV_SERIALIZE_MAP()
+    };
+  };
+
 }

@@ -3158,7 +3158,7 @@ leave:
 
     if(!m_validators->isValid()) {
       bvc.m_validator_list_update_failed = true;
-      return false;
+      goto leave;
     }
 
     if(!verify_block_signature(bl)) {
