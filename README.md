@@ -22,18 +22,19 @@ Electroneum uses a cryptographically sound system to allow you to send and recei
 
 **Security:** Using the power of a distributed peer-to-peer consensus network, every transaction on the network is cryptographically secured. Individual wallets have a 25 word mnemonic seed that is only displayed once, and can be written down to backup the wallet. Wallet files are encrypted with a passphrase to ensure they are useless if stolen.
 
+Electroneum (and its group companies) have separately developed proprietary software which can be used in conjunction with this project. This software is subject to separate terms and conditions which are available at https://electroneum.com .
+
 ## Development Resources
 
-- Web: [electroneum.com](https://electroneum.com)
 - GitHub: [https://github.com/electroneum/electroneum](https://github.com/electroneum/electroneum)
-
-## About this Project
-
-This is the core implementation of Electroneum. It is open source and completely free to use without restrictions, except for those specified in the license agreement below. There are no restrictions on anyone creating an alternative implementation of Electroneum that uses the protocol and network in a compatible manner.
 
 As with many development projects, the repository on Github is considered to be the "staging" area for the latest changes. Before changes are merged into that branch on the main repository, they are tested by individual developers in their own branches, submitted as a pull request, and then subsequently tested by contributors who focus on testing and code reviews. That having been said, the repository should be carefully considered before using it in a production environment, unless there is a patch in the repository for a particular show-stopping issue you are experiencing. It is generally a better idea to use a tagged release for stability.
 
 **Anyone is welcome to contribute to Electroneum's codebase!** If you have a fix or code change, feel free to submit it as a pull request directly to the "master" branch. In cases where the change is relatively small or does not affect other parts of the codebase it may be merged in immediately by any one of the collaborators. On the other hand, if the change is particularly large or complex, it is expected that it will be discussed at length either well in advance of the pull request being submitted, or even directly on the pull request.
+
+## About this Project
+
+This is the core implementation of Electroneum. It is open source and completely free to use without restrictions, except for those specified in the license agreement below.
 
 ## License
 
@@ -58,6 +59,8 @@ If you want to help out, see [CONTRIBUTING](CONTRIBUTING.md) for a set of guidel
 | 501000                         | 2018-03-06 | v8                | v2.2.0.0              | v2.2.0.0                  | Fix block difficulty records, Change long term block reward gradient, RPC features, Increase MBSL to 300kB, # of RPC features |
 
 X's indicate that these details have not been determined as of commit date.
+
+Please Note that Electroneum no longer supports, develops or maintains any version other than the most recent version.
 
 ## Vulnerability Response Process
 
