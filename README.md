@@ -273,7 +273,7 @@ electroneum-wallet-cli, and possibly electroneumd, if you get crashes refreshing
    desired DNS server, for DNS requests to go over TCP, so that they are routed
    through Tor. When IP is not specified, electroneumd uses the default list of
    servers defined in [src/common/dns_utils.cpp](src/common/dns_utils.cpp).
- * `TORSOCKS_ALLOW_INBOUND=1` to tell torsocks to allow monerod to bind to interfaces
+ * `TORSOCKS_ALLOW_INBOUND=1` to tell torsocks to allow electroneumd to bind to interfaces
     to accept connections from the wallet. On some Linux systems, torsocks
     allows binding to localhost by default, so setting this variable is only
     necessary to allow binding to local LAN/VPN interfaces to allow wallets to
