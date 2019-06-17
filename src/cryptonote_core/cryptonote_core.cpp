@@ -464,7 +464,7 @@ namespace cryptonote
     m_validators = std::unique_ptr<electroneum::basic::Validators>(new electroneum::basic::Validators(*db, m_pprotocol, m_testnet));
     m_blockchain_storage.set_validators_list_instance(m_validators);
 
-    if(m_blockchain_storage.get_current_blockchain_height() >= 20 - 5) { //V8 Height - 1 day
+    if(m_blockchain_storage.get_current_blockchain_height() >= ((m_testnet ? 100000 : 200000) - 720 )) { //V8 Height - 1 day
       m_validators->enable();
     }
 
