@@ -96,7 +96,7 @@ namespace electroneum {
         }
 
         inline bool isWithinRange(uint64_t height) {
-          return this->endHeight == 0 || (height >= this->startHeight && height <= this->endHeight);
+          return height >= this->startHeight && (height <= this->endHeight || this->endHeight == 0);
         }
     };
 
