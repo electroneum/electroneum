@@ -518,31 +518,27 @@ bool BlockchainLMDB::need_resize(uint64_t threshold_size) const
   // additional size needed.
   uint64_t size_used = mst.ms_psize * mei.me_last_pgno;
 
-  LOG_PRINT_L1("DB map size:     " << mei.me_mapsize);
-  LOG_PRINT_L1("Space used:      " << size_used);
-  LOG_PRINT_L1("Space remaining: " << mei.me_mapsize - size_used);
-  LOG_PRINT_L1("Size threshold:  " << threshold_size);
-  float resize_percent_old = RESIZE_PERCENT;
-  LOG_PRINT_L1(boost::format("Percent used: %.04f  Percent threshold: %.04f") % ((double)size_used/mei.me_mapsize) % resize_percent_old);
+  MDEBUG("DB map size:     " << mei.me_mapsize);
+  MDEBUG("Space used:      " << size_used);
+  MDEBUG("Space remaining: " << mei.me_mapsize - size_used);
+  MDEBUG("Size threshold:  " << threshold_size);
+  float resize_percent = RESIZE_PERCENT;
+  MDEBUG(boost::format("Percent used: %.04f  Percent threshold: %.04f") % ((double)size_used/mei.me_mapsize) % resize_percent);
 
   if (threshold_size > 0)
   {
     if (mei.me_mapsize - size_used < threshold_size)
     {
-      LOG_PRINT_L1("Threshold met (size-based)");
+      MINFO("Threshold met (size-based)");
       return true;
     }
     else
       return false;
   }
 
-  std::mt19937 engine(std::random_device{}());
-  std::uniform_real_distribution<double> fdis(0.6, 0.9);
-  double resize_percent = fdis(engine);
-
   if ((double)size_used / mei.me_mapsize  > resize_percent)
   {
-    LOG_PRINT_L1("Threshold met (percent-based)");
+    MINFO("Threshold met (percent-based)");
     return true;
   }
   return false;
