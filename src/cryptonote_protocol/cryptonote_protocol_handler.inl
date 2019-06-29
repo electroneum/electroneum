@@ -480,7 +480,7 @@ namespace cryptonote
     //allow for peer restarting node 3 times per e-list.
     else if(it->second > 2){
       LOG_ERROR_CCONTEXT("Peer has sent us this emergency list too many times. Dropping connection.");
-      drop_connection(context, false, false);
+      drop_connection(context, true, false);
       return 1;
     }
     else{
@@ -500,11 +500,11 @@ namespace cryptonote
         else if(outcome != electroneum::basic::list_update_outcome::Same_Emergency_List
                 && outcome != electroneum::basic::list_update_outcome::Recent_Emergency_List) {
           LOG_ERROR_CCONTEXT("Received invalid emergency Validators List. Dropping connection.");
-          drop_connection(context, false, false);
+          drop_connection(context, true, false);
         }
       }
       else{
-        drop_connection(context, false, false);
+        drop_connection(context, true, false);
         LOG_ERROR_CCONTEXT("Received empty emergency Validators List. Dropping connection.");
       }
     return 1;
