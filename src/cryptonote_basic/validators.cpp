@@ -47,9 +47,9 @@ namespace electroneum {
                                     "9C2F74BE7292BD9DE1DBF15667E48778F3971EEBB85FFCB265B8D03356A5F9C2",
                                     "171BE7497D81281C36E62D865BFDA8C86CC76171580CB50FDA4C64C14C184773"};
 
-          std::vector<std::string> mainnet_vl_publicKeys = {"F669F5CDD45CE7C540A5E85CAB04F970A30E20D2C939FD5ACEB18280C9319C1D",
-                                   "0CACB4F4691FC0CE024064BCC16E1288B0FEB5A2424CACEEBFB82C11DE3C070C",
-                                   "9C4D0765201F78C46A7FA0EBDDF556AB98F624193FCDB1352194AAAE93F6461B"};
+          std::vector<std::string> mainnet_vl_publicKeys = {"814A92F191735D989FFD3A2A7B33A2EE3ED6AD746B1530AED8E91E3B259DCD4B",
+                                   "38BBE01388170750FAF8FE9B9C31DF6432987283F49171DA86039566C3288BF9",
+                                   "8BC9D71CE4CD0DE0D50F45C8619257399B108D35C8CBB72FC29B38DFE3847769"};
 
           std::vector<std::string> vl_publicKeys = this->testnet ? testnet_vl_publicKeys : mainnet_vl_publicKeys;
 
