@@ -70,7 +70,17 @@ namespace epee
     bool get_http_json(const boost::string_ref uri, t_response& result_struct, t_transport& transport, std::chrono::milliseconds timeout = std::chrono::seconds(15), const boost::string_ref method = "GET") {
 
       const http::http_response_info* pri = NULL;
-      if(!transport.invoke(uri, method, "", timeout, std::addressof(pri)))
+      int retryCount = 0;
+      const int MAX_RETRY_COUNT = 10;
+
+      //Boost asio read can be temperemental
+      while(!transport.invoke(uri, method, "", timeout, std::addressof(pri)) && retryCount < MAX_RETRY_COUNT) {
+        misc_utils::sleep_no_w(200);
+        ++retryCount;
+        LOG_PRINT_L1("Failed to invoke http request. Retrying (" << retryCount << "/" << MAX_RETRY_COUNT << ").");
+      }
+
+      if(retryCount == MAX_RETRY_COUNT) //Max retries reached
       {
         LOG_PRINT_L1("Failed to invoke http request to  " << uri);
         return false;
