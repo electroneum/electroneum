@@ -763,7 +763,7 @@ difficulty_type Blockchain::get_difficulty_for_next_block()
   const uint64_t v7height = m_testnet ? 215000 : 324500;
   const uint64_t v8height = m_testnet ? 600000 : 700000;
 
-  uint32_t difficultyBlocksCount = (height >= v6height && height < v7height) ? DIFFICULTY_BLOCKS_COUNT_V6 : DIFFICULTY_BLOCKS_COUNT;
+  const uint32_t difficultyBlocksCount = (height >= v6height && height < v7height) ? DIFFICULTY_BLOCKS_COUNT_V6 : DIFFICULTY_BLOCKS_COUNT;
 
   // After v8 allow the difficulty window to grow linearly (from zero) back to DIFFICULTY_BLOCKS_COUNT.
   if((height >= v8height) && (height < v8height + 720))

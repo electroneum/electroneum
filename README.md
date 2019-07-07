@@ -128,7 +128,7 @@ build the library binary manually. This can be done with the following command `
 On OSX:
 Homebrew installs OpenSSL but doesn’t link it to /usr/local/include, where the compiler looks into during #include<…> Thus, you must manually link it instead:
 
- ```ln -s /usr/local/opt/openssl/include/openssl /usr/local/include```
+```ln -s /usr/local/opt/openssl/include/openssl /usr/local/include```
 ```ln -s /usr/local/Cellar/openssl/[version]/include/openssl /usr/bin/openssl```
 ```ln -s /usr/local/opt/openssl/lib/libssl.1.0.0.dylib /usr/local/lib/```
 
