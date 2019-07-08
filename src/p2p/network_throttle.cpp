@@ -26,7 +26,7 @@ Throttling work by:
 
 */
 
-// Copyrights(c) 2017-2018, The Electroneum Project
+// Copyrights(c) 2017-2019, The Electroneum Project
 // Copyrights(c) 2014-2017, The Monero Project
 // 
 // All rights reserved.

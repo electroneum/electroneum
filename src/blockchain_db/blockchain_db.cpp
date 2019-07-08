@@ -1,4 +1,4 @@
-// Copyrights(c) 2017-2018, The Electroneum Project
+// Copyrights(c) 2017-2019, The Electroneum Project
 // Copyrights(c) 2014-2017, The Monero Project
 // 
 // All rights reserved.
@@ -79,6 +79,23 @@ std::string blockchain_db_types(const std::string& sep)
   return ret;
 }
 
+std::string arg_db_type_description = "Specify database type, available: " + cryptonote::blockchain_db_types(", ");
+const command_line::arg_descriptor<std::string> arg_db_type = {
+        "db-type"
+        , arg_db_type_description.c_str()
+        , DEFAULT_DB_TYPE
+};
+const command_line::arg_descriptor<std::string> arg_db_sync_mode = {
+        "db-sync-mode"
+        , "Specify sync option, using format [safe|fast|fastest]:[sync|async]:[nblocks_per_sync]."
+        , "fast:async:1000"
+};
+const command_line::arg_descriptor<bool> arg_db_salvage  = {
+        "db-salvage"
+        , "Try to salvage a blockchain database if it seems corrupted"
+        , false
+};
+
 BlockchainDB *new_db(const std::string& db_type)
 {
   if (db_type == "lmdb")
@@ -88,6 +105,13 @@ BlockchainDB *new_db(const std::string& db_type)
     return new BlockchainBDB();
 #endif
   return NULL;
+}
+
+void BlockchainDB::init_options(boost::program_options::options_description& desc)
+{
+  command_line::add_arg(desc, arg_db_type);
+  command_line::add_arg(desc, arg_db_sync_mode);
+  command_line::add_arg(desc, arg_db_salvage);
 }
 
 void BlockchainDB::pop_block()
@@ -145,21 +169,7 @@ void BlockchainDB::add_transaction(const crypto::hash& blk_hash, const transacti
   // we need the index
   for (uint64_t i = 0; i < tx.vout.size(); ++i)
   {
-    // miner v2 txes have their coinbase output in one single out to save space,
-    // and we store them as rct outputs with an identity mask
-    if (miner_tx && tx.version == 2)
-    {
-      cryptonote::tx_out vout = tx.vout[i];
-      rct::key commitment = rct::zeroCommit(vout.amount);
-      vout.amount = 0;
-      amount_output_indices.push_back(add_output(tx_hash, vout, i, tx.unlock_time,
-        &commitment));
-    }
-    else
-    {
-      amount_output_indices.push_back(add_output(tx_hash, tx.vout[i], i, tx.unlock_time,
-        tx.version > 1 ? &tx.rct_signatures.outPk[i].mask : NULL));
-    }
+    amount_output_indices.push_back(add_output(tx_hash, tx.vout[i], i, tx.unlock_time, tx.version > 1 ? &tx.rct_signatures.outPk[i].mask : NULL));
   }
   add_tx_amount_output_indices(tx_id, amount_output_indices);
 }

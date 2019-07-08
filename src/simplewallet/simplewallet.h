@@ -1,4 +1,4 @@
-// Copyrights(c) 2017-2018, The Electroneum Project
+// Copyrights(c) 2017-2019, The Electroneum Project
 // Copyrights(c) 2014-2017, The Monero Project
 // 
 // All rights reserved.
@@ -112,7 +112,6 @@ namespace cryptonote
     bool set_always_confirm_transfers(const std::vector<std::string> &args = std::vector<std::string>());
     bool set_print_ring_members(const std::vector<std::string> &args = std::vector<std::string>());
     bool set_store_tx_info(const std::vector<std::string> &args = std::vector<std::string>());
-    bool set_default_ring_size(const std::vector<std::string> &args = std::vector<std::string>());
     bool set_auto_refresh(const std::vector<std::string> &args = std::vector<std::string>());
     bool set_refresh_type(const std::vector<std::string> &args = std::vector<std::string>());
     bool set_confirm_missing_payment_id(const std::vector<std::string> &args = std::vector<std::string>());
@@ -137,7 +136,6 @@ namespace cryptonote
     bool show_blockchain_height(const std::vector<std::string> &args);
     bool transfer_main(int transfer_type, const std::vector<std::string> &args);
     bool transfer(const std::vector<std::string> &args);
-    bool transfer_new(const std::vector<std::string> &args);
     bool locked_transfer(const std::vector<std::string> &args);
     bool sweep_main(uint64_t below, const std::vector<std::string> &args);
     bool sweep_all(const std::vector<std::string> &args);
@@ -163,6 +161,7 @@ namespace cryptonote
     bool get_tx_proof(const std::vector<std::string> &args);
     bool check_tx_proof(const std::vector<std::string> &args);
     bool show_transfers(const std::vector<std::string> &args);
+    bool save_transfers_to_csv(const std::vector<std::string> &args);
     bool unspent_outputs(const std::vector<std::string> &args);
     bool rescan_blockchain(const std::vector<std::string> &args);
     bool refresh_main(uint64_t start_height, bool reset = false);

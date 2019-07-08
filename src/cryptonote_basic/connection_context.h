@@ -1,4 +1,4 @@
-// Copyrights(c) 2017-2018, The Electroneum Project
+// Copyrights(c) 2017-2019, The Electroneum Project
 // Copyrights(c) 2014-2017, The Monero Project
 // 
 // All rights reserved.
@@ -59,6 +59,8 @@ namespace cryptonote
     boost::posix_time::ptime m_last_request_time;
     epee::copyable_atomic m_callback_request_count; //in debug purpose: problem with double callback rise
     crypto::hash m_last_known_hash;
+    std::list<std::pair<std::string, uint8_t>> emergency_lists_recv;
+    std::list<std::string> emergency_lists_sent;
     //size_t m_score;  TODO: add score calculations
   };
 

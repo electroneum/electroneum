@@ -1,4 +1,4 @@
-// Copyrights(c) 2017-2018, The Electroneum Project
+// Copyrights(c) 2017-2019, The Electroneum Project
 // Copyrights(c) 2014-2017, The Monero Project
 // 
 // All rights reserved.
@@ -58,6 +58,8 @@
 #include "common/password.h"
 #include "node_rpc_proxy.h"
 
+#include "wallet/micro_core/MicroCore.h"
+
 #include <iostream>
 
 #undef ELECTRONEUM_DEFAULT_LOG_CATEGORY
@@ -106,7 +108,7 @@ namespace tools
     };
 
   private:
-    wallet2(const wallet2&) : m_run(true), m_callback(0), m_testnet(false), m_always_confirm_transfers(true), m_print_ring_members(false), m_store_tx_info(true), m_default_mixin(0), m_default_priority(0), m_refresh_type(RefreshOptimizeCoinbase), m_auto_refresh(true), m_refresh_from_block_height(0), m_confirm_missing_payment_id(true), m_ask_password(true), m_min_output_count(0), m_min_output_value(0), m_merge_destinations(false), m_confirm_backlog(true), m_display_progress_indicator(false), m_is_initialized(false),m_node_rpc_proxy(m_http_client, m_daemon_rpc_mutex) {}
+    wallet2(const wallet2&) : m_run(true), m_callback(0), m_testnet(false), m_always_confirm_transfers(true), m_print_ring_members(false), m_store_tx_info(true), m_default_priority(0), m_refresh_type(RefreshOptimizeCoinbase), m_auto_refresh(true), m_refresh_from_block_height(0), m_confirm_missing_payment_id(true), m_ask_password(true), m_min_output_count(0), m_min_output_value(0), m_merge_destinations(false), m_confirm_backlog(true), m_display_progress_indicator(false), m_is_initialized(false),m_node_rpc_proxy(m_http_client, m_daemon_rpc_mutex) {}
 
   public:
     static const char* tr(const char* str);
@@ -118,21 +120,21 @@ namespace tools
     static boost::optional<password_container> password_prompt(const bool new_password);
 
     //! Uses stdin and stdout. Returns a wallet2 if no errors.
-    static std::unique_ptr<wallet2> make_from_json(const boost::program_options::variables_map& vm, const std::string& json_file);
+    static std::unique_ptr<wallet2> make_from_json(const boost::program_options::variables_map& vm, const std::string& json_file, etneg::MicroCore* core = nullptr, cryptonote::Blockchain* blockchain_storage = nullptr);
 
     //! Uses stdin and stdout. Returns a wallet2 and password for `wallet_file` if no errors.
     static std::pair<std::unique_ptr<wallet2>, password_container>
-      make_from_file(const boost::program_options::variables_map& vm, const std::string& wallet_file);
+      make_from_file(const boost::program_options::variables_map& vm, const std::string& wallet_file, etneg::MicroCore* core = nullptr, cryptonote::Blockchain* blockchain_storage = nullptr);
 
     //! Uses stdin and stdout. Returns a wallet2 and password for wallet with no file if no errors.
-    static std::pair<std::unique_ptr<wallet2>, password_container> make_new(const boost::program_options::variables_map& vm);
+    static std::pair<std::unique_ptr<wallet2>, password_container> make_new(const boost::program_options::variables_map& vm, etneg::MicroCore* core = nullptr, cryptonote::Blockchain* blockchain_storage = nullptr);
 
     //! Just parses variables.
-    static std::unique_ptr<wallet2> make_dummy(const boost::program_options::variables_map& vm);
+    static std::unique_ptr<wallet2> make_dummy(const boost::program_options::variables_map& vm, etneg::MicroCore* core = nullptr, cryptonote::Blockchain* blockchain_storage = nullptr);
 
     static bool verify_password(const std::string& keys_file_name, const std::string& password, bool watch_only);
 
-    wallet2(bool testnet = false, bool restricted = false) : m_run(true), m_callback(0), m_testnet(testnet), m_always_confirm_transfers(true), m_print_ring_members(false), m_store_tx_info(true), m_default_mixin(0), m_default_priority(0), m_refresh_type(RefreshOptimizeCoinbase), m_auto_refresh(true), m_refresh_from_block_height(0), m_confirm_missing_payment_id(true), m_ask_password(true), m_min_output_count(0), m_min_output_value(0), m_merge_destinations(false), m_confirm_backlog(true), m_display_progress_indicator(false), m_is_initialized(false), m_restricted(restricted), is_old_file_format(false), m_node_rpc_proxy(m_http_client, m_daemon_rpc_mutex) {}
+    wallet2(bool testnet = false, bool restricted = false) : m_run(true), m_callback(0), m_testnet(testnet), m_always_confirm_transfers(true), m_print_ring_members(false), m_store_tx_info(true), m_default_priority(0), m_refresh_type(RefreshOptimizeCoinbase), m_auto_refresh(true), m_refresh_from_block_height(0), m_confirm_missing_payment_id(true), m_ask_password(true), m_min_output_count(0), m_min_output_value(0), m_merge_destinations(false), m_confirm_backlog(true), m_display_progress_indicator(false), m_is_initialized(false), m_restricted(restricted), is_old_file_format(false), m_node_rpc_proxy(m_http_client, m_daemon_rpc_mutex) {}
 
     struct transfer_details
     {
@@ -219,6 +221,17 @@ namespace tools
       uint64_t unlock_time;
       bool use_rct;
       std::vector<cryptonote::tx_destination_entry> dests; // original setup, does not include change
+
+      BEGIN_SERIALIZE_OBJECT()
+        FIELD(sources)
+        FIELD(change_dts)
+        FIELD(splitted_dsts)
+        FIELD(selected_transfers)
+        FIELD(extra)
+        FIELD(unlock_time)
+        FIELD(use_rct)
+        FIELD(dests)
+      END_SERIALIZE()
     };
 
     typedef std::vector<transfer_details> transfer_container;
@@ -236,9 +249,24 @@ namespace tools
       std::list<size_t> selected_transfers;
       std::string key_images;
       crypto::secret_key tx_key;
+        std::vector<crypto::secret_key> additional_tx_keys;
       std::vector<cryptonote::tx_destination_entry> dests;
 
       tx_construction_data construction_data;
+
+      BEGIN_SERIALIZE_OBJECT()
+        FIELD(tx)
+        FIELD(dust)
+        FIELD(fee)
+        FIELD(dust_added_to_fee)
+        FIELD(change_dts)
+        FIELD(selected_transfers)
+        FIELD(key_images)
+        FIELD(tx_key)
+        FIELD(additional_tx_keys)
+        FIELD(dests)
+        FIELD(construction_data)
+      END_SERIALIZE()
     };
 
     // The term "Unsigned tx" is not really a tx since it's not signed yet.
@@ -353,7 +381,7 @@ namespace tools
     // the minimum block size.
     bool deinit();
     bool init(std::string daemon_address = "http://localhost:8080",
-      boost::optional<epee::net_utils::http::login> daemon_login = boost::none, uint64_t upper_transaction_size_limit = 0);
+      boost::optional<epee::net_utils::http::login> daemon_login = boost::none, std::string blockchain_db_path = "", uint64_t upper_transaction_size_limit = 0);
 
     void stop() { m_run.store(false, std::memory_order_relaxed); }
 
@@ -423,6 +451,7 @@ namespace tools
     std::vector<pending_tx> create_unmixable_sweep_transactions(bool trusted_daemon);
     bool check_connection(uint32_t *version = NULL, uint32_t timeout = 200000);
     void get_transfers(wallet2::transfer_container& incoming_transfers) const;
+    void save_transfers_to_csv(bool in, bool out, uint64_t min_height, uint64_t max_height);
     void get_payments(const crypto::hash& payment_id, std::list<wallet2::payment_details>& payments, uint64_t min_height = 0) const;
     void get_payments(std::list<std::pair<crypto::hash,wallet2::payment_details>>& payments, uint64_t min_height, uint64_t max_height = (uint64_t)-1) const;
     void get_payments_out(std::list<std::pair<crypto::hash,wallet2::confirmed_transfer_details>>& confirmed_payments,
@@ -511,6 +540,27 @@ namespace tools
      * \param  file_path      Wallet file path
      * \return                Whether path is valid format
      */
+    static std::string get_human_readable_timestamp(uint64_t ts)
+    {
+      char buffer[64];
+      if (ts < 1234567890)
+        return "<unknown>";
+      time_t tt = ts;
+      struct tm tm;
+      #ifdef WIN32
+      gmtime_s(&tm, &tt);
+      #else
+      gmtime_r(&tt, &tm);
+      #endif
+      uint64_t now = time(NULL);
+      uint64_t diff = ts > now ? ts - now : now - ts;
+      if (diff > 24*3600)
+        strftime(buffer, sizeof(buffer), "%Y-%m-%d", &tm);
+      else
+        strftime(buffer, sizeof(buffer), "%I:%M:%S %p", &tm);
+      return std::string(buffer);
+}
+//----------------------------------------------------------------------------------------------------
     static bool wallet_valid_path_format(const std::string& file_path);
     static bool parse_long_payment_id(const std::string& payment_id_str, crypto::hash& payment_id);
     static bool parse_short_payment_id(const std::string& payment_id_str, crypto::hash8& payment_id);
@@ -522,8 +572,6 @@ namespace tools
     void print_ring_members(bool value) { m_print_ring_members = value; }
     bool store_tx_info() const { return m_store_tx_info; }
     void store_tx_info(bool store) { m_store_tx_info = store; }
-    uint32_t default_mixin() const { return m_default_mixin; }
-    void default_mixin(uint32_t m) { m_default_mixin = m; }
     uint32_t get_default_priority() const { return m_default_priority; }
     void set_default_priority(uint32_t p) { m_default_priority = p; }
     bool auto_refresh() const { return m_auto_refresh; }
@@ -612,6 +660,11 @@ namespace tools
     uint64_t get_fee_multiplier(uint32_t priority, int fee_algorithm = -1);
     uint64_t get_per_kb_fee();
 
+    void set_blockchain_storage(etneg::MicroCore* core = nullptr, cryptonote::Blockchain* blockchain_storage = nullptr);
+
+    etneg::MicroCore* get_core() const { return m_core; }
+    cryptonote::Blockchain* get_storage() const { return m_blockchain_storage; }
+
   private:
     /*!
      * \brief  Stores wallet information to wallet file.
@@ -663,6 +716,10 @@ namespace tools
     crypto::public_key get_tx_pub_key_from_received_outs(const tools::wallet2::transfer_details &td) const;
     bool should_pick_a_second_output(bool use_rct, size_t n_transfers, const std::vector<size_t> &unused_transfers_indices, const std::vector<size_t> &unused_dust_indices) const;
     std::vector<size_t> get_only_rct(const std::vector<size_t> &unused_dust_indices, const std::vector<size_t> &unused_transfers_indices) const;
+    bool get_blocks_from_db(const cryptonote::COMMAND_RPC_GET_BLOCKS_FAST::request &req, cryptonote::COMMAND_RPC_GET_BLOCKS_FAST::response &res);
+    bool get_hashes_from_db(const cryptonote::COMMAND_RPC_GET_HASHES_FAST::request &req, cryptonote::COMMAND_RPC_GET_HASHES_FAST::response &res);
+    void load_database(const std::string blockchain_db_path);
+    cryptonote::blobdata get_pruned_tx_blob(const cryptonote::blobdata &blobdata);
 
     cryptonote::account_base m_account;
     boost::optional<epee::net_utils::http::login> m_daemon_login;
@@ -699,7 +756,6 @@ namespace tools
     bool m_always_confirm_transfers;
     bool m_print_ring_members;
     bool m_store_tx_info; /*!< request txkey to be returned in RPC, and store in the wallet cache file */
-    uint32_t m_default_mixin;
     uint32_t m_default_priority;
     RefreshType m_refresh_type;
     bool m_auto_refresh;
@@ -714,6 +770,11 @@ namespace tools
     bool m_is_initialized;
     NodeRPCProxy m_node_rpc_proxy;
     std::unordered_set<crypto::hash> m_scanned_pool_txs[2];
+
+    bool m_physical_refresh;
+    etneg::MicroCore* m_core;
+    cryptonote::Blockchain* m_blockchain_storage;
+    bool is_connected_to_db = false;
   };
 }
 BOOST_CLASS_VERSION(tools::wallet2, 18)

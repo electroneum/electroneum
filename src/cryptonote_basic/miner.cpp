@@ -1,4 +1,4 @@
-// Copyrights(c) 2017-2018, The Electroneum Project
+// Copyrights(c) 2017-2019, The Electroneum Project
 // Copyrights(c) 2014-2017, The Monero Project
 //
 // All rights reserved.
@@ -404,7 +404,6 @@ namespace cryptonote
     if(m_pausers_count < 0)
     {
       m_pausers_count = 0;
-      MERROR("Unexpected miner::resume() called");
     }
     if(!m_pausers_count && is_mining())
       MDEBUG("MINING RESUMED");
@@ -446,6 +445,11 @@ namespace cryptonote
       {
         CRITICAL_REGION_BEGIN(m_template_lock);
         b = m_template;
+
+        if(b.major_version >= 8 && b.signature.empty()) {
+          continue;
+        }
+
         local_diff = m_diffic;
         height = m_height;
         CRITICAL_REGION_END();

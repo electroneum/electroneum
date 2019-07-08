@@ -1,4 +1,4 @@
-# Copyright (c) 2017-2018, The Electroneum Project
+# Copyright (c) 2017-2019, The Electroneum Project
 # Copyright (c) 2014-2017, The Monero Project
 #
 # All rights reserved.
@@ -40,6 +40,7 @@ set(unit_tests_sources
   command_line.cpp
   crypto.cpp
   decompose_amount_into_digits.cpp
+  delegated_pow.cpp
   dns_resolver.cpp
   epee_boosted_tcp_server.cpp
   epee_levin_protocol_handler_async.cpp

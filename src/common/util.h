@@ -1,4 +1,4 @@
-// Copyrights(c) 2017-2018, The Electroneum Project
+// Copyrights(c) 2017-2019, The Electroneum Project
 // Copyrights(c) 2014-2017, The Monero Project
 // 
 // All rights reserved.
@@ -181,4 +181,6 @@ namespace tools
   bool sha256sum(const std::string &filename, crypto::hash &hash);
 
   int display_simple_progress_spinner(int x);
+
+  std::string glob_to_regex(const std::string &val);
 }

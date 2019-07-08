@@ -1,4 +1,4 @@
-// Copyrights(c) 2017-2018, The Electroneum Project
+// Copyrights(c) 2017-2019, The Electroneum Project
 // Copyrights(c) 2014-2017, The Monero Project
 //
 // All rights reserved.
@@ -621,6 +621,11 @@ std::string WalletImpl::integratedAddress(const std::string &payment_id) const
     return m_wallet->get_account().get_public_integrated_address_str(pid, m_wallet->testnet());
 }
 
+std::string WalletImpl::path() const
+{
+    return m_wallet->path();
+}
+
 std::string WalletImpl::secretViewKey() const
 {
     return epee::string_tools::pod_to_hex(m_wallet->get_account().get_keys().m_view_secret_key);
@@ -639,11 +644,6 @@ std::string WalletImpl::secretSpendKey() const
 std::string WalletImpl::publicSpendKey() const
 {
     return epee::string_tools::pod_to_hex(m_wallet->get_account().get_keys().m_account_address.m_spend_public_key);
-}
-
-std::string WalletImpl::path() const
-{
-    return m_wallet->path();
 }
 
 bool WalletImpl::store(const std::string &path)
@@ -1009,7 +1009,7 @@ PendingTransaction *WalletImpl::createTransaction(const string &dst_addr, const 
 
         } catch (const tools::error::not_enough_outs_to_mix& e) {
             std::ostringstream writer;
-            writer << tr("not enough outputs for specified ring size") << " = " << (e.mixin_count() + 1) << ":";
+            writer << tr("not enough outputs.");
             for (const std::pair<uint64_t, uint64_t> outs_for_amount : e.scanty_outs()) {
                 writer << "\n" << tr("output amount") << " = " << print_money(outs_for_amount.first) << ", " << tr("found outputs to use") << " = " << outs_for_amount.second;
             }
@@ -1103,7 +1103,7 @@ PendingTransaction *WalletImpl::createSweepUnmixableTransaction()
 
         } catch (const tools::error::not_enough_outs_to_mix& e) {
             std::ostringstream writer;
-            writer << tr("not enough outputs for specified ring size") << " = " << (e.mixin_count() + 1) << ":";
+            writer << tr("not enough outputs.");
             for (const std::pair<uint64_t, uint64_t> outs_for_amount : e.scanty_outs()) {
                 writer << "\n" << tr("output amount") << " = " << print_money(outs_for_amount.first) << ", " << tr("found outputs to use") << " = " << outs_for_amount.second;
             }
@@ -1165,16 +1165,6 @@ void WalletImpl::setListener(WalletListener *l)
 {
     // TODO thread synchronization;
     m_wallet2Callback->setListener(l);
-}
-
-uint32_t WalletImpl::defaultMixin() const
-{
-    return m_wallet->default_mixin();
-}
-
-void WalletImpl::setDefaultMixin(uint32_t arg)
-{
-    m_wallet->default_mixin(arg);
 }
 
 bool WalletImpl::setUserNote(const std::string &txid, const std::string &note)
@@ -1383,7 +1373,7 @@ bool WalletImpl::isNewWallet() const
 
 bool WalletImpl::doInit(const string &daemon_address, uint64_t upper_transaction_size_limit)
 {
-    if (!m_wallet->init(daemon_address, m_daemon_login, upper_transaction_size_limit))
+    if (!m_wallet->init(daemon_address, m_daemon_login, "", upper_transaction_size_limit))
        return false;
 
     // in case new wallet, this will force fast-refresh (pulling hashes instead of blocks)

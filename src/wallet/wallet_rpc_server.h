@@ -1,4 +1,4 @@
-// Copyrights(c) 2017-2018, The Electroneum Project
+// Copyrights(c) 2017-2019, The Electroneum Project
 // Copyrights(c) 2014-2017, The Monero Project
 // 
 // All rights reserved.
@@ -38,6 +38,8 @@
 #include "wallet_rpc_server_commands_defs.h"
 #include "wallet2.h"
 
+#include "wallet/micro_core/MicroCore.h"
+
 #undef ELECTRONEUM_DEFAULT_LOG_CATEGORY
 #define ELECTRONEUM_DEFAULT_LOG_CATEGORY "wallet.rpc"
 
@@ -61,6 +63,8 @@ namespace tools
     void set_wallet(wallet2 *cr);
     void handle_rpc_exception(const std::exception_ptr& e, epee::json_rpc::error& er, int default_error_code);
 
+    void set_blockchain_storage(etneg::MicroCore* core = nullptr, cryptonote::Blockchain* blockchain_storage = nullptr);
+
   private:
 
     CHAIN_HTTP_TO_MAP2(connection_context); //forward http requests to uri map
@@ -74,6 +78,7 @@ namespace tools
         MAP_JON_RPC_WE("transfer_split",     on_transfer_split,     wallet_rpc::COMMAND_RPC_TRANSFER_SPLIT)
         MAP_JON_RPC_WE("sweep_dust",         on_sweep_dust,         wallet_rpc::COMMAND_RPC_SWEEP_DUST)
         MAP_JON_RPC_WE("sweep_all",          on_sweep_all,          wallet_rpc::COMMAND_RPC_SWEEP_ALL)
+        MAP_JON_RPC_WE("relay_tx",           on_relay_tx,           wallet_rpc::COMMAND_RPC_RELAY_TX)
         MAP_JON_RPC_WE("store",              on_store,              wallet_rpc::COMMAND_RPC_STORE)
         MAP_JON_RPC_WE("get_payments",       on_get_payments,       wallet_rpc::COMMAND_RPC_GET_PAYMENTS)
         MAP_JON_RPC_WE("get_bulk_payments",  on_get_bulk_payments,  wallet_rpc::COMMAND_RPC_GET_BULK_PAYMENTS)
@@ -88,6 +93,7 @@ namespace tools
         MAP_JON_RPC_WE("get_tx_key",         on_get_tx_key,         wallet_rpc::COMMAND_RPC_GET_TX_KEY)
         MAP_JON_RPC_WE("get_transfers",      on_get_transfers,      wallet_rpc::COMMAND_RPC_GET_TRANSFERS)
         MAP_JON_RPC_WE("get_transfer_by_txid", on_get_transfer_by_txid, wallet_rpc::COMMAND_RPC_GET_TRANSFER_BY_TXID)
+        MAP_JON_RPC_WE("save_transfers_to_csv", on_save_transfers_to_csv, wallet_rpc::COMMAND_RPC_SAVE_TRANSFERS_TO_CSV)
         MAP_JON_RPC_WE("sign",               on_sign,               wallet_rpc::COMMAND_RPC_SIGN)
         MAP_JON_RPC_WE("verify",             on_verify,             wallet_rpc::COMMAND_RPC_VERIFY)
         MAP_JON_RPC_WE("export_key_images",  on_export_key_images,  wallet_rpc::COMMAND_RPC_EXPORT_KEY_IMAGES)
@@ -103,6 +109,7 @@ namespace tools
         MAP_JON_RPC_WE("get_languages",      on_get_languages,      wallet_rpc::COMMAND_RPC_GET_LANGUAGES)
         MAP_JON_RPC_WE("create_wallet",      on_create_wallet,      wallet_rpc::COMMAND_RPC_CREATE_WALLET)
         MAP_JON_RPC_WE("open_wallet",        on_open_wallet,        wallet_rpc::COMMAND_RPC_OPEN_WALLET)
+        MAP_JON_RPC_WE("close_wallet",       on_close_wallet,       wallet_rpc::COMMAND_RPC_CLOSE_WALLET)
         MAP_JON_RPC_WE("change_wallet_password", on_change_wallet_password, wallet_rpc::COMMAND_RPC_CHANGE_WALLET_PASSWORD)
       END_JSON_RPC_MAP()
     END_URI_MAP2()
@@ -116,6 +123,7 @@ namespace tools
       bool on_transfer_split(const wallet_rpc::COMMAND_RPC_TRANSFER_SPLIT::request& req, wallet_rpc::COMMAND_RPC_TRANSFER_SPLIT::response& res, epee::json_rpc::error& er);
       bool on_sweep_dust(const wallet_rpc::COMMAND_RPC_SWEEP_DUST::request& req, wallet_rpc::COMMAND_RPC_SWEEP_DUST::response& res, epee::json_rpc::error& er);
       bool on_sweep_all(const wallet_rpc::COMMAND_RPC_SWEEP_ALL::request& req, wallet_rpc::COMMAND_RPC_SWEEP_ALL::response& res, epee::json_rpc::error& er);
+      bool on_relay_tx(const wallet_rpc::COMMAND_RPC_RELAY_TX::request& req, wallet_rpc::COMMAND_RPC_RELAY_TX::response& res, epee::json_rpc::error& er);
       bool on_make_integrated_address(const wallet_rpc::COMMAND_RPC_MAKE_INTEGRATED_ADDRESS::request& req, wallet_rpc::COMMAND_RPC_MAKE_INTEGRATED_ADDRESS::response& res, epee::json_rpc::error& er);
       bool on_split_integrated_address(const wallet_rpc::COMMAND_RPC_SPLIT_INTEGRATED_ADDRESS::request& req, wallet_rpc::COMMAND_RPC_SPLIT_INTEGRATED_ADDRESS::response& res, epee::json_rpc::error& er);
       bool on_store(const wallet_rpc::COMMAND_RPC_STORE::request& req, wallet_rpc::COMMAND_RPC_STORE::response& res, epee::json_rpc::error& er);
@@ -129,6 +137,7 @@ namespace tools
       bool on_get_tx_key(const wallet_rpc::COMMAND_RPC_GET_TX_KEY::request& req, wallet_rpc::COMMAND_RPC_GET_TX_KEY::response& res, epee::json_rpc::error& er);
       bool on_get_transfers(const wallet_rpc::COMMAND_RPC_GET_TRANSFERS::request& req, wallet_rpc::COMMAND_RPC_GET_TRANSFERS::response& res, epee::json_rpc::error& er);
       bool on_get_transfer_by_txid(const wallet_rpc::COMMAND_RPC_GET_TRANSFER_BY_TXID::request& req, wallet_rpc::COMMAND_RPC_GET_TRANSFER_BY_TXID::response& res, epee::json_rpc::error& er);
+      bool on_save_transfers_to_csv(const wallet_rpc::COMMAND_RPC_SAVE_TRANSFERS_TO_CSV::request& req, wallet_rpc::COMMAND_RPC_SAVE_TRANSFERS_TO_CSV::response& res, epee::json_rpc::error& er);
       bool on_sign(const wallet_rpc::COMMAND_RPC_SIGN::request& req, wallet_rpc::COMMAND_RPC_SIGN::response& res, epee::json_rpc::error& er);
       bool on_verify(const wallet_rpc::COMMAND_RPC_VERIFY::request& req, wallet_rpc::COMMAND_RPC_VERIFY::response& res, epee::json_rpc::error& er);
       bool on_export_key_images(const wallet_rpc::COMMAND_RPC_EXPORT_KEY_IMAGES::request& req, wallet_rpc::COMMAND_RPC_EXPORT_KEY_IMAGES::response& res, epee::json_rpc::error& er);
@@ -144,6 +153,7 @@ namespace tools
       bool on_get_languages(const wallet_rpc::COMMAND_RPC_GET_LANGUAGES::request& req, wallet_rpc::COMMAND_RPC_GET_LANGUAGES::response& res, epee::json_rpc::error& er);
       bool on_create_wallet(const wallet_rpc::COMMAND_RPC_CREATE_WALLET::request& req, wallet_rpc::COMMAND_RPC_CREATE_WALLET::response& res, epee::json_rpc::error& er);
       bool on_open_wallet(const wallet_rpc::COMMAND_RPC_OPEN_WALLET::request& req, wallet_rpc::COMMAND_RPC_OPEN_WALLET::response& res, epee::json_rpc::error& er);
+      bool on_close_wallet(const wallet_rpc::COMMAND_RPC_CLOSE_WALLET::request& req, wallet_rpc::COMMAND_RPC_CLOSE_WALLET::response& res, epee::json_rpc::error& er);
       bool on_change_wallet_password(const wallet_rpc::COMMAND_RPC_CHANGE_WALLET_PASSWORD::request& req, wallet_rpc::COMMAND_RPC_CHANGE_WALLET_PASSWORD::response& res, epee::json_rpc::error& er);
 
       //json rpc v2
@@ -156,6 +166,8 @@ namespace tools
       void fill_transfer_entry(tools::wallet_rpc::transfer_entry &entry, const crypto::hash &payment_id, const tools::wallet2::payment_details &pd);
       bool not_open(epee::json_rpc::error& er);
 
+      void load_database(std::string blockchain_db_path);
+
       wallet2 *m_wallet;
       std::string m_wallet_dir;
       std::string rpc_login_filename;
@@ -163,5 +175,11 @@ namespace tools
       bool m_trusted_daemon;
       epee::net_utils::http::http_simple_client m_http_client;
       const boost::program_options::variables_map *m_vm;
+
+      bool m_testnet;
+      bool m_physical_refresh;
+      etneg::MicroCore* m_core;
+      cryptonote::Blockchain* m_blockchain_storage;
+      bool is_connected_to_db = false;
   };
 }

@@ -1,4 +1,4 @@
-// Copyrights(c) 2017-2018, The Electroneum Project
+// Copyrights(c) 2017-2019, The Electroneum Project
 // Copyrights(c) 2014-2017, The Monero Project
 //
 // All rights reserved.
@@ -61,6 +61,7 @@ using namespace epee;
 #include "common/base58.h"
 #include "common/scoped_message_writer.h"
 #include "ringct/rctSigs.h"
+#include "wallet/micro_core/MicroCore.h"
 
 extern "C"
 {
@@ -113,7 +114,10 @@ struct options {
   const command_line::arg_descriptor<std::string> daemon_login = {"daemon-login", tools::wallet2::tr("Specify username[:password] for daemon RPC client"), "", true};
   const command_line::arg_descriptor<bool> testnet = {"testnet", tools::wallet2::tr("For testnet. Daemon must also be launched with --testnet flag"), false};
   const command_line::arg_descriptor<bool> restricted = {"restricted-rpc", tools::wallet2::tr("Restricts to view-only commands"), false};
+  const command_line::arg_descriptor<std::string> data_dir = {"data-dir", tools::wallet2::tr("Path to blockchain db"), ""};
 };
+
+
 
 void do_prepare_file_names(const std::string& file_path, std::string& keys_file, std::string& wallet_file)
 {
@@ -140,7 +144,7 @@ uint64_t calculate_fee(uint64_t fee_per_kb, const cryptonote::blobdata &blob, ui
   return calculate_fee(fee_per_kb, blob.size(), fee_multiplier);
 }
 
-std::unique_ptr<tools::wallet2> make_basic(const boost::program_options::variables_map& vm, const options& opts)
+std::unique_ptr<tools::wallet2> make_basic(const boost::program_options::variables_map& vm, const options& opts, etneg::MicroCore* core = nullptr, cryptonote::Blockchain* blockchain_storage = nullptr)
 {
   const bool testnet = command_line::get_arg(vm, opts.testnet);
   const bool restricted = command_line::get_arg(vm, opts.restricted);
@@ -148,6 +152,8 @@ std::unique_ptr<tools::wallet2> make_basic(const boost::program_options::variabl
   auto daemon_address = command_line::get_arg(vm, opts.daemon_address);
   auto daemon_host = command_line::get_arg(vm, opts.daemon_host);
   auto daemon_port = command_line::get_arg(vm, opts.daemon_port);
+
+  auto data_dir = command_line::get_arg(vm, opts.data_dir);
 
   if (!daemon_address.empty() && !daemon_host.empty() && 0 != daemon_port)
   {
@@ -179,7 +185,9 @@ std::unique_ptr<tools::wallet2> make_basic(const boost::program_options::variabl
     daemon_address = std::string("http://") + daemon_host + ":" + std::to_string(daemon_port);
 
   std::unique_ptr<tools::wallet2> wallet(new tools::wallet2(testnet, restricted));
-  wallet->init(std::move(daemon_address), std::move(login));
+  wallet->set_blockchain_storage(core, blockchain_storage);
+  wallet->init(std::move(daemon_address), std::move(login), std::move(data_dir));
+
   return wallet;
 }
 
@@ -215,7 +223,7 @@ boost::optional<tools::password_container> get_password(const boost::program_opt
   return tools::wallet2::password_prompt(verify);
 }
 
-std::unique_ptr<tools::wallet2> generate_from_json(const std::string& json_file, const boost::program_options::variables_map& vm, const options& opts)
+std::unique_ptr<tools::wallet2> generate_from_json(const std::string& json_file, const boost::program_options::variables_map& vm, const options& opts, etneg::MicroCore* core = nullptr, cryptonote::Blockchain* blockchain_storage = nullptr)
 {
   const bool testnet = command_line::get_arg(vm, opts.testnet);
 
@@ -359,7 +367,7 @@ std::unique_ptr<tools::wallet2> generate_from_json(const std::string& json_file,
       return false;
     }
 
-    wallet.reset(make_basic(vm, opts).release());
+    wallet.reset(make_basic(vm, opts, core, blockchain_storage).release());
     wallet->set_refresh_from_block_height(field_scan_from_height);
 
     try
@@ -468,6 +476,7 @@ void wallet2::init_options(boost::program_options::options_description& desc_par
   command_line::add_arg(desc_params, opts.daemon_login);
   command_line::add_arg(desc_params, opts.testnet);
   command_line::add_arg(desc_params, opts.restricted);
+  command_line::add_arg(desc_params, opts.data_dir);
 }
 
 boost::optional<password_container> wallet2::password_prompt(const bool new_password)
@@ -482,14 +491,14 @@ boost::optional<password_container> wallet2::password_prompt(const bool new_pass
   return pwd_container;
 }
 
-std::unique_ptr<wallet2> wallet2::make_from_json(const boost::program_options::variables_map& vm, const std::string& json_file)
+std::unique_ptr<wallet2> wallet2::make_from_json(const boost::program_options::variables_map& vm, const std::string& json_file, etneg::MicroCore* core, cryptonote::Blockchain* blockchain_storage)
 {
   const options opts{};
-  return generate_from_json(json_file, vm, opts);
+  return generate_from_json(json_file, vm, opts, core, blockchain_storage);
 }
 
 std::pair<std::unique_ptr<wallet2>, password_container> wallet2::make_from_file(
-  const boost::program_options::variables_map& vm, const std::string& wallet_file)
+  const boost::program_options::variables_map& vm, const std::string& wallet_file, etneg::MicroCore* core, cryptonote::Blockchain* blockchain_storage)
 {
   const options opts{};
   auto pwd = get_password(vm, opts, false);
@@ -497,7 +506,7 @@ std::pair<std::unique_ptr<wallet2>, password_container> wallet2::make_from_file(
   {
     return {nullptr, password_container{}};
   }
-  auto wallet = make_basic(vm, opts);
+  auto wallet = make_basic(vm, opts, core, blockchain_storage);
   if (wallet)
   {
     wallet->load(wallet_file, pwd->password());
@@ -505,7 +514,7 @@ std::pair<std::unique_ptr<wallet2>, password_container> wallet2::make_from_file(
   return {std::move(wallet), std::move(*pwd)};
 }
 
-std::pair<std::unique_ptr<wallet2>, password_container> wallet2::make_new(const boost::program_options::variables_map& vm)
+std::pair<std::unique_ptr<wallet2>, password_container> wallet2::make_new(const boost::program_options::variables_map& vm, etneg::MicroCore* core, cryptonote::Blockchain* blockchain_storage)
 {
   const options opts{};
   auto pwd = get_password(vm, opts, true);
@@ -513,17 +522,27 @@ std::pair<std::unique_ptr<wallet2>, password_container> wallet2::make_new(const 
   {
     return {nullptr, password_container{}};
   }
-  return {make_basic(vm, opts), std::move(*pwd)};
+  return {make_basic(vm, opts, core, blockchain_storage), std::move(*pwd)};
 }
 
-std::unique_ptr<wallet2> wallet2::make_dummy(const boost::program_options::variables_map& vm)
+std::unique_ptr<wallet2> wallet2::make_dummy(const boost::program_options::variables_map& vm, etneg::MicroCore* core, cryptonote::Blockchain* blockchain_storage)
 {
   const options opts{};
-  return make_basic(vm, opts);
+  return make_basic(vm, opts, core, blockchain_storage);
+}
+
+void wallet2::set_blockchain_storage(etneg::MicroCore* core, cryptonote::Blockchain* blockchain_storage) {
+
+  if(core != nullptr && blockchain_storage != nullptr) {
+    m_core = core;
+    m_blockchain_storage = blockchain_storage;
+    is_connected_to_db = true;
+    m_physical_refresh = true;
+  }
 }
 
 //----------------------------------------------------------------------------------------------------
-bool wallet2::init(std::string daemon_address, boost::optional<epee::net_utils::http::login> daemon_login, uint64_t upper_transaction_size_limit)
+bool wallet2::init(std::string daemon_address, boost::optional<epee::net_utils::http::login> daemon_login, std::string blockchain_db_path, uint64_t upper_transaction_size_limit)
 {
   if(m_http_client.is_connected())
     m_http_client.disconnect();
@@ -531,6 +550,9 @@ bool wallet2::init(std::string daemon_address, boost::optional<epee::net_utils::
   m_upper_transaction_size_limit = upper_transaction_size_limit;
   m_daemon_address = std::move(daemon_address);
   m_daemon_login = std::move(daemon_login);
+
+  load_database(blockchain_db_path);
+  
   return m_http_client.set_server(get_daemon_address(), get_daemon_login());
 }
 //----------------------------------------------------------------------------------------------------
@@ -912,11 +934,6 @@ void wallet2::process_new_transaction(const crypto::hash &txid, const cryptonote
               td.m_mask = mask[o];
               td.m_rct = true;
             }
-            else if (miner_tx && tx.version == 2)
-            {
-              td.m_mask = rct::identity();
-              td.m_rct = true;
-            }
             else
             {
               td.m_mask = rct::identity();
@@ -969,11 +986,6 @@ void wallet2::process_new_transaction(const crypto::hash &txid, const cryptonote
             if (tx.vout[o].amount == 0)
             {
               td.m_mask = mask[o];
-              td.m_rct = true;
-            }
-            else if (miner_tx && tx.version == 2)
-            {
-              td.m_mask = rct::identity();
               td.m_rct = true;
             }
             else
@@ -1130,10 +1142,7 @@ void wallet2::process_outgoing(const crypto::hash &txid, const cryptonote::trans
     // wallet (eg, we're a cold wallet and the hot wallet sent it). For RCT transactions,
     // we only see 0 input amounts, so have to deduce amount out from other parameters.
     entry.first->second.m_amount_in = spent;
-    if (tx.version == 1)
-      entry.first->second.m_amount_out = get_outs_money_amount(tx);
-    else
-      entry.first->second.m_amount_out = spent - tx.rct_signatures.txnFee;
+    entry.first->second.m_amount_out = get_outs_money_amount(tx);
     entry.first->second.m_change = received;
 
     std::vector<tx_extra_field> tx_extra_fields;
@@ -1263,7 +1272,14 @@ void wallet2::pull_blocks(uint64_t start_height, uint64_t &blocks_start_height, 
 
   req.start_height = start_height;
   m_daemon_rpc_mutex.lock();
-  bool r = net_utils::invoke_http_bin("/getblocks.bin", req, res, m_http_client, rpc_timeout);
+
+  bool r;
+  if(m_physical_refresh) {
+    r = tools::wallet2::get_blocks_from_db(req, res);
+  } else {
+    r = net_utils::invoke_http_bin("/getblocks.bin", req, res, m_http_client, rpc_timeout);
+  }
+
   m_daemon_rpc_mutex.unlock();
   THROW_WALLET_EXCEPTION_IF(!r, error::no_connection_to_daemon, "getblocks.bin");
   THROW_WALLET_EXCEPTION_IF(res.status == CORE_RPC_STATUS_BUSY, error::daemon_busy, "getblocks.bin");
@@ -1276,6 +1292,83 @@ void wallet2::pull_blocks(uint64_t start_height, uint64_t &blocks_start_height, 
   blocks = res.blocks;
   o_indices = res.output_indices;
 }
+
+bool wallet2::get_blocks_from_db(const cryptonote::COMMAND_RPC_GET_BLOCKS_FAST::request &req, cryptonote::COMMAND_RPC_GET_BLOCKS_FAST::response &res) {
+  
+  std::list<std::pair<cryptonote::blobdata, std::list<cryptonote::blobdata> > > bs;
+
+  if(!m_blockchain_storage->find_blockchain_supplement(req.start_height, req.block_ids, bs, res.current_height, res.start_height, COMMAND_RPC_GET_BLOCKS_FAST_MAX_COUNT))
+  {
+    res.status = "Failed";
+    return false;
+  }
+
+  size_t pruned_size = 0, unpruned_size = 0, ntxes = 0;
+  for(auto& bd: bs)
+  {
+    res.blocks.resize(res.blocks.size()+1);
+    res.blocks.back().block = bd.first;
+    pruned_size += bd.first.size();
+    unpruned_size += bd.first.size();
+    res.output_indices.push_back(COMMAND_RPC_GET_BLOCKS_FAST::block_output_indices());
+    res.output_indices.back().indices.push_back(COMMAND_RPC_GET_BLOCKS_FAST::tx_output_indices());
+    block b;
+    if (!parse_and_validate_block_from_blob(bd.first, b))
+    {
+      res.status = "Invalid block";
+      return false;
+    }
+    bool r = m_blockchain_storage->get_tx_outputs_gindexs(get_transaction_hash(b.miner_tx), res.output_indices.back().indices.back().indices);
+    if (!r)
+    {
+      res.status = "Failed";
+      return false;
+    }
+    size_t txidx = 0;
+    ntxes += bd.second.size();
+    for (std::list<cryptonote::blobdata>::iterator i = bd.second.begin(); i != bd.second.end(); ++i)
+    {
+      unpruned_size += i->size();
+      if (req.prune)
+        res.blocks.back().txs.push_back(get_pruned_tx_blob(std::move(*i)));
+      else
+        res.blocks.back().txs.push_back(std::move(*i));
+      i->clear();
+      i->shrink_to_fit();
+      pruned_size += res.blocks.back().txs.back().size();
+
+      res.output_indices.back().indices.push_back(COMMAND_RPC_GET_BLOCKS_FAST::tx_output_indices());
+      bool r = m_blockchain_storage->get_tx_outputs_gindexs(b.tx_hashes[txidx++], res.output_indices.back().indices.back().indices);
+      if (!r)
+      {
+        res.status = "Failed";
+        return false;
+      }
+    }
+  }
+
+  MDEBUG("on_get_blocks: " << bs.size() << " blocks, " << ntxes << " txes, pruned size " << pruned_size << ", unpruned size " << unpruned_size);
+  res.status = CORE_RPC_STATUS_OK;
+  return true;
+}
+
+//------------------------------------------------------------------------------------------------------------------------------
+cryptonote::blobdata wallet2::get_pruned_tx_blob(const cryptonote::blobdata &blobdata)
+{
+  cryptonote::transaction tx;
+
+  if (!cryptonote::parse_and_validate_tx_from_blob(blobdata, tx))
+  {
+    MERROR("Failed to parse and validate tx from blob");
+    return blobdata;
+  }
+
+  std::stringstream ss;
+  binary_archive<true> ba(ss);
+  bool r = tx.serialize_base(ba);
+  CHECK_AND_ASSERT_MES(r, blobdata, "Failed to serialize rct signatures base");
+  return ss.str();
+}
 //----------------------------------------------------------------------------------------------------
 void wallet2::pull_hashes(uint64_t start_height, uint64_t &blocks_start_height, const std::list<crypto::hash> &short_chain_history, std::list<crypto::hash> &hashes)
 {
@@ -1285,7 +1378,14 @@ void wallet2::pull_hashes(uint64_t start_height, uint64_t &blocks_start_height, 
 
   req.start_height = start_height;
   m_daemon_rpc_mutex.lock();
-  bool r = net_utils::invoke_http_bin("/gethashes.bin", req, res, m_http_client, rpc_timeout);
+
+  bool r;
+  if(m_physical_refresh) {
+    r = tools::wallet2::get_hashes_from_db(req, res);
+  } else {
+    r = net_utils::invoke_http_bin("/gethashes.bin", req, res, m_http_client, rpc_timeout);
+  }
+
   m_daemon_rpc_mutex.unlock();
   THROW_WALLET_EXCEPTION_IF(!r, error::no_connection_to_daemon, "gethashes.bin");
   THROW_WALLET_EXCEPTION_IF(res.status == CORE_RPC_STATUS_BUSY, error::daemon_busy, "gethashes.bin");
@@ -1294,6 +1394,24 @@ void wallet2::pull_hashes(uint64_t start_height, uint64_t &blocks_start_height, 
   blocks_start_height = res.start_height;
   hashes = res.m_block_ids;
 }
+
+bool wallet2::get_hashes_from_db(const cryptonote::COMMAND_RPC_GET_HASHES_FAST::request &req, cryptonote::COMMAND_RPC_GET_HASHES_FAST::response &res) {
+  NOTIFY_RESPONSE_CHAIN_ENTRY::request resp;
+
+  resp.start_height = req.start_height;
+  if(!m_blockchain_storage->find_blockchain_supplement(req.block_ids, resp))
+  {
+    res.status = "Failed";
+    return false;
+  }
+  res.current_height = resp.total_height;
+  res.start_height = resp.start_height;
+  res.m_block_ids = std::move(resp.m_block_ids);
+
+  res.status = CORE_RPC_STATUS_OK;
+  return true;
+}
+
 //----------------------------------------------------------------------------------------------------
 void wallet2::process_blocks(uint64_t start_height, const std::list<cryptonote::block_complete_entry> &blocks, const std::vector<cryptonote::COMMAND_RPC_GET_BLOCKS_FAST::block_output_indices> &o_indices, uint64_t& blocks_added)
 {
@@ -1661,6 +1779,28 @@ void wallet2::update_pool_state(bool refreshed)
   }
   MDEBUG("update_pool_state end");
 }
+
+void wallet2::load_database(std::string blockchain_db_path) {
+  if(!blockchain_db_path.empty() && blockchain_db_path != "" && !is_connected_to_db) {
+    m_core = new etneg::MicroCore();
+    m_physical_refresh = true;
+    if (etneg::init_blockchain(blockchain_db_path, m_core, m_blockchain_storage, m_testnet)) {
+      is_connected_to_db = true;
+      return;
+
+    } else {
+      cerr << "Error accessing blockchain database file. Disabling physical refresh feature." << endl;
+      m_physical_refresh = false;
+    }
+  }
+
+  // Make sure m_core and m_blockchain_storage pointers are clean if not connected to db
+  if(!is_connected_to_db) {
+    m_core = nullptr;
+    m_blockchain_storage = nullptr;
+  }
+}
+
 //----------------------------------------------------------------------------------------------------
 void wallet2::fast_refresh(uint64_t stop_height, uint64_t &blocks_start_height, std::list<crypto::hash> &short_chain_history)
 {
@@ -1982,9 +2122,6 @@ bool wallet2::store_keys(const std::string& keys_file_name, const std::string& p
   value2.SetInt(m_store_tx_info ? 1 :0);
   json.AddMember("store_tx_info", value2, json.GetAllocator());
 
-  value2.SetUint(m_default_mixin);
-  json.AddMember("default_mixin", value2, json.GetAllocator());
-
   value2.SetUint(m_default_priority);
   json.AddMember("default_priority", value2, json.GetAllocator());
 
@@ -2086,7 +2223,6 @@ bool wallet2::load_keys(const std::string& keys_file_name, const std::string& pa
     m_watch_only = false;
     m_always_confirm_transfers = false;
     m_print_ring_members = false;
-    m_default_mixin = 0;
     m_default_priority = 0;
     m_auto_refresh = true;
     m_refresh_type = RefreshType::RefreshDefault;
@@ -2898,7 +3034,10 @@ bool wallet2::is_transfer_unlocked(const transfer_details& td) const
   if(!is_tx_spendtime_unlocked(td.m_tx.unlock_time, td.m_block_height))
     return false;
 
-  if(td.m_block_height + CRYPTONOTE_DEFAULT_TX_SPENDABLE_AGE > m_blockchain.size())
+  uint64_t v8height = m_testnet ? 446674 : 589169;
+  uint16_t UNLOCK_WINDOW = td.m_block_height > v8height ? ETN_MONEY_UNLOCK_WINDOW_V8 : CRYPTONOTE_DEFAULT_TX_SPENDABLE_AGE;
+
+  if(td.m_block_height + UNLOCK_WINDOW > m_blockchain.size())
     return false;
 
   return true;
@@ -3379,7 +3518,7 @@ bool wallet2::sign_tx(unsigned_tx_set &exported_txs, const std::string &signed_f
   for (size_t n = 0; n < exported_txs.txes.size(); ++n)
   {
     const tools::wallet2::tx_construction_data &sd = exported_txs.txes[n];
-    LOG_PRINT_L1(" " << (n+1) << ": " << sd.sources.size() << " inputs, ring size " << sd.sources[0].outputs.size());
+    LOG_PRINT_L1(" " << (n+1) << ": " << sd.sources.size() << " inputs.");
     signed_txes.ptx.push_back(pending_tx());
     tools::wallet2::pending_tx &ptx = signed_txes.ptx.back();
     crypto::secret_key tx_key;
@@ -4257,7 +4396,7 @@ static size_t estimate_rct_tx_size(int n_inputs, int mixin, int n_outputs)
   // txnFee
   size += 4;
 
-  LOG_PRINT_L2("estimated rct tx size for " << n_inputs << " with ring size " << (DEFAULT_RINGSIZE) << " and " << n_outputs << ": " << size << " (" << ((32 * n_inputs/*+1*/) + 2 * 32 * (mixin+1) * n_inputs + 32 * n_outputs) << " saved)");
+  LOG_PRINT_L2("estimated rct tx size for " << n_inputs << " and " << n_outputs << ": " << size << " (" << ((32 * n_inputs/*+1*/) + 2 * 32 * (mixin+1) * n_inputs + 32 * n_outputs) << " saved)");
   return size;
 }
 
@@ -4938,7 +5077,7 @@ uint64_t wallet2::get_upper_transaction_size_limit()
 {
   if (m_upper_transaction_size_limit > 0)
     return m_upper_transaction_size_limit;
-  uint64_t full_reward_zone = use_fork_rules(5, 10) ? CRYPTONOTE_BLOCK_GRANTED_FULL_REWARD_ZONE_V5 : use_fork_rules(2, 10) ? CRYPTONOTE_BLOCK_GRANTED_FULL_REWARD_ZONE_V2 : CRYPTONOTE_BLOCK_GRANTED_FULL_REWARD_ZONE_V1;
+  uint64_t full_reward_zone = use_fork_rules(8, 10) ? CRYPTONOTE_BLOCK_GRANTED_FULL_REWARD_ZONE_V8 : use_fork_rules(5, 10) ? CRYPTONOTE_BLOCK_GRANTED_FULL_REWARD_ZONE_V5 : use_fork_rules(2, 10) ? CRYPTONOTE_BLOCK_GRANTED_FULL_REWARD_ZONE_V2 : CRYPTONOTE_BLOCK_GRANTED_FULL_REWARD_ZONE_V1;
   return full_reward_zone - CRYPTONOTE_COINBASE_BLOB_RESERVED_SIZE;
 }
 //----------------------------------------------------------------------------------------------------
@@ -5042,6 +5181,109 @@ const wallet2::transfer_details &wallet2::get_transfer_details(size_t idx) const
 {
   THROW_WALLET_EXCEPTION_IF(idx >= m_transfers.size(), error::wallet_internal_error, "Bad transfer index");
   return m_transfers[idx];
+}
+//----------------------------------------------------------------------------------------------------
+void wallet2::save_transfers_to_csv(bool in, bool out, uint64_t min_height, uint64_t max_height)
+{
+  auto t = std::time(nullptr);
+  auto tm = *std::localtime(&t);
+  std::ostringstream oss;
+  oss << std::put_time(&tm, "%d-%m-%Y %H-%M-%S");
+  std::string csvFilename = oss.str() + "-etn-transfers.csv";
+
+  std::ofstream ofs;
+  ofs.open(csvFilename, std::ofstream::out | std::ofstream::app);
+
+  // If file does not exist, Create new file
+  if (!ofs)
+  {
+    cout << "Creating new file";
+    ofs.open(csvFilename, std::ofstream::out | std::ofstream::app);
+  }
+
+  struct transferEntry {
+
+   uint64_t block_height;
+   std::string payment_id;
+   std::string note;
+   std::string txid;
+   uint64_t amount;
+   uint64_t change;
+   uint64_t fee;
+   std::string timestamp;
+   std::string status;
+   std::string dests;
+
+  };
+
+  std::multimap<uint64_t, transferEntry> output;
+
+  if (in) {
+    std::list<std::pair<crypto::hash, tools::wallet2::payment_details>> payments;
+    this->get_payments(payments, min_height, max_height);
+    for (std::list<std::pair<crypto::hash, tools::wallet2::payment_details>>::const_iterator i = payments.begin(); i != payments.end(); ++i) {
+
+      transferEntry transfer;
+      const tools::wallet2::payment_details &pd = i->second;
+
+      transfer.payment_id = string_tools::pod_to_hex(i->first);
+      if (transfer.payment_id.substr(16).find_first_not_of('0') == std::string::npos)
+        transfer.payment_id = transfer.payment_id.substr(0,16);
+
+      transfer.note = this->get_tx_note(pd.m_tx_hash);
+      transfer.timestamp = get_human_readable_timestamp(pd.m_timestamp);
+      transfer.amount = pd.m_amount;
+      transfer.txid = string_tools::pod_to_hex(pd.m_tx_hash);
+      transfer.status = "in";
+
+      output.insert(std::make_pair(pd.m_block_height, transfer));
+    }
+  }
+
+    if (out) {
+    std::list<std::pair<crypto::hash, tools::wallet2::confirmed_transfer_details>> payments;
+    this->get_payments_out(payments, min_height, max_height);
+    for (std::list<std::pair<crypto::hash, tools::wallet2::confirmed_transfer_details>>::const_iterator i = payments.begin(); i != payments.end(); ++i) {
+
+      transferEntry transfer;
+      const tools::wallet2::confirmed_transfer_details &pd = i->second;
+
+      transfer.change = pd.m_change == (uint64_t)-1 ? 0 : pd.m_change; // change may not be known
+      transfer.fee = pd.m_amount_in - pd.m_amount_out;
+
+      for (const auto &d: pd.m_dests) {
+        if (!transfer.dests.empty())
+          transfer.dests += ", ";
+        transfer.dests +=  get_account_address_as_str(this->testnet(), d.addr) + ": " + print_money(d.amount);
+      }
+
+      transfer.payment_id = string_tools::pod_to_hex(i->second.m_payment_id);
+      if (transfer.payment_id.substr(16).find_first_not_of('0') == std::string::npos)
+        transfer.payment_id = transfer.payment_id.substr(0,16);
+
+      transfer.note = this->get_tx_note(i->first);
+      transfer.timestamp = get_human_readable_timestamp(pd.m_timestamp);
+      transfer.amount = pd.m_amount_in - transfer.change - transfer.fee;
+      transfer.txid = string_tools::pod_to_hex(i->first);
+      transfer.status = "out";
+
+      output.insert(std::make_pair(pd.m_block_height, transfer));
+    }
+  }
+
+  //Column Headers
+  ofs << "Block Height" << "," << "Direction" << "," << "Date" << "," << "Amount" << "," << "Transaction ID" << ","
+      << "Payment ID" << "," << "Fee" << "," << "Change" << "," << "Destination(s)" << "\n";
+
+  //Data
+  for (std::map<uint64_t, transferEntry>::const_iterator i = output.begin(); i != output.end(); ++i) {
+    ofs << i->first << "," << i->second.status << "," << i->second.timestamp << "," << print_money(i->second.amount)
+        << "," << i->second.txid << "," << i->second.payment_id << "," << i->second.note;
+        if(i->second.status == "in")   { ofs << "\n";}
+        if (i->second.status == "out")
+        { ofs << print_money(i->second.change) << "," << print_money(i->second.fee) << "," << i->second.dests << "\n";}
+  }
+  ofs.close();
 }
 //----------------------------------------------------------------------------------------------------
 std::vector<size_t> wallet2::select_available_unmixable_outputs(bool trusted_daemon)

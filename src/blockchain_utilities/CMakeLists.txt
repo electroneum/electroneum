@@ -1,4 +1,4 @@
-# Copyright (c) 2017-2018, The Electroneum Project
+# Copyright (c) 2017-2019, The Electroneum Project
 # Copyright (c) 2014-2017, The Monero Project
 #
 # All rights reserved.
@@ -83,6 +83,7 @@ target_link_libraries(blockchain_import
     ${Boost_SYSTEM_LIBRARY}
     ${Boost_THREAD_LIBRARY}
     ${CMAKE_THREAD_LIBS_INIT}
+	${OPENSSL_LIBRARIES}
     ${EXTRA_LIBRARIES})
 
 if(ARCH_WIDTH)

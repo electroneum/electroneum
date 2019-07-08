@@ -1,4 +1,4 @@
-// Copyrights(c) 2017-2018, The Electroneum Project
+// Copyrights(c) 2017-2019, The Electroneum Project
 // Copyrights(c) 2014-2017, The Monero Project
 // 
 // All rights reserved.
@@ -43,6 +43,8 @@
 #pragma once
 #include <vector>
 #include <list>
+#include <set>
+#include <unordered_set>
 #include <string>
 #include <boost/type_traits/is_integral.hpp>
 #include <boost/type_traits/integral_constant.hpp>
@@ -203,7 +205,7 @@ inline bool do_serialize(Archive &ar, bool &v)
  * \brief self-explanatory
  */
 #define END_SERIALIZE()				\
-  return true;					\
+  return ar.stream().good();					\
   }
 
 /*! \macro VALUE(f)
@@ -348,3 +350,4 @@ namespace serialization {
 #include "vector.h"
 #include "list.h"
 #include "pair.h"
+#include "set.h"

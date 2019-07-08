@@ -1,4 +1,4 @@
-// Copyrights(c) 2017-2018, The Electroneum Project
+// Copyrights(c) 2017-2019, The Electroneum Project
 // Copyrights(c) 2014-2017, The Monero Project
 //
 // All rights reserved.
@@ -101,7 +101,7 @@ namespace cryptonote
   }
   //---------------------------------------------------------------------------------
   //---------------------------------------------------------------------------------
-  tx_memory_pool::tx_memory_pool(Blockchain& bchs): m_blockchain(bchs)
+  tx_memory_pool::tx_memory_pool(Blockchain& bchs): m_blockchain(bchs), m_cookie(0)
   {
 
   }
@@ -140,30 +140,23 @@ namespace cryptonote
     // fee per kilobyte, size rounded up.
     uint64_t fee;
 
-    if (tx.version == 1)
+    uint64_t inputs_amount = 0;
+    if(!get_inputs_money_amount(tx, inputs_amount))
     {
-      uint64_t inputs_amount = 0;
-      if(!get_inputs_money_amount(tx, inputs_amount))
-      {
-        tvc.m_verifivation_failed = true;
-        return false;
-      }
-
-      uint64_t outputs_amount = get_outs_money_amount(tx);
-      if(outputs_amount >= inputs_amount)
-      {
-        LOG_PRINT_L1("transaction use more money then it has: use " << print_money(outputs_amount) << ", have " << print_money(inputs_amount));
-        tvc.m_verifivation_failed = true;
-        tvc.m_overspend = true;
-        return false;
-      }
-
-      fee = inputs_amount - outputs_amount;
+      tvc.m_verifivation_failed = true;
+      return false;
     }
-    else
+
+    uint64_t outputs_amount = get_outs_money_amount(tx);
+    if(outputs_amount >= inputs_amount)
     {
-      fee = tx.rct_signatures.txnFee;
+      LOG_PRINT_L1("transaction use more money then it has: use " << print_money(outputs_amount) << ", have " << print_money(inputs_amount));
+      tvc.m_verifivation_failed = true;
+      tvc.m_overspend = true;
+      return false;
     }
+
+    fee = inputs_amount - outputs_amount;
 
     if (!kept_by_block && !m_blockchain.check_fee(blob_size, fee))
     {
@@ -211,9 +204,12 @@ namespace cryptonote
     bool ch_inp_res = m_blockchain.check_tx_inputs(tx, max_used_block_height, max_used_block_id, tvc, kept_by_block);
     if(!ch_inp_res)
     {
-      // if the transaction was valid before (kept_by_block), then it
-      // may become valid again, so ignore the failed inputs check.
-      if(kept_by_block)
+      // If a TX has been orphaned, its inputs may fail checks if they reference outputs that were only spent
+      // on the orphaned chain (max_used_block_height > current main chain height).
+      // Therefore, these outputs, and the transaction itself, may become valid again in time.
+      // So skip inputs check unless the tx is never going to pass verification for other reasons
+      // (invalid mixin, invalid version, etc).
+      if(kept_by_block && !tvc.m_low_mixin && !tvc.m_verifivation_failed)
       {
         meta.blob_size = blob_size;
         meta.fee = fee;
@@ -286,10 +282,8 @@ namespace cryptonote
         tvc.m_should_be_relayed = true;
     }
 
-    // assume failure during verification steps until success is certain
-    tvc.m_verifivation_failed = true;
-
     tvc.m_verifivation_failed = false;
+    ++m_cookie;
 
     MINFO("Transaction added to pool: txid " << id << " bytes: " << blob_size << " fee/byte: " << (fee / (double)blob_size));
     return true;
@@ -316,6 +310,7 @@ namespace cryptonote
       auto ins_res = kei_image_set.insert(id);
       CHECK_AND_ASSERT_MES(ins_res.second, false, "internal error: try to insert duplicate iterator in key_image set");
     }
+    ++m_cookie;
     return true;
   }
   //---------------------------------------------------------------------------------
@@ -350,6 +345,7 @@ namespace cryptonote
       }
 
     }
+    ++m_cookie;
     return true;
   }
   //---------------------------------------------------------------------------------
@@ -359,13 +355,16 @@ namespace cryptonote
     CRITICAL_REGION_LOCAL1(m_blockchain);
 
     auto sorted_it = find_tx_in_sorted_container(id);
-    if (sorted_it == m_txs_by_fee_and_receive_time.end())
-      return false;
 
     try
     {
       LockedTXN lock(m_blockchain);
-      txpool_tx_meta_t meta = m_blockchain.get_txpool_tx_meta(id);
+      txpool_tx_meta_t meta;
+      if (!m_blockchain.get_txpool_tx_meta(id, meta))
+      {
+        MERROR("Failed to find tx in txpool");
+        return false;
+      }
       cryptonote::blobdata txblob = m_blockchain.get_txpool_tx_blob(id);
       if (!parse_and_validate_tx_from_blob(txblob, tx))
       {
@@ -387,7 +386,9 @@ namespace cryptonote
       return false;
     }
 
+    if (sorted_it != m_txs_by_fee_and_receive_time.end())
     m_txs_by_fee_and_receive_time.erase(sorted_it);
+    ++m_cookie;
     return true;
   }
   //---------------------------------------------------------------------------------
@@ -460,6 +461,7 @@ namespace cryptonote
           // ignore error
         }
       }
+      ++m_cookie;
     }
     return true;
   }
@@ -508,10 +510,13 @@ namespace cryptonote
     {
       try
       {
-        txpool_tx_meta_t meta = m_blockchain.get_txpool_tx_meta(it->first);
-        meta.relayed = true;
-        meta.last_relayed_time = now;
-        m_blockchain.update_txpool_tx(it->first, meta);
+        txpool_tx_meta_t meta;
+        if (m_blockchain.get_txpool_tx_meta(it->first, meta))
+        {
+          meta.relayed = true;
+          meta.last_relayed_time = now;
+          m_blockchain.update_txpool_tx(it->first, meta);
+        }
       }
       catch (const std::exception &e)
       {
@@ -854,7 +859,6 @@ namespace cryptonote
     //baseline empty block
     get_block_reward(median_size, total_size, already_generated_coins, best_coinbase, version);
 
-
     size_t max_total_size_pre_v5 = (130 * median_size) / 100 - CRYPTONOTE_COINBASE_BLOB_RESERVED_SIZE;
     size_t max_total_size_v5 = 2 * median_size - CRYPTONOTE_COINBASE_BLOB_RESERVED_SIZE;
     size_t max_total_size = version >= 5 ? max_total_size_v5 : max_total_size_pre_v5;
@@ -867,7 +871,12 @@ namespace cryptonote
     auto sorted_it = m_txs_by_fee_and_receive_time.begin();
     while (sorted_it != m_txs_by_fee_and_receive_time.end())
     {
-      txpool_tx_meta_t meta = m_blockchain.get_txpool_tx_meta(sorted_it->second);
+      txpool_tx_meta_t meta;
+      if (!m_blockchain.get_txpool_tx_meta(sorted_it->second, meta))
+      {
+        MERROR("  failed to find tx meta");
+        continue;
+      }
       LOG_PRINT_L2("Considering " << sorted_it->second << ", size " << meta.blob_size << ", current block size " << total_size << "/" << max_total_size << ", current coinbase " << print_money(best_coinbase));
 
       // Can not exceed maximum block size
@@ -1005,6 +1014,8 @@ namespace cryptonote
         }
       }
     }
+    if (n_removed > 0)
+      ++m_cookie;
     return n_removed;
   }
   //---------------------------------------------------------------------------------
@@ -1015,7 +1026,7 @@ namespace cryptonote
 
     m_txs_by_fee_and_receive_time.clear();
     m_spent_key_images.clear();
-    return m_blockchain.for_all_txpool_txes([this](const crypto::hash &txid, const txpool_tx_meta_t &meta, const cryptonote::blobdata *bd) {
+    bool r = m_blockchain.for_all_txpool_txes([this](const crypto::hash &txid, const txpool_tx_meta_t &meta, const cryptonote::blobdata *bd) {
       cryptonote::transaction tx;
       if (!parse_and_validate_tx_from_blob(*bd, tx))
       {
@@ -1030,6 +1041,13 @@ namespace cryptonote
       m_txs_by_fee_and_receive_time.emplace(std::pair<double, time_t>(meta.fee / (double)meta.blob_size, meta.receive_time), txid);
       return true;
     }, true);
+
+    if (!r){return false;}
+
+    m_cookie = 0;
+
+    // Ignore deserialization error
+    return true;
   }
 
   //---------------------------------------------------------------------------------

@@ -1,4 +1,4 @@
-// Copyrights(c) 2017-2018, The Electroneum Project
+// Copyrights(c) 2017-2019, The Electroneum Project
 // Copyrights(c) 2014-2017, The Monero Project
 // 
 // All rights reserved.
@@ -122,6 +122,7 @@ namespace wallet_rpc
       bool get_tx_key;
       bool do_not_relay;
       bool get_tx_hex;
+      bool get_tx_metadata;
 
       BEGIN_KV_SERIALIZE_MAP()
         KV_SERIALIZE(destinations)
@@ -132,6 +133,7 @@ namespace wallet_rpc
         KV_SERIALIZE(get_tx_key)
         KV_SERIALIZE_OPT(do_not_relay, false)
         KV_SERIALIZE_OPT(get_tx_hex, false)
+        KV_SERIALIZE_OPT(get_tx_metadata, false)
       END_KV_SERIALIZE_MAP()
     };
 
@@ -142,6 +144,7 @@ namespace wallet_rpc
       std::list<std::string> amount_keys;
       uint64_t fee;
       std::string tx_blob;
+      std::string tx_metadata;
 
       BEGIN_KV_SERIALIZE_MAP()
         KV_SERIALIZE(tx_hash)
@@ -149,6 +152,7 @@ namespace wallet_rpc
         KV_SERIALIZE(amount_keys)
         KV_SERIALIZE(fee)
         KV_SERIALIZE(tx_blob)
+        KV_SERIALIZE(tx_metadata)
       END_KV_SERIALIZE_MAP()
     };
   };
@@ -165,6 +169,7 @@ namespace wallet_rpc
       bool get_tx_keys;
       bool do_not_relay;
       bool get_tx_hex;
+      bool get_tx_metadata;
 
       BEGIN_KV_SERIALIZE_MAP()
         KV_SERIALIZE(destinations)
@@ -175,6 +180,7 @@ namespace wallet_rpc
         KV_SERIALIZE(get_tx_keys)
         KV_SERIALIZE_OPT(do_not_relay, false)
         KV_SERIALIZE_OPT(get_tx_hex, false)
+        KV_SERIALIZE_OPT(get_tx_metadata, false)
       END_KV_SERIALIZE_MAP()
     };
 
@@ -194,6 +200,7 @@ namespace wallet_rpc
       std::list<uint64_t> amount_list;
       std::list<uint64_t> fee_list;
       std::list<std::string> tx_blob_list;
+      std::list<std::string> tx_metadata_list;
 
       BEGIN_KV_SERIALIZE_MAP()
         KV_SERIALIZE(tx_hash_list)
@@ -201,6 +208,7 @@ namespace wallet_rpc
         KV_SERIALIZE(amount_list)
         KV_SERIALIZE(fee_list)
         KV_SERIALIZE(tx_blob_list)
+        KV_SERIALIZE(tx_metadata_list)
       END_KV_SERIALIZE_MAP()
     };
   };
@@ -212,11 +220,13 @@ namespace wallet_rpc
       bool get_tx_keys;
       bool do_not_relay;
       bool get_tx_hex;
+      bool get_tx_metadata;
 
       BEGIN_KV_SERIALIZE_MAP()
         KV_SERIALIZE(get_tx_keys)
         KV_SERIALIZE_OPT(do_not_relay, false)
         KV_SERIALIZE_OPT(get_tx_hex, false)
+        KV_SERIALIZE_OPT(get_tx_metadata, false)
       END_KV_SERIALIZE_MAP()
     };
 
@@ -235,12 +245,14 @@ namespace wallet_rpc
       std::list<std::string> tx_key_list;
       std::list<uint64_t> fee_list;
       std::list<std::string> tx_blob_list;
+      std::list<std::string> tx_metadata_list;
 
       BEGIN_KV_SERIALIZE_MAP()
         KV_SERIALIZE(tx_hash_list)
         KV_SERIALIZE(tx_key_list)
         KV_SERIALIZE(fee_list)
         KV_SERIALIZE(tx_blob_list)
+        KV_SERIALIZE(tx_metadata_list)
       END_KV_SERIALIZE_MAP()
     };
   };
@@ -258,6 +270,7 @@ namespace wallet_rpc
       uint64_t below_amount;
       bool do_not_relay;
       bool get_tx_hex;
+      bool get_tx_metadata;
 
       BEGIN_KV_SERIALIZE_MAP()
         KV_SERIALIZE(address)
@@ -269,6 +282,7 @@ namespace wallet_rpc
         KV_SERIALIZE(below_amount)
         KV_SERIALIZE_OPT(do_not_relay, false)
         KV_SERIALIZE_OPT(get_tx_hex, false)
+        KV_SERIALIZE_OPT(get_tx_metadata, false)
       END_KV_SERIALIZE_MAP()
     };
 
@@ -287,12 +301,38 @@ namespace wallet_rpc
       std::list<std::string> tx_key_list;
       std::list<uint64_t> fee_list;
       std::list<std::string> tx_blob_list;
+      std::list<std::string> tx_metadata_list;
 
       BEGIN_KV_SERIALIZE_MAP()
         KV_SERIALIZE(tx_hash_list)
         KV_SERIALIZE(tx_key_list)
         KV_SERIALIZE(fee_list)
         KV_SERIALIZE(tx_blob_list)
+        KV_SERIALIZE(tx_metadata_list)
+      END_KV_SERIALIZE_MAP()
+    };
+  };
+
+  struct COMMAND_RPC_RELAY_TX
+  {
+    struct request
+    {
+      std::string hex;
+       BEGIN_KV_SERIALIZE_MAP()
+        KV_SERIALIZE(hex)
+      END_KV_SERIALIZE_MAP()
+    };
+     struct response
+    {
+      std::string tx_hash;
+      std::string tx_key;
+      uint64_t fee;
+      std::string tx_blob;
+       BEGIN_KV_SERIALIZE_MAP()
+        KV_SERIALIZE(tx_hash)
+        KV_SERIALIZE(tx_key)
+        KV_SERIALIZE(fee)
+        KV_SERIALIZE(tx_blob)
       END_KV_SERIALIZE_MAP()
     };
   };
@@ -317,6 +357,7 @@ namespace wallet_rpc
     std::string payment_id;
     std::string tx_hash;
     uint64_t amount;
+    uint64_t timestamp;
     uint64_t block_height;
     uint64_t unlock_time;
 
@@ -324,6 +365,7 @@ namespace wallet_rpc
       KV_SERIALIZE(payment_id)
       KV_SERIALIZE(tx_hash)
       KV_SERIALIZE(amount)
+      KV_SERIALIZE(timestamp)
       KV_SERIALIZE(block_height)
       KV_SERIALIZE(unlock_time)
     END_KV_SERIALIZE_MAP()
@@ -659,6 +701,30 @@ namespace wallet_rpc
 
       BEGIN_KV_SERIALIZE_MAP()
         KV_SERIALIZE(transfer);
+      END_KV_SERIALIZE_MAP()
+    };
+  };
+
+    struct COMMAND_RPC_SAVE_TRANSFERS_TO_CSV
+  {
+    struct request
+    {
+      bool in;
+      bool out;
+      uint64_t min_height;
+      uint64_t max_height;
+
+      BEGIN_KV_SERIALIZE_MAP()
+        KV_SERIALIZE(in);
+        KV_SERIALIZE(out);
+        KV_SERIALIZE(min_height);
+        KV_SERIALIZE(max_height);
+      END_KV_SERIALIZE_MAP()
+    };
+
+    struct response
+    {
+      BEGIN_KV_SERIALIZE_MAP()
       END_KV_SERIALIZE_MAP()
     };
   };
@@ -1012,6 +1078,20 @@ namespace wallet_rpc
       END_KV_SERIALIZE_MAP()
     };
     struct response
+    {
+      BEGIN_KV_SERIALIZE_MAP()
+      END_KV_SERIALIZE_MAP()
+    };
+  };
+
+  struct COMMAND_RPC_CLOSE_WALLET
+  {
+    struct request
+    {
+      BEGIN_KV_SERIALIZE_MAP()
+      END_KV_SERIALIZE_MAP()
+    };
+     struct response
     {
       BEGIN_KV_SERIALIZE_MAP()
       END_KV_SERIALIZE_MAP()

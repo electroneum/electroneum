@@ -1,4 +1,4 @@
-// Copyrights(c) 2017-2018, The Electroneum Project
+// Copyrights(c) 2017-2019, The Electroneum Project
 // Copyrights(c) 2014-2017, The Monero Project
 //
 // All rights reserved.
@@ -38,6 +38,7 @@
 #include <boost/multi_index/global_fun.hpp>
 #include <boost/multi_index/hashed_index.hpp>
 #include <boost/multi_index/member.hpp>
+#include <boost/algorithm/hex.hpp>
 #include <atomic>
 #include <unordered_map>
 #include <unordered_set>
@@ -55,6 +56,7 @@
 #include "cryptonote_basic/checkpoints.h"
 #include "cryptonote_basic/hardfork.h"
 #include "blockchain_db/blockchain_db.h"
+#include "cryptonote_basic/validators.h"
 
 namespace cryptonote
 {
@@ -293,6 +295,11 @@ namespace cryptonote
      * @return the target
      */
     difficulty_type get_difficulty_for_next_block();
+
+    /**
+     * @brief Normalize the cumulative difficulty for V7 blocks, fixing the differing difficulty among nodes
+     */
+    void normalize_v7_difficulties();   
 
     /**
      * @brief adds a block to the blockchain
@@ -580,16 +587,6 @@ namespace cryptonote
     uint64_t get_current_cumulative_blocksize_limit() const;
 
     /**
-     * @brief checks if the blockchain is currently being stored
-     *
-     * Note: this should be meaningless in cases where Blockchain is not
-     * directly managing saving the blockchain to disk.
-     *
-     * @return true if Blockchain is having the chain stored currently, else false
-     */
-    bool is_storing_blockchain()const{return false;}
-
-    /**
      * @brief gets the difficulty of the block with a given height
      *
      * @param i the height
@@ -688,6 +685,11 @@ namespace cryptonote
      */
     bool update_checkpoints(const std::string& file_path, bool check_dns);
 
+    /**
+     * @brief Update the validators public key by fetching data from electroneum's endpoint
+     *
+     * @return true if successfull
+     */
 
     // user options, must be called before calling init()
 
@@ -700,7 +702,7 @@ namespace cryptonote
      * @param fast_sync sync using built-in block hashes as trusted
      */
     void set_user_options(uint64_t maxthreads, uint64_t blocks_per_sync,
-        blockchain_db_sync_mode sync_mode, bool fast_sync);
+        blockchain_db_sync_mode sync_mode, bool fast_sync, std::string validator_key);
 
     /**
      * @brief Put DB in safe sync mode
@@ -773,6 +775,16 @@ namespace cryptonote
      *
      * @return whether the version queried is enabled 
      */
+
+    /**
+     * @brief checks whether the blockchain is for the testnet or mainnet
+     *
+     * @param
+     *
+     * @return true if testnet, false otherwise.
+     */
+    bool is_testnet() const{return m_testnet;}
+
     bool get_hard_fork_voting_info(uint8_t version, uint32_t &window, uint32_t &votes, uint32_t &threshold, uint64_t &earliest_height, uint8_t &voting) const;
 
     /**
@@ -886,7 +898,7 @@ namespace cryptonote
     void update_txpool_tx(const crypto::hash &txid, const txpool_tx_meta_t &meta);
     void remove_txpool_tx(const crypto::hash &txid);
     uint64_t get_txpool_tx_count() const;
-    txpool_tx_meta_t get_txpool_tx_meta(const crypto::hash& txid) const;
+    bool get_txpool_tx_meta(const crypto::hash& txid, txpool_tx_meta_t &meta) const;
     bool get_txpool_tx_blob(const crypto::hash& txid, cryptonote::blobdata &bd) const;
     cryptonote::blobdata get_txpool_tx_blob(const crypto::hash& txid) const;
     bool for_all_txpool_txes(std::function<bool(const crypto::hash&, const txpool_tx_meta_t&, const cryptonote::blobdata*)>, bool include_blob = false) const;
@@ -907,6 +919,13 @@ namespace cryptonote
      * Used for handling txes from historical blocks in a fast way
      */
     void on_new_tx_from_block(const cryptonote::transaction &tx);
+
+    /**
+     * @brief set validator key
+     */
+    void set_validator_key(std::string key) { m_validator_key = boost::algorithm::unhex(key); }
+
+    void set_validators_list_instance(std::unique_ptr<electroneum::basic::Validators> &v) { m_validators = v.get(); }
 
   private:
 
@@ -958,6 +977,14 @@ namespace cryptonote
     std::vector<difficulty_type> m_difficulties;
     uint64_t m_timestamps_and_difficulties_height;
 
+    epee::critical_section m_difficulty_lock;
+    crypto::hash m_difficulty_for_next_block_top_hash;
+    difficulty_type m_difficulty_for_next_block;
+
+
+    std::string m_validator_key;
+    std::vector<std::string> m_validators_public_keys;
+
     boost::asio::io_service m_async_service;
     boost::thread_group m_async_pool;
     std::unique_ptr<boost::asio::io_service::work> m_async_work_idle;
@@ -977,6 +1004,18 @@ namespace cryptonote
     bool m_testnet;
 
     std::atomic<bool> m_cancel;
+
+    // block template cache
+    block m_btc;
+    account_public_address m_btc_address;
+    blobdata m_btc_nonce;
+    difficulty_type m_btc_difficulty;
+    uint64_t m_btc_pool_cookie;
+    uint64_t m_btc_expected_reward;
+    bool m_btc_valid;
+
+
+    electroneum::basic::Validators* m_validators;
 
     /**
      * @brief collects the keys for all outputs being "spent" as an input
@@ -1333,5 +1372,32 @@ namespace cryptonote
      * that implicit data.
      */
     bool expand_transaction_2(transaction &tx, const crypto::hash &tx_prefix_hash, const std::vector<std::vector<rct::ctkey>> &pubkeys);
+
+     /**
+     * @brief invalidates any cached block template
+     */
+    void invalidate_block_template_cache();
+
+     /**
+     * @brief stores a new cached block template
+     *
+     * At some point, may be used to push an update to miners
+     */
+    void cache_block_template(const block &b, const cryptonote::account_public_address &address, const blobdata &nonce, const difficulty_type &diff, uint64_t expected_reward, uint64_t pool_cookie);
+    /**
+     * @brief Digitally sign the block
+     *
+     * @param b the block to be digitally signed
+     * @param privateKey key to generate the signature
+     */
+    void sign_block(block& b, std::string privateKey);
+
+    /**
+     * @brief Verify block's digital signature
+     *
+     * @param b block to be verified
+     */
+    bool verify_block_signature(const block& b);
+
   };
 }  // namespace cryptonote

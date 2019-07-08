@@ -1,4 +1,4 @@
-# Copyright (c) 2017-2018, The Electroneum Project
+# Copyright (c) 2017-2019, The Electroneum Project
 # Copyright (c) 2014-2017, The Monero Project
 #
 # All rights reserved.
@@ -188,6 +188,21 @@ endif()
 #   set(BSDI TRUE)
 
 include_directories(external/easylogging++ src contrib/epee/include external "${CMAKE_BINARY_DIR}/version")
+
+add_library (ed25519-donna STATIC
+        external/ed25519-donna/ed25519.c)
+target_include_directories (ed25519-donna
+        PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/external>
+        $<INSTALL_INTERFACE:include>
+        PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/external/ed25519-donna)
+target_link_libraries (ed25519-donna PUBLIC OpenSSL::SSL)
+add_library (NIH::ed25519-donna ALIAS ed25519-donna)
+install (
+        FILES
+        external/ed25519-donna/ed25519.h
+        DESTINATION contrib/epee/include)
 
 if(APPLE)
   include_directories(SYSTEM /usr/include/malloc)

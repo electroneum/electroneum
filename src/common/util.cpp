@@ -1,4 +1,4 @@
-// Copyrights(c) 2017-2018, The Electroneum Project
+// Copyrights(c) 2017-2019, The Electroneum Project
 // Copyrights(c) 2014-2017, The Monero Project
 // 
 // All rights reserved.
@@ -654,5 +654,24 @@ std::string get_nix_version_display_string()
     }
     std::cout << "\r" << s << std::flush;
     return x;
+  }
+
+  std::string glob_to_regex(const std::string &val)
+  {
+    std::string newval;
+
+     bool escape = false;
+    for (char c: val)
+    {
+      if (c == '*')
+        newval += escape ? "*" : ".*";
+      else if (c == '?')
+        newval += escape ? "?" : ".";
+      else if (c == '\\')
+        newval += '\\', escape = !escape;
+      else
+        newval += c;
+    }
+    return newval;
   }
 }

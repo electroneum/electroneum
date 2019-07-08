@@ -1,4 +1,4 @@
-// Copyrights(c) 2017-2018, The Electroneum Project
+// Copyrights(c) 2017-2019, The Electroneum Project
 // Copyrights(c) 2014-2017, The Monero Project
 //
 // All rights reserved.
@@ -34,6 +34,8 @@
 #include <list>
 #include <string>
 #include <exception>
+#include <boost/program_options.hpp>
+#include "common/command_line.h"
 #include "crypto/hash.h"
 #include "cryptonote_protocol/blobdatatype.h"
 #include "cryptonote_basic/cryptonote_basic.h"
@@ -101,6 +103,10 @@ namespace cryptonote
 
 /** a pair of <transaction hash, output index>, typedef for convenience */
 typedef std::pair<crypto::hash, uint64_t> tx_out_index;
+
+extern const command_line::arg_descriptor<std::string> arg_db_type;
+extern const command_line::arg_descriptor<std::string> arg_db_sync_mode;
+extern const command_line::arg_descriptor<bool, false> arg_db_salvage;
 
 #pragma pack(push, 1)
 
@@ -537,6 +543,11 @@ public:
   virtual ~BlockchainDB() { };
 
   /**
+   * @brief init command line options
+   */
+  static void init_options(boost::program_options::options_description& desc);
+
+  /**
    * @brief reset profiling stats
    */
   void reset_stats();
@@ -701,7 +712,7 @@ public:
    *
    * @return true if we started the batch, false if already started
    */
-  virtual bool batch_start(uint64_t batch_num_blocks=0) = 0;
+  virtual bool batch_start(uint64_t batch_num_blocks=0, uint64_t batch_bytes=0) = 0;
 
   /**
    * @brief ends a batch transaction
@@ -894,6 +905,20 @@ public:
    * @return the size
    */
   virtual size_t get_block_size(const uint64_t& height) const = 0;
+
+  /**
+   * @brief sets a block's cumulative difficulty
+   *
+   * The subclass should return true if the cumulative difficulty is set successfully
+   *
+   * If the block does not exist, the subclass should throw BLOCK_DNE
+   *
+   * @param height the height requested
+   * @param diff the cumulative difficulty value to be set
+   *
+   * @return true | false
+   */
+  virtual void set_block_cumulative_difficulty(uint64_t height, difficulty_type diff) = 0;
 
   /**
    * @brief fetch a block's cumulative difficulty
@@ -1322,10 +1347,11 @@ public:
    * @brief get a txpool transaction's metadata
    *
    * @param txid the transaction id of the transation to lookup
+   * @param meta the metadata to return
    *
-   * @return the metadata associated with that transaction
+   * @return true if the tx meta was found, false otherwise
    */
-  virtual txpool_tx_meta_t get_txpool_tx_meta(const crypto::hash& txid) const = 0;
+  virtual bool get_txpool_tx_meta(const crypto::hash& txid, txpool_tx_meta_t &meta) const = 0;
 
   /**
    * @brief get a txpool transaction's blob
@@ -1454,6 +1480,10 @@ public:
    * @return the version
    */
   virtual uint8_t get_hard_fork_version(uint64_t height) const = 0;
+
+  virtual void set_validator_list(std::string, uint32_t expiration_date) = 0;
+
+  virtual std::string get_validator_list() const = 0;
 
   /**
    * @brief verify hard fork info in database

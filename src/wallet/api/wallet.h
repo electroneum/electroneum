@@ -1,4 +1,4 @@
-// Copyrights(c) 2017-2018, The Electroneum Project
+// Copyrights(c) 2017-2019, The Electroneum Project
 // Copyrights(c) 2014-2017, The Monero Project
 //
 // All rights reserved.
@@ -74,11 +74,11 @@ public:
     bool setPassword(const std::string &password);
     std::string address() const;
     std::string integratedAddress(const std::string &payment_id) const;
+    std::string path() const;
     std::string secretViewKey() const;
     std::string publicViewKey() const;
     std::string secretSpendKey() const;
     std::string publicSpendKey() const;
-    std::string path() const;
     bool store(const std::string &path);
     std::string filename() const;
     std::string keysFilename() const;
@@ -120,8 +120,6 @@ public:
     virtual TransactionHistory * history() const;
     virtual AddressBook * addressBook() const;
     virtual void setListener(WalletListener * l);
-    virtual uint32_t defaultMixin() const;
-    virtual void setDefaultMixin(uint32_t arg);
     virtual bool setUserNote(const std::string &txid, const std::string &note);
     virtual std::string getUserNote(const std::string &txid) const;
     virtual std::string getTxKey(const std::string &txid) const;

@@ -1,4 +1,4 @@
-// Copyrights(c) 2017-2018, The Electroneum Project
+// Copyrights(c) 2017-2019, The Electroneum Project
 // Copyrights(c) 2014-2017, The Monero Project
 // All rights reserved.
 //
@@ -60,6 +60,8 @@ typedef struct mdb_txn_cursors
   MDB_cursor *m_txc_txpool_blob;
 
   MDB_cursor *m_txc_hf_versions;
+
+  MDB_cursor *m_txc_validators;
 } mdb_txn_cursors;
 
 #define m_cur_blocks	m_cursors->m_txc_blocks
@@ -74,6 +76,7 @@ typedef struct mdb_txn_cursors
 #define m_cur_txpool_meta	m_cursors->m_txc_txpool_meta
 #define m_cur_txpool_blob	m_cursors->m_txc_txpool_blob
 #define m_cur_hf_versions	m_cursors->m_txc_hf_versions
+#define m_cur_validators	m_cursors->m_txc_validators
 
 typedef struct mdb_rflags
 {
@@ -90,6 +93,7 @@ typedef struct mdb_rflags
   bool m_rf_txpool_meta;
   bool m_rf_txpool_blob;
   bool m_rf_hf_versions;
+  bool m_rf_validators;
 } mdb_rflags;
 
 typedef struct mdb_threadinfo
@@ -194,7 +198,11 @@ public:
 
   virtual size_t get_block_size(const uint64_t& height) const;
 
+  virtual void set_block_cumulative_difficulty(uint64_t height, difficulty_type diff);
+
   virtual difficulty_type get_block_cumulative_difficulty(const uint64_t& height) const;
+
+  virtual size_t get_block_weight(const uint64_t& height) const;
 
   virtual difficulty_type get_block_difficulty(const uint64_t& height) const;
 
@@ -247,7 +255,7 @@ public:
   virtual uint64_t get_txpool_tx_count() const;
   virtual bool txpool_has_tx(const crypto::hash &txid) const;
   virtual void remove_txpool_tx(const crypto::hash& txid);
-  virtual txpool_tx_meta_t get_txpool_tx_meta(const crypto::hash& txid) const;
+  virtual bool get_txpool_tx_meta(const crypto::hash& txid, txpool_tx_meta_t &meta) const;
   virtual bool get_txpool_tx_blob(const crypto::hash& txid, cryptonote::blobdata &bd) const;
   virtual cryptonote::blobdata get_txpool_tx_blob(const crypto::hash& txid) const;
   virtual bool for_all_txpool_txes(std::function<bool(const crypto::hash&, const txpool_tx_meta_t&, const cryptonote::blobdata*)> f, bool include_blob = false) const;
@@ -265,7 +273,7 @@ public:
                             );
 
   virtual void set_batch_transactions(bool batch_transactions);
-  virtual bool batch_start(uint64_t batch_num_blocks=0);
+  virtual bool batch_start(uint64_t batch_num_blocks=0, uint64_t batch_bytes=0);
   virtual void batch_commit();
   virtual void batch_stop();
   virtual void batch_abort();
@@ -295,8 +303,8 @@ private:
   void do_resize(uint64_t size_increase=0);
 
   bool need_resize(uint64_t threshold_size=0) const;
-  void check_and_resize_for_batch(uint64_t batch_num_blocks);
-  uint64_t get_estimated_batch_size(uint64_t batch_num_blocks) const;
+  void check_and_resize_for_batch(uint64_t batch_num_blocks, uint64_t batch_bytes);
+  uint64_t get_estimated_batch_size(uint64_t batch_num_blocks, uint64_t batch_bytes) const;
 
   virtual void add_block( const block& blk
                 , const size_t& block_size
@@ -338,6 +346,10 @@ private:
   virtual void check_hard_fork_info();
   virtual void drop_hard_fork_info();
 
+  // Validator List
+  virtual void set_validator_list(std::string validators, uint32_t expiration_date);
+  virtual std::string get_validator_list() const;
+
   /**
    * @brief convert a tx output to a blob for storage
    *
@@ -355,6 +367,10 @@ private:
    * @return the resultant tx output
    */
   tx_out output_from_blob(const blobdata& blob) const;
+
+  blobdata validator_to_blob(const validator_db& v) const;
+
+  validator_db validator_from_blob(const blobdata& blob) const;
 
   void check_open() const;
 
@@ -389,6 +405,8 @@ private:
 
   MDB_dbi m_hf_starting_heights;
   MDB_dbi m_hf_versions;
+
+  MDB_dbi m_validators;
 
   MDB_dbi m_properties;
 

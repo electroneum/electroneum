@@ -387,7 +387,7 @@ using namespace std;
 					//--
 
 					bool res = m_net_client.send(req_buff, timeout);
-					CHECK_AND_ASSERT_MES(res, false, "HTTP_CLIENT: Failed to SEND");
+                    CHECK_AND_NO_ASSERT_MES_L(res, false, 1, "HTTP_CLIENT: Failed to SEND");
 					if(body.size())
 						res = m_net_client.send(body, timeout);
 					CHECK_AND_ASSERT_MES(res, false, "HTTP_CLIENT: Failed to SEND");

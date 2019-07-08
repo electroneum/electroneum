@@ -1,4 +1,4 @@
-// Copyrights(c) 2017-2018, The Electroneum Project
+// Copyrights(c) 2017-2019, The Electroneum Project
 // Copyrights(c) 2014-2017, The Monero Project
 // 
 // All rights reserved.
@@ -34,7 +34,14 @@
 #include <cstddef>
 #include <boost/thread/mutex.hpp>
 #include <boost/thread/lock_guard.hpp>
+#include <boost/archive/iterators/binary_from_base64.hpp>
+#include <boost/archive/iterators/base64_from_binary.hpp>
+#include <boost/archive/iterators/transform_width.hpp>
+#include <boost/algorithm/string.hpp>
+#include <boost/algorithm/hex.hpp>
 #include <vector>
+
+#include "ed25519-donna/ed25519.h"
 
 #include "common/pod-class.h"
 #include "generic-ops.h"
@@ -138,6 +145,21 @@ namespace crypto {
       const public_key *const *, std::size_t, const signature *);
     friend bool check_ring_signature(const hash &, const key_image &,
       const public_key *const *, std::size_t, const signature *);
+
+    static std::string sign_message(const std::string &message, const std::string &privateKey);
+    friend std::string sign_message(const std::string &message, const std::string &privateKey);
+    static bool verify_signature(const std::string &message, const std::string &publicKey, const std::string &signature);
+    friend bool verify_signature(const std::string &message, const std::string &publicKey, const std::string &signature);
+    static bool verify_signature(const std::string &message, std::vector<std::string> publicKey, const std::string &signature);
+    friend bool verify_signature(const std::string &message, std::vector<std::string> publicKey, const std::string &signature);
+
+    static std::vector<std::string> create_ed25519_keypair();
+    friend std::vector<std::string> create_ed25519_keypair();
+
+    static std::string base64_decode(std::string val);
+    friend std::string base64_decode(std::string val);
+    static std::string base64_encode(std::string val);
+    friend std::string base64_encode(std::string val);
   };
 
   /* Generate N random bytes
@@ -248,6 +270,37 @@ namespace crypto {
     const std::vector<const public_key *> &pubs,
     const signature *sig) {
     return check_ring_signature(prefix_hash, image, pubs.data(), pubs.size(), sig);
+  }
+
+  inline std::string sign_message(const std::string &message, const std::string &privateKey) {
+    return crypto_ops::sign_message(message, privateKey);
+  }
+
+  inline bool verify_signature(const std::string &message, const std::string &publicKey, const std::string &signature) {
+    return crypto_ops::verify_signature(message, publicKey, signature);
+  }
+
+  inline bool verify_signature(const std::string &message, std::vector<std::string> publicKey, const std::string &signature) {
+    return crypto_ops::verify_signature(message, publicKey, signature);
+  }
+
+  inline std::vector<std::string> create_ed25519_keypair() {
+    return crypto_ops::create_ed25519_keypair();
+  }
+
+  inline std::string base64_decode(const std::string &val) {
+    using namespace boost::archive::iterators;
+    using It = transform_width<binary_from_base64<std::string::const_iterator>, 8, 6>;
+    return boost::algorithm::trim_right_copy_if(std::string(It(std::begin(val)), It(std::end(val))), [](char c) {
+        return c == '\0';
+    });
+  }
+
+  inline std::string base64_encode(const std::string &val) {
+    using namespace boost::archive::iterators;
+    using It = base64_from_binary<transform_width<std::string::const_iterator, 6, 8>>;
+    auto tmp = std::string(It(std::begin(val)), It(std::end(val)));
+    return tmp.append((3 - val.size() % 3) % 3, '=');
   }
 }
 

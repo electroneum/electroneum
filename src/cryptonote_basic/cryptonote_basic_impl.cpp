@@ -1,4 +1,4 @@
-// Copyrights(c) 2017-2018, The Electroneum Project
+// Copyrights(c) 2017-2019, The Electroneum Project
 // Copyrights(c) 2014-2017, The Monero Project
 //
 // All rights reserved.
@@ -44,6 +44,8 @@ using namespace epee;
 #include "common/int-util.h"
 #include "common/dns_utils.h"
 
+#include <math.h>
+
 #undef ELECTRONEUM_DEFAULT_LOG_CATEGORY
 #define ELECTRONEUM_DEFAULT_LOG_CATEGORY "cn"
 
@@ -74,7 +76,9 @@ namespace cryptonote {
       return CRYPTONOTE_BLOCK_GRANTED_FULL_REWARD_ZONE_V1;
     if (version < 5)
       return CRYPTONOTE_BLOCK_GRANTED_FULL_REWARD_ZONE_V2;
-    return CRYPTONOTE_BLOCK_GRANTED_FULL_REWARD_ZONE_V5;
+    if (version < 8)
+      return CRYPTONOTE_BLOCK_GRANTED_FULL_REWARD_ZONE_V5;
+    return CRYPTONOTE_BLOCK_GRANTED_FULL_REWARD_ZONE_V8;
   }
   //-----------------------------------------------------------------------------------------------
   size_t get_max_block_size()
@@ -94,7 +98,7 @@ namespace cryptonote {
     const int target = version >= 6 ? DIFFICULTY_TARGET_V6 : DIFFICULTY_TARGET;
 
     const int target_minutes = target / 60;
-    const int emission_speed_factor = EMISSION_SPEED_FACTOR_PER_MINUTE - (target_minutes-1);
+
     uint64_t full_reward_zone = get_min_block_size(version);
 
     const uint64_t premine = 1260000000000U;
@@ -103,7 +107,11 @@ namespace cryptonote {
       return true;
     }
 
-    uint64_t base_reward = (MONEY_SUPPLY - already_generated_coins) >> emission_speed_factor;
+    //After v8 the reward drops by ~75%
+    double emission_speed_factor = (version == 8 ? EMISSION_SPEED_FACTOR_PER_MINUTE_V8 : EMISSION_SPEED_FACTOR_PER_MINUTE) - (target_minutes-1);
+
+    uint64_t base_reward = (MONEY_SUPPLY - already_generated_coins) / pow(2, emission_speed_factor);
+
     if (base_reward < FINAL_SUBSIDY_PER_MINUTE*target_minutes)
     {
       base_reward = FINAL_SUBSIDY_PER_MINUTE*target_minutes;
