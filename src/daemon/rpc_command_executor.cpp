@@ -421,7 +421,7 @@ bool t_rpc_command_executor::show_status() {
   }
 
   std::time_t uptime = std::time(nullptr) - ires.start_time;
-  uint64_t net_height = ((ires.target_height > ires.height ? ires.target_height : ires.height) - 1);
+  uint64_t net_height = ires.target_height > ires.height ? ires.target_height : ires.height;
 
   std::stringstream str;
   str << boost::format("Height: %llu/%llu (%.1f%%) on %s, %s, net hash %s, v%u%s, %s, %u(out)+%u(in) connections")
