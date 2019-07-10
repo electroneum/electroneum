@@ -92,7 +92,7 @@ static const struct {
   { 1, 1, 0, 1341378000 },
   { 6, 307500, 0, 1538815057 }, //1538815057
   { 7, 324500, 0, 1538985600 }, // Estimated July 5th, 8:30AM UTC
-  { 8, 700000, 0, 1551873600 },
+  { 8, 589169, 0, 1562547600 },
 };
 static const uint64_t mainnet_hard_fork_version_1_till = 307499;
 
@@ -106,7 +106,7 @@ static const struct {
   { 1, 1, 0, 1341378000 },
   { 6, 190060, 0, 1523263057 },
   { 7, 215000, 0, 1530615600 },
-  { 8, 600000, 0, 1549022400 }
+  { 8, 446674, 0, 1562889600 }
 };
 static const uint64_t testnet_hard_fork_version_1_till = 190059;
 
@@ -761,7 +761,7 @@ difficulty_type Blockchain::get_difficulty_for_next_block()
 
   const uint64_t v6height = m_testnet ? 190060 : 307500;
   const uint64_t v7height = m_testnet ? 215000 : 324500;
-  const uint64_t v8height = m_testnet ? 600000 : 700000;
+  const uint64_t v8height = m_testnet ? 446674 : 589169;
 
   uint32_t difficultyBlocksCount = (height >= v6height && height < v7height) ? DIFFICULTY_BLOCKS_COUNT_V6 : DIFFICULTY_BLOCKS_COUNT;
 
@@ -831,7 +831,7 @@ difficulty_type Blockchain::get_difficulty_for_next_block()
 void Blockchain::normalize_v7_difficulties() {
 
   auto height = m_db->height();
-  const uint64_t v8height = m_testnet ? 600000 : 700000;
+  const uint64_t v8height = m_testnet ? 446674 : 589169;
 
   if(height != v8height) {
     return;
@@ -1027,7 +1027,7 @@ difficulty_type Blockchain::get_next_difficulty_for_alternative_chain(const std:
 
   const uint64_t v6height = m_testnet ? 190060 : 307500;
   const uint64_t v7height = m_testnet ? 215000 : 324500;
-  const uint64_t v8height = m_testnet ? 600000 : 700000;
+  const uint64_t v8height = m_testnet ? 446674 : 589169;
   uint32_t difficultyBlocksCount = (bei.height >= v6height && bei.height < v7height) ? DIFFICULTY_BLOCKS_COUNT_V6 : DIFFICULTY_BLOCKS_COUNT;
 
   // Account for the difficulty reset in v8

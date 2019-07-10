@@ -56,7 +56,7 @@ If you want to help out, see [CONTRIBUTING](CONTRIBUTING.md) for a set of guidel
 | ------------------------------ | -----------| ----------------- | ---------------------- | -------------------------- | ---------------------------------------------------------------------------------- |
 | 307500                         | 2018-05-30 | v6                | v2.0.0.0              | v2.0.0.0                  | Disable Mixin, Disable RingCT, Base Fee to 0.10 from 0.01, 120s Block Time, Anti-Asic Resistance         |
 | 324500                         | 2018-07-05 | v7                | v2.1.0.0              | v2.1.0.0                  | Enable ASIC         |
-| 501000                         | 2018-03-06 | v8                | v2.2.0.0              | v2.2.0.0                  | Fix block difficulty records, Change long term block reward gradient, RPC features, Increase MBSL to 300kB, # of RPC features |
+| 589169                         | 2019-07-08 | v8                | v3.0.0.0              | v3.0.0.0                  | Migration to our next generation moderated blockchain with Proof of Responsbility. 300kB Blocks : Increased TPS. Improved Unlock Time (5 Blocks), Many Security Improvements, HackerOne Fixes, Reduced Block Reward By 75% (A Double Halvening)|
 
 X's indicate that these details have not been determined as of commit date.
 
@@ -128,7 +128,7 @@ build the library binary manually. This can be done with the following command `
 On OSX:
 Homebrew installs OpenSSL but doesn’t link it to /usr/local/include, where the compiler looks into during #include<…> Thus, you must manually link it instead:
 
- ```ln -s /usr/local/opt/openssl/include/openssl /usr/local/include```
+```ln -s /usr/local/opt/openssl/include/openssl /usr/local/include```
 ```ln -s /usr/local/Cellar/openssl/[version]/include/openssl /usr/bin/openssl```
 ```ln -s /usr/local/opt/openssl/lib/libssl.1.0.0.dylib /usr/local/lib/```
 
