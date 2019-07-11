@@ -2,7 +2,7 @@
 /// @author rfree (current maintainer/user in electroneum.cc project - most of code is from CryptoNote)
 /// @brief This is the orginal cryptonote protocol network-events handler, modified by us
 
-// Copyrights(c) 2017-2018, The Electroneum Project
+// Copyrights(c) 2017-2019, The Electroneum Project
 // Copyrights(c) 2014-2017, The Monero Project
 //
 // All rights reserved.
@@ -43,6 +43,7 @@
 #include "cryptonote_basic/cryptonote_format_utils.h"
 #include "profile_tools.h"
 #include "p2p/network_throttle-detail.hpp"
+#include "cryptonote_basic/validators.h"
 
 #undef ELECTRONEUM_DEFAULT_LOG_CATEGORY
 #define ELECTRONEUM_DEFAULT_LOG_CATEGORY "net.cn"
@@ -296,9 +297,27 @@ namespace cryptonote
     Nz. */
     m_core.set_target_blockchain_height((hshd.current_height));
     int64_t diff = static_cast<int64_t>(hshd.current_height) - static_cast<int64_t>(m_core.get_current_blockchain_height());
+    // Absolute value of difference between your height and the network height.
     uint64_t abs_diff = std::abs(diff);
+    // The highest height of the two.
+    uint64_t max_block_height = max(hshd.current_height, m_core.get_current_blockchain_height());
+    uint64_t last_block_v1 = m_core.get_testnet() ? 190059 : 307499;
+    // Is the longest chain past v1?
+    // If not, set diff_v6 = 0 so two minute blocks aren't factored into the calculation at all.
+    // If so, take smallest from
+    //
+    //    A) The absolute difference between you and the network
+    //       * This is chosen if both you and the network are past v1.
+    //       * First fraction below cancels out and only v6 blocks are factored into the calculation.
+    //
+    //    B) The difference between the longest chain and the last block on v1.
+    //       * This is chosen if one of you and the network is behind v1.
+    //       * The second fraction becomes how many blocks are between you and the network minus the distance between
+    //       * ...the longest chain and the v6 fork, ie how many v1 blocks need to be factored into the calculation.
+    //
+    uint64_t diff_v6 = max_block_height > last_block_v1 ? min(abs_diff, max_block_height - last_block_v1) : 0;
     MCLOG(is_inital ? el::Level::Info : el::Level::Debug, "global", context << "Sync data returned a new top block candidate: " << m_core.get_current_blockchain_height() << " -> " << hshd.current_height
-      << " [Your node is " << abs_diff << " blocks (" << ((abs_diff - diff) / (24 * 60 * 60 / DIFFICULTY_TARGET)) + (diff / (24 * 60 * 60 / DIFFICULTY_TARGET_V6)) << " days) "
+      << " [Your node is " << abs_diff << " blocks (" << ((abs_diff - diff_v6) / (24 * 60 * 60 / DIFFICULTY_TARGET)) + (diff_v6 / (24 * 60 * 60 / DIFFICULTY_TARGET_V6)) << " days) "
       << (0 <= diff ? std::string("behind") : std::string("ahead"))
       << "] " << ENDL << "SYNCHRONIZATION started");
       m_core.safesyncmode(false);
@@ -391,6 +410,106 @@ namespace cryptonote
 
     return 1;
   }
+
+  template<class t_core>
+  bool t_cryptonote_protocol_handler<t_core>::request_validators_list(cryptonote_connection_context& context) {
+    NOTIFY_REQUEST_VALIDATORS_LIST::request r = AUTO_VAL_INIT(r);
+    std::string arg_buff = epee::serialization::store_t_to_binary(r);
+    std::string res_buff;
+    m_p2p->invoke_command_to_peer(NOTIFY_REQUEST_VALIDATORS_LIST::ID, arg_buff, res_buff, context);
+    if(!res_buff.empty()) {
+      NOTIFY_REQUEST_VALIDATORS_LIST::response res = AUTO_VAL_INIT(res);
+      epee::serialization::load_t_from_binary(res, res_buff);
+      if(!res.serialized_v_list.empty()) {
+
+        electroneum::basic::list_update_outcome outcome = m_core.set_validators_list(res.serialized_v_list, false);
+
+        if(outcome == electroneum::basic::list_update_outcome::Success) {
+          return true;
+        }
+        else if(outcome == electroneum::basic::list_update_outcome::Old_List || outcome == electroneum::basic::list_update_outcome::Same_List){
+          LOG_PRINT_CCONTEXT_L2("Peer " << context.m_connection_id << " does not have a newer list than you.");
+          return true;
+        }
+        else {
+          LOG_ERROR_CCONTEXT("Received invalid Validators List from" << context.m_connection_id << ". Dropping connection.");
+          drop_connection(context, false, false);
+        }
+      }
+    }
+    return false;
+  }
+
+  template<class t_core>
+  bool t_cryptonote_protocol_handler<t_core>::request_validators_list_to_all()
+  {
+    m_p2p->for_each_connection([&](cryptonote_connection_context& context, nodetool::peerid_type peer_id, uint32_t support_flags)->bool {
+      if (peer_id && context.m_state >= cryptonote_connection_context::state_before_handshake && !context.m_is_income) {
+        request_validators_list(context);
+      }
+      return true;
+    });
+
+    return m_core.isValidatorsListValid();
+  }
+
+  template<class t_core>
+  bool t_cryptonote_protocol_handler<t_core>::handle_request_validators_list(int command, NOTIFY_REQUEST_VALIDATORS_LIST::request& req, NOTIFY_REQUEST_VALIDATORS_LIST::response& res, cryptonote_connection_context& context)
+  {
+    MLOG_P2P_MESSAGE("Received NOTIFY_REQUEST_VALIDATORS_LIST");
+    res.serialized_v_list = m_core.get_validators_list();
+
+    //let the socket to send response to handshake, but request callback, to let send request data after response
+    LOG_PRINT_CCONTEXT_L2("requesting callback");
+    ++context.m_callback_request_count;
+    context.m_state = cryptonote_connection_context::state_normal;
+    m_p2p->request_callback(context);
+
+    return true;
+  }
+
+  template<class t_core>
+  int t_cryptonote_protocol_handler<t_core>::handle_notify_emergency_validators_list(int command, NOTIFY_EMERGENCY_VALIDATORS_LIST::request& arg, cryptonote_connection_context& context)
+  {
+    auto it = std::find_if( context.emergency_lists_recv.begin(), context.emergency_lists_recv.end(),
+    [&arg](const std::pair<std::string, uint8_t>& element){ return element.first == arg.serialized_v_list;} );
+
+    if(it == context.emergency_lists_recv.end()){
+      context.emergency_lists_recv.push_back(std::make_pair(arg.serialized_v_list, 1));
+    }
+    //allow for peer restarting node 3 times per e-list.
+    else if(it->second > 2){
+      LOG_ERROR_CCONTEXT("Peer has sent us this emergency list too many times. Dropping connection.");
+      drop_connection(context, true, false);
+      return 1;
+    }
+    else{
+      ++it->second;
+      return 1;
+    }
+
+    MLOG_P2P_MESSAGE("Received NOTIFY_EMERGENCY_VALIDATORS_LIST");
+      if(!arg.serialized_v_list.empty()) {
+        electroneum::basic::list_update_outcome outcome = m_core.set_validators_list(arg.serialized_v_list, true);
+        if(outcome == electroneum::basic::list_update_outcome::Emergency_Success) {
+          relay_emergency_validator_list(arg, context);
+          return true;
+        }
+        // If we receive the same emergency list within the allowed time period, we don't want to drop the peer.
+        // All other outcomes prescribe dropping the peer.
+        else if(outcome != electroneum::basic::list_update_outcome::Same_Emergency_List
+                && outcome != electroneum::basic::list_update_outcome::Recent_Emergency_List) {
+          LOG_ERROR_CCONTEXT("Received invalid emergency Validators List. Dropping connection.");
+          drop_connection(context, true, false);
+        }
+      }
+      else{
+        drop_connection(context, true, false);
+        LOG_ERROR_CCONTEXT("Received empty emergency Validators List. Dropping connection.");
+      }
+    return 1;
+  }
+
   //------------------------------------------------------------------------------------------------------------------------
   template<class t_core>
   int t_cryptonote_protocol_handler<t_core>::handle_notify_new_fluffy_block(int command, NOTIFY_NEW_FLUFFY_BLOCK::request& arg, cryptonote_connection_context& context)
@@ -657,7 +776,7 @@ namespace cryptonote
           m_core.get_short_chain_history(r.block_ids);
           LOG_PRINT_CCONTEXT_L2("-->>NOTIFY_REQUEST_CHAIN: m_block_ids.size()=" << r.block_ids.size() );
           post_notify<NOTIFY_REQUEST_CHAIN>(r, context);
-        }            
+        }
       }
     } 
     else
@@ -698,13 +817,28 @@ namespace cryptonote
     NOTIFY_NEW_FLUFFY_BLOCK::request fluffy_response;
     fluffy_response.b.block = t_serializable_object_to_blob(b);
     fluffy_response.current_blockchain_height = arg.current_blockchain_height;
-    fluffy_response.hop = arg.hop;    
+    fluffy_response.hop = arg.hop;
+    std::vector<bool> seen(b.tx_hashes.size(), false);
     for(auto& tx_idx: arg.missing_tx_indices)
     {
       if(tx_idx < b.tx_hashes.size())
       {
         MDEBUG("  tx " << b.tx_hashes[tx_idx]);
+        if (seen[tx_idx])
+        {
+          LOG_ERROR_CCONTEXT
+          (
+            "Failed to handle request NOTIFY_REQUEST_FLUFFY_MISSING_TX"
+            << ", request is asking for duplicate tx "
+            << ", tx index = " << tx_idx << ", block tx count " << b.tx_hashes.size()
+            << ", block_height = " << arg.current_blockchain_height
+            << ", dropping connection"
+          );
+          drop_connection(context, true, false);
+          return 1;
+        }
         txids.push_back(b.tx_hashes[tx_idx]);
+        seen[tx_idx] = true;
       }
       else
       {
@@ -800,6 +934,17 @@ namespace cryptonote
   int t_cryptonote_protocol_handler<t_core>::handle_request_get_objects(int command, NOTIFY_REQUEST_GET_OBJECTS::request& arg, cryptonote_connection_context& context)
   {
     MLOG_P2P_MESSAGE("Received NOTIFY_REQUEST_GET_OBJECTS (" << arg.blocks.size() << " blocks, " << arg.txs.size() << " txes)");
+
+     if (arg.blocks.size() + arg.txs.size() > CURRENCY_PROTOCOL_MAX_OBJECT_REQUEST_COUNT)
+      {
+        LOG_ERROR_CCONTEXT(
+            "Requested objects count is too big ("
+            << arg.blocks.size() << ") expected not more then "
+            << CURRENCY_PROTOCOL_MAX_OBJECT_REQUEST_COUNT);
+        drop_connection(context, false, false);
+        return 1;
+      }
+
     NOTIFY_RESPONSE_GET_OBJECTS::request rsp;
     if(!m_core.handle_get_objects(arg, rsp, context))
     {
@@ -1119,6 +1264,17 @@ skip:
               }
 
               // in case the peer had dropped beforehand, remove the span anyway so other threads can wake up and get it
+              m_block_queue.remove_spans(span_connection_id, start_height);
+              return 1;
+            }
+            if(bvc.m_validator_list_update_failed)
+            {
+              if (!m_core.cleanup_handle_incoming_blocks())
+              {
+                LOG_PRINT_CCONTEXT_L0("Failure in cleanup_handle_incoming_blocks");
+                return 1;
+              }
+
               m_block_queue.remove_spans(span_connection_id, start_height);
               return 1;
             }
@@ -1639,6 +1795,45 @@ skip:
     m_p2p->relay_notify_to_list(NOTIFY_NEW_BLOCK::ID, fullBlob, fullConnections);
 
     return 1;
+  }
+    //------------------------------------------------------------------------------------------------------------------------
+  template<class t_core>
+  bool t_cryptonote_protocol_handler<t_core>::relay_emergency_validator_list(NOTIFY_EMERGENCY_VALIDATORS_LIST::request& arg, cryptonote_connection_context& exclude_context)
+  {
+    if(!arg.serialized_v_list.empty()) {
+
+      std::string arg_buff;
+      epee::serialization::store_t_to_binary(arg, arg_buff);
+
+    // Only send to peers that haven't received this list before
+    std::list<boost::uuids::uuid> relevant_connections;
+    m_p2p->for_each_connection([this, &arg, &exclude_context, &relevant_connections](connection_context& context, nodetool::peerid_type peer_id, uint32_t support_flags)
+    {
+      if (peer_id && exclude_context.m_connection_id != context.m_connection_id && !context.m_is_income)
+      {
+        auto it = std::find_if( context.emergency_lists_sent.begin(), context.emergency_lists_sent.end(),
+        [&arg](const std::string& element){ return element == arg.serialized_v_list;} );
+
+        //If we haven't sent the peer this list before, then send it over.
+        if(it == context.emergency_lists_sent.end()){
+          LOG_DEBUG_CC(context, "PEER HAS NOT RECEIVED THIS LIST YET. Adding to list of recipients.");
+          relevant_connections.push_back(context.m_connection_id);
+          context.emergency_lists_sent.push_back(arg.serialized_v_list);
+        }
+      }
+      else if(!context.m_is_income){
+       // There is no need to send the list in future to the peer who just sent us the list, so mark as sent too.
+       context.emergency_lists_sent.push_back(arg.serialized_v_list);
+      }
+      return true;
+    });
+
+      m_p2p->relay_notify_to_list(NOTIFY_EMERGENCY_VALIDATORS_LIST::ID, arg_buff, relevant_connections);
+
+      return true;
+    }
+
+    return false;
   }
   //------------------------------------------------------------------------------------------------------------------------
   template<class t_core>

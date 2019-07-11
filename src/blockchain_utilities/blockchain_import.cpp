@@ -1,4 +1,4 @@
-// Copyrights(c) 2017-2018, The Electroneum Project
+// Copyrights(c) 2017-2019, The Electroneum Project
 // Copyrights(c) 2014-2017, The Monero Project
 //
 // All rights reserved.
@@ -33,6 +33,10 @@
 #include <fstream>
 
 #include <boost/filesystem.hpp>
+#include <boost/algorithm/string.hpp>
+#include <boost/chrono.hpp>
+#include <unistd.h>
+#include <openssl/sha.h>
 #include "misc_log_ex.h"
 #include "bootstrap_file.h"
 #include "bootstrap_serialization.h"
@@ -42,6 +46,7 @@
 #include "include_base_utils.h"
 #include "blockchain_db/db_types.h"
 #include "cryptonote_core/cryptonote_core.h"
+#include "common/dns_utils.h"
 
 #undef ELECTRONEUM_DEFAULT_LOG_CATEGORY
 #define ELECTRONEUM_DEFAULT_LOG_CATEGORY "bcutil"
@@ -127,7 +132,6 @@ int parse_db_arguments(const std::string& db_arg_str, std::string& db_type, int&
   return 0;
 }
 
-
 int pop_blocks(cryptonote::core& core, int num_blocks)
 {
   bool use_batch = opt_batch;
@@ -138,12 +142,37 @@ int pop_blocks(cryptonote::core& core, int num_blocks)
   int quit = 0;
   block popped_block;
   std::vector<transaction> popped_txs;
-  for (int i=0; i < num_blocks; ++i)
+
+  int i = 0;
+  boost::scoped_ptr<boost::thread> t(new boost::thread([&i, &num_blocks]() {
+    time_t pop_start_time = time(NULL);
+    time_t partial_pop_time;
+    double estimate_time;
+
+    while(i < num_blocks) {
+      partial_pop_time = time(NULL);
+
+      if(i != 0) {
+        estimate_time = (num_blocks - i) * (((partial_pop_time - pop_start_time)*1000) / i);
+        estimate_time = ceil(estimate_time/60000); //Minutes
+      }
+
+
+      std::cout << "\rPoping blocks from database (aprox. " << estimate_time << " minute(s) remaining): " << i + 1 << "/" << num_blocks << "                       ";
+      std::cout.flush();
+      boost::this_thread::sleep_for(boost::chrono::milliseconds{200});
+    }
+
+    std::cout << "\r                                                                                                                                               \r";
+  }));
+
+  for (; i < num_blocks; ++i)
   {
-    // simple_core.m_storage.pop_block_from_blockchain() is private, so call directly through db
     core.get_blockchain_storage().get_db().pop_block(popped_block, popped_txs);
     quit = 1;
   }
+
+  t->join();
 
 
   if (use_batch)
@@ -169,6 +198,26 @@ int check_flush(cryptonote::core &core, std::list<block_complete_entry> &blocks,
     return 0;
   if (!force && blocks.size() < db_batch_size)
     return 0;
+
+  // wait till we can verify a full HOH without extra, for speed
+  uint64_t new_height = core.get_blockchain_storage().get_db().height() + blocks.size();
+  if (!force && new_height % HASH_OF_HASHES_STEP)
+    return 0;
+
+  std::vector<crypto::hash> hashes;
+  for (const auto &b: blocks)
+  {
+    cryptonote::block block;
+    if (!parse_and_validate_block_from_blob(b.block, block))
+    {
+      MERROR("Failed to parse block: "
+          << epee::string_tools::pod_to_hex(get_blob_hash(b.block)));
+      core.cleanup_handle_incoming_blocks();
+      return 1;
+    }
+    hashes.push_back(cryptonote::get_block_hash(block));
+  }
+  //core.prevalidate_block_hashes(core.get_blockchain_storage().get_db().height(), hashes);
 
   core.prepare_handle_incoming_blocks(blocks);
 
@@ -231,10 +280,21 @@ int import_from_file(cryptonote::core& core, const std::string& import_file_path
     return false;
   }
 
+  uint64_t start_height = 1, seek_height;
+  if (opt_resume)
+    start_height = core.get_blockchain_storage().get_current_blockchain_height();
+
+  seek_height = start_height;
   BootstrapFile bootstrap;
+  std::streampos pos;
   // BootstrapFile bootstrap(import_file_path);
-  uint64_t total_source_blocks = bootstrap.count_blocks(import_file_path);
+  uint64_t total_source_blocks = bootstrap.count_blocks(import_file_path, pos, seek_height);
   MINFO("bootstrap file last block number: " << total_source_blocks-1 << " (zero-based height)  total blocks: " << total_source_blocks);
+
+  if (total_source_blocks-1 <= start_height)
+  {
+    return false;
+  }
 
   std::cout << ENDL;
   std::cout << "Preparing to read blocks..." << ENDL;
@@ -260,11 +320,7 @@ int import_from_file(cryptonote::core& core, const std::string& import_file_path
   block b;
   transaction tx;
   int quit = 0;
-  uint64_t bytes_read = 0;
-
-  uint64_t start_height = 1;
-  if (opt_resume)
-    start_height = core.get_blockchain_storage().get_current_blockchain_height();
+  uint64_t bytes_read;
 
   // Note that a new blockchain will start with block number 0 (total blocks: 1)
   // due to genesis block being added at initialization.
@@ -281,18 +337,35 @@ int import_from_file(cryptonote::core& core, const std::string& import_file_path
 
   bool use_batch = opt_batch && !opt_verify;
 
-  if (use_batch)
-    core.get_blockchain_storage().get_db().batch_start(db_batch_size);
-
   MINFO("Reading blockchain from bootstrap file...");
   std::cout << ENDL;
 
   std::list<block_complete_entry> blocks;
 
-  // Within the loop, we skip to start_height before we start adding.
-  // TODO: Not a bottleneck, but we can use what's done in count_blocks() and
-  // only do the chunk size reads, skipping the chunk content reads until we're
-  // at start_height.
+  // Skip to start_height before we start adding.
+  {
+    bool q2 = false;
+    import_file.seekg(pos);
+    bytes_read = bootstrap.count_bytes(import_file, start_height-seek_height, h, q2);
+    if (q2)
+    {
+      quit = 2;
+      goto quitting;
+    }
+    h = start_height;
+  }
+
+  if (use_batch)
+  {
+    uint64_t bytes, h2;
+    bool q2;
+    pos = import_file.tellg();
+    bytes = bootstrap.count_bytes(import_file, db_batch_size, h2, q2);
+    if (import_file.eof())
+      import_file.clear();
+    import_file.seekg(pos);
+    core.get_blockchain_storage().get_db().batch_start(db_batch_size, bytes);
+  }
   while (! quit)
   {
     uint32_t chunk_size;
@@ -345,11 +418,6 @@ int import_from_file(cryptonote::core& core, const std::string& import_file_path
     bytes_read += chunk_size;
     MDEBUG("Total bytes read: " << bytes_read);
 
-    if (h + NUM_BLOCKS_PER_CHUNK < start_height + 1)
-    {
-      h += NUM_BLOCKS_PER_CHUNK;
-      continue;
-    }
     if (h > block_stop)
     {
       std::cout << refresh_string << "block " << h-1
@@ -420,7 +488,7 @@ int import_from_file(cryptonote::core& core, const std::string& import_file_path
 
           // tx number 1: coinbase tx
           // tx number 2 onwards: archived_txs
-          for (transaction tx : archived_txs)
+          for (const transaction &tx : archived_txs)
           {
             // add blocks with verification.
             // for Blockchain and blockchain_storage add_new_block().
@@ -457,11 +525,16 @@ int import_from_file(cryptonote::core& core, const std::string& import_file_path
           {
             if ((h-1) % db_batch_size == 0)
             {
+              uint64_t bytes, h2;
+              bool q2;
               std::cout << refresh_string;
               // zero-based height
               std::cout << ENDL << "[- batch commit at height " << h-1 << " -]" << ENDL;
               core.get_blockchain_storage().get_db().batch_stop();
-              core.get_blockchain_storage().get_db().batch_start(db_batch_size);
+              pos = import_file.tellg();
+              bytes = bootstrap.count_bytes(import_file, db_batch_size, h2, q2);
+              import_file.seekg(pos);
+              core.get_blockchain_storage().get_db().batch_start(db_batch_size, bytes);
               std::cout << ENDL;
               core.get_blockchain_storage().get_db().show_stats();
             }
@@ -478,6 +551,7 @@ int import_from_file(cryptonote::core& core, const std::string& import_file_path
     }
   } // while
 
+quitting:
   import_file.close();
 
   if (opt_verify)
@@ -508,6 +582,86 @@ int import_from_file(cryptonote::core& core, const std::string& import_file_path
 
   std::cout << ENDL;
   return 0;
+}
+
+void sha256_hash_string (unsigned char hash[SHA256_DIGEST_LENGTH], char outputBuffer[65])
+{
+    int i = 0;
+
+    for(i = 0; i < SHA256_DIGEST_LENGTH; i++)
+    {
+        sprintf(outputBuffer + (i * 2), "%02x", hash[i]);
+    }
+
+    outputBuffer[64] = 0;
+}
+
+void calc_sha256 (const char* path, char output[65])
+{
+    FILE* file = fopen(path, "rb");
+    if(!file) return;
+
+    unsigned char hash[SHA256_DIGEST_LENGTH];
+    SHA256_CTX sha256;
+    SHA256_Init(&sha256);
+    const int bufSize = 32768;
+    char* buffer = (char*)std::malloc(bufSize);
+    int bytesRead = 0;
+    if(!buffer) return;
+    while((bytesRead = fread(buffer, 1, bufSize, file)))
+    {
+        SHA256_Update(&sha256, buffer, bytesRead);
+    }
+    SHA256_Final(hash, &sha256);
+
+    sha256_hash_string(hash, output);
+    fclose(file);
+    free(buffer);
+}
+
+bool validate_file_checksum_against_dns(std::string import_file_path) {
+
+  // Ignore checksum verification if importing testnet blockchain.
+  // Return true right away.
+  if(opt_testnet) {
+    return true;
+  }
+
+  std::vector<std::string> records;
+
+  // All four ElectroneumPulse domains have DNSSEC on and valid
+  static const std::vector<std::string> dns_urls = {
+    "raw.electroneumpulse.com",
+    "raw.electroneumpulse.info",
+    "raw.electroneumpulse.net",
+    "raw.electroneumpulse.org"
+  };
+
+  try {
+
+    if (!tools::dns_utils::load_txt_records_from_dns(records, dns_urls, "checksum"))
+      return false;
+
+    std::string checksum = records[0];
+
+    // Calculate input-file SHA256 checksum
+    char calc_hash[65];
+    calc_sha256(import_file_path.c_str(), calc_hash);
+
+    // Compare input-file checksum against the DNS hash. Return "false" if hashes differ.
+    if (strcmp(calc_hash, checksum.c_str()) != 0) {
+      MINFO("Invalid input-file checksum (" << calc_hash << "), expected: " << checksum);
+      return false;
+    }
+
+  } catch(const std::exception &ex) {
+
+    // Return false to display warning message if DNS Checksum verification fails for some reason
+    MINFO("Unable to verify input-file checksum due to: " << ex.what());
+    return false;
+  }
+
+  return true;
 }
 
 int main(int argc, char* argv[])
@@ -610,7 +764,7 @@ int main(int argc, char* argv[])
     return 1;
   }
 
-  if (! opt_batch && ! vm["batch-size"].defaulted())
+  if (! opt_batch && !vm["batch-size"].defaulted())
   {
     std::cerr << "Error: batch-size set, but batch option not enabled" << ENDL;
     return 1;
@@ -697,6 +851,18 @@ int main(int argc, char* argv[])
   MINFO("bootstrap file path: " << import_file_path);
   MINFO("database path:       " << m_config_folder);
 
+  if (!opt_verify && !validate_file_checksum_against_dns(import_file_path))
+  {
+    MCLOG_RED(el::Level::Warning, "global", "\n"
+      "Import is set to proceed WITHOUT VERIFICATION.\n"
+      "This is a DANGEROUS operation: if the file was tampered with in transit, or obtained from a malicious source,\n"
+      "you could end up with a compromised database. It is recommended to NOT use --" << arg_verify.name << " 0.\n"
+      "*****************************************************************************************\n"
+      "You have 20 seconds to press ^C or terminate this program before unverified import starts\n"
+      "*****************************************************************************************");
+    sleep(20);
+  }
+
   cryptonote::cryptonote_protocol_stub pr; //TODO: stub only for this kind of test, make real validation of relayed objects
   cryptonote::core core(&pr);
 
@@ -711,7 +877,7 @@ int main(int argc, char* argv[])
   }
   core.get_blockchain_storage().get_db().set_batch_transactions(true);
 
-  if (! vm["pop-blocks"].defaulted())
+  if (!vm["pop-blocks"].defaulted())
   {
     num_blocks = command_line::get_arg(vm, arg_pop_blocks);
     MINFO("height: " << core.get_blockchain_storage().get_current_blockchain_height());
@@ -720,7 +886,7 @@ int main(int argc, char* argv[])
     return 0;
   }
 
-  if (! vm["drop-hard-fork"].defaulted())
+  if (!vm["drop-hard-fork"].defaulted())
   {
     MINFO("Dropping hard fork tables...");
     core.get_blockchain_storage().get_db().drop_hard_fork_info();

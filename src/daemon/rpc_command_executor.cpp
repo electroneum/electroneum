@@ -1,4 +1,4 @@
-// Copyrights(c) 2017-2018, The Electroneum Project
+// Copyrights(c) 2017-2019, The Electroneum Project
 // Copyrights(c) 2014-2017, The Monero Project
 // 
 // All rights reserved.
@@ -423,7 +423,8 @@ bool t_rpc_command_executor::show_status() {
   std::time_t uptime = std::time(nullptr) - ires.start_time;
   uint64_t net_height = ires.target_height > ires.height ? ires.target_height : ires.height;
 
-  tools::success_msg_writer() << boost::format("Height: %llu/%llu (%.1f%%) on %s, %s, net hash %s, v%u%s, %s, %u(out)+%u(in) connections, uptime %ud %uh %um %us")
+  std::stringstream str;
+  str << boost::format("Height: %llu/%llu (%.1f%%) on %s, %s, net hash %s, v%u%s, %s, %u(out)+%u(in) connections")
     % (unsigned long long)ires.height
     % (unsigned long long)net_height
     % get_sync_percentage(ires)
@@ -435,11 +436,19 @@ bool t_rpc_command_executor::show_status() {
     % (hfres.state == cryptonote::HardFork::Ready ? "up to date" : hfres.state == cryptonote::HardFork::UpdateNeeded ? "update needed" : "out of date, likely forked")
     % (unsigned)ires.outgoing_connections_count
     % (unsigned)ires.incoming_connections_count
-    % (unsigned int)floor(uptime / 60.0 / 60.0 / 24.0)
-    % (unsigned int)floor(fmod((uptime / 60.0 / 60.0), 24.0))
-    % (unsigned int)floor(fmod((uptime / 60.0), 60.0))
-    % (unsigned int)fmod(uptime, 60.0)
   ;
+
+  // restricted RPC does not disclose start time
+  if (ires.start_time)
+  {
+    str << boost::format(", uptime %ud %uh %um %us")
+      % (unsigned int)floor(uptime / 60.0 / 60.0 / 24.0)
+      % (unsigned int)floor(fmod((uptime / 60.0 / 60.0), 24.0))
+      % (unsigned int)floor(fmod((uptime / 60.0), 60.0))
+      % (unsigned int)fmod(uptime, 60.0)
+    ;
+  }
+   tools::success_msg_writer() << str.str();
 
   return true;
 }
@@ -1228,7 +1237,8 @@ bool t_rpc_command_executor::start_save_graph()
 			return true;
 		}
 	}
-	
+
+  tools::success_msg_writer() << "Saving graph is now on";	
 	return true;
 }
 
@@ -1254,6 +1264,8 @@ bool t_rpc_command_executor::stop_save_graph()
 			return true;
 		}
 	}
+
+  tools::success_msg_writer() << "Saving graph is now off";
 	return true;
 }
 
@@ -1420,6 +1432,7 @@ bool t_rpc_command_executor::flush_txpool(const std::string &txid)
         }
     }
 
+    tools::success_msg_writer() << "Pool successfully flushed";
     return true;
 }
 
@@ -1726,6 +1739,7 @@ bool t_rpc_command_executor::relay_tx(const std::string &txid)
         }
     }
 
+    tools::success_msg_writer() << "Transaction successfully relayed";
     return true;
 }
 
@@ -1788,6 +1802,78 @@ bool t_rpc_command_executor::sync_info()
     }
 
     return true;
+}
+
+bool t_rpc_command_executor::set_validator_key(const std::string &key) {
+  cryptonote::COMMAND_RPC_SET_VALIDATOR_KEY::request req;
+  cryptonote::COMMAND_RPC_SET_VALIDATOR_KEY::response res;
+  std::string fail_message = "Unsuccessful";
+  epee::json_rpc::error error_resp;
+
+  req.validator_key = key;
+
+  if (m_is_rpc) {
+    if (!m_rpc_client->json_rpc_request(req, res, "set_validator_key", fail_message.c_str())) {
+      return true;
+    }
+  } else {
+    if (!m_rpc_server->on_set_validator_key(req, res, error_resp) || res.status != CORE_RPC_STATUS_OK)
+    {
+      tools::fail_msg_writer() << make_error(fail_message, res.status);
+      return true;
+    }
+  }
+
+  tools::success_msg_writer() << "Validator Key successfully set";
+  return true;
+}
+
+bool t_rpc_command_executor::generate_ed25519_keypair() {
+  cryptonote::COMMAND_RPC_GENERATE_ED25519_KEYPAIR::request req;
+  cryptonote::COMMAND_RPC_GENERATE_ED25519_KEYPAIR::response res;
+  std::string fail_message = "Unsuccessful";
+  epee::json_rpc::error error_resp;
+
+  if (m_is_rpc) {
+    if (!m_rpc_client->json_rpc_request(req, res, "generate_ed25519_keypair", fail_message.c_str())) {
+      return true;
+    }
+  } else {
+    if (!m_rpc_server->on_generate_ed25519_keypair(req, res, error_resp) || res.status != CORE_RPC_STATUS_OK)
+    {
+      tools::fail_msg_writer() << make_error(fail_message, res.status);
+      return true;
+    }
+  }
+
+  tools::success_msg_writer() << "Private Key:" << res.privateKey;
+  tools::success_msg_writer() << "Public Key:" << res.publicKey;
+  return true;
+}
+
+bool t_rpc_command_executor::sign_message(const std::string privateKey, const std::string message) {
+  cryptonote::COMMAND_RPC_SIGN_MESSAGE::request req;
+  cryptonote::COMMAND_RPC_SIGN_MESSAGE::response res;
+  std::string fail_message = "Unsuccessful";
+  epee::json_rpc::error error_resp;
+
+  req.privateKey = privateKey;
+  req.message = message;
+
+  if (m_is_rpc) {
+    if (!m_rpc_client->json_rpc_request(req, res, "sign_message", fail_message.c_str())) {
+      return true;
+    }
+  } else {
+    if (!m_rpc_server->on_sign_message(req, res, error_resp) || res.status != CORE_RPC_STATUS_OK)
+    {
+      tools::fail_msg_writer() << make_error(fail_message, res.status);
+      return true;
+    }
+  }
+
+  tools::success_msg_writer() << "Signature: " << res.signature;
+  return true;
 }
 
 }// namespace daemonize

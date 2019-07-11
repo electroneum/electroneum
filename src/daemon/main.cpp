@@ -1,4 +1,4 @@
-// Copyrights(c) 2017-2018, The Electroneum Project
+// Copyrights(c) 2017-2019, The Electroneum Project
 // Copyrights(c) 2014-2017, The Monero Project
 //
 // All rights reserved.
@@ -143,7 +143,7 @@ int main(int argc, char const * argv[])
 
     epee::debug::g_test_dbg_lock_sleep() = command_line::get_arg(vm, command_line::arg_test_dbg_lock_sleep);
 
-    std::string db_type = command_line::get_arg(vm, command_line::arg_db_type);
+    std::string db_type = command_line::get_arg(vm, cryptonote::arg_db_type);
 
     // verify that blockchaindb type is valid
     if(!cryptonote::blockchain_valid_db_type(db_type))

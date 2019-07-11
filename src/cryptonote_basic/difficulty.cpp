@@ -1,4 +1,4 @@
-// Copyrights(c) 2017-2018, The Electroneum Project
+// Copyrights(c) 2017-2019, The Electroneum Project
 // Copyrights(c) 2014-2017, The Monero Project
 //
 // All rights reserved.
@@ -122,7 +122,7 @@ namespace cryptonote {
 
   difficulty_type next_difficulty(std::vector<std::uint64_t> timestamps, std::vector<difficulty_type> cumulative_difficulties, size_t target_seconds, uint8_t version) {
 
-    size_t difficultyWindow = version == 6 ? DIFFICULTY_WINDOW_V6 : DIFFICULTY_WINDOW;
+    const size_t difficultyWindow = version == 6 ? DIFFICULTY_WINDOW_V6 : DIFFICULTY_WINDOW;
 
     if(timestamps.size() > difficultyWindow)
     {
@@ -130,19 +130,21 @@ namespace cryptonote {
       cumulative_difficulties.resize(difficultyWindow);
     }
 
-
     size_t length = timestamps.size();
     assert(length == cumulative_difficulties.size());
     if (length <= 1) {
       return 1;
     }
+
     static_assert(DIFFICULTY_WINDOW >= 2, "Window is too small");
     static_assert(DIFFICULTY_WINDOW_V6 >= 2, "Window is too small");
     assert(length <= difficultyWindow);
     sort(timestamps.begin(), timestamps.end());
     size_t cut_begin, cut_end;
+
     static_assert(2 * DIFFICULTY_CUT <= DIFFICULTY_WINDOW - 2, "Cut length is too large");
     static_assert(2 * DIFFICULTY_CUT <= DIFFICULTY_WINDOW_V6 - 2, "Cut length is too large");
+
     if (length <= difficultyWindow - 2 * DIFFICULTY_CUT) {
       cut_begin = 0;
       cut_end = length;

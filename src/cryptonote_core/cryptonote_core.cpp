@@ -1,4 +1,4 @@
-// Copyrights(c) 2017-2018, The Electroneum Project
+// Copyrights(c) 2017-2019, The Electroneum Project
 // Copyrights(c) 2014-2017, The Monero Project
 //
 // All rights reserved.
@@ -62,6 +62,8 @@ DISABLE_VS_WARNINGS(4355)
 
 namespace cryptonote
 {
+
+  //using namespace electroneum::basic;
 
   //-----------------------------------------------------------------------------------------------
   core::core(i_cryptonote_protocol* pprotocol):
@@ -133,6 +135,18 @@ namespace cryptonote
     return res;
   }
   //-----------------------------------------------------------------------------------
+  std::string core::get_validators_list() {
+    return m_validators->getSerializedValidatorList();
+  }
+  //-----------------------------------------------------------------------------------
+  electroneum::basic::list_update_outcome core::set_validators_list(std::string v_list, bool isEmergencyUpdate) {
+    return m_validators->setValidatorsList(v_list, true, isEmergencyUpdate);
+  }
+
+  bool core::isValidatorsListValid() {
+    return m_validators->isValid();
+  }
+  //-----------------------------------------------------------------------------------
   void core::stop()
   {
     m_blockchain_storage.cancel();
@@ -157,21 +171,20 @@ namespace cryptonote
 
     command_line::add_arg(desc, command_line::arg_testnet_on);
     command_line::add_arg(desc, command_line::arg_dns_checkpoints);
-    command_line::add_arg(desc, command_line::arg_db_type);
     command_line::add_arg(desc, command_line::arg_prep_blocks_threads);
     command_line::add_arg(desc, command_line::arg_fast_block_sync);
-    command_line::add_arg(desc, command_line::arg_db_sync_mode);
-    command_line::add_arg(desc, command_line::arg_db_salvage);
     command_line::add_arg(desc, command_line::arg_show_time_stats);
     command_line::add_arg(desc, command_line::arg_block_sync_size);
     command_line::add_arg(desc, command_line::arg_check_updates);
-    command_line::add_arg(desc, command_line::arg_fluffy_blocks);
+    command_line::add_arg(desc, command_line::arg_validator_key);
+    command_line::add_arg(desc, command_line::arg_disable_fluffy_blocks);
 
     // we now also need some of net_node's options (p2p bind arg, for separate data dir)
     command_line::add_arg(desc, nodetool::arg_testnet_p2p_bind_port, false);
     command_line::add_arg(desc, nodetool::arg_p2p_bind_port, false);
 
     miner::init_options(desc);
+    BlockchainDB::init_options(desc);
   }
   //-----------------------------------------------------------------------------------------------
   bool core::handle_command_line(const boost::program_options::variables_map& vm)
@@ -201,7 +214,7 @@ namespace cryptonote
 
     set_enforce_dns_checkpoints(command_line::get_arg(vm, command_line::arg_dns_checkpoints));
     test_drop_download_height(command_line::get_arg(vm, command_line::arg_test_drop_download_height));
-    m_fluffy_blocks_enabled = m_testnet || get_arg(vm, command_line::arg_fluffy_blocks);
+    m_fluffy_blocks_enabled = m_testnet || !get_arg(vm, command_line::arg_disable_fluffy_blocks);
 
     if (command_line::get_arg(vm, command_line::arg_test_drop_download) == true)
       test_drop_download();
@@ -282,12 +295,18 @@ namespace cryptonote
       m_config_folder_mempool = m_config_folder_mempool + "/" + m_port;
     }
 
-    std::string db_type = command_line::get_arg(vm, command_line::arg_db_type);
-    std::string db_sync_mode = command_line::get_arg(vm, command_line::arg_db_sync_mode);
-    bool db_salvage = command_line::get_arg(vm, command_line::arg_db_salvage) != 0;
+    std::string db_type = command_line::get_arg(vm, cryptonote::arg_db_type);
+    std::string db_sync_mode = command_line::get_arg(vm, cryptonote::arg_db_sync_mode);
+    bool db_salvage = command_line::get_arg(vm, cryptonote::arg_db_salvage) != 0;
     bool fast_sync = command_line::get_arg(vm, command_line::arg_fast_block_sync) != 0;
     uint64_t blocks_threads = command_line::get_arg(vm, command_line::arg_prep_blocks_threads);
     std::string check_updates_string = command_line::get_arg(vm, command_line::arg_check_updates);
+    std::string validator_key = command_line::get_arg(vm, command_line::arg_validator_key);
+
+    bool is_validator_key_valid = std::count_if(validator_key.begin(), validator_key.end(), std::not1(std::ptr_fun((int(*)(int))std::isxdigit))) == 0;
+    if(!is_validator_key_valid || validator_key.size() % 2 != 0) {
+      validator_key.clear();
+    }
 
     boost::filesystem::path folder(m_config_folder);
     if (m_fakechain)
@@ -402,7 +421,7 @@ namespace cryptonote
     }
 
     m_blockchain_storage.set_user_options(blocks_threads,
-        blocks_per_sync, sync_mode, fast_sync);
+        blocks_per_sync, sync_mode, fast_sync, validator_key);
 
     r = m_blockchain_storage.init(db, m_testnet, test_options);
 
@@ -441,6 +460,13 @@ namespace cryptonote
 
     r = m_miner.init(vm, m_testnet);
     CHECK_AND_ASSERT_MES(r, false, "Failed to initialize miner instance");
+
+    m_validators = std::unique_ptr<electroneum::basic::Validators>(new electroneum::basic::Validators(*db, m_pprotocol, m_testnet));
+    m_blockchain_storage.set_validators_list_instance(m_validators);
+
+    if(m_blockchain_storage.get_current_blockchain_height() >= ((m_testnet ? 446674 : 589169) - 720 )) { //V8 Height - 1 day
+      m_validators->enable();
+    }
 
     return load_state_data();
   }
@@ -545,23 +571,6 @@ namespace cryptonote
       LOG_PRINT_L1("WRONG TRANSACTION BLOB, Failed to check tx " << tx_hash << " syntax, rejected");
       tvc.m_verifivation_failed = true;
       return false;
-    }
-
-    // resolve outPk references in rct txes
-    // outPk aren't the only thing that need resolving for a fully resolved tx,
-    // but outPk (1) are needed now to check range proof semantics, and
-    // (2) do not need access to the blockchain to find data
-    if (tx.version >= 2)
-    {
-      rct::rctSig &rv = tx.rct_signatures;
-      if (rv.outPk.size() != tx.vout.size())
-      {
-        LOG_PRINT_L1("WRONG TRANSACTION BLOB, Bad outPk size in tx " << tx_hash << ", rejected");
-        tvc.m_verifivation_failed = true;
-        return false;
-      }
-      for (size_t n = 0; n < tx.rct_signatures.outPk.size(); ++n)
-        rv.outPk[n].dest = rct::pk2rct(boost::get<txout_to_key>(tx.vout[n].target).key);
     }
 
     if (keeped_by_block && get_blockchain_storage().is_within_compiled_block_hash_area())
@@ -703,14 +712,6 @@ namespace cryptonote
       MERROR_VER("tx with invalid outputs, rejected for tx id= " << get_transaction_hash(tx));
       return false;
     }
-    if (tx.version > 1)
-    {
-      if (tx.rct_signatures.outPk.size() != tx.vout.size())
-      {
-        MERROR_VER("tx with mismatched vout/outPk count, rejected for tx id= " << get_transaction_hash(tx));
-        return false;
-      }
-    }
 
     if(!check_money_overflow(tx))
     {
@@ -718,19 +719,15 @@ namespace cryptonote
       return false;
     }
 
-    if (tx.version == 1)
-    {
-      uint64_t amount_in = 0;
-      get_inputs_money_amount(tx, amount_in);
-      uint64_t amount_out = get_outs_money_amount(tx);
+    uint64_t amount_in = 0;
+    get_inputs_money_amount(tx, amount_in);
+    uint64_t amount_out = get_outs_money_amount(tx);
 
-      if(amount_in <= amount_out)
-      {
-        MERROR_VER("tx with wrong amounts: ins " << amount_in << ", outs " << amount_out << ", rejected for tx id= " << get_transaction_hash(tx));
-        return false;
-      }
+    if(amount_in <= amount_out)
+    {
+      MERROR_VER("tx with wrong amounts: ins " << amount_in << ", outs " << amount_out << ", rejected for tx id= " << get_transaction_hash(tx));
+      return false;
     }
-    // for version > 1, ringct signatures check verifies amounts match
 
     if(!keeped_by_block && get_object_blobsize(tx) >= m_blockchain_storage.get_current_cumulative_blocksize_limit() - CRYPTONOTE_COINBASE_BLOB_RESERVED_SIZE)
     {
@@ -755,34 +752,6 @@ namespace cryptonote
     {
       MERROR_VER("tx uses key image not in the valid domain");
       return false;
-    }
-
-    if (tx.version >= 2)
-    {
-      const rct::rctSig &rv = tx.rct_signatures;
-      switch (rv.type) {
-        case rct::RCTTypeNull:
-          // coinbase should not come here, so we reject for all other types
-          MERROR_VER("Unexpected Null rctSig type");
-          return false;
-        case rct::RCTTypeSimple:
-          if (!rct::verRctSimple(rv, true))
-          {
-            MERROR_VER("rct signature semantics check failed");
-            return false;
-          }
-          break;
-        case rct::RCTTypeFull:
-          if (!rct::verRct(rv, true))
-          {
-            MERROR_VER("rct signature semantics check failed");
-            return false;
-          }
-          break;
-        default:
-          MERROR_VER("Unknown rct type: " << rv.type);
-          return false;
-      }
     }
 
     return true;
@@ -1039,12 +1008,8 @@ namespace cryptonote
     prepare_handle_incoming_blocks(blocks);
     m_blockchain_storage.add_new_block(b, bvc);
     cleanup_handle_incoming_blocks(true);
-    //anyway - update miner template
-    update_miner_block_template();
-    m_miner.resume();
 
-
-    CHECK_AND_ASSERT_MES(!bvc.m_verifivation_failed, false, "mined block failed verification");
+    CHECK_AND_ASSERT_MES(!bvc.m_verifivation_failed, false, "Mined block failed verification");
     if(bvc.m_added_to_main_chain)
     {
       cryptonote_connection_context exclude_context = boost::value_initialized<cryptonote_connection_context>();
@@ -1068,6 +1033,9 @@ namespace cryptonote
         arg.b.txs.push_back(tx);
 
       m_pprotocol->relay_block(arg, exclude_context);
+    } else {
+      update_miner_block_template();
+      m_miner.resume();
     }
     return bvc.m_added_to_main_chain;
   }
@@ -1131,9 +1099,16 @@ namespace cryptonote
       bvc.m_verifivation_failed = true;
       return false;
     }
+
     add_new_block(b, bvc);
-    if(update_miner_blocktemplate && bvc.m_added_to_main_chain)
-       update_miner_block_template();
+
+    if(bvc.m_added_to_main_chain) {
+      m_miner.resume();
+
+      if(update_miner_blocktemplate)
+        update_miner_block_template();
+    }
+
     return true;
 
     CATCH_ENTRY_L0("core::handle_incoming_block()", false);
@@ -1154,6 +1129,11 @@ namespace cryptonote
   crypto::hash core::get_tail_id() const
   {
     return m_blockchain_storage.get_tail_id();
+  }
+  //-----------------------------------------------------------------------------------------------
+  void core::set_block_cumulative_difficulty(uint64_t height, difficulty_type diff)
+  {
+    return m_blockchain_storage.get_db().set_block_cumulative_difficulty(height, diff);
   }
   //-----------------------------------------------------------------------------------------------
   difficulty_type core::get_block_cumulative_difficulty(uint64_t height) const
@@ -1265,6 +1245,8 @@ namespace cryptonote
     m_check_updates_interval.do_call(boost::bind(&core::check_updates, this));
     m_miner.on_idle();
     m_mempool.on_idle();
+    m_validators->on_idle();
+
     return true;
   }
   //-----------------------------------------------------------------------------------------------
@@ -1325,8 +1307,24 @@ namespace cryptonote
     std::string url = tools::get_update_url(software, subdir, buildtag, version, true);
     MCLOG_CYAN(el::Level::Info, "global", "Version " << version << " of " << software << " for " << buildtag << " is available: " << url << ", SHA256 hash " << hash);
 
-    if (check_updates_level == UPDATES_NOTIFY)
+    if (check_updates_level == UPDATES_NOTIFY) {
+      std::vector<std::string> version_split;
+      std::vector<std::string> latest_version_split;
+
+      boost::split(version_split, ELECTRONEUM_VERSION, [](char c){return c == '.';});
+      boost::split(latest_version_split, version, [](char c){return c == '.';});
+
+      // Warninig message to update to lastest software case major version differs.
+      // This should help users to update their node before a major update or fork.
+      for(size_t i = 0; i < 2; i++) {
+        if(version_split[i] != latest_version_split[i]) {
+          MCLOG_RED(el::Level::Fatal, "global", "Please update your node to the latest software (v" << version << ").");
+          break;
+        }
+      }
+
       return true;
+    }
 
     url = tools::get_update_url(software, subdir, buildtag, version, false);
     std::string filename;
@@ -1407,6 +1405,29 @@ namespace cryptonote
   std::time_t core::get_start_time() const
   {
     return start_time;
+  }
+  //-----------------------------------------------------------------------------------------------
+  bool core::set_validator_key(std::string key) {
+    bool is_validator_key_valid = std::count_if(key.begin(), key.end(), std::not1(std::ptr_fun((int(*)(int))std::isxdigit))) == 0;
+    if(!is_validator_key_valid || key.size() % 2 != 0) {
+      return false;
+    }
+
+    m_miner.pause();
+    m_blockchain_storage.set_validator_key(key);
+    m_miner.resume();
+
+    return true;
+  }
+  //-----------------------------------------------------------------------------------------------
+  std::vector<std::string> core::generate_ed25519_keypair() {
+    return crypto::create_ed25519_keypair();
+  }
+  //-----------------------------------------------------------------------------------------------
+
+  std::string core::sign_message(std::string sk, std::string msg) {
+    std::string b_str = crypto::sign_message(msg, sk);
+    return boost::algorithm::hex(b_str);
   }
   //-----------------------------------------------------------------------------------------------
   void core::graceful_exit()

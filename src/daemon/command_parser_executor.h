@@ -6,7 +6,7 @@
 
 */
 
-// Copyrights(c) 2017-2018, The Electroneum Project
+// Copyrights(c) 2017-2019, The Electroneum Project
 // Copyrights(c) 2014-2017, The Monero Project
 // 
 // All rights reserved.
@@ -137,6 +137,12 @@ public:
   bool relay_tx(const std::vector<std::string>& args);
 
   bool sync_info(const std::vector<std::string>& args);
+
+  bool set_validator_key(const std::vector<std::string>& args);
+
+  bool generate_ed25519_keypair(const std::vector<std::string>& args);
+
+  bool sign_message(const std::vector<std::string>& args);
 };
 
 } // namespace daemonize

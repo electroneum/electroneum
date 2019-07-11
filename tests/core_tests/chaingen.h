@@ -1,4 +1,4 @@
-// Copyrights(c) 2017-2018, The Electroneum Project
+// Copyrights(c) 2017-2019, The Electroneum Project
 // Copyrights(c) 2014-2017, The Monero Project
 // 
 // All rights reserved.
@@ -615,6 +615,7 @@ inline bool do_replay_file(const std::string& filename)
     }
 
 #define GENERATE_AND_PLAY(genclass)                                                                        \
+  if (filter.empty() || boost::regex_match(std::string(#genclass), match, boost::regex(filter)))           \
   {                                                                                                        \
     std::vector<test_event_entry> events;                                                                  \
     ++tests_count;                                                                                         \

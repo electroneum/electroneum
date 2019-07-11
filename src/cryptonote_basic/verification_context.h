@@ -1,4 +1,4 @@
-// Copyrights(c) 2017-2018, The Electroneum Project
+// Copyrights(c) 2017-2019, The Electroneum Project
 // Copyrights(c) 2014-2017, The Monero Project
 // 
 // All rights reserved.
@@ -58,5 +58,8 @@ namespace cryptonote
     bool m_marked_as_orphaned;
     bool m_already_exists;
     bool m_partial_block_reward;
+    bool m_validator_list_update_failed;
+    bool m_sequential_block;
   };
+
 }

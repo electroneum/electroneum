@@ -1,4 +1,4 @@
-// Copyrights(c) 2017-2018, The Electroneum Project
+// Copyrights(c) 2017-2019, The Electroneum Project
 // Copyrights(c) 2014-2017, The Monero Project
 // 
 // All rights reserved.
@@ -43,6 +43,9 @@ namespace cryptonote
   {
     virtual bool relay_block(NOTIFY_NEW_BLOCK::request& arg, cryptonote_connection_context& exclude_context)=0;
     virtual bool relay_transactions(NOTIFY_NEW_TRANSACTIONS::request& arg, cryptonote_connection_context& exclude_context)=0;
+    virtual bool request_validators_list(cryptonote_connection_context& context)=0;
+    virtual bool request_validators_list_to_all()=0;
+    virtual bool relay_emergency_validator_list(NOTIFY_EMERGENCY_VALIDATORS_LIST::request& arg, cryptonote_connection_context& exclude_context)=0;
     //virtual bool request_objects(NOTIFY_REQUEST_GET_OBJECTS::request& arg, cryptonote_connection_context& context)=0;
   };
 
@@ -59,6 +62,17 @@ namespace cryptonote
     {
       return false;
     }
-
+    virtual bool request_validators_list(cryptonote_connection_context& context)
+    {
+      return false;
+    }
+    virtual bool request_validators_list_to_all()
+    {
+      return false;
+    }
+    virtual bool relay_emergency_validator_list(NOTIFY_EMERGENCY_VALIDATORS_LIST::request& arg, cryptonote_connection_context& exclude_context)
+    {
+      return false;
+    }
   };
 }

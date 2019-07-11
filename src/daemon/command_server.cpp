@@ -1,4 +1,4 @@
-// Copyrights(c) 2017-2018, The Electroneum Project
+// Copyrights(c) 2017-2019, The Electroneum Project
 // Copyrights(c) 2014-2017, The Monero Project
 // 
 // All rights reserved.
@@ -258,6 +258,21 @@ t_command_server::t_command_server(
       "sync_info"
     , std::bind(&t_command_parser_executor::sync_info, &m_parser, p::_1)
     , "Print information about blockchain sync state"
+    );
+    m_command_lookup.set_handler(
+      "set_validator_key"
+      , std::bind(&t_command_parser_executor::set_validator_key, &m_parser, p::_1)
+      , "Set validator private key to be used when signing mined blocks. <validator_key>"
+    );
+    m_command_lookup.set_handler(
+      "generate_ed25519_keypair"
+      , std::bind(&t_command_parser_executor::generate_ed25519_keypair, &m_parser, p::_1)
+      , "Generate ED25519-Donna keypair."
+    );
+    m_command_lookup.set_handler(
+            "sign_message"
+            , std::bind(&t_command_parser_executor::sign_message, &m_parser, p::_1)
+            , "Sign a message using ED25519-Donna private key. Usage: <private_key> <message>"
     );
 }
 

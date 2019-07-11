@@ -1,4 +1,4 @@
-// Copyrights(c) 2017-2018, The Electroneum Project
+// Copyrights(c) 2017-2019, The Electroneum Project
 // Copyrights(c) 2014-2017, The Monero Project
 // 
 // All rights reserved.
@@ -101,6 +101,10 @@ namespace tests
     uint8_t get_ideal_hard_fork_version(uint64_t height) const { return 0; }
     uint8_t get_hard_fork_version(uint64_t height) const { return 0; }
     cryptonote::difficulty_type get_block_cumulative_difficulty(uint64_t height) const { return 0; }
+    void set_block_cumulative_difficulty(uint64_t height, cryptonote::difficulty_type diff) {}
     bool fluffy_blocks_enabled() const { return false; }
+    electroneum::basic::list_update_outcome set_validators_list(std::string v_list, bool isEmergencyUpdate = false) { return electroneum::basic::list_update_outcome::Emergency_Success; }
+    bool isValidatorsListValid() { return true; }
+    std::string get_validators_list() { return ""; }
   };
 }

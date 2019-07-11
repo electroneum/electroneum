@@ -1,4 +1,4 @@
-// Copyrights(c) 2017-2018, The Electroneum Project
+// Copyrights(c) 2017-2019, The Electroneum Project
 // Copyrights(c) 2014-2017, The Monero Project
 // 
 // All rights reserved.
@@ -33,7 +33,6 @@
 #include <boost/algorithm/string/compare.hpp>
 #include <boost/algorithm/string/predicate.hpp>
 #include <unordered_set>
-#include "blockchain_db/db_types.h"
 #include "common/i18n.h"
 #include "cryptonote_config.h"
 #include "string_tools.h"
@@ -97,22 +96,6 @@ namespace command_line
   , "checkpoints from DNS server will be enforced"
   , false
   };
-  std::string arg_db_type_description = "Specify database type, available: " + cryptonote::blockchain_db_types(", ");
-  const command_line::arg_descriptor<std::string> arg_db_type = {
-    "db-type"
-  , arg_db_type_description.c_str()
-  , DEFAULT_DB_TYPE
-  };
-  const command_line::arg_descriptor<std::string> arg_db_sync_mode = {
-    "db-sync-mode"
-  , "Specify sync option, using format [safe|fast|fastest]:[sync|async]:[nblocks_per_sync]." 
-  , "fast:async:1000"
-  };
-  const arg_descriptor<bool> arg_db_salvage  = {
-    "db-salvage"
-  , "Try to salvage a blockchain database if it seems corrupted"
-  , false
-  };
   const command_line::arg_descriptor<uint64_t> arg_fast_block_sync = {
     "fast-block-sync"
   , "Sync up most of the way by using embedded, known block hashes."
@@ -138,9 +121,13 @@ namespace command_line
   , "Check for new versions of electroneum: [disabled|notify|download|update]"
   , "notify"
   };
-  const arg_descriptor<bool> arg_fluffy_blocks  = {
-    "fluffy-blocks"
-  , "Relay blocks as fluffy blocks where possible (automatic on testnet)"
+  const arg_descriptor<bool> arg_disable_fluffy_blocks  = {
+    "disable-fluffy-blocks"
+  , "Disable relaying blocks as fluffy blocks where possible"
   , false
+  };
+  const arg_descriptor<std::string> arg_validator_key = {
+    "validator-key",
+    "Specify your Validator Private Key to digitally sign blocks when mining"
   };
 }

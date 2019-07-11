@@ -1,4 +1,4 @@
-// Copyrights(c) 2017-2018, The Electroneum Project
+// Copyrights(c) 2017-2019, The Electroneum Project
 // Copyrights(c) 2014-2017, The Monero Project
 // 
 // All rights reserved.
@@ -54,7 +54,7 @@ public:
   virtual std::string get_db_name() const { return std::string(); }
   virtual bool lock() { return true; }
   virtual void unlock() { }
-  virtual bool batch_start(uint64_t batch_num_blocks=0) { return true; }
+  virtual bool batch_start(uint64_t batch_num_blocks=0, uint64_t batch_bytes=0) { return true; }
   virtual void batch_stop() {}
   virtual void set_batch_transactions(bool) {}
   virtual void block_txn_start(bool readonly=false) {}
@@ -70,6 +70,7 @@ public:
   virtual uint64_t get_block_timestamp(const uint64_t& height) const { return 0; }
   virtual uint64_t get_top_block_timestamp() const { return 0; }
   virtual size_t get_block_size(const uint64_t& height) const { return 128; }
+  virtual void set_block_cumulative_difficulty(uint64_t height, difficulty_type diff) {}
   virtual difficulty_type get_block_cumulative_difficulty(const uint64_t& height) const { return 10; }
   virtual difficulty_type get_block_difficulty(const uint64_t& height) const { return 0; }
   virtual uint64_t get_block_already_generated_coins(const uint64_t& height) const { return 10000000000; }
@@ -119,10 +120,14 @@ public:
   virtual uint64_t get_txpool_tx_count() const { return 0; }
   virtual bool txpool_has_tx(const crypto::hash &txid) const { return false; }
   virtual void remove_txpool_tx(const crypto::hash& txid) {}
-  virtual txpool_tx_meta_t get_txpool_tx_meta(const crypto::hash& txid) const { return txpool_tx_meta_t(); }
+  virtual bool get_txpool_tx_meta(const crypto::hash& txid, txpool_tx_meta_t &meta) const { return false; }
   virtual bool get_txpool_tx_blob(const crypto::hash& txid, cryptonote::blobdata &bd) const { return false; }
   virtual cryptonote::blobdata get_txpool_tx_blob(const crypto::hash& txid) const { return ""; }
   virtual bool for_all_txpool_txes(std::function<bool(const crypto::hash&, const txpool_tx_meta_t&, const cryptonote::blobdata*)>, bool include_blob = false) const { return false; }
+
+  virtual void set_validator_list(std::string, uint32_t expiration_date) { };
+  virtual std::string get_validator_list() const { return ""; };
+  virtual bool isValidatorsListValid() {return true; };
 
   virtual void add_block( const block& blk
                         , const size_t& block_size

@@ -1,4 +1,4 @@
-# Copyright (c) 2017-2018, The Electroneum Project
+# Copyright (c) 2017-2019, The Electroneum Project
 # Copyright (c) 2014-2017, The Monero Project
 #
 # All rights reserved.
@@ -79,7 +79,9 @@ target_link_libraries(cncrypto
   PUBLIC
     ${Boost_SYSTEM_LIBRARY}
   PRIVATE
-    ${EXTRA_LIBRARIES})
+    ${EXTRA_LIBRARIES}
+    ${OPENSSL_LIBRARIES}
+    ed25519-donna)
 
 if (ARM)
   option(NO_OPTIMIZED_MULTIPLY_ON_ARM

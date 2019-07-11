@@ -1,4 +1,4 @@
-// Copyrights(c) 2017-2018, The Electroneum Project
+// Copyrights(c) 2017-2019, The Electroneum Project
 // Copyrights(c) 2014-2017, The Monero Project
 // 
 // All rights reserved.
@@ -502,5 +502,59 @@ POP_WARNINGS
     hash_to_scalar(buf.get(), rs_comm_size(pubs_count), h);
     sc_sub(&h, &h, &sum);
     return sc_isnonzero(&h) == 0;
+  }
+
+  std::string crypto_ops::sign_message(const std::string &message, const std::string &privateKey) {
+
+    if(privateKey.size() != 32) {
+      return std::string("");
+    }
+
+    ed25519_public_key pKey;
+    ed25519_publickey((unsigned char*)privateKey.data(), pKey);
+
+    ed25519_signature signature;
+    ed25519_sign((unsigned char*)message.data(), message.size(), (unsigned char*)privateKey.data(), pKey, signature);
+
+    return std::string(reinterpret_cast<char const*>(signature), 64);
+  }
+
+  bool crypto_ops::verify_signature(const std::string &message, const std::string &publicKey, const std::string &signature) {
+
+    if(publicKey.size() != 32 || signature.size() !=64) {
+      return false;
+    }
+    return ed25519_sign_open((unsigned char*)message.data(), message.size(), (unsigned char*)publicKey.data(), (unsigned char*)signature.data()) == 0;
+  }
+
+  bool crypto_ops::verify_signature(const std::string &message, const std::vector<std::string> publicKey, const std::string &signature) {
+
+    if(publicKey.empty() || signature.size() != 64) {
+      return false;
+    }
+
+    bool result = false;
+    for(auto key : publicKey) {
+      if(ed25519_sign_open((unsigned char*)message.data(), message.size(), (unsigned char*)key.data(), (unsigned char*)signature.data()) == 0) {
+        result = true;
+        break;
+      }
+    }
+
+    return result;
+  }
+
+  std::vector<std::string> crypto_ops::create_ed25519_keypair() {
+    ed25519_secret_key sk, pk;
+    ed25519_randombytes_unsafe(sk, sizeof(ed25519_secret_key));
+
+    ed25519_publickey(sk, pk);
+
+    std::vector<std::string> result = {
+            boost::algorithm::hex(std::string(reinterpret_cast<char const*>(sk), 32)),
+            boost::algorithm::hex(std::string(reinterpret_cast<char const*>(pk), 32))
+    };
+
+    return result;
   }
 }

@@ -1,36 +1,50 @@
+<p align="center">
+  <img width="290" height="70" src="https://discourse-cdn-sjc1.com/business4/uploads/electroneum/original/1X/ef9300fcffa064903d5ce01bc9e1943f913fc795.jpg">
+</p>
 
-# Electroneum
+<h4 align="center">Electroneum is a fast, secure, mobile based cryptocurrency. </h4>
 
-Copyright (c) 2017-2018, The Electroneum Project
-Copyright (c) 2014-2017, The Monero Project  
-Portions Copyright (c) 2012-2013, The Cryptonote developers  
+<p align="center">
+  <img width="525" height="315" src="https://discourse-cdn-sjc1.com/business4/uploads/electroneum/original/2X/9/9219c8414cacc641767f8804eccd740443d05fcb.gif">
+</p>
 
-## Development Resources
-
-- Web: [electroneum.com](https://electroneum.com)
-- GitHub: [https://github.com/electroneum/electroneum](https://github.com/electroneum/electroneum)
+<p align="center">
+  <a href="#introduction">Introduction</a> •
+  <a href="#development-resources">Development Resources</a> •
+  <a href="#about-this-project">About this Project</a> •
+  <a href="#compiling-electroneum-from-source">Compiling from Source</a> •
+  <a href="#license">License</a>
+</p>
 
 ## Introduction
 
-Electroneum is a private, secure, untraceable, mobile based cryptocurrency. You are your bank, you control your funds, and nobody can trace your transfers unless you allow them to do so.
-
-**Privacy:** Electroneum uses a cryptographically sound system to allow you to send and receive funds without your transactions being easily revealed on the blockchain (the ledger of transactions that everyone has). This ensures that your purchases, receipts, and all transfers remain absolutely private by default.
+Electroneum uses a cryptographically sound system to allow you to send and receive your tokens without your transactions being easily revealed on the blockchain. This ensures that all token transfers remain absolutely private by default, but if necessary, can be proven to a third party by providing specific keys.
 
 **Security:** Using the power of a distributed peer-to-peer consensus network, every transaction on the network is cryptographically secured. Individual wallets have a 25 word mnemonic seed that is only displayed once, and can be written down to backup the wallet. Wallet files are encrypted with a passphrase to ensure they are useless if stolen.
 
-**Untraceability:** By taking advantage of ring signatures, a special property of a certain type of cryptography, Electroneum is able to ensure that transactions are not only untraceable, but have an optional measure of ambiguity that ensures that transactions cannot easily be tied back to an individual user or computer.
+Electroneum (and its group companies) have separately developed proprietary software which can be used in conjunction with this project. This software is subject to separate terms and conditions which are available at https://electroneum.com .
 
-## About this Project
+## Development Resources
 
-This is the core implementation of Electroneum. It is open source and completely free to use without restrictions, except for those specified in the license agreement below. There are no restrictions on anyone creating an alternative implementation of Electroneum that uses the protocol and network in a compatible manner.
+- GitHub: [https://github.com/electroneum/electroneum](https://github.com/electroneum/electroneum)
 
 As with many development projects, the repository on Github is considered to be the "staging" area for the latest changes. Before changes are merged into that branch on the main repository, they are tested by individual developers in their own branches, submitted as a pull request, and then subsequently tested by contributors who focus on testing and code reviews. That having been said, the repository should be carefully considered before using it in a production environment, unless there is a patch in the repository for a particular show-stopping issue you are experiencing. It is generally a better idea to use a tagged release for stability.
 
 **Anyone is welcome to contribute to Electroneum's codebase!** If you have a fix or code change, feel free to submit it as a pull request directly to the "master" branch. In cases where the change is relatively small or does not affect other parts of the codebase it may be merged in immediately by any one of the collaborators. On the other hand, if the change is particularly large or complex, it is expected that it will be discussed at length either well in advance of the pull request being submitted, or even directly on the pull request.
 
+## About this Project
+
+This is the core implementation of Electroneum. It is open source and completely free to use without restrictions, except for those specified in the license agreement below.
+
 ## License
 
 See [LICENSE](LICENSE).
+
+## Copyright
+
+Copyright (c) 2017-2019, The Electroneum Project
+Copyright (c) 2014-2017, The Monero Project
+Portions Copyright (c) 2012-2013, The Cryptonote developers
 
 # Contributing
 
@@ -42,8 +56,11 @@ If you want to help out, see [CONTRIBUTING](CONTRIBUTING.md) for a set of guidel
 | ------------------------------ | -----------| ----------------- | ---------------------- | -------------------------- | ---------------------------------------------------------------------------------- |
 | 307500                         | 2018-05-30 | v6                | v2.0.0.0              | v2.0.0.0                  | Disable Mixin, Disable RingCT, Base Fee to 0.10 from 0.01, 120s Block Time, Anti-Asic Resistance         |
 | 324500                         | 2018-07-05 | v7                | v2.1.0.0              | v2.1.0.0                  | Enable ASIC         |
+| 589169                         | 2019-07-08 | v8                | v3.0.0.0              | v3.0.0.0                  | Migration to our next generation moderated blockchain with Proof of Responsbility. 300kB Blocks : Increased TPS. Improved Unlock Time (5 Blocks), Many Security Improvements, HackerOne Fixes, Reduced Block Reward By 75% (A Double Halvening)|
 
 X's indicate that these details have not been determined as of commit date.
+
+Please Note that Electroneum no longer supports, develops or maintains any version other than the most recent version.
 
 ## Vulnerability Response Process
 
@@ -107,6 +124,13 @@ library archives (`.a`).
 
 [^] On Debian/Ubuntu `libgtest-dev` only includes sources and headers. You must
 build the library binary manually. This can be done with the following command ```sudo apt-get install libgtest-dev && cd /usr/src/gtest && sudo cmake . && sudo make && sudo mv libg* /usr/lib/ ```
+
+On OSX:
+Homebrew installs OpenSSL but doesn’t link it to /usr/local/include, where the compiler looks into during #include<…> Thus, you must manually link it instead:
+
+```ln -s /usr/local/opt/openssl/include/openssl /usr/local/include```
+```ln -s /usr/local/Cellar/openssl/[version]/include/openssl /usr/bin/openssl```
+```ln -s /usr/local/opt/openssl/lib/libssl.1.0.0.dylib /usr/local/lib/```
 
 ### Build instructions
 
@@ -252,7 +276,7 @@ electroneum-wallet-cli, and possibly electroneumd, if you get crashes refreshing
    desired DNS server, for DNS requests to go over TCP, so that they are routed
    through Tor. When IP is not specified, electroneumd uses the default list of
    servers defined in [src/common/dns_utils.cpp](src/common/dns_utils.cpp).
- * `TORSOCKS_ALLOW_INBOUND=1` to tell torsocks to allow monerod to bind to interfaces
+ * `TORSOCKS_ALLOW_INBOUND=1` to tell torsocks to allow electroneumd to bind to interfaces
     to accept connections from the wallet. On some Linux systems, torsocks
     allows binding to localhost by default, so setting this variable is only
     necessary to allow binding to local LAN/VPN interfaces to allow wallets to

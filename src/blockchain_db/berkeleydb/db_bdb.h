@@ -1,4 +1,4 @@
-// Copyrights(c) 2017-2018, The Electroneum Project
+// Copyrights(c) 2017-2019, The Electroneum Project
 // Copyrights(c) 2014-2017, The Monero Project
 // All rights reserved.
 //
@@ -266,6 +266,8 @@ public:
   virtual uint64_t get_top_block_timestamp() const;
 
   virtual size_t get_block_size(const uint64_t& height) const;
+
+  virtual void set_block_cumulative_difficulty(uint64_t height, difficulty_type diff);
 
   virtual difficulty_type get_block_cumulative_difficulty(const uint64_t& height) const;
 

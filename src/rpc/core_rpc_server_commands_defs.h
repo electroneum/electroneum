@@ -1,4 +1,4 @@
-// Copyrights(c) 2017-2018, The Electroneum Project
+// Copyrights(c) 2017-2019, The Electroneum Project
 // Copyrights(c) 2014-2017, The Monero Project
 // 
 // All rights reserved.
@@ -572,6 +572,11 @@ namespace cryptonote
       uint64_t block_size_limit;
       uint64_t start_time;
 
+      std::string daemon_release_name;
+      std::string daemon_version;
+      std::string daemon_version_full;
+      std::string daemon_version_tag;
+
       BEGIN_KV_SERIALIZE_MAP()
         KV_SERIALIZE(status)
         KV_SERIALIZE(height)
@@ -590,6 +595,11 @@ namespace cryptonote
         KV_SERIALIZE(cumulative_difficulty)
         KV_SERIALIZE(block_size_limit)
         KV_SERIALIZE(start_time)
+
+        KV_SERIALIZE(daemon_release_name)
+        KV_SERIALIZE(daemon_version)
+        KV_SERIALIZE(daemon_version_full)
+        KV_SERIALIZE(daemon_version_tag)
       END_KV_SERIALIZE_MAP()
     };
   };
@@ -1690,4 +1700,97 @@ namespace cryptonote
       END_KV_SERIALIZE_MAP()
     };
   };
+
+  struct COMMAND_RPC_SET_VALIDATOR_KEY
+  {
+      struct request
+      {
+          std::string validator_key;
+
+          BEGIN_KV_SERIALIZE_MAP()
+            KV_SERIALIZE(validator_key)
+          END_KV_SERIALIZE_MAP()
+      };
+
+      struct response
+      {
+          std::string status;
+
+          BEGIN_KV_SERIALIZE_MAP()
+            KV_SERIALIZE(status)
+          END_KV_SERIALIZE_MAP()
+      };
+  };
+
+  struct COMMAND_RPC_GENERATE_ED25519_KEYPAIR
+  {
+      struct request
+      {
+        BEGIN_KV_SERIALIZE_MAP()
+        END_KV_SERIALIZE_MAP()
+      };
+
+      struct response
+      {
+        std::string privateKey;
+        std::string publicKey;
+        std::string status;
+
+        BEGIN_KV_SERIALIZE_MAP()
+          KV_SERIALIZE(privateKey)
+          KV_SERIALIZE(publicKey)
+          KV_SERIALIZE(status)
+        END_KV_SERIALIZE_MAP()
+      };
+  };
+
+  struct COMMAND_RPC_SIGN_MESSAGE
+  {
+      struct request
+      {
+        std::string privateKey;
+        std::string message;
+
+        BEGIN_KV_SERIALIZE_MAP()
+          KV_SERIALIZE(privateKey)
+          KV_SERIALIZE(message)
+        END_KV_SERIALIZE_MAP()
+      };
+
+      struct response
+      {
+        std::string signature;
+        std::string status;
+
+        BEGIN_KV_SERIALIZE_MAP()
+          KV_SERIALIZE(signature)
+          KV_SERIALIZE(status)
+        END_KV_SERIALIZE_MAP()
+      };
+  };
+
+  struct COMMAND_RPC_INJECT_EMERGENCY_VLIST
+  {
+     struct request {
+
+        std::string blob;
+        int version = 0;
+        std::vector<std::string> signatures;
+        std::vector<std::string> pubkeys;
+
+        BEGIN_KV_SERIALIZE_MAP()
+          KV_SERIALIZE(blob)
+          KV_SERIALIZE(version)
+          KV_SERIALIZE(signatures)
+          KV_SERIALIZE(pubkeys)
+        END_KV_SERIALIZE_MAP()
+        };
+
+    struct response
+    {
+      BEGIN_KV_SERIALIZE_MAP()
+      END_KV_SERIALIZE_MAP()
+    };
+  };
+
 }
