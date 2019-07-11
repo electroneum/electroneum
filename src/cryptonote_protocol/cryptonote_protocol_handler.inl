@@ -301,7 +301,7 @@ namespace cryptonote
     uint64_t abs_diff = std::abs(diff);
     // The highest height of the two.
     uint64_t max_block_height = max(hshd.current_height, m_core.get_current_blockchain_height());
-    uint64_t last_block_v1 = m_core.get_testnet() ? 190059 : 307499;
+    uint64_t last_block_v1 = m_core.get_testnet() ? (fork_heights::V6_TESTNET - 1) : (fork_heights::V6_MAINNET - 1);
     // Is the longest chain past v1?
     // If not, set diff_v6 = 0 so two minute blocks aren't factored into the calculation at all.
     // If so, take smallest from

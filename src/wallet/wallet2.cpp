@@ -3034,7 +3034,7 @@ bool wallet2::is_transfer_unlocked(const transfer_details& td) const
   if(!is_tx_spendtime_unlocked(td.m_tx.unlock_time, td.m_block_height))
     return false;
 
-  uint64_t v8height = m_testnet ? 446674 : 589169;
+  uint64_t v8height = m_testnet ? fork_heights::V8_TESTNET : fork_heights::V8_MAINNET;
   uint16_t UNLOCK_WINDOW = td.m_block_height > v8height ? ETN_MONEY_UNLOCK_WINDOW_V8 : CRYPTONOTE_DEFAULT_TX_SPENDABLE_AGE;
 
   if(td.m_block_height + UNLOCK_WINDOW > m_blockchain.size())
@@ -3058,7 +3058,7 @@ bool wallet2::is_tx_spendtime_unlocked(uint64_t unlock_time, uint64_t block_heig
     uint64_t current_time = static_cast<uint64_t>(time(NULL));
     // XXX: this needs to be fast, so we'd need to get the starting heights
     // from the daemon to be correct once voting kicks in
-    uint64_t v6height = m_testnet ? 190059 : 307499;
+    uint64_t v6height = m_testnet ? (fork_heights::V6_TESTNET - 1) : (fork_heights::V6_MAINNET - 1);
     uint64_t leeway = block_height > v6height ? CRYPTONOTE_LOCKED_TX_ALLOWED_DELTA_SECONDS_V6 : CRYPTONOTE_LOCKED_TX_ALLOWED_DELTA_SECONDS;
     if(current_time + leeway >= unlock_time)
       return true;
@@ -5404,7 +5404,7 @@ uint64_t wallet2::get_approximate_blockchain_height() const
   // time of v8 fork
   const time_t fork_time = m_testnet ? 1562889600 : 1562547600;
   // v8 fork block
-  const uint64_t fork_block = m_testnet ? 446674 : 589169;
+  const uint64_t fork_block = m_testnet ? fork_heights::V8_TESTNET : fork_heights::V8_MAINNET;
   // avg seconds per block
   const int seconds_per_block = DIFFICULTY_TARGET_V6;
   // Calculated blockchain height

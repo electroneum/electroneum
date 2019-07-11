@@ -184,3 +184,18 @@ namespace config
     uint32_t const GENESIS_NONCE = 10000;
   }
 }
+
+namespace fork_heights{
+
+   const uint64_t V1_MAINNET = 1;
+   const uint64_t V6_MAINNET = 307500;
+   const uint64_t V7_MAINNET = 324500;
+   const uint64_t V8_MAINNET = 589169;
+   const uint64_t V9_MAINNET = 1000000;
+
+   const uint64_t V1_TESTNET = 1;
+   const uint64_t V6_TESTNET = 190060;
+   const uint64_t V7_TESTNET = 215000;
+   const uint64_t V8_TESTNET = 446674;
+   const uint64_t V9_TESTNET = 1000000;
+}

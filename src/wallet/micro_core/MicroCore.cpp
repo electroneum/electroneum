@@ -6,8 +6,8 @@
 
 namespace
 {
-    const uint64_t mainnet_hard_fork_version_1_till = 307499;
-    const uint64_t testnet_hard_fork_version_1_till = 190059;
+    const uint64_t mainnet_hard_fork_version_1_till = fork_heights::V6_MAINNET - 1;
+    const uint64_t testnet_hard_fork_version_1_till = fork_heights::V6_TESTNET - 1;
 }
 
 namespace etneg

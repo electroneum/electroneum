@@ -89,12 +89,12 @@ static const struct {
   time_t time;
 } mainnet_hard_forks[] = {
   // version 1 from the start of the blockchain
-  { 1, 1, 0, 1341378000 },
-  { 6, 307500, 0, 1538815057 }, //1538815057
-  { 7, 324500, 0, 1538985600 }, // Estimated July 5th, 8:30AM UTC
-  { 8, 589169, 0, 1562547600 },
+  { 1, fork_heights::V1_MAINNET, 0, 1341378000 },
+  { 6, fork_heights::V6_MAINNET, 0, 1538815057 }, //1538815057
+  { 7, fork_heights::V7_MAINNET, 0, 1538985600 }, // Estimated July 5th, 8:30AM UTC
+  { 8, fork_heights::V8_MAINNET, 0, 1562547600 },
 };
-static const uint64_t mainnet_hard_fork_version_1_till = 307499;
+static const uint64_t mainnet_hard_fork_version_1_till = fork_heights::V6_MAINNET - 1;
 
 static const struct {
   uint8_t version;
@@ -103,12 +103,12 @@ static const struct {
   time_t time;
 } testnet_hard_forks[] = {
   // version 1 from the start of the blockchain
-  { 1, 1, 0, 1341378000 },
-  { 6, 190060, 0, 1523263057 },
-  { 7, 215000, 0, 1530615600 },
-  { 8, 446674, 0, 1562889600 }
+  { 1, fork_heights::V1_TESTNET, 0, 1341378000 },
+  { 6, fork_heights::V6_TESTNET, 0, 1523263057 },
+  { 7, fork_heights::V7_TESTNET, 0, 1530615600 },
+  { 8, fork_heights::V8_TESTNET, 0, 1562889600 }
 };
-static const uint64_t testnet_hard_fork_version_1_till = 190059;
+static const uint64_t testnet_hard_fork_version_1_till = fork_heights::V6_TESTNET - 1;
 
 //------------------------------------------------------------------
 Blockchain::Blockchain(tx_memory_pool& tx_pool) :
@@ -759,9 +759,9 @@ difficulty_type Blockchain::get_difficulty_for_next_block()
   std::vector<difficulty_type> difficulties;
   auto height = m_db->height();
 
-  const uint64_t v6height = m_testnet ? 190060 : 307500;
-  const uint64_t v7height = m_testnet ? 215000 : 324500;
-  const uint64_t v8height = m_testnet ? 446674 : 589169;
+  const uint64_t v6height = m_testnet ? fork_heights::V6_TESTNET : fork_heights::V6_MAINNET;
+  const uint64_t v7height = m_testnet ? fork_heights::V7_TESTNET : fork_heights::V7_MAINNET;
+  const uint64_t v8height = m_testnet ? fork_heights::V8_TESTNET : fork_heights::V8_MAINNET;
 
   uint32_t difficultyBlocksCount = (height >= v6height && height < v7height) ? DIFFICULTY_BLOCKS_COUNT_V6 : DIFFICULTY_BLOCKS_COUNT;
 
@@ -831,13 +831,13 @@ difficulty_type Blockchain::get_difficulty_for_next_block()
 void Blockchain::normalize_v7_difficulties() {
 
   auto height = m_db->height();
-  const uint64_t v8height = m_testnet ? 446674 : 589169;
+  const uint64_t v8height = m_testnet ? fork_heights::V8_TESTNET : fork_heights::V8_MAINNET;
 
   if(height != v8height) {
     return;
   }
 
-  const uint64_t v7height = m_testnet ? 215000 : 324500;
+  const uint64_t v7height = m_testnet ? fork_heights::V7_TESTNET : fork_heights::V7_MAINNET;
   const size_t V7_DIFFICULTY_BLOCKS_COUNT = 735;
   const size_t V7_DIFFICULTY_TARGET = 120;
 
@@ -846,22 +846,22 @@ void Blockchain::normalize_v7_difficulties() {
 
   uint64_t start_height = v7height - V7_DIFFICULTY_BLOCKS_COUNT;
 
-  // Populate the timestamps & difficulties vectors with data from 735 blocks prior to V7 fork height (324500)
+  // Populate the timestamps & difficulties vectors with data from 735 blocks prior to V7 fork height
   for(uint64_t i = 0; start_height + i < v7height; i++) {
     timestamps.push_back(m_db->get_block_timestamp(start_height + i));
     difficulties.push_back(m_db->get_block_cumulative_difficulty(start_height + i));
   }
 
-  // Calculate the cumulative difficulty of block 324500 based on the 735 prior blocks' timestamp and difficulty values
+  // Calculate the cumulative difficulty of the v7 fork block based on the 735 prior blocks' timestamp and difficulty values
   difficulty_type diff = difficulties.back() + next_difficulty(timestamps, difficulties, V7_DIFFICULTY_TARGET, 1);
 
-  // Override block's 324500 cumulative difficulty
+  // Override the v7 fork block's cumulative difficulty
   m_db->set_block_cumulative_difficulty(v7height, diff);
 
-  // Iterate over V7 blocks, starting from 324500 until current block height
+  // Iterate over V7 blocks, starting from the v7 fork block until current block height
   for(uint64_t i = v7height; i < height - 1; i++) {
 
-    // Add "324500 + i" timestamp & difficulty into the vectors
+    // Add "v7 height + i" timestamp & difficulty into the vectors
     timestamps.push_back(m_db->get_block_timestamp(i));
     difficulties.push_back(m_db->get_block_cumulative_difficulty(i));
 
@@ -869,7 +869,7 @@ void Blockchain::normalize_v7_difficulties() {
     timestamps.erase(timestamps.begin());
     difficulties.erase(difficulties.begin());
 
-    // Calculate/set the correct cumulative difficulty of block "324500 + i"
+    // Calculate/set the correct cumulative difficulty of block "v7 fork height + i"
     diff = difficulties.back() + next_difficulty(timestamps, difficulties, V7_DIFFICULTY_TARGET, 1);
     m_db->set_block_cumulative_difficulty(i + 1, diff);
   }
@@ -1025,9 +1025,9 @@ difficulty_type Blockchain::get_next_difficulty_for_alternative_chain(const std:
   std::vector<uint64_t> timestamps;
   std::vector<difficulty_type> cumulative_difficulties;
 
-  const uint64_t v6height = m_testnet ? 190060 : 307500;
-  const uint64_t v7height = m_testnet ? 215000 : 324500;
-  const uint64_t v8height = m_testnet ? 446674 : 589169;
+  const uint64_t v6height = m_testnet ? fork_heights::V6_TESTNET : fork_heights::V6_MAINNET;
+  const uint64_t v7height = m_testnet ? fork_heights::V7_TESTNET : fork_heights::V7_MAINNET;
+  const uint64_t v8height = m_testnet ? fork_heights::V8_TESTNET : fork_heights::V8_MAINNET;
   uint32_t difficultyBlocksCount = (bei.height >= v6height && bei.height < v7height) ? DIFFICULTY_BLOCKS_COUNT_V6 : DIFFICULTY_BLOCKS_COUNT;
 
   // Account for the difficulty reset in v8

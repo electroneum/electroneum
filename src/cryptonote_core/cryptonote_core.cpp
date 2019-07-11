@@ -464,7 +464,7 @@ namespace cryptonote
     m_validators = std::unique_ptr<electroneum::basic::Validators>(new electroneum::basic::Validators(*db, m_pprotocol, m_testnet));
     m_blockchain_storage.set_validators_list_instance(m_validators);
 
-    if(m_blockchain_storage.get_current_blockchain_height() >= ((m_testnet ? 446674 : 589169) - 720 )) { //V8 Height - 1 day
+    if(m_blockchain_storage.get_current_blockchain_height() >= ((m_testnet ? fork_heights::V8_TESTNET : fork_heights::V8_MAINNET) - 720 )) { //V8 Height - 1 day
       m_validators->enable();
     }
 
@@ -774,7 +774,7 @@ namespace cryptonote
   //-----------------------------------------------------------------------------------------------
   size_t core::get_block_sync_size(uint64_t height) const
   {
-    static const uint64_t quick_height = m_testnet ? 190060 : 307500;
+    static const uint64_t quick_height = m_testnet ? fork_heights::V6_MAINNET : fork_heights::V6_TESTNET;
     if (block_sync_size > 0)
       return block_sync_size;
     if (height >= quick_height)
