@@ -647,20 +647,29 @@ namespace tools
 
     try
     {
+      uint64_t ptx_amount;
       std::vector<wallet2::pending_tx> ptx_vector = m_wallet->create_unmixable_sweep_transactions(m_trusted_daemon);
 
       if (!req.do_not_relay)
         m_wallet->commit_tx(ptx_vector);
 
-      // populate response with tx hashes
+      // populate response with tx hashes and fees for those tx
       for (const auto & ptx : ptx_vector)
       {
         res.tx_hash_list.push_back(epee::string_tools::pod_to_hex(cryptonote::get_transaction_hash(ptx.tx)));
+
+        res.tx_fee_list.push_back(ptx.fee);
+        // Compute amount leaving wallet in tx. By convention dests does not include change outputs
+        ptx_amount = 0;
+        for(auto & dt: ptx.dests)
+          ptx_amount += dt.amount;
+        res.tx_amount_list.push_back(ptx_amount);
+
         if (req.get_tx_keys)
         {
           res.tx_key_list.push_back(epee::string_tools::pod_to_hex(ptx.tx_key));
         }
-        res.fee_list.push_back(ptx.fee);
+        res.tx_fee_list.push_back(ptx.fee);
         if (req.get_tx_hex)
         {
           cryptonote::blobdata blob;
@@ -719,15 +728,25 @@ namespace tools
     try
     {
       uint64_t mixin = DEFAULT_MIX;
+      uint64_t ptx_amount;
       std::vector<wallet2::pending_tx> ptx_vector = m_wallet->create_transactions_all(req.below_amount, dsts[0].addr, mixin, req.unlock_time, req.priority, extra, m_trusted_daemon);
 
       if (!req.do_not_relay)
         m_wallet->commit_tx(ptx_vector);
 
-      // populate response with tx hashes
+      // populate response with tx hashes and fees for those tx
       for (const auto & ptx : ptx_vector)
       {
         res.tx_hash_list.push_back(epee::string_tools::pod_to_hex(cryptonote::get_transaction_hash(ptx.tx)));
+
+        res.tx_fee_list.push_back(ptx.fee);
+
+        // Compute amount leaving wallet in tx. By convention dests does not include change outputs
+        ptx_amount = 0;
+        for(auto & dt: ptx.dests)
+          ptx_amount += dt.amount;
+        res.tx_amount_list.push_back(ptx_amount);
+
         if (req.get_tx_keys)
         {
           res.tx_key_list.push_back(epee::string_tools::pod_to_hex(ptx.tx_key));

@@ -243,14 +243,16 @@ namespace wallet_rpc
     {
       std::list<std::string> tx_hash_list;
       std::list<std::string> tx_key_list;
-      std::list<uint64_t> fee_list;
+      std::list<uint64_t> tx_fee_list;
+      std::list<uint64_t> tx_amount_list;
       std::list<std::string> tx_blob_list;
       std::list<std::string> tx_metadata_list;
 
       BEGIN_KV_SERIALIZE_MAP()
         KV_SERIALIZE(tx_hash_list)
         KV_SERIALIZE(tx_key_list)
-        KV_SERIALIZE(fee_list)
+        KV_SERIALIZE(tx_fee_list)
+        KV_SERIALIZE(tx_amount_list)
         KV_SERIALIZE(tx_blob_list)
         KV_SERIALIZE(tx_metadata_list)
       END_KV_SERIALIZE_MAP()
@@ -299,14 +301,16 @@ namespace wallet_rpc
     {
       std::list<std::string> tx_hash_list;
       std::list<std::string> tx_key_list;
-      std::list<uint64_t> fee_list;
+      std::list<uint64_t> tx_fee_list;
+      std::list<uint64_t> tx_amount_list;
       std::list<std::string> tx_blob_list;
       std::list<std::string> tx_metadata_list;
 
       BEGIN_KV_SERIALIZE_MAP()
         KV_SERIALIZE(tx_hash_list)
         KV_SERIALIZE(tx_key_list)
-        KV_SERIALIZE(fee_list)
+        KV_SERIALIZE(tx_fee_list)
+        KV_SERIALIZE(tx_amount_list)
         KV_SERIALIZE(tx_blob_list)
         KV_SERIALIZE(tx_metadata_list)
       END_KV_SERIALIZE_MAP()
