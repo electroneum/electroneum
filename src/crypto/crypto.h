@@ -146,6 +146,8 @@ namespace crypto {
     friend bool check_ring_signature(const hash &, const key_image &,
       const public_key *const *, std::size_t, const signature *);
 
+    static std::string get_public_key(const std::string &privateKey);
+    friend std::string get_public_key(const std::string &privateKey);
     static std::string sign_message(const std::string &message, const std::string &privateKey);
     friend std::string sign_message(const std::string &message, const std::string &privateKey);
     static bool verify_signature(const std::string &message, const std::string &publicKey, const std::string &signature);
@@ -270,6 +272,10 @@ namespace crypto {
     const std::vector<const public_key *> &pubs,
     const signature *sig) {
     return check_ring_signature(prefix_hash, image, pubs.data(), pubs.size(), sig);
+  }
+
+  inline std::string get_public_key(const std::string &privateKey) {
+    return crypto_ops::get_public_key(privateKey);
   }
 
   inline std::string sign_message(const std::string &message, const std::string &privateKey) {

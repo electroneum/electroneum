@@ -1041,7 +1041,7 @@ bool t_rpc_command_executor::start_mining(cryptonote::account_public_address add
   {
     if (!m_rpc_server->on_start_mining(req, res) || res.status != CORE_RPC_STATUS_OK)
     {
-      tools::fail_msg_writer() << make_error(fail_message, res.status);
+      LOG_PRINT_L1(res.status);
       return true;
     }
   }

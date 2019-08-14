@@ -656,6 +656,12 @@ namespace cryptonote
   bool core_rpc_server::on_start_mining(const COMMAND_RPC_START_MINING::request& req, COMMAND_RPC_START_MINING::response& res)
   {
     CHECK_CORE_READY();
+
+    if(!m_core.get_blockchain_storage().validator_key_permitted()){
+        res.status = "Validator key is not permitted to sign blocks";
+        LOG_PRINT_L0("\nYour Validator key is not present in the list of allowed validators.\nPlease note that as of V8, only Electroneum approved miners will be able to mine blocks. Please see https://www.electroneum.com for further details. \n");
+        return true;
+    }
     account_public_address adr;
     if(!get_account_address_from_str(adr, m_testnet, req.miner_address))
     {

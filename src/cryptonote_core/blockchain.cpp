@@ -1418,6 +1418,18 @@ bool Blockchain::verify_block_signature(const block& b) {
   return false;
 }
 
+bool Blockchain::validator_key_permitted(){
+    const std::vector<std::string> public_keys = m_validators->getApplicablePublicKeys(m_db->height(), true);
+    std::string pubKey = crypto::get_public_key(m_validator_key);
+
+    for(auto key : public_keys){
+        if(pubKey == key){
+            return true;
+       }
+    }
+    return false;
+}
+
 //------------------------------------------------------------------
 // for an alternate chain, get the timestamps from the main chain to complete
 // the needed number of timestamps for the BLOCKCHAIN_TIMESTAMP_CHECK_WINDOW.

@@ -427,7 +427,7 @@ std::string get_account_address_as_str_from_url(const std::string& url, bool& dn
   auto addresses = addresses_from_url(url, dnssec_valid);
   if (addresses.empty())
   {
-    LOG_ERROR("wrong address: " << url);
+    LOG_PRINT_L1("wrong address: " << url);
     return {};
   }
   return dns_confirm(url, addresses, dnssec_valid);

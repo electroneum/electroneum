@@ -263,7 +263,8 @@ bool t_command_parser_executor::start_mining(const std::vector<std::string>& arg
       {
         if(!cryptonote::get_account_integrated_address_from_str(adr, has_payment_id, payment_id, true, address_str))
         {
-          std::cout << "target account address has wrong format" << std::endl;
+          std::cout << "\nTarget account address has wrong format.\n\nAn Electroeum public address is 98 characters long and begins with the characters 'etn'.\n\nUsing the cli-wallet, you can find your public address by typing 'address'."
+          << "\n\nPlease note that as of V8, only Electroneum approved miners will be able to mine blocks. Please see https://www.electroneum.com for further details.\n" << std::endl;
           return true;
         }
         else

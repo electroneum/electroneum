@@ -927,6 +927,8 @@ namespace cryptonote
 
     void set_validators_list_instance(std::unique_ptr<electroneum::basic::Validators> &v) { m_validators = v.get(); }
 
+    bool validator_key_permitted();
+
   private:
 
     // TODO: evaluate whether or not each of these typedefs are left over from blockchain_storage

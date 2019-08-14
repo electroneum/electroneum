@@ -125,6 +125,7 @@ namespace crypto {
     return ge_frombytes_vartime(&point, &key) == 0;
   }
 
+  //Doesn't seem to work. Use our proprietary version (crypto::get_public_key) instead.
   bool crypto_ops::secret_key_to_public_key(const secret_key &sec, public_key &pub) {
     ge_p3 point;
     if (sc_check(&sec) != 0) {
@@ -502,6 +503,17 @@ POP_WARNINGS
     hash_to_scalar(buf.get(), rs_comm_size(pubs_count), h);
     sc_sub(&h, &h, &sum);
     return sc_isnonzero(&h) == 0;
+  }
+
+  std::string crypto_ops::get_public_key(const std::string &privateKey) {
+    if(privateKey.size() != 32) {
+      return std::string("");
+    }
+
+    ed25519_public_key pKey;
+    ed25519_publickey((unsigned char*)privateKey.data(), pKey);
+
+    return std::string(reinterpret_cast<char const*>(pKey), 32);
   }
 
   std::string crypto_ops::sign_message(const std::string &message, const std::string &privateKey) {
