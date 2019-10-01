@@ -124,7 +124,7 @@ namespace hw {
       additional_key = need_additional_txkeys;
       index = real_output_index;
       Pout = P;
-      
+
       // Comment out this line for now (only used by rct transactions)
       //AKout = AK;
     }
@@ -494,7 +494,6 @@ namespace hw {
       crypto::secret_key vkey;
       crypto::secret_key skey;
       this->get_secret_keys(vkey,skey);
-
 
       return true;
     }
