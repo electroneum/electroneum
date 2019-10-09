@@ -1,4 +1,5 @@
-// Copyright (c) 2014-2019, The Monero Project
+// Copyrights(c) 2017-2019, The Electroneum Project
+// Copyrights(c) 2014-2019, The Monero Project
 //
 // All rights reserved.
 //
@@ -64,12 +65,12 @@
 #include <miniupnp/miniupnpc/upnpcommands.h>
 #include <miniupnp/miniupnpc/upnperrors.h>
 
-#undef MONERO_DEFAULT_LOG_CATEGORY
-#define MONERO_DEFAULT_LOG_CATEGORY "net.p2p"
+#undef ELECTRONEUM_DEFAULT_LOG_CATEGORY
+#define ELECTRONEUM_DEFAULT_LOG_CATEGORY "net.p2p"
 
 #define NET_MAKE_IP(b1,b2,b3,b4)  ((LPARAM)(((DWORD)(b1)<<24)+((DWORD)(b2)<<16)+((DWORD)(b3)<<8)+((DWORD)(b4))))
 
-#define MIN_WANTED_SEED_NODES 12
+#define MIN_WANTED_SEED_NODES 9 // Because we have 3 servers in each of the 3 regions we use
 
 namespace nodetool
 {
@@ -448,11 +449,9 @@ namespace nodetool
     std::set<std::string> full_addrs;
     if (nettype == cryptonote::TESTNET)
     {
-      full_addrs.insert("212.83.175.67:28080");
-      full_addrs.insert("5.9.100.248:28080");
-      full_addrs.insert("163.172.182.165:28080");
-      full_addrs.insert("195.154.123.123:28080");
-      full_addrs.insert("212.83.172.165:28080");
+      // Add testnet nodes here
+      full_addrs.insert("18.216.159.199:34567");
+      full_addrs.insert("18.216.237.214:34567");
     }
     else if (nettype == cryptonote::STAGENET)
     {
@@ -464,14 +463,15 @@ namespace nodetool
     }
     else
     {
-      full_addrs.insert("107.152.130.98:18080");
-      full_addrs.insert("212.83.175.67:18080");
-      full_addrs.insert("5.9.100.248:18080");
-      full_addrs.insert("163.172.182.165:18080");
-      full_addrs.insert("161.67.132.39:18080");
-      full_addrs.insert("198.74.231.92:18080");
-      full_addrs.insert("195.154.123.123:18080");
-      full_addrs.insert("212.83.172.165:18080");
+      full_addrs.insert("13.125.37.208:26967");
+      full_addrs.insert("13.125.50.165:26967");
+      full_addrs.insert("13.124.43.88:26967");
+      full_addrs.insert("34.250.126.109:26967");
+      full_addrs.insert("52.50.2.110:26967");
+      full_addrs.insert("34.240.247.44:26967");
+      full_addrs.insert("34.237.39.232:26967");
+      full_addrs.insert("34.236.180.233:26967");
+      full_addrs.insert("34.197.74.127:26967");
     }
     return full_addrs;
   }
@@ -573,6 +573,7 @@ namespace nodetool
         // if no results for node, thread's lookup likely timed out
         if (result.size())
         {
+          const uint16_t default_port = m_nettype == cryptonote::TESTNET ? ::config::testnet::P2P_DEFAULT_PORT : ::config::P2P_DEFAULT_PORT; // Get the correct port for the seed nodes
           for (const auto& addr_string : result)
             full_addrs.insert(addr_string + ":" + std::to_string(cryptonote::get_config(m_nettype).P2P_DEFAULT_PORT));
         }
@@ -1759,7 +1760,7 @@ namespace nodetool
     }
     rsp.connections_count = get_connections_count();
     rsp.incoming_connections_count = rsp.connections_count - get_outgoing_connections_count();
-    rsp.version = MONERO_VERSION_FULL;
+    rsp.version = ELECTRONEUM_VERSION_FULL;
     rsp.os_version = tools::get_os_version_string();
     m_payload_handler.get_stat_info(rsp.payload_info);
     return 1;

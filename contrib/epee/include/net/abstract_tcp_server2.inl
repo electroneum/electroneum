@@ -1,7 +1,7 @@
 /**
 @file
 @author from CrypoNote (see copyright below; Andrey N. Sabelnikov)
-@monero rfree
+@electroneum rfree
 @brief the connection templated-class for one peer connection
 */
 // Copyright (c) 2006-2013, Andrey N. Sabelnikov, www.sabelnikov.net
@@ -39,6 +39,7 @@
 #include <boost/utility/value_init.hpp>
 #include <boost/asio/deadline_timer.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp> // TODO
+#include <boost/thread/thread.hpp> // TODO
 #include <boost/thread/condition_variable.hpp> // TODO
 #include <boost/make_shared.hpp>
 #include "warnings.h"
@@ -51,8 +52,10 @@
 #include <iomanip>
 #include <algorithm>
 
-#undef MONERO_DEFAULT_LOG_CATEGORY
-#define MONERO_DEFAULT_LOG_CATEGORY "net"
+#include "../../../../src/cryptonote_core/cryptonote_core.h" // e.g. for the send_stop_signal()  (TODO: Merge ?)
+
+#undef ELECTRONEUM_DEFAULT_LOG_CATEGORY
+#define ELECTRONEUM_DEFAULT_LOG_CATEGORY "net"
 
 #define AGGRESSIVE_TIMEOUT_THRESHOLD 120 // sockets
 #define NEW_CONNECTION_TIMEOUT_LOCAL 1200000 // 2 minutes
@@ -568,7 +571,7 @@ PRAGMA_WARNING_DISABLE_VS(4355)
 					if (!all_ok) {
 						MDEBUG("do_send() DONE ***FAILED*** from packet="<<cb<<" B for ptr="<<ptr);
 						MDEBUG("do_send() SEND was aborted in middle of big package - this is mostly harmless "
-							<< " (e.g. peer closed connection) but if it causes trouble tell us at #monero-dev. " << cb);
+							<< " (e.g. peer closed connection) but if it causes trouble tell us at #electroneum-dev. " << cb);
 						return false; // partial failure in sending
 					}
 					pos = pos+len;

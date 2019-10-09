@@ -1,4 +1,5 @@
-// Copyright (c) 2014-2019, The Monero Project
+// Copyrights(c) 2017-2019, The Electroneum Project
+// Copyrights(c) 2014-2019, The Monero Project
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without modification, are
@@ -268,6 +269,8 @@ public:
 
   virtual size_t get_block_weight(const uint64_t& height) const;
 
+  virtual void set_block_cumulative_difficulty(uint64_t height, difficulty_type diff);
+
   virtual difficulty_type get_block_cumulative_difficulty(const uint64_t& height) const;
 
   virtual difficulty_type get_block_difficulty(const uint64_t& height) const;
@@ -404,10 +407,6 @@ private:
   void check_open() const;
 
   virtual bool is_read_only() const;
-
-  //
-  // fix up anything that may be wrong due to past bugs
-  virtual void fixup();
 
   bool m_run_checkpoint;
   std::unique_ptr<boost::thread> m_checkpoint_thread;

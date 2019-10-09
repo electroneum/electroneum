@@ -34,8 +34,8 @@
 #include "net/net_parse_helpers.h"
 #include <algorithm>
 
-#undef MONERO_DEFAULT_LOG_CATEGORY
-#define MONERO_DEFAULT_LOG_CATEGORY "wallet.mms"
+#undef ELECTRONEUM_DEFAULT_LOG_CATEGORY
+#define ELECTRONEUM_DEFAULT_LOG_CATEGORY "wallet.mms"
 #define PYBITMESSAGE_DEFAULT_API_PORT 8442
 
 namespace mms
@@ -104,7 +104,7 @@ bool message_transporter::receive_messages(const std::vector<std::string> &desti
 {
   // The message body of the Bitmessage message is basically the transport message, as JSON (and nothing more).
   // Weeding out other, non-MMS messages is done in a simple way: If it deserializes without error, it's an MMS message
-  // That JSON is Base64-encoded by the MMS because the Monero epee JSON serializer does not escape anything and happily
+  // That JSON is Base64-encoded by the MMS because the Electroneum epee JSON serializer does not escape anything and happily
   // includes even 0 (NUL) in strings, which might confuse Bitmessage or at least display confusingly in the client.
   // There is yet another Base64-encoding of course as part of the Bitmessage API for the message body parameter
   // The Bitmessage API call "getAllInboxMessages" gives back a JSON array with all the messages (despite using

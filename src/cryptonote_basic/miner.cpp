@@ -1,4 +1,5 @@
-// Copyright (c) 2014-2019, The Monero Project
+// Copyrights(c) 2017-2019, The Electroneum Project
+// Copyrights(c) 2014-2019, The Monero Project
 //
 // All rights reserved.
 //
@@ -70,8 +71,8 @@
   #include <unistd.h>
 #endif
 
-#undef MONERO_DEFAULT_LOG_CATEGORY
-#define MONERO_DEFAULT_LOG_CATEGORY "miner"
+#undef ELECTRONEUM_DEFAULT_LOG_CATEGORY
+#define ELECTRONEUM_DEFAULT_LOG_CATEGORY "miner"
 
 #define AUTODETECT_WINDOW 10 // seconds
 #define AUTODETECT_GAIN_THRESHOLD 1.02f  // 2%
@@ -507,7 +508,6 @@ namespace cryptonote
     if(m_pausers_count < 0)
     {
       m_pausers_count = 0;
-      MERROR("Unexpected miner::resume() called");
     }
     if(!m_pausers_count && is_mining())
       MDEBUG("MINING RESUMED");
@@ -550,6 +550,11 @@ namespace cryptonote
       {
         CRITICAL_REGION_BEGIN(m_template_lock);
         b = m_template;
+
+        if(b.major_version >= 8 && b.signature.empty()) {
+          continue;
+        }
+
         local_diff = m_diffic;
         height = m_height;
         CRITICAL_REGION_END();

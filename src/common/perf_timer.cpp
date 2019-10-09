@@ -1,3 +1,4 @@
+// Copyright (c) 2017-2019, The Electroneum Project
 // Copyright (c) 2016-2019, The Monero Project
 // 
 // All rights reserved.
@@ -30,8 +31,8 @@
 #include "misc_os_dependent.h"
 #include "perf_timer.h"
 
-#undef MONERO_DEFAULT_LOG_CATEGORY
-#define MONERO_DEFAULT_LOG_CATEGORY "perf"
+#undef ELECTRONEUM_DEFAULT_LOG_CATEGORY
+#define ELECTRONEUM_DEFAULT_LOG_CATEGORY "perf"
 
 #define PERF_LOG_ALWAYS(level, cat, x) \
   el::base::Writer(level, __FILE__, __LINE__, ELPP_FUNC, el::base::DispatchAction::FileOnlyLog).construct(cat) << x

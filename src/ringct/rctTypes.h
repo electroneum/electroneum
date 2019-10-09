@@ -1,4 +1,4 @@
-// Copyright (c) 2016, Monero Research Labs
+// Copyright (c) 2016, Electroneum Research Labs
 //
 // Author: Shen Noether <shen.noether@gmx.com>
 //
@@ -61,7 +61,7 @@ extern "C" {
 #define DP(x)
 #endif
 
-//atomic units of moneros
+//atomic units of electroneums
 #define ATOMS 64
 
 //for printing large ints

@@ -1,3 +1,4 @@
+# Copyright (c) 2017-2019, The Electroneum Project
 # Copyright (c) 2014-2019, The Monero Project
 #
 # All rights reserved.
@@ -93,6 +94,10 @@ release: cmake-release
 release-test:
 	mkdir -p $(builddir)/release
 	cd $(builddir)/release && cmake -D BUILD_TESTS=ON -D CMAKE_BUILD_TYPE=release $(topdir) && $(MAKE) && $(MAKE) test
+
+release-test-mingw:
+	mkdir -p build/release
+	cd build/release && cmake -D BUILD_TESTS=ON -D CMAKE_BUILD_TYPE=release -Dgtest_disable_pthreads=On ../.. && $(MAKE) && $(MAKE) test
 
 release-all:
 	mkdir -p $(builddir)/release

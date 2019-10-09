@@ -1,3 +1,4 @@
+# Copyright (c) 2017-2019, The Electroneum Project
 # Copyright (c) 2014-2019, The Monero Project
 #
 # All rights reserved.
@@ -62,9 +63,9 @@ set(daemon_private_headers
   ../p2p/p2p_protocol_defs.h
   ../p2p/stdafx.h)
 
-monero_private_headers(daemon
+electroneum_private_headers(daemon
   ${daemon_private_headers})
-monero_add_executable(daemon
+electroneum_add_executable(daemon
   ${daemon_sources}
   ${daemon_headers}
   ${daemon_private_headers})
@@ -94,5 +95,5 @@ target_link_libraries(daemon
     ${Blocks})
 set_property(TARGET daemon
   PROPERTY
-    OUTPUT_NAME "monerod")
+    OUTPUT_NAME "electroneumd")
 install(TARGETS daemon DESTINATION bin)

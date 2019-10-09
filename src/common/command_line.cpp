@@ -1,4 +1,5 @@
-// Copyright (c) 2014-2019, The Monero Project
+// Copyrights(c) 2017-2019, The Electroneum Project
+// Copyrights(c) 2014-2019, The Monero Project
 // 
 // All rights reserved.
 // 
@@ -31,6 +32,7 @@
 #include "command_line.h"
 #include <boost/algorithm/string/compare.hpp>
 #include <boost/algorithm/string/predicate.hpp>
+#include <unordered_set>
 #include "common/i18n.h"
 
 namespace command_line

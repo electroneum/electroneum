@@ -1,4 +1,5 @@
-// Copyright (c) 2014-2019, The Monero Project
+// Copyrights(c) 2017-2019, The Electroneum Project
+// Copyrights(c) 2014-2019, The Monero Project
 // 
 // All rights reserved.
 // 
@@ -710,6 +711,11 @@ namespace cryptonote
       bool update_available;
       std::string version;
 
+      std::string daemon_release_name;
+      std::string daemon_version;
+      std::string daemon_version_full;
+      std::string daemon_version_tag;
+
       BEGIN_KV_SERIALIZE_MAP()
         KV_SERIALIZE(status)
         KV_SERIALIZE(height)
@@ -748,6 +754,11 @@ namespace cryptonote
         KV_SERIALIZE(database_size)
         KV_SERIALIZE(update_available)
         KV_SERIALIZE(version)
+
+        KV_SERIALIZE(daemon_release_name)
+        KV_SERIALIZE(daemon_version)
+        KV_SERIALIZE(daemon_version_full)
+        KV_SERIALIZE(daemon_version_tag)
       END_KV_SERIALIZE_MAP()
     };
     typedef epee::misc_utils::struct_init<response_t> response;
@@ -2328,6 +2339,106 @@ namespace cryptonote
         KV_SERIALIZE(status)
         KV_SERIALIZE(pruned)
         KV_SERIALIZE(pruning_seed)
+      END_KV_SERIALIZE_MAP()
+    };
+    typedef epee::misc_utils::struct_init<response_t> response;
+  };
+
+  struct COMMAND_RPC_SET_VALIDATOR_KEY
+  {
+      struct request_t
+      {
+          std::string validator_key;
+
+          BEGIN_KV_SERIALIZE_MAP()
+            KV_SERIALIZE(validator_key)
+          END_KV_SERIALIZE_MAP()
+      };
+      typedef epee::misc_utils::struct_init<request_t> request;
+
+      struct response_t
+      {
+          std::string status;
+
+          BEGIN_KV_SERIALIZE_MAP()
+            KV_SERIALIZE(status)
+          END_KV_SERIALIZE_MAP()
+      };
+      typedef epee::misc_utils::struct_init<response_t> response;
+  };
+
+  struct COMMAND_RPC_GENERATE_ED25519_KEYPAIR
+  {
+      struct request_t
+      {
+        BEGIN_KV_SERIALIZE_MAP()
+        END_KV_SERIALIZE_MAP()
+      };
+      typedef epee::misc_utils::struct_init<request_t> request;
+
+      struct response_t
+      {
+        std::string privateKey;
+        std::string publicKey;
+        std::string status;
+
+        BEGIN_KV_SERIALIZE_MAP()
+          KV_SERIALIZE(privateKey)
+          KV_SERIALIZE(publicKey)
+          KV_SERIALIZE(status)
+        END_KV_SERIALIZE_MAP()
+      };
+      typedef epee::misc_utils::struct_init<response_t> response;
+  };
+
+  struct COMMAND_RPC_SIGN_MESSAGE
+  {
+      struct request_t
+      {
+        std::string privateKey;
+        std::string message;
+
+        BEGIN_KV_SERIALIZE_MAP()
+          KV_SERIALIZE(privateKey)
+          KV_SERIALIZE(message)
+        END_KV_SERIALIZE_MAP()
+      };
+      typedef epee::misc_utils::struct_init<request_t> request;
+
+      struct response_t
+      {
+        std::string signature;
+        std::string status;
+
+        BEGIN_KV_SERIALIZE_MAP()
+          KV_SERIALIZE(signature)
+          KV_SERIALIZE(status)
+        END_KV_SERIALIZE_MAP()
+      };
+      typedef epee::misc_utils::struct_init<response_t> response;
+  };
+
+  struct COMMAND_RPC_INJECT_EMERGENCY_VLIST
+  {
+    struct request_t 
+    {
+      std::string blob;
+      int version = 0;
+      std::vector<std::string> signatures;
+      std::vector<std::string> pubkeys;
+
+      BEGIN_KV_SERIALIZE_MAP()
+        KV_SERIALIZE(blob)
+        KV_SERIALIZE(version)
+        KV_SERIALIZE(signatures)
+        KV_SERIALIZE(pubkeys)
+      END_KV_SERIALIZE_MAP()
+    };
+    typedef epee::misc_utils::struct_init<request_t> request;
+
+    struct response_t
+    {
+      BEGIN_KV_SERIALIZE_MAP()
       END_KV_SERIALIZE_MAP()
     };
     typedef epee::misc_utils::struct_init<response_t> response;

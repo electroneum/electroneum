@@ -1,4 +1,5 @@
-// Copyright (c) 2014-2019, The Monero Project
+// Copyrights(c) 2017-2019, The Electroneum Project
+// Copyrights(c) 2014-2019, The Monero Project
 //
 // All rights reserved.
 //
@@ -43,8 +44,10 @@ using namespace epee;
 #include "int-util.h"
 #include "common/dns_utils.h"
 
-#undef MONERO_DEFAULT_LOG_CATEGORY
-#define MONERO_DEFAULT_LOG_CATEGORY "cn"
+#include <math.h>
+
+#undef ELECTRONEUM_DEFAULT_LOG_CATEGORY
+#define ELECTRONEUM_DEFAULT_LOG_CATEGORY "cn"
 
 namespace cryptonote {
 
@@ -73,7 +76,9 @@ namespace cryptonote {
       return CRYPTONOTE_BLOCK_GRANTED_FULL_REWARD_ZONE_V1;
     if (version < 5)
       return CRYPTONOTE_BLOCK_GRANTED_FULL_REWARD_ZONE_V2;
-    return CRYPTONOTE_BLOCK_GRANTED_FULL_REWARD_ZONE_V5;
+    if (version < 8)
+      return CRYPTONOTE_BLOCK_GRANTED_FULL_REWARD_ZONE_V5;
+    return CRYPTONOTE_BLOCK_GRANTED_FULL_REWARD_ZONE_V8;
   }
   //-----------------------------------------------------------------------------------------------
   size_t get_max_tx_size()
@@ -82,18 +87,30 @@ namespace cryptonote {
   }
   //-----------------------------------------------------------------------------------------------
   bool get_block_reward(size_t median_weight, size_t current_block_weight, uint64_t already_generated_coins, uint64_t &reward, uint8_t version) {
-    static_assert(DIFFICULTY_TARGET_V2%60==0&&DIFFICULTY_TARGET_V1%60==0,"difficulty targets must be a multiple of 60");
-    const int target = version < 2 ? DIFFICULTY_TARGET_V1 : DIFFICULTY_TARGET_V2;
-    const int target_minutes = target / 60;
-    const int emission_speed_factor = EMISSION_SPEED_FACTOR_PER_MINUTE - (target_minutes-1);
+    static_assert(DIFFICULTY_TARGET%60==0,"difficulty target must be a multiple of 60");
+    static_assert(DIFFICULTY_TARGET_V6%60==0,"difficulty target V6 must be a multiple of 60");
 
-    uint64_t base_reward = (MONEY_SUPPLY - already_generated_coins) >> emission_speed_factor;
+    const int target = version >= 6 ? DIFFICULTY_TARGET_V6 : DIFFICULTY_TARGET;
+
+    const int target_minutes = target / 60;
+
+    uint64_t full_reward_zone = get_min_block_weight(version);
+
+    const uint64_t premine = 1260000000000U;
+    if (median_weight > 0 && already_generated_coins < premine && !(current_block_weight >= 2 * full_reward_zone)) {
+      reward = premine;
+      return true;
+    }
+
+    //After v8 the reward drops by ~75%
+    double emission_speed_factor = (version == 8 ? EMISSION_SPEED_FACTOR_PER_MINUTE_V8 : EMISSION_SPEED_FACTOR_PER_MINUTE) - (target_minutes-1);
+
+    uint64_t base_reward = (MONEY_SUPPLY - already_generated_coins) / pow(2, emission_speed_factor);
+
     if (base_reward < FINAL_SUBSIDY_PER_MINUTE*target_minutes)
     {
       base_reward = FINAL_SUBSIDY_PER_MINUTE*target_minutes;
     }
-
-    uint64_t full_reward_zone = get_min_block_weight(version);
 
     //make it soft
     if (median_weight < full_reward_zone) {

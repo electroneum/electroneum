@@ -1,4 +1,5 @@
-// Copyright (c) 2014-2019, The Monero Project
+// Copyrights(c) 2017-2019, The Electroneum Project
+// Copyrights(c) 2014-2019, The Monero Project
 // 
 // All rights reserved.
 // 
@@ -52,10 +53,14 @@ namespace crypto {
   POD_CLASS hash8 {
     char data[8];
   };
+  POD_CLASS hash64 {
+    char data[64];
+  };
 #pragma pack(pop)
 
   static_assert(sizeof(hash) == HASH_SIZE, "Invalid structure size");
   static_assert(sizeof(hash8) == 8, "Invalid structure size");
+  static_assert(sizeof(hash64) == 64, "Invalid structure size");
 
   /*
     Cryptonight hash functions
@@ -89,10 +94,15 @@ namespace crypto {
   inline std::ostream &operator <<(std::ostream &o, const crypto::hash8 &v) {
     epee::to_hex::formatted(o, epee::as_byte_span(v)); return o;
   }
+  inline std::ostream &operator <<(std::ostream &o, const crypto::hash64 &v) {
+    epee::to_hex::formatted(o, epee::as_byte_span(v)); return o;
+  }
 
   const static crypto::hash null_hash = boost::value_initialized<crypto::hash>();
   const static crypto::hash8 null_hash8 = boost::value_initialized<crypto::hash8>();
+  const static crypto::hash64 null_hash64 = boost::value_initialized<crypto::hash64>();
 }
 
 CRYPTO_MAKE_HASHABLE(hash)
 CRYPTO_MAKE_COMPARABLE(hash8)
+CRYPTO_MAKE_COMPARABLE(hash64)

@@ -1,4 +1,5 @@
-// Copyright (c) 2014-2019, The Monero Project
+// Copyrights(c) 2017-2019, The Electroneum Project
+// Copyrights(c) 2014-2019, The Monero Project
 //
 // All rights reserved.
 //
@@ -46,8 +47,8 @@
 #include "common/perf_timer.h"
 #include "crypto/hash.h"
 
-#undef MONERO_DEFAULT_LOG_CATEGORY
-#define MONERO_DEFAULT_LOG_CATEGORY "txpool"
+#undef ELECTRONEUM_DEFAULT_LOG_CATEGORY
+#define ELECTRONEUM_DEFAULT_LOG_CATEGORY "txpool"
 
 DISABLE_VS_WARNINGS(4244 4345 4503) //'boost::foreach_detail_::or_' : decorated name length exceeded, name was truncated
 
@@ -149,7 +150,8 @@ namespace cryptonote
     // fee per kilobyte, size rounded up.
     uint64_t fee;
 
-    if (tx.version == 1)
+    uint64_t inputs_amount = 0;
+    if(!get_inputs_money_amount(tx, inputs_amount))
     {
       uint64_t inputs_amount = 0;
       if(!get_inputs_money_amount(tx, inputs_amount))
@@ -176,9 +178,14 @@ namespace cryptonote
 
       fee = inputs_amount - outputs_amount;
     }
-    else
+
+    uint64_t outputs_amount = get_outs_money_amount(tx);
+    if(outputs_amount >= inputs_amount)
     {
-      fee = tx.rct_signatures.txnFee;
+      LOG_PRINT_L1("transaction use more money then it has: use " << print_money(outputs_amount) << ", have " << print_money(inputs_amount));
+      tvc.m_verifivation_failed = true;
+      tvc.m_overspend = true;
+      return false;
     }
 
     if (!kept_by_block && !m_blockchain.check_fee(tx_weight, fee))
@@ -231,9 +238,12 @@ namespace cryptonote
     bool ch_inp_res = check_tx_inputs([&tx]()->cryptonote::transaction&{ return tx; }, id, max_used_block_height, max_used_block_id, tvc, kept_by_block);
     if(!ch_inp_res)
     {
-      // if the transaction was valid before (kept_by_block), then it
-      // may become valid again, so ignore the failed inputs check.
-      if(kept_by_block)
+      // If a TX has been orphaned, its inputs may fail checks if they reference outputs that were only spent
+      // on the orphaned chain (max_used_block_height > current main chain height).
+      // Therefore, these outputs, and the transaction itself, may become valid again in time.
+      // So skip inputs check unless the tx is never going to pass verification for other reasons
+      // (invalid mixin, invalid version, etc).
+      if(kept_by_block && !tvc.m_low_mixin && !tvc.m_verifivation_failed)
       {
         meta.weight = tx_weight;
         meta.fee = fee;
@@ -537,8 +547,8 @@ namespace cryptonote
     std::list<std::pair<crypto::hash, uint64_t>> remove;
     m_blockchain.for_all_txpool_txes([this, &remove](const crypto::hash &txid, const txpool_tx_meta_t &meta, const cryptonote::blobdata*) {
       uint64_t tx_age = time(nullptr) - meta.receive_time;
-
-      if((tx_age > CRYPTONOTE_MEMPOOL_TX_LIVETIME && !meta.kept_by_block) ||
+      uint32_t mempool_lifetime = m_blockchain.get_mempool_tx_livetime();
+      if((tx_age > mempool_lifetime && !meta.kept_by_block) ||
          (tx_age > CRYPTONOTE_MEMPOOL_TX_FROM_ALT_BLOCK_LIVETIME && meta.kept_by_block) )
       {
         LOG_PRINT_L1("Tx " << txid << " removed from tx pool due to outdated, age: " << tx_age );
@@ -606,7 +616,8 @@ namespace cryptonote
         // if the tx is older than half the max lifetime, we don't re-relay it, to avoid a problem
         // mentioned by smooth where nodes would flush txes at slightly different times, causing
         // flushed txes to be re-added when received from a node which was just about to flush it
-        uint64_t max_age = meta.kept_by_block ? CRYPTONOTE_MEMPOOL_TX_FROM_ALT_BLOCK_LIVETIME : CRYPTONOTE_MEMPOOL_TX_LIVETIME;
+        uint32_t mempool_lifetime = m_blockchain.get_mempool_tx_livetime();
+        uint64_t max_age = meta.kept_by_block ? CRYPTONOTE_MEMPOOL_TX_FROM_ALT_BLOCK_LIVETIME : mempool_lifetime;
         if (now - meta.receive_time <= max_age / 2)
         {
           try

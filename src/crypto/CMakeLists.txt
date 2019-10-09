@@ -1,3 +1,4 @@
+# Copyright (c) 2017-2019, The Electroneum Project
 # Copyright (c) 2014-2019, The Monero Project
 #
 # All rights reserved.
@@ -77,9 +78,9 @@ set(crypto_private_headers
   CryptonightR_JIT.h
   CryptonightR_template.h)
 
-monero_private_headers(cncrypto
+electroneum_private_headers(cncrypto
   ${crypto_private_headers})
-monero_add_library(cncrypto
+electroneum_add_library(cncrypto
   ${crypto_sources}
   ${crypto_headers}
   ${crypto_private_headers})
@@ -89,7 +90,9 @@ target_link_libraries(cncrypto
     ${Boost_SYSTEM_LIBRARY}
     ${SODIUM_LIBRARY}
   PRIVATE
-    ${EXTRA_LIBRARIES})
+    ${EXTRA_LIBRARIES}
+    ${OPENSSL_LIBRARIES}
+    ed25519-donna)
 
 if (ARM)
   option(NO_OPTIMIZED_MULTIPLY_ON_ARM

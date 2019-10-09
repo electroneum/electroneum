@@ -1,4 +1,5 @@
-// Copyright (c) 2014-2019, The Monero Project
+// Copyrights(c) 2017-2019, The Electroneum Project
+// Copyrights(c) 2014-2019, The Monero Project
 //
 // All rights reserved.
 //
@@ -53,8 +54,8 @@ using namespace epee;
 #include "common/notify.h"
 #include "version.h"
 
-#undef MONERO_DEFAULT_LOG_CATEGORY
-#define MONERO_DEFAULT_LOG_CATEGORY "cn"
+#undef ELECTRONEUM_DEFAULT_LOG_CATEGORY
+#define ELECTRONEUM_DEFAULT_LOG_CATEGORY "cn"
 
 DISABLE_VS_WARNINGS(4355)
 
@@ -86,6 +87,11 @@ namespace cryptonote
     "fixed-difficulty"
   , "Fixed difficulty used for testing."
   , 0
+  };
+  const command_line::arg_descriptor<bool> arg_skip_block_sig_verification  = {
+      "ignore-bsig"
+          , "Ignore block signature & signatory verification. Used for testing."
+          , false
   };
   const command_line::arg_descriptor<std::string, false, true, 2> arg_data_dir = {
     "data-dir"
@@ -155,7 +161,7 @@ namespace cryptonote
   };
   static const command_line::arg_descriptor<std::string> arg_check_updates = {
     "check-updates"
-  , "Check for new versions of monero: [disabled|notify|download|update]"
+  , "Check for new versions of electroneum: [disabled|notify|download|update]"
   , "notify"
   };
   static const command_line::arg_descriptor<bool> arg_fluffy_blocks  = {
@@ -199,7 +205,7 @@ namespace cryptonote
   static const command_line::arg_descriptor<std::string> arg_block_rate_notify = {
     "block-rate-notify"
   , "Run a program when the block rate undergoes large fluctuations. This might "
-    "be a sign of large amounts of hash rate going on and off the Monero network, "
+    "be a sign of large amounts of hash rate going on and off the Electroneum network, "
     "and thus be of potential interest in predicting attacks. %t will be replaced "
     "by the number of minutes for the observation window, %b by the number of "
     "blocks observed within that window, and %e by the number of blocks that was "
@@ -208,6 +214,13 @@ namespace cryptonote
     "is acted upon."
   , ""
   };
+  static const command_line::arg_descriptor<std::string> arg_validator_key = {
+    "validator-key"
+  , "Validator Key"
+  , ""
+  };
+
+  //using namespace electroneum::basic;
 
   //-----------------------------------------------------------------------------------------------
   core::core(i_cryptonote_protocol* pprotocol):
@@ -281,6 +294,18 @@ namespace cryptonote
     return res;
   }
   //-----------------------------------------------------------------------------------
+  std::string core::get_validators_list() {
+    return m_validators->getSerializedValidatorList();
+  }
+  //-----------------------------------------------------------------------------------
+  electroneum::basic::list_update_outcome core::set_validators_list(std::string v_list, bool isEmergencyUpdate) {
+    return m_validators->setValidatorsList(v_list, true, isEmergencyUpdate);
+  }
+
+  bool core::isValidatorsListValid() {
+    return m_validators->isValid();
+  }
+  //-----------------------------------------------------------------------------------
   void core::stop()
   {
     m_miner.stop();
@@ -307,6 +332,7 @@ namespace cryptonote
     command_line::add_arg(desc, arg_stagenet_on);
     command_line::add_arg(desc, arg_regtest_on);
     command_line::add_arg(desc, arg_fixed_difficulty);
+    command_line::add_arg(desc, arg_skip_block_sig_verification);
     command_line::add_arg(desc, arg_dns_checkpoints);
     command_line::add_arg(desc, arg_prep_blocks_threads);
     command_line::add_arg(desc, arg_fast_block_sync);
@@ -325,6 +351,7 @@ namespace cryptonote
     command_line::add_arg(desc, arg_prune_blockchain);
     command_line::add_arg(desc, arg_reorg_notify);
     command_line::add_arg(desc, arg_block_rate_notify);
+    command_line::add_arg(desc, arg_validator_key);
 
     miner::init_options(desc);
     BlockchainDB::init_options(desc);
@@ -456,6 +483,12 @@ namespace cryptonote
     std::string check_updates_string = command_line::get_arg(vm, arg_check_updates);
     size_t max_txpool_weight = command_line::get_arg(vm, arg_max_txpool_weight);
     bool prune_blockchain = command_line::get_arg(vm, arg_prune_blockchain);
+    std::string validator_key = command_line::get_arg(vm, arg_validator_key);
+
+    bool is_validator_key_valid = std::count_if(validator_key.begin(), validator_key.end(), [](int c) {return !std::isxdigit(c);}) == 0;
+    if(!is_validator_key_valid || validator_key.size() % 2 != 0) {
+      validator_key.clear();
+    }
 
     boost::filesystem::path folder(m_config_folder);
     if (m_nettype == FAKECHAIN)
@@ -472,8 +505,8 @@ namespace cryptonote
       if (boost::filesystem::exists(old_files / "blockchain.bin"))
       {
         MWARNING("Found old-style blockchain.bin in " << old_files.string());
-        MWARNING("Monero now uses a new format. You can either remove blockchain.bin to start syncing");
-        MWARNING("the blockchain anew, or use monero-blockchain-export and monero-blockchain-import to");
+        MWARNING("Electroneum now uses a new format. You can either remove blockchain.bin to start syncing");
+        MWARNING("the blockchain anew, or use electroneum-blockchain-export and electroneum-blockchain-import to");
         MWARNING("convert your existing blockchain.bin to the new format. See README.md for instructions.");
         return false;
       }
@@ -595,7 +628,7 @@ namespace cryptonote
     }
 
     m_blockchain_storage.set_user_options(blocks_threads,
-        sync_on_blocks, sync_threshold, sync_mode, fast_sync);
+        sync_on_blocks, sync_threshold, sync_mode, fast_sync, validator_key);
 
     try
     {
@@ -633,7 +666,8 @@ namespace cryptonote
       0
     };
     const difficulty_type fixed_difficulty = command_line::get_arg(vm, arg_fixed_difficulty);
-    r = m_blockchain_storage.init(db.release(), m_nettype, m_offline, regtest ? &regtest_test_options : test_options, fixed_difficulty, get_checkpoints);
+    const bool ignore_bsig = command_line::get_arg(vm, arg_skip_block_sig_verification);
+    r = m_blockchain_storage.init(db.release(), m_nettype, m_offline, regtest ? &regtest_test_options : test_options, fixed_difficulty, get_checkpoints, ignore_bsig);
 
     r = m_mempool.init(max_txpool_weight);
     CHECK_AND_ASSERT_MES(r, false, "Failed to initialize memory pool");
@@ -683,6 +717,13 @@ namespace cryptonote
       {
         CHECK_AND_ASSERT_MES(m_blockchain_storage.update_blockchain_pruning(), false, "Failed to update blockchain pruning");
       }
+    }
+    
+    m_validators = std::unique_ptr<electroneum::basic::Validators>(new electroneum::basic::Validators(m_blockchain_storage.get_db(), m_pprotocol, m_nettype == TESTNET));
+    m_blockchain_storage.set_validators_list_instance(m_validators);
+
+    if(m_blockchain_storage.get_current_blockchain_height() >= ((m_nettype == TESTNET ? 446674 : 589169) - 720 )) { //V8 Height - 1 day
+      m_validators->enable();
     }
 
     return load_state_data();
@@ -1047,14 +1088,6 @@ namespace cryptonote
       MERROR_VER("tx with invalid outputs, rejected for tx id= " << get_transaction_hash(tx));
       return false;
     }
-    if (tx.version > 1)
-    {
-      if (tx.rct_signatures.outPk.size() != tx.vout.size())
-      {
-        MERROR_VER("tx with mismatched vout/outPk count, rejected for tx id= " << get_transaction_hash(tx));
-        return false;
-      }
-    }
 
     if(!check_money_overflow(tx))
     {
@@ -1062,19 +1095,15 @@ namespace cryptonote
       return false;
     }
 
-    if (tx.version == 1)
-    {
-      uint64_t amount_in = 0;
-      get_inputs_money_amount(tx, amount_in);
-      uint64_t amount_out = get_outs_money_amount(tx);
+    uint64_t amount_in = 0;
+    get_inputs_money_amount(tx, amount_in);
+    uint64_t amount_out = get_outs_money_amount(tx);
 
-      if(amount_in <= amount_out)
-      {
-        MERROR_VER("tx with wrong amounts: ins " << amount_in << ", outs " << amount_out << ", rejected for tx id= " << get_transaction_hash(tx));
-        return false;
-      }
+    if(amount_in <= amount_out)
+    {
+      MERROR_VER("tx with wrong amounts: ins " << amount_in << ", outs " << amount_out << ", rejected for tx id= " << get_transaction_hash(tx));
+      return false;
     }
-    // for version > 1, ringct signatures check verifies amounts match
 
     if(!keeped_by_block && get_transaction_weight(tx) >= m_blockchain_storage.get_current_cumulative_block_weight_limit() - CRYPTONOTE_COINBASE_BLOB_RESERVED_SIZE)
     {
@@ -1179,7 +1208,7 @@ namespace cryptonote
   bool core::check_tx_inputs_ring_members_diff(const transaction& tx) const
   {
     const uint8_t version = m_blockchain_storage.get_current_hard_fork_version();
-    if (version >= 6)
+    if (version >= HF_VERSION_ENFORCE_RCT)
     {
       for(const auto& in: tx.vin)
       {
@@ -1220,6 +1249,9 @@ namespace cryptonote
   //-----------------------------------------------------------------------------------------------
   bool core::add_new_tx(transaction& tx, const crypto::hash& tx_hash, const cryptonote::blobdata &blob, size_t tx_weight, tx_verification_context& tvc, bool keeped_by_block, bool relayed, bool do_not_relay)
   {
+    if (keeped_by_block)
+      get_blockchain_storage().on_new_tx_from_block(tx);
+
     if(m_mempool.have_tx(tx_hash))
     {
       LOG_PRINT_L2("tx " << tx_hash << "already have transaction in tx_pool");
@@ -1355,12 +1387,8 @@ namespace cryptonote
     }
     m_blockchain_storage.add_new_block(b, bvc);
     cleanup_handle_incoming_blocks(true);
-    //anyway - update miner template
-    update_miner_block_template();
-    m_miner.resume();
 
-
-    CHECK_AND_ASSERT_MES(!bvc.m_verifivation_failed, false, "mined block failed verification");
+    CHECK_AND_ASSERT_MES(!bvc.m_verifivation_failed, false, "Mined block failed verification");
     if(bvc.m_added_to_main_chain)
     {
       cryptonote_connection_context exclude_context = boost::value_initialized<cryptonote_connection_context>();
@@ -1383,6 +1411,9 @@ namespace cryptonote
         arg.b.txs.push_back(tx);
 
       m_pprotocol->relay_block(arg, exclude_context);
+    } else {
+      update_miner_block_template();
+      m_miner.resume();
     }
     return true;
   }
@@ -1431,6 +1462,10 @@ namespace cryptonote
   {
     TRY_ENTRY();
 
+    // load json & DNS checkpoints every 10min/hour respectively,
+    // and verify them with respect to what blocks we already have
+    CHECK_AND_ASSERT_MES(update_checkpoints(), false, "One or more checkpoints loaded from json or dns conflicted with existing checkpoints.");
+
     bvc = boost::value_initialized<block_verification_context>();
 
     if (!check_incoming_block_size(block_blob))
@@ -1458,9 +1493,16 @@ namespace cryptonote
       }
       b = &lb;
     }
+
     add_new_block(*b, bvc);
-    if(update_miner_blocktemplate && bvc.m_added_to_main_chain)
-       update_miner_block_template();
+
+    if(bvc.m_added_to_main_chain) {
+      m_miner.resume();
+
+      if(update_miner_blocktemplate)
+        update_miner_block_template();
+    }
+
     return true;
 
     CATCH_ENTRY_L0("core::handle_incoming_block()", false);
@@ -1485,6 +1527,11 @@ namespace cryptonote
   crypto::hash core::get_tail_id() const
   {
     return m_blockchain_storage.get_tail_id();
+  }
+  //-----------------------------------------------------------------------------------------------
+  void core::set_block_cumulative_difficulty(uint64_t height, difficulty_type diff)
+  {
+    return m_blockchain_storage.get_db().set_block_cumulative_difficulty(height, diff);
   }
   //-----------------------------------------------------------------------------------------------
   difficulty_type core::get_block_cumulative_difficulty(uint64_t height) const
@@ -1587,7 +1634,7 @@ namespace cryptonote
     {
       std::string main_message;
       if (m_offline)
-        main_message = "The daemon is running offline and will not attempt to sync to the Monero network.";
+        main_message = "The daemon is running offline and will not attempt to sync to the Electroneum network.";
       else
         main_message = "The daemon will start synchronizing with the network. This may take a long time to complete.";
       MGINFO_YELLOW(ENDL << "**********************************************************************" << ENDL
@@ -1610,6 +1657,8 @@ namespace cryptonote
     m_blockchain_pruning_interval.do_call(boost::bind(&core::update_blockchain_pruning, this));
     m_miner.on_idle();
     m_mempool.on_idle();
+    m_validators->on_idle();
+
     return true;
   }
   //-----------------------------------------------------------------------------------------------
@@ -1660,7 +1709,7 @@ namespace cryptonote
   //-----------------------------------------------------------------------------------------------
   bool core::check_updates()
   {
-    static const char software[] = "monero";
+    static const char software[] = "electroneum";
 #ifdef BUILD_TAG
     static const char buildtag[] = BOOST_PP_STRINGIZE(BUILD_TAG);
     static const char subdir[] = "cli"; // because it can never be simple
@@ -1680,7 +1729,7 @@ namespace cryptonote
     if (!tools::check_updates(software, buildtag, version, hash))
       return false;
 
-    if (tools::vercmp(version.c_str(), MONERO_VERSION) <= 0)
+    if (tools::vercmp(version.c_str(), ELECTRONEUM_VERSION) <= 0)
     {
       m_update_available = false;
       return true;
@@ -1690,8 +1739,24 @@ namespace cryptonote
     MCLOG_CYAN(el::Level::Info, "global", "Version " << version << " of " << software << " for " << buildtag << " is available: " << url << ", SHA256 hash " << hash);
     m_update_available = true;
 
-    if (check_updates_level == UPDATES_NOTIFY)
+    if (check_updates_level == UPDATES_NOTIFY) {
+      std::vector<std::string> version_split;
+      std::vector<std::string> latest_version_split;
+
+      boost::split(version_split, ELECTRONEUM_VERSION, [](char c){return c == '.';});
+      boost::split(latest_version_split, version, [](char c){return c == '.';});
+
+      // Warninig message to update to lastest software case major version differs.
+      // This should help users to update their node before a major update or fork.
+      for(size_t i = 0; i < 2; i++) {
+        if(version_split[i] != latest_version_split[i]) {
+          MCLOG_RED(el::Level::Fatal, "global", "Please update your node to the latest software (v" << version << ").");
+          break;
+        }
+      }
+
       return true;
+    }
 
     url = tools::get_update_url(software, subdir, buildtag, version, false);
     std::string filename;
@@ -1833,13 +1898,16 @@ namespace cryptonote
   //-----------------------------------------------------------------------------------------------
   bool core::check_block_rate()
   {
+    MDEBUG("Not checking block rate, not applicable.");
+    return true;
+
     if (m_offline || m_nettype == FAKECHAIN || m_target_blockchain_height > get_current_blockchain_height())
     {
       MDEBUG("Not checking block rate, offline or syncing");
       return true;
     }
 
-    static constexpr double threshold = 1. / (864000 / DIFFICULTY_TARGET_V2); // one false positive every 10 days
+    static constexpr double threshold = 1. / (864000 / DIFFICULTY_TARGET_V6); // one false positive every 10 days
 
     const time_t now = time(NULL);
     const std::vector<time_t> timestamps = m_blockchain_storage.get_last_block_timestamps(60);
@@ -1850,16 +1918,16 @@ namespace cryptonote
       unsigned int b = 0;
       const time_t time_boundary = now - static_cast<time_t>(seconds[n]);
       for (time_t ts: timestamps) b += ts >= time_boundary;
-      const double p = probability(b, seconds[n] / DIFFICULTY_TARGET_V2);
+      const double p = probability(b, seconds[n] / DIFFICULTY_TARGET_V6);
       MDEBUG("blocks in the last " << seconds[n] / 60 << " minutes: " << b << " (probability " << p << ")");
       if (p < threshold)
       {
-        MWARNING("There were " << b << " blocks in the last " << seconds[n] / 60 << " minutes, there might be large hash rate changes, or we might be partitioned, cut off from the Monero network or under attack. Or it could be just sheer bad luck.");
+        MWARNING("There were " << b << " blocks in the last " << seconds[n] / 60 << " minutes, there might be large hash rate changes, or we might be partitioned, cut off from the Electroneum network or under attack. Or it could be just sheer bad luck.");
 
         std::shared_ptr<tools::Notify> block_rate_notify = m_block_rate_notify;
         if (block_rate_notify)
         {
-          auto expected = seconds[n] / DIFFICULTY_TARGET_V2;
+          auto expected = seconds[n] / DIFFICULTY_TARGET_V6;
           block_rate_notify->notify("%t", std::to_string(seconds[n] / 60).c_str(), "%b", std::to_string(b).c_str(), "%e", std::to_string(expected).c_str(), NULL);
         }
 
@@ -1915,6 +1983,29 @@ namespace cryptonote
   std::time_t core::get_start_time() const
   {
     return start_time;
+  }
+  //-----------------------------------------------------------------------------------------------
+  bool core::set_validator_key(std::string key) {
+    bool is_validator_key_valid = std::count_if(key.begin(), key.end(), [](int c) {return !std::isxdigit(c);}) == 0;
+    if(!is_validator_key_valid || key.size() % 2 != 0) {
+      return false;
+    }
+
+    m_miner.pause();
+    m_blockchain_storage.set_validator_key(key);
+    m_miner.resume();
+
+    return true;
+  }
+  //-----------------------------------------------------------------------------------------------
+  std::vector<std::string> core::generate_ed25519_keypair() {
+    return crypto::create_ed25519_keypair();
+  }
+  //-----------------------------------------------------------------------------------------------
+
+  std::string core::sign_message(std::string sk, std::string msg) {
+    std::string b_str = crypto::sign_message(msg, sk);
+    return boost::algorithm::hex(b_str);
   }
   //-----------------------------------------------------------------------------------------------
   void core::graceful_exit()

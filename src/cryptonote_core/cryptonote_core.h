@@ -1,4 +1,5 @@
-// Copyright (c) 2014-2019, The Monero Project
+// Copyrights(c) 2017-2019, The Electroneum Project
+// Copyrights(c) 2014-2019, The Monero Project
 //
 // All rights reserved.
 //
@@ -46,6 +47,7 @@
 #include "cryptonote_basic/cryptonote_stat_info.h"
 #include "warnings.h"
 #include "crypto/hash.h"
+#include "cryptonote_basic/validators.h"
 
 PUSH_WARNINGS
 DISABLE_VS_WARNINGS(4355)
@@ -62,6 +64,7 @@ namespace cryptonote
   extern const command_line::arg_descriptor<bool, false> arg_stagenet_on;
   extern const command_line::arg_descriptor<bool, false> arg_regtest_on;
   extern const command_line::arg_descriptor<difficulty_type> arg_fixed_difficulty;
+  extern const command_line::arg_descriptor<bool> arg_skip_block_sig_verification;
   extern const command_line::arg_descriptor<bool> arg_offline;
   extern const command_line::arg_descriptor<size_t> arg_block_download_max_size;
 
@@ -555,6 +558,13 @@ namespace cryptonote
       */
      crypto::hash get_tail_id() const;
 
+    /**
+      * @copydoc Blockchain::set_block_cumulative_difficulty
+      *
+      * @note see Blockchain::set_block_cumulative_difficulty
+      */
+     void set_block_cumulative_difficulty(uint64_t height, difficulty_type diff);
+
      /**
       * @copydoc Blockchain::get_block_cumulative_difficulty
       *
@@ -684,6 +694,28 @@ namespace cryptonote
       * @note see Blockchain::update_checkpoints()
       */
      bool update_checkpoints();
+
+     /**
+      * @brief Get a serialized representation of the list of validators
+      *
+      * @return serialized string
+      */
+     std::string get_validators_list();
+
+     /**
+      * @brief set the list of validators according to the serialized string passed in as parameter
+      *
+      * @param v_list serialized validators list string
+      * @return true if successfull
+      */
+     electroneum::basic::list_update_outcome set_validators_list(std::string v_list, bool isEmergencyUpdate);
+
+     /**
+      * @brief get Validators List state
+      *
+      * @return true if valid, false if invalid or expired
+      */
+     bool isValidatorsListValid();
 
      /**
       * @brief tells the daemon to wind down operations and stop running
@@ -824,6 +856,19 @@ namespace cryptonote
       * @return true on success, false otherwise
       */
      bool check_blockchain_pruning();
+
+     /**
+      * @brief set validator key
+      *
+      * @param key: key to set as new validator key
+      *
+      * @return whether this new key was set or not
+      */
+     bool set_validator_key(std::string key);
+
+     std::vector<std::string> generate_ed25519_keypair();
+
+     std::string sign_message(std::string sk, std::string msg);
 
    private:
 
@@ -1027,6 +1072,7 @@ namespace cryptonote
      epee::math_helper::once_a_time_seconds<60*10, true> m_check_disk_space_interval; //!< interval for checking for disk space
      epee::math_helper::once_a_time_seconds<90, false> m_block_rate_interval; //!< interval for checking block rate
      epee::math_helper::once_a_time_seconds<60*60*5, true> m_blockchain_pruning_interval; //!< interval for incremental blockchain pruning
+     epee::math_helper::once_a_time_seconds<60*2, true> m_check_validators_interval;
 
      std::atomic<bool> m_starter_message_showed; //!< has the "daemon will sync now" message been shown?
 
@@ -1049,6 +1095,10 @@ namespace cryptonote
 
      std::unordered_set<crypto::hash> bad_semantics_txes[2];
      boost::mutex bad_semantics_txes_lock;
+
+     //tools::thread_group m_threadpool;
+
+     std::unique_ptr<electroneum::basic::Validators> m_validators;
 
      enum {
        UPDATES_DISABLED,

@@ -1,4 +1,5 @@
-// Copyright (c) 2014-2019, The Monero Project
+// Copyrights(c) 2017-2019, The Electroneum Project
+// Copyrights(c) 2014-2019, The Monero Project
 // 
 // All rights reserved.
 // 
@@ -56,8 +57,8 @@
 #include "cryptonote_basic/cryptonote_boost_serialization.h"
 #include "misc_language.h"
 
-#undef MONERO_DEFAULT_LOG_CATEGORY
-#define MONERO_DEFAULT_LOG_CATEGORY "tests.core"
+#undef ELECTRONEUM_DEFAULT_LOG_CATEGORY
+#define ELECTRONEUM_DEFAULT_LOG_CATEGORY "tests.core"
 
 
 
@@ -1057,4 +1058,4 @@ inline bool do_replay_file(const std::string& filename)
 #define CHECK_EQ(v1, v2) CHECK_AND_ASSERT_MES(v1 == v2, false, "[" << perr_context << "] failed: \"" << QUOTEME(v1) << " == " << QUOTEME(v2) << "\", " << v1 << " != " << v2)
 #define CHECK_NOT_EQ(v1, v2) CHECK_AND_ASSERT_MES(!(v1 == v2), false, "[" << perr_context << "] failed: \"" << QUOTEME(v1) << " != " << QUOTEME(v2) << "\", " << v1 << " == " << v2)
 #define MK_COINS(amount) (UINT64_C(amount) * COIN)
-#define TESTS_DEFAULT_FEE ((uint64_t)20000000000) // 2 * pow(10, 10)
+#define TESTS_DEFAULT_FEE ((uint64_t)10) // pow(10, 1)

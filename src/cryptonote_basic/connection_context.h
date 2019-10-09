@@ -1,4 +1,5 @@
-// Copyright (c) 2014-2019, The Monero Project
+// Copyrights(c) 2017-2019, The Electroneum Project
+// Copyrights(c) 2014-2019, The Monero Project
 // 
 // All rights reserved.
 // 
@@ -63,6 +64,8 @@ namespace cryptonote
     uint32_t m_pruning_seed;
     uint16_t m_rpc_port;
     bool m_anchor;
+    std::list<std::pair<std::string, uint8_t>> emergency_lists_recv;
+    std::list<std::string> emergency_lists_sent;
     //size_t m_score;  TODO: add score calculations
   };
 

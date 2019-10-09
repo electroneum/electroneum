@@ -1,3 +1,4 @@
+# Copyright (c) 2017-2019, The Electroneum Project
 # Copyright (c) 2014-2019, The Monero Project
 #
 # All rights reserved.
@@ -43,8 +44,10 @@ add_executable(cncrypto-tests
 target_link_libraries(cncrypto-tests
   PRIVATE
     common
+    ${OPENSSL_LIBRARIES}
     ${Boost_SYSTEM_LIBRARY}
-    ${EXTRA_LIBRARIES})
+    ${EXTRA_LIBRARIES}
+    ed25519-donna)
 set_property(TARGET cncrypto-tests
   PROPERTY
     FOLDER "tests")

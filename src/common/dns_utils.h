@@ -1,4 +1,5 @@
-// Copyright (c) 2014-2019, The Monero Project
+// Copyrights(c) 2017-2019, The Electroneum Project
+// Copyrights(c) 2014-2019, The Monero Project
 // 
 // All rights reserved.
 // 
@@ -18,6 +19,7 @@
 // 
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
 // EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+
 // MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL
 // THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
 // SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
@@ -109,7 +111,7 @@ public:
    * @brief Gets a DNS address from OpenAlias format
    *
    * If the address looks good, but contains one @ symbol, replace that with a .
-   * e.g. donate@getmonero.org becomes donate.getmonero.org
+   * e.g. donate@electroneum.com becomes donate.electroneum.com
    *
    * @param oa_addr  OpenAlias address
    *
@@ -166,7 +168,9 @@ std::vector<std::string> addresses_from_url(const std::string& url, bool& dnssec
 
 std::string get_account_address_as_str_from_url(const std::string& url, bool& dnssec_valid, std::function<std::string(const std::string&, const std::vector<std::string>&, bool)> confirm_dns);
 
-bool load_txt_records_from_dns(std::vector<std::string> &records, const std::vector<std::string> &dns_urls);
+bool load_txt_records_from_dns(std::vector<std::string> &records, const std::vector<std::string> &dns_urls, std::string type);
+
+std::vector<std::string> parse_dns_public(const char *s);
 
 std::vector<std::string> parse_dns_public(const char *s);
 

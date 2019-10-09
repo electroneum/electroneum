@@ -1,4 +1,5 @@
-// Copyright (c) 2014-2019, The Monero Project
+// Copyrights(c) 2017-2019, The Electroneum Project
+// Copyrights(c) 2014-2019, The Monero Project
 // 
 // All rights reserved.
 // 
@@ -31,8 +32,8 @@
 #include "version.h"
 #include "daemon/command_parser_executor.h"
 
-#undef MONERO_DEFAULT_LOG_CATEGORY
-#define MONERO_DEFAULT_LOG_CATEGORY "daemon"
+#undef ELECTRONEUM_DEFAULT_LOG_CATEGORY
+#define ELECTRONEUM_DEFAULT_LOG_CATEGORY "daemon"
 
 namespace daemonize {
 
@@ -758,7 +759,7 @@ bool t_command_parser_executor::pop_blocks(const std::vector<std::string>& args)
 
 bool t_command_parser_executor::version(const std::vector<std::string>& args)
 {
-  std::cout << "Monero '" << MONERO_RELEASE_NAME << "' (v" << MONERO_VERSION_FULL << ")" << std::endl;
+  std::cout << "Electroneum '" << ELECTRONEUM_RELEASE_NAME << "' (v" << ELECTRONEUM_VERSION_FULL << ")" << std::endl;
   return true;
 }
 
@@ -768,10 +769,10 @@ bool t_command_parser_executor::prune_blockchain(const std::vector<std::string>&
 
   if (args.empty() || args[0] != "confirm")
   {
-    std::cout << "Warning: pruning from within monerod will not shrink the database file size." << std::endl;
+    std::cout << "Warning: pruning from within electroneumd will not shrink the database file size." << std::endl;
     std::cout << "Instead, parts of the file will be marked as free, so the file will not grow" << std::endl;
     std::cout << "until that newly free space is used up. If you want a smaller file size now," << std::endl;
-    std::cout << "exit monerod and run monero-blockchain-prune (you will temporarily need more" << std::endl;
+    std::cout << "exit electroneumd and run electroneum-blockchain-prune (you will temporarily need more" << std::endl;
     std::cout << "disk space for the database conversion though). If you are OK with the database" << std::endl;
     std::cout << "file keeping the same size, re-run this command with the \"confirm\" parameter." << std::endl;
     return true;
@@ -783,6 +784,36 @@ bool t_command_parser_executor::prune_blockchain(const std::vector<std::string>&
 bool t_command_parser_executor::check_blockchain_pruning(const std::vector<std::string>& args)
 {
   return m_executor.check_blockchain_pruning();
+}
+
+bool t_command_parser_executor::set_validator_key(const std::vector<std::string>& args)
+{
+  if(args.size() != 1) return false;
+
+  std::string key(args[0]);
+
+  bool is_validator_key_valid = std::count_if(key.begin(), key.end(), [](int c) {return !std::isxdigit(c);}) == 0;
+  if(!is_validator_key_valid || key.size() != 64) {
+    std::cout << "Failed to parse validator key (wrong format)." << std::endl;
+    return true;
+  }
+
+  return m_executor.set_validator_key(key);
+}
+
+bool t_command_parser_executor::generate_ed25519_keypair(const std::vector<std::string>& args)
+{
+  if(args.size() != 0) return false;
+
+  return m_executor.generate_ed25519_keypair();
+}
+
+bool t_command_parser_executor::sign_message(const std::vector<std::string>& args)
+{
+  if(args.size() != 2) return false;
+
+  std::string key(args[0]);
+  return m_executor.sign_message(key, args[1]);
 }
 
 } // namespace daemonize

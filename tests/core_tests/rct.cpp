@@ -1,4 +1,5 @@
-// Copyright (c) 2014-2019, The Monero Project
+// Copyrights(c) 2017-2019, The Electroneum Project
+// Copyrights(c) 2014-2019, The Monero Project
 // 
 // All rights reserved.
 // 
@@ -58,7 +59,7 @@ bool gen_rct_tx_validation_base::generate_with(std::vector<test_event_entry>& ev
     miner_accounts[n].generate();
     CHECK_AND_ASSERT_MES(generator.construct_block_manually(blocks[n], *prev_block, miner_accounts[n],
         test_generator::bf_major_ver | test_generator::bf_minor_ver | test_generator::bf_timestamp | test_generator::bf_hf_version,
-        2, 2, prev_block->timestamp + DIFFICULTY_BLOCKS_ESTIMATE_TIMESPAN * 2, // v2 has blocks twice as long
+        2, 2, prev_block->timestamp + DIFFICULTY_BLOCKS_ESTIMATE_TIMESPAN_V6 * 2, // v2 has blocks twice as long
           crypto::hash(), 0, transaction(), std::vector<crypto::hash>(), 0, 0, 2),
         false, "Failed to generate block");
     events.push_back(blocks[n]);
@@ -75,7 +76,7 @@ bool gen_rct_tx_validation_base::generate_with(std::vector<test_event_entry>& ev
       cryptonote::block blk;
       CHECK_AND_ASSERT_MES(generator.construct_block_manually(blk, blk_last, miner_account,
           test_generator::bf_major_ver | test_generator::bf_minor_ver | test_generator::bf_timestamp | test_generator::bf_hf_version,
-          2, 2, blk_last.timestamp + DIFFICULTY_BLOCKS_ESTIMATE_TIMESPAN * 2, // v2 has blocks twice as long
+          2, 2, blk_last.timestamp + DIFFICULTY_BLOCKS_ESTIMATE_TIMESPAN_V6 * 2, // v2 has blocks twice as long
           crypto::hash(), 0, transaction(), std::vector<crypto::hash>(), 0, 0, 2),
           false, "Failed to generate block");
       events.push_back(blk);
@@ -142,7 +143,7 @@ bool gen_rct_tx_validation_base::generate_with(std::vector<test_event_entry>& ev
 
     CHECK_AND_ASSERT_MES(generator.construct_block_manually(blk_txes[n], blk_last, miner_account,
         test_generator::bf_major_ver | test_generator::bf_minor_ver | test_generator::bf_timestamp | test_generator::bf_tx_hashes | test_generator::bf_hf_version | test_generator::bf_max_outs,
-        4, 4, blk_last.timestamp + DIFFICULTY_BLOCKS_ESTIMATE_TIMESPAN * 2, // v2 has blocks twice as long
+        4, 4, blk_last.timestamp + DIFFICULTY_BLOCKS_ESTIMATE_TIMESPAN_V6 * 2, // v2 has blocks twice as long
         crypto::hash(), 0, transaction(), starting_rct_tx_hashes, 0, 6, 4),
         false, "Failed to generate block");
     events.push_back(blk_txes[n]);
@@ -156,7 +157,7 @@ bool gen_rct_tx_validation_base::generate_with(std::vector<test_event_entry>& ev
       cryptonote::block blk;
       CHECK_AND_ASSERT_MES(generator.construct_block_manually(blk, blk_last, miner_account,
           test_generator::bf_major_ver | test_generator::bf_minor_ver | test_generator::bf_timestamp | test_generator::bf_hf_version | test_generator::bf_max_outs,
-          4, 4, blk_last.timestamp + DIFFICULTY_BLOCKS_ESTIMATE_TIMESPAN * 2, // v2 has blocks twice as long
+          4, 4, blk_last.timestamp + DIFFICULTY_BLOCKS_ESTIMATE_TIMESPAN_V6 * 2, // v2 has blocks twice as long
           crypto::hash(), 0, transaction(), std::vector<crypto::hash>(), 0, 6, 4),
           false, "Failed to generate block");
       events.push_back(blk);
@@ -407,7 +408,7 @@ bool gen_rct_tx_pre_rct_wrong_key_image::generate(std::vector<test_event_entry>&
   const int mixin = 2;
   const int out_idx[] = {0, -1};
   const uint64_t amount_paid = 10000;
-  // some random key image from the monero blockchain, so we get something that is a valid key image
+  // some random key image from the electroneum blockchain, so we get something that is a valid key image
   static const uint8_t k_image[33] = "\x49\x3b\x56\x16\x54\x76\xa8\x75\xb7\xf4\xa8\x51\xf5\x55\xd3\x44\xe7\x3e\xea\x73\xee\xc1\x06\x7c\x7d\xb6\x57\x28\x46\x85\xe1\x07";
   return generate_with(events, out_idx, mixin, amount_paid, false,
     NULL, [](transaction &tx) {memcpy(&boost::get<txin_to_key>(tx.vin[0]).k_image, k_image, 32);});
@@ -418,7 +419,7 @@ bool gen_rct_tx_rct_wrong_key_image::generate(std::vector<test_event_entry>& eve
   const int mixin = 2;
   const int out_idx[] = {1, -1};
   const uint64_t amount_paid = 10000;
-  // some random key image from the monero blockchain, so we get something that is a valid key image
+  // some random key image from the electroneum blockchain, so we get something that is a valid key image
   static const uint8_t k_image[33] = "\x49\x3b\x56\x16\x54\x76\xa8\x75\xb7\xf4\xa8\x51\xf5\x55\xd3\x44\xe7\x3e\xea\x73\xee\xc1\x06\x7c\x7d\xb6\x57\x28\x46\x85\xe1\x07";
   return generate_with(events, out_idx, mixin, amount_paid, false,
     NULL, [](transaction &tx) {memcpy(&boost::get<txin_to_key>(tx.vin[0]).k_image, k_image, 32);});

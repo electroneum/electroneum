@@ -1,4 +1,5 @@
-// Copyright (c) 2014-2019, The Monero Project
+// Copyrights(c) 2017-2019, The Electroneum Project
+// Copyrights(c) 2014-2019, The Monero Project
 //
 // All rights reserved.
 //
@@ -42,7 +43,7 @@
 
 using namespace epee;
 
-namespace Monero {
+namespace Electroneum {
 
 TransactionHistory::~TransactionHistory() {}
 
@@ -245,4 +246,4 @@ void TransactionHistoryImpl::refresh()
 
 } // namespace
 
-namespace Bitmonero = Monero;
+namespace Bitelectroneum = Electroneum;

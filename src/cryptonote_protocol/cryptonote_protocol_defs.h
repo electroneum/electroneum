@@ -1,4 +1,5 @@
-// Copyright (c) 2014-2019, The Monero Project
+// Copyrights(c) 2017-2019, The Electroneum Project
+// Copyrights(c) 2014-2019, The Monero Project
 // 
 // All rights reserved.
 // 
@@ -304,4 +305,50 @@ namespace cryptonote
     typedef epee::misc_utils::struct_init<request_t> request;
   }; 
     
+  /************************************************************************/
+  /*                                                                      */
+  /************************************************************************/
+  struct NOTIFY_REQUEST_VALIDATORS_LIST
+  {
+      const static int ID = BC_COMMANDS_POOL_BASE + 10;
+
+      struct request_t
+      {
+        BEGIN_KV_SERIALIZE_MAP()
+        END_KV_SERIALIZE_MAP()
+      };
+      typedef epee::misc_utils::struct_init<request_t> request;
+
+      struct response_t
+      {
+        std::string serialized_v_list;
+
+        BEGIN_KV_SERIALIZE_MAP()
+          KV_SERIALIZE(serialized_v_list)
+        END_KV_SERIALIZE_MAP()
+      };
+      typedef epee::misc_utils::struct_init<response_t> response;
+
+      BEGIN_KV_SERIALIZE_MAP()
+      END_KV_SERIALIZE_MAP()
+  };
+
+  /************************************************************************/
+  /*                                                                      */
+  /************************************************************************/
+
+  struct NOTIFY_EMERGENCY_VALIDATORS_LIST
+  {
+      const static int ID = BC_COMMANDS_POOL_BASE + 11;
+
+      struct request_t
+      {
+        std::string serialized_v_list;
+
+        BEGIN_KV_SERIALIZE_MAP()
+         KV_SERIALIZE(serialized_v_list)
+        END_KV_SERIALIZE_MAP()
+      };
+      typedef epee::misc_utils::struct_init<request_t> request;
+  };
 }

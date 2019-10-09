@@ -44,7 +44,7 @@ namespace
         char data[16];
     };
 
-    MONERO_CURSOR(test_cursor);
+    ELECTRONEUM_CURSOR(test_cursor);
 
     template<typename T>
     int run_compare(T left, T right, MDB_cmp_func* cmp)
@@ -139,19 +139,19 @@ TEST(LMDB, LessSort)
     EXPECT_EQ(-1, run_compare<one>({0, 0}, {0, 1}, &lmdb::less<unsigned, sizeof(unsigned)>));
     EXPECT_EQ(1, run_compare<one>({0, 1}, {0, 0}, &lmdb::less<unsigned, sizeof(unsigned)>));
 
-    EXPECT_EQ(0, run_compare<one>({0, 1}, {0, 1}, MONERO_SORT_BY(one, j)));
-    EXPECT_EQ(-1, run_compare<one>({0, 0}, {0, 1}, MONERO_SORT_BY(one, j)));
-    EXPECT_EQ(1, run_compare<one>({0, 1}, {0, 0}, MONERO_SORT_BY(one, j)));
+    EXPECT_EQ(0, run_compare<one>({0, 1}, {0, 1}, ELECTRONEUM_SORT_BY(one, j)));
+    EXPECT_EQ(-1, run_compare<one>({0, 0}, {0, 1}, ELECTRONEUM_SORT_BY(one, j)));
+    EXPECT_EQ(1, run_compare<one>({0, 1}, {0, 0}, ELECTRONEUM_SORT_BY(one, j)));
 
-    EXPECT_EQ(0, run_compare<two>({0, choice(1)}, {0, choice(1)}, MONERO_SORT_BY(two, j)));
-    EXPECT_EQ(-1, run_compare<two>({0, choice(0)}, {0, choice(1)}, MONERO_SORT_BY(two, j)));
-    EXPECT_EQ(1, run_compare<two>({0, choice(1)}, {0, choice(0)}, MONERO_SORT_BY(two, j)));
+    EXPECT_EQ(0, run_compare<two>({0, choice(1)}, {0, choice(1)}, ELECTRONEUM_SORT_BY(two, j)));
+    EXPECT_EQ(-1, run_compare<two>({0, choice(0)}, {0, choice(1)}, ELECTRONEUM_SORT_BY(two, j)));
+    EXPECT_EQ(1, run_compare<two>({0, choice(1)}, {0, choice(0)}, ELECTRONEUM_SORT_BY(two, j)));
 
     // compare function addresses
-    EXPECT_EQ((MONERO_SORT_BY(one, i)), (MONERO_SORT_BY(two, i)));
-    EXPECT_EQ((MONERO_SORT_BY(one, j)), (MONERO_SORT_BY(two, j)));
-    EXPECT_NE((MONERO_SORT_BY(one, i)), (MONERO_SORT_BY(two, j)));
-    EXPECT_NE((MONERO_SORT_BY(one, j)), (MONERO_SORT_BY(two, i)));
+    EXPECT_EQ((ELECTRONEUM_SORT_BY(one, i)), (ELECTRONEUM_SORT_BY(two, i)));
+    EXPECT_EQ((ELECTRONEUM_SORT_BY(one, j)), (ELECTRONEUM_SORT_BY(two, j)));
+    EXPECT_NE((ELECTRONEUM_SORT_BY(one, i)), (ELECTRONEUM_SORT_BY(two, j)));
+    EXPECT_NE((ELECTRONEUM_SORT_BY(one, j)), (ELECTRONEUM_SORT_BY(two, i)));
 }
 
 TEST(LMDB, SortCompare)
@@ -167,13 +167,13 @@ TEST(LMDB, SortCompare)
 
     const one test2 = test;
 
-    EXPECT_EQ(0, run_compare(test, test2, MONERO_COMPARE(one, j)));
+    EXPECT_EQ(0, run_compare(test, test2, ELECTRONEUM_COMPARE(one, j)));
 
     test.j.data[15] = 1;
-    EXPECT_GT(0, run_compare(test, test2, MONERO_COMPARE(one, j)));
+    EXPECT_GT(0, run_compare(test, test2, ELECTRONEUM_COMPARE(one, j)));
 
     test.j.data[15] = 100;
-    EXPECT_LT(0, run_compare(test, test2, MONERO_COMPARE(one, j)));
+    EXPECT_LT(0, run_compare(test, test2, ELECTRONEUM_COMPARE(one, j)));
 }
 
 TEST(LMDB, Table)
@@ -206,12 +206,12 @@ TEST(LMDB, Table)
     boost::iota(record.i.data, 0);
     boost::iota(record.i.data, 20);
 
-    const one record_copy = MONERO_UNWRAP(test2.get_value<one>(lmdb::to_val(record)));
+    const one record_copy = ELECTRONEUM_UNWRAP(test2.get_value<one>(lmdb::to_val(record)));
     EXPECT_TRUE(boost::equal(record.i.data, record_copy.i.data));
     EXPECT_TRUE(boost::equal(record.j.data, record_copy.j.data));
 
-    const bytes j_copy = MONERO_UNWRAP(
-        test2.get_value<MONERO_FIELD(one, j)>(lmdb::to_val(record))
+    const bytes j_copy = ELECTRONEUM_UNWRAP(
+        test2.get_value<ELECTRONEUM_FIELD(one, j)>(lmdb::to_val(record))
     );
     EXPECT_TRUE(boost::equal(record.j.data, j_copy.data));
 
@@ -260,10 +260,10 @@ TEST(LMDB, InvalidValueStream)
     EXPECT_TRUE((std::is_same<one, decltype(*(test.make_iterator()))>()));
     EXPECT_TRUE((std::is_same<one, decltype(*(test.make_range().begin()))>()));
     EXPECT_TRUE(
-        (std::is_same<bytes, decltype(*(test.make_iterator<MONERO_FIELD(one, k)>()))>())
+        (std::is_same<bytes, decltype(*(test.make_iterator<ELECTRONEUM_FIELD(one, k)>()))>())
     );
     EXPECT_TRUE(
-        (std::is_same<bytes, decltype(*(test.make_range<MONERO_FIELD(one, k)>().begin()))>())
+        (std::is_same<bytes, decltype(*(test.make_range<ELECTRONEUM_FIELD(one, k)>().begin()))>())
     );
 
     EXPECT_NO_THROW(test.reset());
@@ -291,7 +291,7 @@ TEST(LMDB, InvalidValueIterator)
 
     EXPECT_TRUE((std::is_same<one, decltype(*test1)>()));
     EXPECT_TRUE(
-        (std::is_same<bytes, decltype(test1.get_value<MONERO_FIELD(one, k)>())>())
+        (std::is_same<bytes, decltype(test1.get_value<ELECTRONEUM_FIELD(one, k)>())>())
     );
 
     EXPECT_TRUE(test1.is_end());
@@ -313,12 +313,12 @@ TEST(LMDB, InvalidValueIterator)
     EXPECT_FALSE(test1 != test2);
     EXPECT_FALSE(test2 != test1);
 
-    lmdb::value_iterator<MONERO_FIELD(one, k)> test3{};
+    lmdb::value_iterator<ELECTRONEUM_FIELD(one, k)> test3{};
 
     EXPECT_TRUE((std::is_same<bytes, decltype(*test3)>()));
     EXPECT_TRUE((std::is_same<one, decltype(test3.get_value<one>())>()));
     EXPECT_TRUE(
-        (std::is_same<choice, decltype(test1.get_value<MONERO_FIELD(one, j)>())>())
+        (std::is_same<choice, decltype(test1.get_value<ELECTRONEUM_FIELD(one, j)>())>())
     );
 
     EXPECT_TRUE(test3.is_end());
@@ -371,10 +371,10 @@ TEST(LMDB, InvalidKeyIterator)
     EXPECT_TRUE((std::is_same<one, decltype(*(test1.make_value_iterator()))>()));
     EXPECT_TRUE((std::is_same<one, decltype(*(test1.make_value_range().begin()))>()));
     EXPECT_TRUE(
-        (std::is_same<bytes, decltype(*(test1.make_value_iterator<MONERO_FIELD(one, k)>()))>())
+        (std::is_same<bytes, decltype(*(test1.make_value_iterator<ELECTRONEUM_FIELD(one, k)>()))>())
     );
     EXPECT_TRUE(
-        (std::is_same<bytes, decltype(*(test1.make_value_range<MONERO_FIELD(one, k)>().begin()))>())
+        (std::is_same<bytes, decltype(*(test1.make_value_range<ELECTRONEUM_FIELD(one, k)>().begin()))>())
     );
 
     EXPECT_TRUE(test1.is_end());

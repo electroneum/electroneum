@@ -1,3 +1,4 @@
+// Copyright (c) 2017-2019, The Electroneum Project
 // Copyright (c) 2017-2019, The Monero Project
 // 
 // All rights reserved.
@@ -32,8 +33,8 @@
 #include "dns_utils.h"
 #include "updates.h"
 
-#undef MONERO_DEFAULT_LOG_CATEGORY
-#define MONERO_DEFAULT_LOG_CATEGORY "updates"
+#undef ELECTRONEUM_DEFAULT_LOG_CATEGORY
+#define ELECTRONEUM_DEFAULT_LOG_CATEGORY "updates"
 
 namespace tools
 {
@@ -44,15 +45,15 @@ namespace tools
 
     MDEBUG("Checking updates for " << buildtag << " " << software);
 
-    // All four MoneroPulse domains have DNSSEC on and valid
+    // All four ElectroneumPulse domains have DNSSEC on and valid
     static const std::vector<std::string> dns_urls = {
-        "updates.moneropulse.org",
-        "updates.moneropulse.net",
-        "updates.moneropulse.co",
-        "updates.moneropulse.se"
+      "updates.electroneumpulse.com",
+      "updates.electroneumpulse.info",
+      "updates.electroneumpulse.net",
+      "updates.electroneumpulse.org"
     };
 
-    if (!tools::dns_utils::load_txt_records_from_dns(records, dns_urls))
+    if (!tools::dns_utils::load_txt_records_from_dns(records, dns_urls, "update"))
       return false;
 
     for (const auto& record : records)
@@ -99,7 +100,7 @@ namespace tools
 
   std::string get_update_url(const std::string &software, const std::string &subdir, const std::string &buildtag, const std::string &version, bool user)
   {
-    const char *base = user ? "https://downloads.getmonero.org/" : "https://updates.getmonero.org/";
+    const char *base = user ? "http://s3-eu-west-1.amazonaws.com/updates.electroneum.com/releases/download/v" : "http://s3-eu-west-1.amazonaws.com/updates.electroneum.com/releases/download/v";
 #ifdef _WIN32
     static const char *extension = strncmp(buildtag.c_str(), "install-", 8) ? ".zip" : ".exe";
 #else
@@ -109,9 +110,9 @@ namespace tools
     std::string url;
 
     url =  base;
-    if (!subdir.empty())
-      url += subdir + "/";
-    url = url + software + "-" + buildtag + "-v" + version + extension;
+//    if (!subdir.empty())
+//      url += subdir + "/";
+    url = url + version + "/" + software + "-" + buildtag + "-v" + version + extension;
     return url;
   }
 }

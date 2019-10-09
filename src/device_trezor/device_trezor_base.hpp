@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2019, The Monero Project
+// Copyright (c) 2017-2019, The Electroneum Project
 //
 // All rights reserved.
 //
@@ -27,8 +27,8 @@
 // THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
 
-#ifndef MONERO_DEVICE_TREZOR_BASE_H
-#define MONERO_DEVICE_TREZOR_BASE_H
+#ifndef ELECTRONEUM_DEVICE_TREZOR_BASE_H
+#define ELECTRONEUM_DEVICE_TREZOR_BASE_H
 
 
 #include <cstddef>
@@ -242,7 +242,7 @@ namespace trezor {
 
     bool reset();
 
-    // Default derivation path for Monero
+    // Default derivation path for Electroneum
     static const uint32_t DEFAULT_BIP44_PATH[2];
 
     std::shared_ptr<Transport> get_transport(){
@@ -339,4 +339,4 @@ namespace trezor {
 
 }
 }
-#endif //MONERO_DEVICE_TREZOR_BASE_H
+#endif //ELECTRONEUM_DEVICE_TREZOR_BASE_H

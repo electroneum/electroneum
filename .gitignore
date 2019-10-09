@@ -104,3 +104,10 @@ local.properties
 .idea/
 
 /testnet
+
+### Dev Stuff ###
+cmake-build-debug/
+cmake-build-debug-remote/
+cmake-build-release/
+utils/post_build/
+.vscode/

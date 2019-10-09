@@ -1,4 +1,5 @@
-// Copyright (c) 2014-2019, The Monero Project
+// Copyrights(c) 2017-2019, The Electroneum Project
+// Copyrights(c) 2014-2019, The Monero Project
 // 
 // All rights reserved.
 // 
@@ -545,7 +546,7 @@ namespace tools
       std::string to_string() const
       {
         std::ostringstream ss;
-        ss << transfer_error::to_string() << ", ring size = " << (m_mixin_count + 1) << ", scanty_outs:";
+        ss << transfer_error::to_string() << "scanty_outs:";
         for (const auto& out: m_scanty_outs)
         {
           ss << '\n' << cryptonote::print_money(out.first) << " - " << out.second;

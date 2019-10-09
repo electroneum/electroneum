@@ -1,4 +1,5 @@
-// Copyright (c) 2014-2019, The Monero Project
+// Copyrights(c) 2017-2019, The Electroneum Project
+// Copyrights(c) 2014-2019, The Monero Project
 //
 // All rights reserved.
 //
@@ -976,6 +977,20 @@ public:
   virtual std::vector<uint64_t> get_block_weights(uint64_t start_height, size_t count) const = 0;
 
   /**
+   * @brief sets a block's cumulative difficulty
+   *
+   * The subclass should return true if the cumulative difficulty is set successfully
+   *
+   * If the block does not exist, the subclass should throw BLOCK_DNE
+   *
+   * @param height the height requested
+   * @param diff the cumulative difficulty value to be set
+   *
+   * @return true | false
+   */
+  virtual void set_block_cumulative_difficulty(uint64_t height, difficulty_type diff) = 0;
+
+  /**
    * @brief fetch a block's cumulative difficulty
    *
    * The subclass should return the cumulative difficulty of the block with the
@@ -1656,6 +1671,10 @@ public:
    * @return the version
    */
   virtual uint8_t get_hard_fork_version(uint64_t height) const = 0;
+
+  virtual void set_validator_list(std::string, uint32_t expiration_date) = 0;
+
+  virtual std::string get_validator_list() const = 0;
 
   /**
    * @brief verify hard fork info in database

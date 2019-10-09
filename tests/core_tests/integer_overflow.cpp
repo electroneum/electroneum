@@ -1,4 +1,5 @@
-// Copyright (c) 2014-2019, The Monero Project
+// Copyrights(c) 2017-2019, The Electroneum Project
+// Copyrights(c) 2014-2019, The Monero Project
 // 
 // All rights reserved.
 // 
@@ -108,7 +109,7 @@ bool gen_uint_overflow_1::generate(std::vector<test_event_entry>& events) const
 
   // Problem 1. Miner tx output overflow
   MAKE_MINER_TX_MANUALLY(miner_tx_0, blk_0);
-  split_miner_tx_outs(miner_tx_0, MONEY_SUPPLY);
+  split_miner_tx_outs(miner_tx_0, uint64_t(-1));
   block blk_1;
   if (!generator.construct_block_manually(blk_1, blk_0, miner_account, test_generator::bf_miner_tx, 0, 0, 0, crypto::hash(), 0, miner_tx_0))
     return false;
@@ -116,7 +117,7 @@ bool gen_uint_overflow_1::generate(std::vector<test_event_entry>& events) const
 
   // Problem 1. Miner tx outputs overflow
   MAKE_MINER_TX_MANUALLY(miner_tx_1, blk_1);
-  split_miner_tx_outs(miner_tx_1, MONEY_SUPPLY);
+  split_miner_tx_outs(miner_tx_1, uint64_t(-1));
   block blk_2;
   if (!generator.construct_block_manually(blk_2, blk_1, miner_account, test_generator::bf_miner_tx, 0, 0, 0, crypto::hash(), 0, miner_tx_1))
     return false;

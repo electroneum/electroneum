@@ -1,3 +1,4 @@
+# Copyright (c) 2017-2019, The Electroneum Project
 # Copyright (c) 2014-2019, The Monero Project
 #
 # All rights reserved.
@@ -44,6 +45,7 @@ set(unit_tests_sources
   decompose_amount_into_digits.cpp
   device.cpp
   difficulty.cpp
+  delegated_pow.cpp
   dns_resolver.cpp
   epee_boosted_tcp_server.cpp
   epee_levin_protocol_handler_async.cpp
@@ -85,7 +87,7 @@ set(unit_tests_sources
   unbound.cpp
   uri.cpp
   varint.cpp
-  ringct.cpp
+#  ringct.cpp
   output_selection.cpp
   vercmp.cpp
   ringdb.cpp

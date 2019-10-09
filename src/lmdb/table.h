@@ -15,8 +15,8 @@ namespace lmdb
     {
         char const* const name;
         const unsigned flags;
-        MDB_cmp_func const* const key_cmp;
-        MDB_cmp_func const* const value_cmp;
+        MDB_cmp_func* const key_cmp;
+        MDB_cmp_func* const value_cmp;
 
         //! \pre `name != nullptr` \return Open table.
         expect<MDB_dbi> open(MDB_txn& write_txn) const noexcept;
@@ -45,7 +45,7 @@ namespace lmdb
             \tparam offset to `F` within `U`.
 
             \note If using `F` and `offset` to retrieve a specific field, use
-                `MONERO_FIELD` macro in `src/lmdb/util.h` which calculates the
+                `ELECTRONEUM_FIELD` macro in `src/lmdb/util.h` which calculates the
                 offset automatically.
 
             \return Value of type `F` at `offset` within `value` which has
@@ -54,7 +54,7 @@ namespace lmdb
         template<typename U, typename F = U, std::size_t offset = 0>
         static expect<F> get_value(MDB_val value) noexcept
         {
-            static_assert(std::is_same<U, V>(), "bad MONERO_FIELD?");
+            static_assert(std::is_same<U, V>(), "bad ELECTRONEUM_FIELD?");
             static_assert(std::is_pod<F>(), "F must be POD");
             static_assert(sizeof(F) + offset <= sizeof(U), "bad field type and/or offset");
 
@@ -77,7 +77,7 @@ namespace lmdb
         expect<key_stream<K, V, D>>
         static get_key_stream(std::unique_ptr<MDB_cursor, D> cur) noexcept
         {
-            MONERO_PRECOND(cur != nullptr);
+            ELECTRONEUM_PRECOND(cur != nullptr);
 
             MDB_val key;
             MDB_val value;
@@ -102,7 +102,7 @@ namespace lmdb
         expect<value_stream<V, D>>
         static get_value_stream(K const& key, std::unique_ptr<MDB_cursor, D> cur) noexcept
         {
-            MONERO_PRECOND(cur != nullptr);
+            ELECTRONEUM_PRECOND(cur != nullptr);
 
             MDB_val key_bytes = lmdb::to_val(key);
             MDB_val value;

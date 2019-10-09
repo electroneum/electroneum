@@ -1,4 +1,5 @@
-// Copyright (c) 2014-2019, The Monero Project
+// Copyrights(c) 2017-2019, The Electroneum Project
+// Copyrights(c) 2014-2019, The Monero Project
 //
 // All rights reserved.
 //
@@ -74,7 +75,7 @@ static inline int use_v4_jit(void)
   if (use_v4_jit_flag != -1)
     return use_v4_jit_flag;
 
-  const char *env = getenv("MONERO_USE_CNV4_JIT");
+  const char *env = getenv("ELECTRONEUM_USE_CNV4_JIT");
   if (!env) {
     use_v4_jit_flag = 1;
   }
@@ -438,6 +439,8 @@ static inline int use_v4_jit(void)
   _b1 = _b; \
   _b = _c; \
 
+
+
 #if defined(_MSC_VER)
 #define THREADV __declspec(thread)
 #else
@@ -506,7 +509,7 @@ STATIC INLINE int force_software_aes(void)
   if (use != -1)
     return use;
 
-  const char *env = getenv("MONERO_USE_SOFTWARE_AES");
+  const char *env = getenv("ELECTRONEUM_USE_SOFTWARE_AES");
   if (!env) {
     use = 0;
   }
@@ -566,7 +569,7 @@ STATIC INLINE void aes_256_assist2(__m128i* t1, __m128i * t3)
  * of the AES encryption used to fill (and later, extract randomness from)
  * the large 2MB buffer.  Note that CryptoNight does not use a completely
  * standard AES encryption for its buffer expansion, so do not copy this
- * function outside of Monero without caution!  This version uses the hardware
+ * function outside of Electroneum without caution!  This version uses the hardware
  * AESKEYGENASSIST instruction to speed key generation, and thus requires
  * CPU AES support.
  * For more information about these functions, see page 19 of Intel's AES instructions
@@ -840,7 +843,7 @@ void slow_hash_free_state(void)
 }
 
 /**
- * @brief the hash function implementing CryptoNight, used for the Monero proof-of-work
+ * @brief the hash function implementing CryptoNight, used for the Electroneum proof-of-work
  *
  * Computes the hash of <data> (which consists of <length> bytes), returning the
  * hash in <hash>.  The CryptoNight hash operates by first using Keccak 1600,
@@ -1496,6 +1499,8 @@ void cn_slow_hash(const void *data, size_t length, char *hash, int variant, int 
         hash_process(&state.hs, data, length);
     }
     memcpy(text, state.init, INIT_SIZE_BYTE);
+
+    VARIANT1_INIT64();
 
     aes_ctx = (oaes_ctx *) oaes_alloc();
     oaes_key_import_data(aes_ctx, state.hs.b, AES_KEY_SIZE);

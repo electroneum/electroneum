@@ -1,4 +1,5 @@
-// Copyright (c) 2014-2019, The Monero Project
+// Copyrights(c) 2017-2019, The Electroneum Project
+// Copyrights(c) 2014-2019, The Monero Project
 // 
 // All rights reserved.
 // 
@@ -36,8 +37,8 @@
 #include "crypto/hash.h"
 #include "wallet_rpc_server_error_codes.h"
 
-#undef MONERO_DEFAULT_LOG_CATEGORY
-#define MONERO_DEFAULT_LOG_CATEGORY "wallet.rpc"
+#undef ELECTRONEUM_DEFAULT_LOG_CATEGORY
+#define ELECTRONEUM_DEFAULT_LOG_CATEGORY "wallet.rpc"
 
 // When making *any* change here, bump minor
 // If the change is incompatible, then bump major and set minor to 0
@@ -910,6 +911,7 @@ namespace wallet_rpc
     std::string payment_id;
     std::string tx_hash;
     uint64_t amount;
+    uint64_t timestamp;
     uint64_t block_height;
     uint64_t unlock_time;
     cryptonote::subaddress_index subaddr_index;
@@ -919,6 +921,7 @@ namespace wallet_rpc
       KV_SERIALIZE(payment_id)
       KV_SERIALIZE(tx_hash)
       KV_SERIALIZE(amount)
+      KV_SERIALIZE(timestamp)
       KV_SERIALIZE(block_height)
       KV_SERIALIZE(unlock_time)
       KV_SERIALIZE(subaddr_index)

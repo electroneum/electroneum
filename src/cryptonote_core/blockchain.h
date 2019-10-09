@@ -1,4 +1,5 @@
-// Copyright (c) 2014-2019, The Monero Project
+// Copyrights(c) 2017-2019, The Electroneum Project
+// Copyrights(c) 2014-2019, The Monero Project
 //
 // All rights reserved.
 //
@@ -37,6 +38,7 @@
 #include <boost/multi_index/global_fun.hpp>
 #include <boost/multi_index/hashed_index.hpp>
 #include <boost/multi_index/member.hpp>
+#include <boost/algorithm/hex.hpp>
 #include <atomic>
 #include <functional>
 #include <unordered_map>
@@ -57,6 +59,7 @@
 #include "checkpoints/checkpoints.h"
 #include "cryptonote_basic/hardfork.h"
 #include "blockchain_db/blockchain_db.h"
+#include "cryptonote_basic/validators.h"
 
 namespace tools { class Notify; }
 
@@ -138,7 +141,7 @@ namespace cryptonote
      *
      * @return true on success, false if any initialization steps fail
      */
-    bool init(BlockchainDB* db, const network_type nettype = MAINNET, bool offline = false, const cryptonote::test_options *test_options = NULL, difficulty_type fixed_difficulty = 0, const GetCheckpointsCallback& get_checkpoints = nullptr);
+    bool init(BlockchainDB* db, const network_type nettype = MAINNET, bool offline = false, const cryptonote::test_options *test_options = NULL, difficulty_type fixed_difficulty = 0, const GetCheckpointsCallback& get_checkpoints = nullptr, bool ignore_bsig = false);
 
     /**
      * @brief Initialize the Blockchain state
@@ -307,6 +310,11 @@ namespace cryptonote
      * @return the target
      */
     difficulty_type get_difficulty_for_next_block();
+
+    /**
+     * @brief Normalize the cumulative difficulty for V7 blocks, fixing the differing difficulty among nodes
+     */
+    void normalize_v7_difficulties();   
 
     /**
      * @brief adds a block to the blockchain
@@ -725,6 +733,11 @@ namespace cryptonote
      */
     bool update_checkpoints(const std::string& file_path, bool check_dns);
 
+    /**
+     * @brief Update the validators public key by fetching data from electroneum's endpoint
+     *
+     * @return true if successfull
+     */
 
     // user options, must be called before calling init()
 
@@ -738,7 +751,7 @@ namespace cryptonote
      * @param fast_sync sync using built-in block hashes as trusted
      */
     void set_user_options(uint64_t maxthreads, bool sync_on_blocks, uint64_t sync_threshold,
-        blockchain_db_sync_mode sync_mode, bool fast_sync);
+        blockchain_db_sync_mode sync_mode, bool fast_sync, std::string validator_key);
 
     /**
      * @brief sets a block notify object to call for every new block
@@ -973,6 +986,7 @@ namespace cryptonote
     bool get_txpool_tx_blob(const crypto::hash& txid, cryptonote::blobdata &bd) const;
     cryptonote::blobdata get_txpool_tx_blob(const crypto::hash& txid) const;
     bool for_all_txpool_txes(std::function<bool(const crypto::hash&, const txpool_tx_meta_t&, const cryptonote::blobdata*)>, bool include_blob = false, bool include_unrelayed_txes = true) const;
+    uint32_t get_mempool_tx_livetime() const;
 
     bool is_within_compiled_block_hash_area(uint64_t height) const;
     bool is_within_compiled_block_hash_area() const { return is_within_compiled_block_hash_area(m_db->height()); }
@@ -1005,6 +1019,13 @@ namespace cryptonote
      * @param nblocks number of blocks to be removed
      */
     void pop_blocks(uint64_t nblocks);
+
+    /**
+     * @brief set validator key
+     */
+    void set_validator_key(std::string key) { m_validator_key = boost::algorithm::unhex(key); }
+
+    void set_validators_list_instance(std::unique_ptr<electroneum::basic::Validators> &v) { m_validators = v.get(); }
 
 #ifndef IN_UNIT_TESTS
   private:
@@ -1070,6 +1091,9 @@ namespace cryptonote
     crypto::hash m_difficulty_for_next_block_top_hash;
     difficulty_type m_difficulty_for_next_block;
 
+    std::string m_validator_key;
+    std::vector<std::string> m_validators_public_keys;
+
     boost::asio::io_service m_async_service;
     boost::thread_group m_async_pool;
     std::unique_ptr<boost::asio::io_service::work> m_async_work_idle;
@@ -1090,6 +1114,8 @@ namespace cryptonote
     bool m_offline;
     difficulty_type m_fixed_difficulty;
 
+    bool m_ignore_bsig;
+
     std::atomic<bool> m_cancel;
 
     // block template cache
@@ -1107,6 +1133,8 @@ namespace cryptonote
 
     std::shared_ptr<tools::Notify> m_block_notify;
     std::shared_ptr<tools::Notify> m_reorg_notify;
+    
+    electroneum::basic::Validators* m_validators;
 
     /**
      * @brief collects the keys for all outputs being "spent" as an input
@@ -1458,7 +1486,7 @@ namespace cryptonote
      * @brief loads block hashes from compiled-in data set
      *
      * A (possibly empty) set of block hashes can be compiled into the
-     * monero daemon binary.  This function loads those hashes into
+     * electroneum daemon binary.  This function loads those hashes into
      * a useful state.
      * 
      * @param get_checkpoints if set, will be called to get checkpoints data
@@ -1485,5 +1513,21 @@ namespace cryptonote
      * At some point, may be used to push an update to miners
      */
     void cache_block_template(const block &b, const cryptonote::account_public_address &address, const blobdata &nonce, const difficulty_type &diff, uint64_t height, uint64_t expected_reward, uint64_t pool_cookie);
+    
+    /**
+     * @brief Digitally sign the block
+     *
+     * @param b the block to be digitally signed
+     * @param privateKey key to generate the signature
+     */
+    void sign_block(block& b, std::string privateKey);
+
+    /**
+     * @brief Verify block's digital signature
+     *
+     * @param b block to be verified
+     */
+    bool verify_block_signature(const block& b);
+
   };
 }  // namespace cryptonote

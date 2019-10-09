@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2019, The Monero Project
+// Copyright (c) 2017-2019, The Electroneum Project
 //
 // All rights reserved.
 //
@@ -31,7 +31,7 @@
 #include "messages/messages.pb.h"
 #include "messages/messages-common.pb.h"
 #include "messages/messages-management.pb.h"
-#include "messages/messages-monero.pb.h"
+#include "messages/messages-electroneum.pb.h"
 
 #ifdef WITH_TREZOR_DEBUGGING
 #include "messages/messages-debug.pb.h"
@@ -52,7 +52,7 @@ namespace trezor
 #ifdef WITH_TREZOR_DEBUGGING
       "hw.trezor.messages.debug.",
 #endif
-      "hw.trezor.messages.monero."
+      "hw.trezor.messages.electroneum."
   };
 
   google::protobuf::Message * MessageMapper::get_message(int wire_number) {
@@ -73,7 +73,7 @@ namespace trezor
     // Each package instantiation so lookup works
     hw::trezor::messages::common::Success::default_instance();
     hw::trezor::messages::management::Cancel::default_instance();
-    hw::trezor::messages::monero::MoneroGetAddress::default_instance();
+    hw::trezor::messages::Electroneum::ElectroneumGetAddress::default_instance();
 
 #ifdef WITH_TREZOR_DEBUGGING
     hw::trezor::messages::debug::DebugLinkDecision::default_instance();
@@ -101,13 +101,13 @@ namespace trezor
 //    // CODEGEN way, fast
 //    switch(wire_number){
 //      case 501:
-//        return new messages::monero::MoneroTransactionSignRequest();
+//        return new messages::Electroneum::ElectroneumTransactionSignRequest();
 //      default:
 //        throw std::runtime_error("not implemented");
 //    }
 //
 //    // CODEGEN message -> number: specification
-//    //    messages::MessageType get_message_wire_number(const messages::monero::MoneroTransactionSignRequest * msg) { return 501; }
+//    //    messages::MessageType get_message_wire_number(const messages::Electroneum::ElectroneumTransactionSignRequest * msg) { return 501; }
 //    //    messages::MessageType get_message_wire_number(const messages::management::ping * msg)
 //
   }

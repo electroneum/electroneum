@@ -1,4 +1,5 @@
-// Copyright (c) 2014-2019, The Monero Project
+// Copyrights(c) 2017-2019, The Electroneum Project
+// Copyrights(c) 2014-2019, The Monero Project
 // 
 // All rights reserved.
 // 
@@ -86,8 +87,8 @@ using namespace epee;
 #include <boost/format.hpp>
 #include <openssl/sha.h>
 
-#undef MONERO_DEFAULT_LOG_CATEGORY
-#define MONERO_DEFAULT_LOG_CATEGORY "util"
+#undef ELECTRONEUM_DEFAULT_LOG_CATEGORY
+#define ELECTRONEUM_DEFAULT_LOG_CATEGORY "util"
 
 namespace
 {
@@ -675,10 +676,10 @@ std::string get_nix_version_display_string()
   {
     ub_ctx *ctx = ub_ctx_create();
     if (!ctx) return false; // cheat a bit, should not happen unless OOM
-    char *monero = strdup("monero"), *unbound = strdup("unbound");
-    ub_ctx_zone_add(ctx, monero, unbound); // this calls ub_ctx_finalize first, then errors out with UB_SYNTAX
+    char *electroneum = strdup("electroneum"), *unbound = strdup("unbound");
+    ub_ctx_zone_add(ctx, electroneum, unbound); // this calls ub_ctx_finalize first, then errors out with UB_SYNTAX
     free(unbound);
-    free(monero);
+    free(electroneum);
     // if no threads, bails out early with UB_NOERROR, otherwise fails with UB_AFTERFINAL id already finalized
     bool with_threads = ub_ctx_async(ctx, 1) != 0; // UB_AFTERFINAL is not defined in public headers, check any error
     ub_ctx_delete(ctx);
@@ -990,6 +991,23 @@ std::string get_nix_version_display_string()
       return {};
     }
   }
+  
+  int display_simple_progress_spinner(int x) {
+    std::string s;
+    x++;
+    if (x == 1) {
+      s = "|";
+    } else if (x == 2) {
+      s = "/";
+    } else if (x == 3) {
+      s = "-";
+    } else {
+      s = "\\";
+      x = 0;
+    }
+    std::cout << "\r" << s << std::flush;
+    return x;
+  }
 
   std::string glob_to_regex(const std::string &val)
   {
@@ -1071,7 +1089,7 @@ std::string get_nix_version_display_string()
   std::string get_human_readable_bytes(uint64_t bytes)
   {
     // Use 1024 for "kilo", 1024*1024 for "mega" and so on instead of the more modern and standard-conforming
-    // 1000, 1000*1000 and so on, to be consistent with other Monero code that also uses base 2 units
+    // 1000, 1000*1000 and so on, to be consistent with other Electroneum code that also uses base 2 units
     struct byte_map
     {
         const char* const format;

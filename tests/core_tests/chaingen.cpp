@@ -1,4 +1,5 @@
-// Copyright (c) 2014-2019, The Monero Project
+// Copyrights(c) 2017-2019, The Electroneum Project
+// Copyrights(c) 2014-2019, The Monero Project
 // 
 // All rights reserved.
 // 
@@ -227,7 +228,7 @@ bool test_generator::construct_block_manually(block& blk, const block& prev_bloc
 {
   blk.major_version = actual_params & bf_major_ver ? major_ver : CURRENT_BLOCK_MAJOR_VERSION;
   blk.minor_version = actual_params & bf_minor_ver ? minor_ver : CURRENT_BLOCK_MINOR_VERSION;
-  blk.timestamp     = actual_params & bf_timestamp ? timestamp : prev_block.timestamp + DIFFICULTY_BLOCKS_ESTIMATE_TIMESPAN; // Keep difficulty unchanged
+  blk.timestamp     = actual_params & bf_timestamp ? timestamp : prev_block.timestamp + DIFFICULTY_BLOCKS_ESTIMATE_TIMESPAN_V6; // Keep difficulty unchanged
   blk.prev_id       = actual_params & bf_prev_id   ? prev_id   : get_block_hash(prev_block);
   blk.tx_hashes     = actual_params & bf_tx_hashes ? tx_hashes : std::vector<crypto::hash>();
   max_outs          = actual_params & bf_max_outs ? max_outs : 9999;
@@ -843,7 +844,9 @@ bool construct_miner_tx_manually(size_t height, uint64_t already_generated_coins
 
   // This will work, until size of constructed block is less then CRYPTONOTE_BLOCK_GRANTED_FULL_REWARD_ZONE
   uint64_t block_reward;
-  if (!get_block_reward(0, 0, already_generated_coins, block_reward, 1))
+  //Deal with premine implementation. 
+  if (height == 1){block_reward = 1260000000000;}
+  else if (!get_block_reward(0, 0, already_generated_coins, block_reward, 1))
   {
     LOG_PRINT_L0("Block is too big");
     return false;

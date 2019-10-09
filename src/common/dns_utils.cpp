@@ -1,3 +1,4 @@
+// Copyrights(c) 2017-2019, The Electroneum Project
 // Copyright (c) 2014-2019, The Monero Project
 //
 // All rights reserved.
@@ -34,21 +35,24 @@
 #include "include_base_utils.h"
 #include "common/threadpool.h"
 #include "crypto/crypto.h"
-#include <boost/thread/mutex.hpp>
-#include <boost/algorithm/string/join.hpp>
 #include <boost/optional.hpp>
+#include <random>
+#include <boost/filesystem/fstream.hpp>
+#include <boost/thread/mutex.hpp>
+#include <boost/thread/thread.hpp>
+#include <boost/algorithm/string/join.hpp>
 using namespace epee;
 
-#undef MONERO_DEFAULT_LOG_CATEGORY
-#define MONERO_DEFAULT_LOG_CATEGORY "net.dns"
+#undef ELECTRONEUM_DEFAULT_LOG_CATEGORY
+#define ELECTRONEUM_DEFAULT_LOG_CATEGORY "net.dns"
 
 static const char *DEFAULT_DNS_PUBLIC_ADDR[] =
 {
   "194.150.168.168",    // CCC (Germany)
+  "81.3.27.54",         // Lightning Wire Labs (Germany)
+  "31.3.135.232",       // OpenNIC (Switzerland)
   "80.67.169.40",       // FDN (France)
-  "89.233.43.71",       // http://censurfridns.dk (Denmark)
-  "109.69.8.51",        // punCAT (Spain)
-  "193.58.251.251",     // SkyDNS (Russia)
+  "209.58.179.186",     // Cyberghost (Singapore)
 };
 
 static boost::mutex instance_lock;
@@ -284,7 +288,7 @@ DNSResolver::DNSResolver() : m_data(new DNSResolverData())
     // should be a valid DNSSEC record, and switch to known good
     // DNSSEC resolvers if verification fails
     bool available, valid;
-    static const char *probe_hostname = "updates.moneropulse.org";
+    static const char *probe_hostname = "updates.electroneumpulse.org";
     auto records = get_txt_record(probe_hostname, available, valid);
     if (!valid)
     {
@@ -406,8 +410,8 @@ namespace dns_utils
 // TODO: parse the string in a less stupid way, probably with regex
 std::string address_from_txt_record(const std::string& s)
 {
-  // make sure the txt record has "oa1:xmr" and find it
-  auto pos = s.find("oa1:xmr");
+  // make sure the txt record has "oa1:etn" and find it
+  auto pos = s.find("oa1:etn");
   if (pos == std::string::npos)
     return {};
   // search from there to find "recipient_address="
@@ -419,22 +423,22 @@ std::string address_from_txt_record(const std::string& s)
   auto pos2 = s.find(";", pos);
   if (pos2 != std::string::npos)
   {
-    // length of address == 95, we can at least validate that much here
-    if (pos2 - pos == 95)
+    // length of address == 98, we can at least validate that much here
+    if (pos2 - pos == 98)
     {
-      return s.substr(pos, 95);
+      return s.substr(pos, 98);
     }
-    else if (pos2 - pos == 106) // length of address == 106 --> integrated address
+    else if (pos2 - pos == 109) // length of address == 109 --> integrated address
     {
-      return s.substr(pos, 106);
+      return s.substr(pos, 109);
     }
   }
   return {};
 }
 /**
- * @brief gets a monero address from the TXT record of a DNS entry
+ * @brief gets a electroneum address from the TXT record of a DNS entry
  *
- * gets the monero address from the TXT record of the DNS entry associated
+ * gets the electroneum address from the TXT record of the DNS entry associated
  * with <url>.  If this lookup fails, or the TXT record does not contain an
  * XMR address in the correct format, returns an empty string.  <dnssec_valid>
  * will be set true or false according to whether or not the DNS query passes
@@ -443,7 +447,7 @@ std::string address_from_txt_record(const std::string& s)
  * @param url the url to look up
  * @param dnssec_valid return-by-reference for DNSSEC status of query
  *
- * @return a monero address (as a string) or an empty string
+ * @return a electroneum address (as a string) or an empty string
  */
 std::vector<std::string> addresses_from_url(const std::string& url, bool& dnssec_valid)
 {
@@ -460,7 +464,7 @@ std::vector<std::string> addresses_from_url(const std::string& url, bool& dnssec
   }
   else dnssec_valid = false;
 
-  // for each txt record, try to find a monero address in it.
+  // for each txt record, try to find a electroneum address in it.
   for (auto& rec : records)
   {
     std::string addr = address_from_txt_record(rec);
@@ -508,7 +512,7 @@ namespace
   }
 }
 
-bool load_txt_records_from_dns(std::vector<std::string> &good_records, const std::vector<std::string> &dns_urls)
+bool load_txt_records_from_dns(std::vector<std::string> &good_records, const std::vector<std::string> &dns_urls, std::string type)
 {
   // Prevent infinite recursion when distributing
   if (dns_urls.empty()) return false;
@@ -537,12 +541,12 @@ bool load_txt_records_from_dns(std::vector<std::string> &good_records, const std
     if (!avail[cur_index])
     {
       records[cur_index].clear();
-      LOG_PRINT_L2("DNSSEC not available for hostname: " << url << ", skipping.");
+      LOG_PRINT_L2("DNSSEC not available for " << type << " at URL: " << url << ", skipping.");
     }
     if (!valid[cur_index])
     {
       records[cur_index].clear();
-      LOG_PRINT_L2("DNSSEC validation failed for hostname: " << url << ", skipping.");
+      LOG_PRINT_L2("DNSSEC validation failed for " << type << " at URL: " << url << ", skipping.");
     }
 
     cur_index++;
@@ -564,7 +568,7 @@ bool load_txt_records_from_dns(std::vector<std::string> &good_records, const std
 
   if (num_valid_records < 2)
   {
-    LOG_PRINT_L0("WARNING: no two valid DNS TXT records were received");
+    LOG_PRINT_L1("WARNING: no two valid ElectroneumPulse DNS " << type << " records were received, only " << num_valid_records);
     return false;
   }
 
@@ -586,7 +590,7 @@ bool load_txt_records_from_dns(std::vector<std::string> &good_records, const std
 
   if (good_records_index < 0)
   {
-    LOG_PRINT_L0("WARNING: no two DNS TXT records matched");
+    LOG_PRINT_L1("WARNING: no two ElectroneumPulse DNS " << type << " records matched");
     return false;
   }
 

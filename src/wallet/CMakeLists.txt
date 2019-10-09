@@ -1,3 +1,4 @@
+# Copyright (c) 2017-2019, The Electroneum Project
 # Copyright (c) 2014-2019, The Monero Project
 #
 # All rights reserved.
@@ -51,13 +52,14 @@ set(wallet_private_headers
   message_store.h
   message_transporter.h)
 
-monero_private_headers(wallet
+electroneum_private_headers(wallet
   ${wallet_private_headers})
-monero_add_library(wallet
+electroneum_add_library(wallet
   ${wallet_sources}
   ${wallet_private_headers})
 target_link_libraries(wallet
   PUBLIC
+    microcore
     multisig
     common
     cryptonote_core
@@ -82,9 +84,9 @@ set(wallet_rpc_headers)
 set(wallet_rpc_private_headers
   wallet_rpc_server.h)
 
-monero_private_headers(wallet_rpc_server
+electroneum_private_headers(wallet_rpc_server
   ${wallet_rpc_private_headers})
-monero_add_executable(wallet_rpc_server
+electroneum_add_executable(wallet_rpc_server
   ${wallet_rpc_sources}
   ${wallet_rpc_headers}
   ${wallet_rpc_private_headers})
@@ -92,6 +94,7 @@ monero_add_executable(wallet_rpc_server
 target_link_libraries(wallet_rpc_server
   PRIVATE
     wallet
+    microcore
     rpc_base
     cryptonote_core
     cncrypto
@@ -107,7 +110,7 @@ target_link_libraries(wallet_rpc_server
     ${EXTRA_LIBRARIES})
 set_property(TARGET wallet_rpc_server
   PROPERTY
-    OUTPUT_NAME "monero-wallet-rpc")
+    OUTPUT_NAME "electroneum-wallet-rpc")
 install(TARGETS wallet_rpc_server DESTINATION bin)
 
 
@@ -117,6 +120,7 @@ if (BUILD_GUI_DEPS)
             wallet_api
             wallet
             multisig
+            microcore
             cryptonote_core
             cryptonote_basic
             mnemonics
@@ -150,3 +154,4 @@ if (BUILD_GUI_DEPS)
 endif()
 
 add_subdirectory(api)
+add_subdirectory(micro_core)

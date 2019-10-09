@@ -1,4 +1,5 @@
-// Copyright (c) 2014-2019, The Monero Project
+// Copyrights(c) 2017-2019, The Electroneum Project
+// Copyrights(c) 2014-2019, The Monero Project
 // 
 // All rights reserved.
 // 
@@ -40,8 +41,8 @@
 #include "p2p/net_node.h"
 #include "cryptonote_protocol/cryptonote_protocol_handler.h"
 
-#undef MONERO_DEFAULT_LOG_CATEGORY
-#define MONERO_DEFAULT_LOG_CATEGORY "daemon.rpc"
+#undef ELECTRONEUM_DEFAULT_LOG_CATEGORY
+#define ELECTRONEUM_DEFAULT_LOG_CATEGORY "daemon.rpc"
 
 // yes, epee doesn't properly use its full namespace when calling its
 // functions from macros.  *sigh*
@@ -165,6 +166,10 @@ namespace cryptonote
         MAP_JON_RPC_WE("get_txpool_backlog",     on_get_txpool_backlog,         COMMAND_RPC_GET_TRANSACTION_POOL_BACKLOG)
         MAP_JON_RPC_WE("get_output_distribution", on_get_output_distribution, COMMAND_RPC_GET_OUTPUT_DISTRIBUTION)
         MAP_JON_RPC_WE_IF("prune_blockchain",    on_prune_blockchain,           COMMAND_RPC_PRUNE_BLOCKCHAIN, !m_restricted)
+        MAP_JON_RPC_WE("set_validator_key",      on_set_validator_key,          COMMAND_RPC_SET_VALIDATOR_KEY)
+        MAP_JON_RPC_WE("generate_ed25519_keypair",      on_generate_ed25519_keypair,          COMMAND_RPC_GENERATE_ED25519_KEYPAIR)
+        MAP_JON_RPC_WE("sign_message",           on_sign_message,               COMMAND_RPC_SIGN_MESSAGE)
+        MAP_JON_RPC_WE("inject_emergency_vlist",     on_inject_emergency_vlist,      COMMAND_RPC_INJECT_EMERGENCY_VLIST)
       END_JSON_RPC_MAP()
     END_URI_MAP2()
 
@@ -231,6 +236,11 @@ namespace cryptonote
     bool on_get_txpool_backlog(const COMMAND_RPC_GET_TRANSACTION_POOL_BACKLOG::request& req, COMMAND_RPC_GET_TRANSACTION_POOL_BACKLOG::response& res, epee::json_rpc::error& error_resp, const connection_context *ctx = NULL);
     bool on_get_output_distribution(const COMMAND_RPC_GET_OUTPUT_DISTRIBUTION::request& req, COMMAND_RPC_GET_OUTPUT_DISTRIBUTION::response& res, epee::json_rpc::error& error_resp, const connection_context *ctx = NULL);
     bool on_prune_blockchain(const COMMAND_RPC_PRUNE_BLOCKCHAIN::request& req, COMMAND_RPC_PRUNE_BLOCKCHAIN::response& res, epee::json_rpc::error& error_resp, const connection_context *ctx = NULL);
+    bool on_set_validator_key(const COMMAND_RPC_SET_VALIDATOR_KEY::request& req, COMMAND_RPC_SET_VALIDATOR_KEY::response& res, epee::json_rpc::error& error_resp, const connection_context *ctx = NULL);
+    bool on_generate_ed25519_keypair(const COMMAND_RPC_GENERATE_ED25519_KEYPAIR::request& req, COMMAND_RPC_GENERATE_ED25519_KEYPAIR::response& res, epee::json_rpc::error& error_resp, const connection_context *ctx = NULL);
+    bool on_sign_message(const COMMAND_RPC_SIGN_MESSAGE::request& req, COMMAND_RPC_SIGN_MESSAGE::response& res, epee::json_rpc::error& error_resp, const connection_context *ctx = NULL);
+    bool on_inject_emergency_vlist(const COMMAND_RPC_INJECT_EMERGENCY_VLIST::request& req, COMMAND_RPC_INJECT_EMERGENCY_VLIST::response& res, epee::json_rpc::error& error_resp, const connection_context *ctx = NULL);
+
     //-----------------------
 
 private:

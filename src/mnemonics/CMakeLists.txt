@@ -1,3 +1,4 @@
+# Copyright (c) 2017-2019, The Electroneum Project
 # Copyright (c) 2014-2019, The Monero Project
 #
 # All rights reserved.
@@ -49,9 +50,9 @@ set(mnemonics_private_headers
   esperanto.h
   lojban.h)
 
-monero_private_headers(mnemonics
+electroneum_private_headers(mnemonics
   ${mnemonics_private_headers})
-monero_add_library(mnemonics
+electroneum_add_library(mnemonics
   ${mnemonics_sources}
   ${mnemonics_headers}
   ${mnemonics_private_headers})

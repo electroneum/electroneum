@@ -55,4 +55,3 @@ template <template <bool> class Archive, class T>
 bool do_serialize(Archive<false> &ar, std::set<T> &v) { return do_serialize_container(ar, v); }
 template <template <bool> class Archive, class T>
 bool do_serialize(Archive<true> &ar, std::set<T> &v) { return do_serialize_container(ar, v); }
-

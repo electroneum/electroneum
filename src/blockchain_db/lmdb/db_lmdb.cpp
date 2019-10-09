@@ -1,4 +1,5 @@
-// Copyright (c) 2014-2019, The Monero Project
+// Copyrights(c) 2017-2019, The Electroneum Project
+// Copyrights(c) 2014-2019, The Monero Project
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without modification, are
@@ -30,6 +31,8 @@
 #include <boost/filesystem.hpp>
 #include <boost/format.hpp>
 #include <boost/circular_buffer.hpp>
+#include <boost/archive/text_oarchive.hpp>
+#include <boost/archive/text_iarchive.hpp>
 #include <memory>  // std::unique_ptr
 #include <cstring>  // memcpy
 
@@ -42,8 +45,8 @@
 #include "profile_tools.h"
 #include "ringct/rctOps.h"
 
-#undef MONERO_DEFAULT_LOG_CATEGORY
-#define MONERO_DEFAULT_LOG_CATEGORY "blockchain.db.lmdb"
+#undef ELECTRONEUM_DEFAULT_LOG_CATEGORY
+#define ELECTRONEUM_DEFAULT_LOG_CATEGORY "blockchain.db.lmdb"
 
 
 #if defined(__i386) || defined(__x86_64)
@@ -223,6 +226,8 @@ const char* const LMDB_TXPOOL_BLOB = "txpool_blob";
 
 const char* const LMDB_HF_STARTING_HEIGHTS = "hf_starting_heights";
 const char* const LMDB_HF_VERSIONS = "hf_versions";
+
+const char* const LMDB_VALIDATORS = "validators";
 
 const char* const LMDB_PROPERTIES = "properties";
 
@@ -1105,10 +1110,9 @@ void BlockchainLMDB::remove_tx_outputs(const uint64_t tx_id, const transaction& 
       throw0(DB_ERROR("tx has outputs, but no output indices found"));
   }
 
-  bool is_pseudo_rct = tx.version >= 2 && tx.vin.size() == 1 && tx.vin[0].type() == typeid(txin_gen);
   for (size_t i = tx.vout.size(); i-- > 0;)
   {
-    uint64_t amount = is_pseudo_rct ? 0 : tx.vout[i].amount;
+    uint64_t amount = tx.vout[i].amount;
     remove_output(amount, amount_output_indices[i]);
   }
 }
@@ -1240,6 +1244,53 @@ void BlockchainLMDB::remove_spent_key(const crypto::key_image& k_image)
     if (result)
         throw1(DB_ERROR(lmdb_error("Error adding removal of key image to db transaction", result).c_str()));
   }
+}
+
+blobdata BlockchainLMDB::output_to_blob(const tx_out& output) const
+{
+  LOG_PRINT_L3("BlockchainLMDB::" << __func__);
+  blobdata b;
+  if (!t_serializable_object_to_blob(output, b))
+    throw1(DB_ERROR("Error serializing output to blob"));
+  return b;
+}
+
+tx_out BlockchainLMDB::output_from_blob(const blobdata& blob) const
+{
+  LOG_PRINT_L3("BlockchainLMDB::" << __func__);
+  std::stringstream ss;
+  ss << blob;
+  binary_archive<false> ba(ss);
+  tx_out o;
+
+  if (!(::serialization::serialize(ba, o)))
+    throw1(DB_ERROR("Error deserializing tx output blob"));
+
+  return o;
+}
+
+blobdata BlockchainLMDB::validator_to_blob(const validator_db& v) const
+{
+  LOG_PRINT_L3("BlockchainLMDB::" << __func__);
+  blobdata b;
+
+  if (!t_serializable_object_to_blob(v, b))
+    throw1(DB_ERROR("Error serializing validator to blob"));
+  return b;
+}
+
+validator_db BlockchainLMDB::validator_from_blob(const blobdata blob) const
+{
+  LOG_PRINT_L3("BlockchainLMDB::" << __func__);
+  std::stringstream ss;
+  ss << blob;
+  binary_archive<false> ba(ss);
+  validator_db o = AUTO_VAL_INIT(o);
+
+  if (!(::serialization::serialize(ba, o)))
+    throw1(DB_ERROR("Error deserializing validator blob"));
+
+  return o;
 }
 
 BlockchainLMDB::~BlockchainLMDB()
@@ -1408,6 +1459,8 @@ void BlockchainLMDB::open(const std::string& filename, const int db_flags)
 
   lmdb_db_open(txn, LMDB_HF_VERSIONS, MDB_INTEGERKEY | MDB_CREATE, m_hf_versions, "Failed to open db handle for m_hf_versions");
 
+  lmdb_db_open(txn, LMDB_VALIDATORS, MDB_INTEGERKEY | MDB_CREATE, m_validators, "Failed to open db handle for m_validators");
+
   lmdb_db_open(txn, LMDB_PROPERTIES, MDB_CREATE, m_properties, "Failed to open db handle for m_properties");
 
   mdb_set_dupsort(txn, m_spent_keys, compare_hash32);
@@ -1461,7 +1514,7 @@ void BlockchainLMDB::open(const std::string& filename, const int db_flags)
         mdb_env_close(m_env);
         m_open = false;
         MFATAL("Existing lmdb database needs to be converted, which cannot be done on a read-only database.");
-        MFATAL("Please run monerod once to convert the database.");
+        MFATAL("Please run electroneumd once to convert the database.");
         return;
       }
       // Note that there was a schema change within version 0 as well.
@@ -1593,6 +1646,8 @@ void BlockchainLMDB::reset()
   (void)mdb_drop(txn, m_hf_starting_heights, 0); // this one is dropped in new code
   if (auto result = mdb_drop(txn, m_hf_versions, 0))
     throw0(DB_ERROR(lmdb_error("Failed to drop m_hf_versions: ", result).c_str()));
+  if (auto result = mdb_drop(txn, m_validators, 0))
+    throw0(DB_ERROR(lmdb_error("Failed to drop m_validators: ", result).c_str()));
   if (auto result = mdb_drop(txn, m_properties, 0))
     throw0(DB_ERROR(lmdb_error("Failed to drop m_properties: ", result).c_str()));
 
@@ -2622,6 +2677,42 @@ std::vector<uint64_t> BlockchainLMDB::get_block_weights(uint64_t start_height, s
 std::vector<uint64_t> BlockchainLMDB::get_long_term_block_weights(uint64_t start_height, size_t count) const
 {
   return get_block_info_64bit_fields(start_height, count, offsetof(mdb_block_info, bi_long_term_block_weight));
+}
+
+void BlockchainLMDB::set_block_cumulative_difficulty(uint64_t height, difficulty_type diff)
+{
+  LOG_PRINT_L3("BlockchainLMDB::" << __func__ << "  height: " << height);
+  check_open();
+  mdb_txn_cursors *m_cursors = &m_wcursors;
+
+  int result;
+
+  CURSOR(block_info)
+
+  MDB_val_set(val_bi, height);
+  result = mdb_cursor_get(m_cur_block_info, (MDB_val *)&zerokval, &val_bi, MDB_GET_BOTH);
+  if (result == MDB_NOTFOUND)
+  {
+    throw0(BLOCK_DNE(std::string("Attempt to set cumulative difficulty from height ").append(boost::lexical_cast<std::string>(height)).append(" failed -- difficulty not in db").c_str()));
+  }
+  else if (result)
+    throw0(DB_ERROR("Error attempting to set a cumulative difficulty"));
+
+  mdb_block_info *result_bi = (mdb_block_info *)val_bi.mv_data;
+
+  mdb_block_info bi;
+  bi.bi_height = result_bi->bi_height;
+  bi.bi_timestamp = result_bi->bi_timestamp;
+  bi.bi_coins = result_bi->bi_coins;
+  bi.bi_weight = result_bi->bi_weight;
+  //bi.bi_diff_lo = diff; // TODO
+  bi.bi_hash = result_bi->bi_hash;
+
+  MDB_val_set(val, bi);
+  result = mdb_cursor_put(m_cur_block_info, (MDB_val *)&val_bi, &val, MDB_CURRENT);
+  if (result)
+    throw0(DB_ERROR(lmdb_error("Failed to set cumulative difficulty to db transaction: ", result).c_str()));
+
 }
 
 difficulty_type BlockchainLMDB::get_block_cumulative_difficulty(const uint64_t& height) const
@@ -3975,7 +4066,7 @@ std::map<uint64_t, std::tuple<uint64_t, uint64_t, uint64_t>> BlockchainLMDB::get
       while (num_elems > 0) {
         const tx_out_index toi = get_output_tx_and_index(amount, num_elems - 1);
         const uint64_t height = get_tx_block_height(toi.first);
-        if (height + CRYPTONOTE_DEFAULT_TX_SPENDABLE_AGE <= blockchain_height)
+        if (height + (get_hard_fork_version(height) > 7 ? ETN_MONEY_UNLOCK_WINDOW_V8 : CRYPTONOTE_DEFAULT_TX_SPENDABLE_AGE) <= blockchain_height)
           break;
         --num_elems;
       }
@@ -4071,6 +4162,58 @@ void BlockchainLMDB::drop_hard_fork_info()
     throw1(DB_ERROR(lmdb_error("Error dropping hard fork versions db: ", result).c_str()));
 
   TXN_POSTFIX_SUCCESS();
+}
+
+void BlockchainLMDB::set_validator_list(std::string validator_list, uint32_t expiration_date) {
+  LOG_PRINT_L3("BlockchainLMDB::" << __func__);
+  check_open();
+
+  TXN_BLOCK_PREFIX(0);
+
+  validator_db v;
+  v.validators = std::vector<uint8_t>(validator_list.begin(), validator_list.end());
+  v.expiration_date = expiration_date;
+
+  MDB_val_copy<uint64_t> val_key(0);
+  MDB_val_copy<blobdata> val_value(validator_to_blob(v));
+
+  int result = mdb_put(*txn_ptr, m_validators, &val_key, &val_value, MDB_APPEND);
+  if (result == MDB_KEYEXIST)
+    result = mdb_put(*txn_ptr, m_validators, &val_key, &val_value, 0);
+  if (result)
+    throw1(DB_ERROR(lmdb_error("Error adding validator list to db transaction: ", result).c_str()));
+
+  TXN_BLOCK_POSTFIX_SUCCESS();
+}
+
+std::string BlockchainLMDB::get_validator_list() const {
+  LOG_PRINT_L3("BlockchainLMDB::" << __func__);
+  check_open();
+
+  TXN_PREFIX_RDONLY();
+  RCURSOR(validators);
+
+  MDB_val_copy<uint64_t> val_key(0);
+  MDB_val val_ret;
+  auto result = mdb_cursor_get(m_cur_validators, &val_key, &val_ret, MDB_SET);
+  if (result == MDB_NOTFOUND || result) {
+    LOG_PRINT_L1("Error attempting to retrieve the list of validators from the db.");
+    TXN_POSTFIX_RDONLY();
+    return std::string("");
+  }
+
+  blobdata ret;
+  ret.assign(reinterpret_cast<const char*>(val_ret.mv_data), val_ret.mv_size);
+
+  validator_db v = validator_from_blob(ret);
+
+  if((v.expiration_date) - time(nullptr) <= 0) {
+    TXN_POSTFIX_RDONLY();
+    return std::string("");
+  }
+
+  TXN_POSTFIX_RDONLY();
+  return std::string(v.validators.begin(), v.validators.end());
 }
 
 void BlockchainLMDB::set_hard_fork_version(uint64_t height, uint8_t version)

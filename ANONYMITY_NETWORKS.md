@@ -16,11 +16,11 @@ will only be sent to peers on anonymity networks. If an anonymity network is
 enabled but no peers over an anonymity network are available, an error is
 logged and the transaction is kept for future broadcasting over an anonymity
 network. The transaction will not be broadcast unless an anonymity connection
-is made or until `monerod` is shutdown and restarted with only public
+is made or until `electroneumd` is shutdown and restarted with only public
 connections enabled.
 
-Anonymity networks can also be used with `monero-wallet-cli` and
-`monero-wallet-rpc` - the wallets will connect to a daemon through a proxy. The
+Anonymity networks can also be used with `electroneum-wallet-cli` and
+`electroneum-wallet-rpc` - the wallets will connect to a daemon through a proxy. The
 daemon must provide a hidden service for the RPC itself, which is separate from
 the hidden service for P2P connections.
 

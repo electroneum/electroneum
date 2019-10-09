@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2018, The Monero Project
+// Copyright (c) 2017-2018, The Electroneum Project
 //
 // All rights reserved.
 //
@@ -27,8 +27,8 @@
 // THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
 
-#ifndef MONERO_DEBUG_LINK_H
-#define MONERO_DEBUG_LINK_H
+#ifndef ELECTRONEUM_DEBUG_LINK_H
+#define ELECTRONEUM_DEBUG_LINK_H
 
 #include "transport.hpp"
 #include "messages/messages-debug.pb.h"
@@ -90,4 +90,4 @@ namespace trezor {
 }
 }
 
-#endif //MONERO_DEBUG_LINK_H
+#endif //ELECTRONEUM_DEBUG_LINK_H

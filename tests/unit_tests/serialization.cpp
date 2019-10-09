@@ -1,4 +1,5 @@
-// Copyright (c) 2014-2019, The Monero Project
+// Copyrights(c) 2017-2019, The Electroneum Project
+// Copyrights(c) 2014-2019, The Monero Project
 // 
 // All rights reserved.
 // 
@@ -616,11 +617,12 @@ TEST(Serialization, serializes_ringct_types)
   ASSERT_EQ(bp0, bp1);
 }
 
+// ToDo : Change this test to test features relevant to the Electroneum Project (Wallet needs creating and such)
 TEST(Serialization, portability_wallet)
 {
   const cryptonote::network_type nettype = cryptonote::TESTNET;
   tools::wallet2 w(nettype);
-  const boost::filesystem::path wallet_file = unit_test::data_dir / "wallet_9svHk1";
+  const boost::filesystem::path wallet_file = unit_test::data_dir / "wallet_etnkA3";
   string password = "test";
   bool r = false;
   try
@@ -740,7 +742,8 @@ TEST(Serialization, portability_wallet)
   }
 }
 
-#define OUTPUT_EXPORT_FILE_MAGIC "Monero output export\003"
+// ToDo : Change this test to test features relevant to the Electroneum Project (Wallet needs creating and such)
+#define OUTPUT_EXPORT_FILE_MAGIC "Electroneum output export\003"
 TEST(Serialization, portability_outputs)
 {
   // read file
@@ -867,10 +870,10 @@ inline void serialize(Archive &a, unsigned_tx_set &x, const boost::serialization
   a & x.txes;
   a & x.transfers;
 }
-#define UNSIGNED_TX_PREFIX "Monero unsigned tx set\003"
+#define UNSIGNED_TX_PREFIX "Electroneum unsigned tx set\003"
 TEST(Serialization, portability_unsigned_tx)
 {
-  const boost::filesystem::path filename = unit_test::data_dir / "unsigned_monero_tx";
+  const boost::filesystem::path filename = unit_test::data_dir / "unsigned_electroneum_tx";
   std::string s;
   const cryptonote::network_type nettype = cryptonote::TESTNET;
   bool r = epee::file_io_utils::load_file_to_string(filename.string(), s);
@@ -1015,10 +1018,11 @@ TEST(Serialization, portability_unsigned_tx)
   ASSERT_TRUE(td2.m_pk_index == 0);
 }
 
-#define SIGNED_TX_PREFIX "Monero signed tx set\003"
+// ToDo : Change this test to test features relevant to the Electroneum Project (Wallet needs creating and such)
+#define SIGNED_TX_PREFIX "Electroneum signed tx set\003"
 TEST(Serialization, portability_signed_tx)
 {
-  const boost::filesystem::path filename = unit_test::data_dir / "signed_monero_tx";
+  const boost::filesystem::path filename = unit_test::data_dir / "signed_electroneum_tx";
   const cryptonote::network_type nettype = cryptonote::TESTNET;
   std::string s;
   bool r = epee::file_io_utils::load_file_to_string(filename.string(), s);

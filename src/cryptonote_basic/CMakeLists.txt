@@ -1,3 +1,4 @@
+# Copyright (c) 2017-2019, The Electroneum Project
 # Copyright (c) 2014-2019, The Monero Project
 #
 # All rights reserved.
@@ -42,7 +43,8 @@ set(cryptonote_basic_sources
   cryptonote_format_utils.cpp
   difficulty.cpp
   hardfork.cpp
-  miner.cpp)
+  miner.cpp
+  validators.cpp)
 
 set(cryptonote_basic_headers)
 
@@ -59,11 +61,13 @@ set(cryptonote_basic_private_headers
   hardfork.h
   miner.h
   tx_extra.h
-  verification_context.h)
+  verification_context.h
+  validators.h
+  validators_commands_defs.h)
 
-monero_private_headers(cryptonote_basic
+electroneum_private_headers(cryptonote_basic
   ${cryptonote_basic_private_headers})
-monero_add_library(cryptonote_basic
+electroneum_add_library(cryptonote_basic
   ${cryptonote_basic_sources}
   ${cryptonote_basic_headers}
   ${cryptonote_basic_private_headers})

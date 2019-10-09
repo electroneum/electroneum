@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2019, The Monero Project
+// Copyright (c) 2017-2019, The Electroneum Project
 //
 // All rights reserved.
 //
@@ -27,8 +27,8 @@
 // THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
 
-#ifndef MONERO_MESSAGES_MAP_H
-#define MONERO_MESSAGES_MAP_H
+#ifndef ELECTRONEUM_MESSAGES_MAP_H
+#define ELECTRONEUM_MESSAGES_MAP_H
 
 #include <string>
 #include <type_traits>
@@ -91,4 +91,4 @@ namespace trezor {
 
 }}
 
-#endif //MONERO_MESSAGES_MAP_H
+#endif //ELECTRONEUM_MESSAGES_MAP_H

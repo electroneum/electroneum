@@ -1,3 +1,4 @@
+# Copyright (c) 2017-2019, The Electroneum Project
 # Copyright (c) 2014-2019, The Monero Project
 #
 # All rights reserved.
@@ -42,7 +43,7 @@ endif()
 cmake_minimum_required(VERSION 2.8.7)
 message(STATUS "CMake version ${CMAKE_VERSION}")
 
-project(monero)
+project(electroneum)
 
 enable_language(C ASM)
 
@@ -287,6 +288,21 @@ endif()
 
 include_directories(external/rapidjson/include external/easylogging++ src contrib/epee/include external)
 
+add_library (ed25519-donna STATIC
+        external/ed25519-donna/ed25519.c)
+target_include_directories (ed25519-donna
+        PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/external>
+        $<INSTALL_INTERFACE:include>
+        PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/external/ed25519-donna)
+target_link_libraries (ed25519-donna PUBLIC OpenSSL::SSL)
+add_library (NIH::ed25519-donna ALIAS ed25519-donna)
+install (
+        FILES
+        external/ed25519-donna/ed25519.h
+        DESTINATION contrib/epee/include)
+
 if(APPLE)
   include_directories(SYSTEM /usr/include/malloc)
   if(POLICY CMP0042)
@@ -300,6 +316,19 @@ else()
   set(DEFAULT_STATIC false)
 endif()
 option(STATIC "Link libraries statically" ${DEFAULT_STATIC})
+
+if(WIN32 OR MSVC OR MINGW)
+  # Enable DEP (data execution prevention) and ASLR (address space layout
+  # randomization).
+  # See https://lists.gnu.org/archive/html/bug-binutils/2015-09/msg00204.html
+  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--nxcompat")
+  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--disable-auto-image-base -Wl,--dynamicbase")
+  if("${CMAKE_SIZEOF_VOID_P}" EQUAL "8")
+    # For 64-bit build, enable higher entropy for the memory relocations:
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--high-entropy-va")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--image-base -Wl,0x140000000")
+  endif()
+endif()
 
 # This is a CMake built-in switch that concerns internal libraries
 if (NOT DEFINED BUILD_SHARED_LIBS AND NOT STATIC AND CMAKE_BUILD_TYPE_LOWER STREQUAL "debug")
@@ -347,7 +376,7 @@ if(SANITIZE)
 endif()
 
 # Set default blockchain storage location:
-# memory was the default in Cryptonote before Monero implemented LMDB, it still works but is unnecessary.
+# memory was the default in Cryptonote before Electroneum implimented LMDB, it still works but is unneccessary.
 # set(DATABASE memory)
 set(DATABASE lmdb)
 
@@ -820,7 +849,7 @@ else()
     set(DEBUG_FLAGS "${DEBUG_FLAGS} -O0 ")
   endif()
 
-  # At least some CLANGs default to not enough for monero
+  # At least some CLANGs default to not enough for electroneum
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ftemplate-depth=900")
 
   if(NOT DEFINED USE_LTO_DEFAULT)

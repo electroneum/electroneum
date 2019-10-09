@@ -38,8 +38,8 @@ extern "C"
 #include "rctOps.h"
 #include "multiexp.h"
 
-#undef MONERO_DEFAULT_LOG_CATEGORY
-#define MONERO_DEFAULT_LOG_CATEGORY "multiexp"
+#undef ELECTRONEUM_DEFAULT_LOG_CATEGORY
+#define ELECTRONEUM_DEFAULT_LOG_CATEGORY "multiexp"
 
 //#define MULTIEXP_PERF(x) x
 #define MULTIEXP_PERF(x)

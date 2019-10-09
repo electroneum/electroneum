@@ -1,4 +1,5 @@
-// Copyright (c) 2014-2019, The Monero Project
+// Copyrights(c) 2017-2019, The Electroneum Project
+// Copyrights(c) 2014-2019, The Monero Project
 // 
 // All rights reserved.
 // 
@@ -53,8 +54,8 @@ using namespace epee;
 #include "p2p/net_node.h"
 #include "version.h"
 
-#undef MONERO_DEFAULT_LOG_CATEGORY
-#define MONERO_DEFAULT_LOG_CATEGORY "daemon.rpc"
+#undef ELECTRONEUM_DEFAULT_LOG_CATEGORY
+#define ELECTRONEUM_DEFAULT_LOG_CATEGORY "daemon.rpc"
 
 #define MAX_RESTRICTED_FAKE_OUTS_COUNT 40
 #define MAX_RESTRICTED_GLOBAL_FAKE_OUTS_COUNT 5000
@@ -82,6 +83,8 @@ namespace
     stop64 = ((difficulty >> 64) & 0xffffffffffffffff).convert_to<uint64_t>();
   }
 }
+
+#define OUTPUT_HISTOGRAM_RECENT_CUTOFF_RESTRICTION (3 * 86400) // 3 days max, the wallet requests 1.8 days
 
 namespace cryptonote
 {
@@ -237,9 +240,14 @@ namespace cryptonote
     if (restricted)
       res.database_size = round_up(res.database_size, 5ull* 1024 * 1024 * 1024);
     res.update_available = restricted ? false : m_core.is_update_available();
-    res.version = restricted ? "" : MONERO_VERSION;
+    res.version = restricted ? "" : ELECTRONEUM_VERSION;
 
     res.status = CORE_RPC_STATUS_OK;
+
+    res.daemon_release_name = ELECTRONEUM_RELEASE_NAME;
+    res.daemon_version = ELECTRONEUM_VERSION;
+    res.daemon_version_full = ELECTRONEUM_VERSION_FULL;
+    res.daemon_version_tag = ELECTRONEUM_VERSION_TAG;
     return true;
   }
   //------------------------------------------------------------------------------------------------------------------------------
@@ -953,7 +961,7 @@ namespace cryptonote
     res.is_background_mining_enabled = lMiner.get_is_background_mining_enabled();
     store_difficulty(m_core.get_blockchain_storage().get_difficulty_for_next_block(), res.difficulty, res.wide_difficulty, res.difficulty_top64);
     
-    res.block_target = m_core.get_blockchain_storage().get_current_hard_fork_version() < 2 ? DIFFICULTY_TARGET_V1 : DIFFICULTY_TARGET_V2;
+    res.block_target = m_core.get_blockchain_storage().get_current_hard_fork_version() < 6 ? DIFFICULTY_TARGET : DIFFICULTY_TARGET_V6;
     if ( lMiner.is_mining() ) {
       res.speed = lMiner.get_speed();
       res.threads_count = lMiner.get_threads_count();
@@ -2078,7 +2086,7 @@ namespace cryptonote
       return true;
     }
 
-    static const char software[] = "monero";
+    static const char software[] = "electroneum";
 #ifdef BUILD_TAG
     static const char buildtag[] = BOOST_PP_STRINGIZE(BUILD_TAG);
     static const char subdir[] = "cli";
@@ -2086,7 +2094,7 @@ namespace cryptonote
     static const char buildtag[] = "source";
     static const char subdir[] = "source";
 #endif
-
+    LOG_PRINT_L0(req.command << " for software: " << software << "; buildtag: " << buildtag << "; subdir:" << subdir);
     if (req.command != "check" && req.command != "download" && req.command != "update")
     {
       res.status = std::string("unknown command: '") + req.command + "'";
@@ -2099,7 +2107,7 @@ namespace cryptonote
       res.status = "Error checking for updates";
       return true;
     }
-    if (tools::vercmp(version.c_str(), MONERO_VERSION) <= 0)
+    if (tools::vercmp(version.c_str(), ELECTRONEUM_VERSION) <= 0)
     {
       res.update = false;
       res.status = CORE_RPC_STATUS_OK;
@@ -2274,6 +2282,81 @@ namespace cryptonote
     res.status = CORE_RPC_STATUS_OK;
     return true;
   }
+  //------------------------------------------------------------------------------------------------------------------------------
+  bool core_rpc_server::on_set_validator_key(const COMMAND_RPC_SET_VALIDATOR_KEY::request& req, COMMAND_RPC_SET_VALIDATOR_KEY::response& res, epee::json_rpc::error& error_resp, const connection_context *ctx)
+  {
+    if(!m_core.set_validator_key(req.validator_key)) {
+      error_resp.code = CORE_RPC_ERROR_CODE_INTERNAL_ERROR;
+      error_resp.message = "Failed to set Validator Key. Wrong format.";
+      return false;
+    }
+
+    res.status = CORE_RPC_STATUS_OK;
+    return true;
+  }
+
+  //------------------------------------------------------------------------------------------------------------------------------
+  bool core_rpc_server::on_generate_ed25519_keypair(const COMMAND_RPC_GENERATE_ED25519_KEYPAIR::request& req, COMMAND_RPC_GENERATE_ED25519_KEYPAIR::response& res, epee::json_rpc::error& error_resp, const connection_context *ctx)
+  {
+    std::vector<std::string> v = m_core.generate_ed25519_keypair();
+    if(v.size() == 0) {
+      error_resp.code = CORE_RPC_ERROR_CODE_INTERNAL_ERROR;
+      error_resp.message = "Failed to generate ED25519-Donna keypair.";
+      return false;
+    }
+
+    res.privateKey = v[0];
+    res.publicKey = v[1];
+
+    res.status = CORE_RPC_STATUS_OK;
+    return true;
+  }
+
+  //------------------------------------------------------------------------------------------------------------------------------
+  bool core_rpc_server::on_sign_message(const COMMAND_RPC_SIGN_MESSAGE::request& req, COMMAND_RPC_SIGN_MESSAGE::response& res, epee::json_rpc::error& error_resp, const connection_context *ctx)
+  {
+    std::string v = m_core.sign_message(boost::algorithm::unhex(req.privateKey), req.message);
+    if(v.empty()) {
+      error_resp.code = CORE_RPC_ERROR_CODE_INTERNAL_ERROR;
+      error_resp.message = "Failed to sign message.";
+      return false;
+    }
+
+    res.signature = v;
+
+    res.status = CORE_RPC_STATUS_OK;
+    return true;
+  }
+  //------------------------------------------------------------------------------------------------------------------------------
+
+  bool core_rpc_server::on_inject_emergency_vlist(const COMMAND_RPC_INJECT_EMERGENCY_VLIST::request& req, COMMAND_RPC_INJECT_EMERGENCY_VLIST::response& res, epee::json_rpc::error& error_resp, const connection_context *ctx)
+  {
+      if(!req.blob.empty()) {
+
+      NOTIFY_EMERGENCY_VALIDATORS_LIST::request arg = AUTO_VAL_INIT(arg);
+      arg.serialized_v_list = electroneum::basic::store_t_to_json(req);
+      cryptonote_connection_context context = boost::value_initialized<cryptonote_connection_context>();
+
+
+      electroneum::basic::list_update_outcome update_outcome = m_core.set_validators_list(arg.serialized_v_list, true);
+        if(update_outcome == electroneum::basic::list_update_outcome::Same_Emergency_List
+        || update_outcome == electroneum::basic::list_update_outcome::Emergency_Success ) {
+        LOG_PRINT_CCONTEXT_L0("Local list is a legitimate emergency list and will now be relayed.");
+
+          if(m_core.get_protocol()->relay_emergency_validator_list(arg, context)){
+            LOG_PRINT_CCONTEXT_L0("List successfully deployed to peers via p2p.");
+            return true;
+          }
+        }
+        else {
+          LOG_ERROR_CCONTEXT("Received incorrect emergency Validators List for relay.");
+          return false;
+        }
+      }
+
+    return false;
+  }
+
   //------------------------------------------------------------------------------------------------------------------------------
   bool core_rpc_server::on_get_output_distribution(const COMMAND_RPC_GET_OUTPUT_DISTRIBUTION::request& req, COMMAND_RPC_GET_OUTPUT_DISTRIBUTION::response& res, epee::json_rpc::error& error_resp, const connection_context *ctx)
   {

@@ -1,4 +1,5 @@
-// Copyright (c) 2014-2019, The Monero Project
+// Copyrights(c) 2017-2019, The Electroneum Project
+// Copyrights(c) 2014-2019, The Monero Project
 //
 // All rights reserved.
 //
@@ -33,7 +34,7 @@
 #include "net/http_client.h"
 #include <string>
 
-namespace Monero {
+namespace Electroneum {
 
 class WalletManagerImpl : public WalletManager
 {
@@ -102,4 +103,4 @@ private:
 
 } // namespace
 
-namespace Bitmonero = Monero;
+namespace Bitelectroneum = Electroneum;

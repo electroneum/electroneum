@@ -1,4 +1,5 @@
-// Copyright (c) 2014-2019, The Monero Project
+// Copyrights(c) 2017-2019, The Electroneum Project
+// Copyrights(c) 2014-2019, The Monero Project
 //
 // All rights reserved.
 //
@@ -39,8 +40,8 @@
 #include "cryptonote_config.h"
 #include "difficulty.h"
 
-#undef MONERO_DEFAULT_LOG_CATEGORY
-#define MONERO_DEFAULT_LOG_CATEGORY "difficulty"
+#undef ELECTRONEUM_DEFAULT_LOG_CATEGORY
+#define ELECTRONEUM_DEFAULT_LOG_CATEGORY "difficulty"
 
 namespace cryptonote {
 
@@ -119,31 +120,37 @@ namespace cryptonote {
     return !carry;
   }
 
-  uint64_t next_difficulty_64(std::vector<std::uint64_t> timestamps, std::vector<uint64_t> cumulative_difficulties, size_t target_seconds) {
+  uint64_t next_difficulty_64(std::vector<std::uint64_t> timestamps, std::vector<uint64_t> cumulative_difficulties, size_t target_seconds, uint8_t version) {
 
-    if(timestamps.size() > DIFFICULTY_WINDOW)
+    const size_t difficultyWindow = version == 6 ? DIFFICULTY_WINDOW_V6 : DIFFICULTY_WINDOW;
+
+    if(timestamps.size() > difficultyWindow)
     {
-      timestamps.resize(DIFFICULTY_WINDOW);
-      cumulative_difficulties.resize(DIFFICULTY_WINDOW);
+      timestamps.resize(difficultyWindow);
+      cumulative_difficulties.resize(difficultyWindow);
     }
-
 
     size_t length = timestamps.size();
     assert(length == cumulative_difficulties.size());
     if (length <= 1) {
       return 1;
     }
+
     static_assert(DIFFICULTY_WINDOW >= 2, "Window is too small");
-    assert(length <= DIFFICULTY_WINDOW);
+    static_assert(DIFFICULTY_WINDOW_V6 >= 2, "Window is too small");
+    assert(length <= difficultyWindow);
     sort(timestamps.begin(), timestamps.end());
     size_t cut_begin, cut_end;
+
     static_assert(2 * DIFFICULTY_CUT <= DIFFICULTY_WINDOW - 2, "Cut length is too large");
-    if (length <= DIFFICULTY_WINDOW - 2 * DIFFICULTY_CUT) {
+    static_assert(2 * DIFFICULTY_CUT <= DIFFICULTY_WINDOW_V6 - 2, "Cut length is too large");
+
+    if (length <= difficultyWindow - 2 * DIFFICULTY_CUT) {
       cut_begin = 0;
       cut_end = length;
     } else {
-      cut_begin = (length - (DIFFICULTY_WINDOW - 2 * DIFFICULTY_CUT) + 1) / 2;
-      cut_end = cut_begin + (DIFFICULTY_WINDOW - 2 * DIFFICULTY_CUT);
+      cut_begin = (length - (difficultyWindow - 2 * DIFFICULTY_CUT) + 1) / 2;
+      cut_end = cut_begin + (difficultyWindow - 2 * DIFFICULTY_CUT);
     }
     assert(/*cut_begin >= 0 &&*/ cut_begin + 2 <= cut_end && cut_end <= length);
     uint64_t time_span = timestamps[cut_end - 1] - timestamps[cut_begin];
@@ -200,12 +207,15 @@ namespace cryptonote {
       return check_hash_128(hash, difficulty);
   }
 
-  difficulty_type next_difficulty(std::vector<uint64_t> timestamps, std::vector<difficulty_type> cumulative_difficulties, size_t target_seconds) {
+  difficulty_type next_difficulty(std::vector<uint64_t> timestamps, std::vector<difficulty_type> cumulative_difficulties, size_t target_seconds, uint8_t version) {
+    
+    const size_t difficultyWindow = version == 6 ? DIFFICULTY_WINDOW_V6 : DIFFICULTY_WINDOW;
+    
     //cutoff DIFFICULTY_LAG
-    if(timestamps.size() > DIFFICULTY_WINDOW)
+    if(timestamps.size() > difficultyWindow)
     {
-      timestamps.resize(DIFFICULTY_WINDOW);
-      cumulative_difficulties.resize(DIFFICULTY_WINDOW);
+      timestamps.resize(difficultyWindow);
+      cumulative_difficulties.resize(difficultyWindow);
     }
 
 
@@ -215,16 +225,18 @@ namespace cryptonote {
       return 1;
     }
     static_assert(DIFFICULTY_WINDOW >= 2, "Window is too small");
-    assert(length <= DIFFICULTY_WINDOW);
+    static_assert(DIFFICULTY_WINDOW_V6 >= 2, "Window is too small");
+    assert(length <= difficultyWindow);
     sort(timestamps.begin(), timestamps.end());
     size_t cut_begin, cut_end;
     static_assert(2 * DIFFICULTY_CUT <= DIFFICULTY_WINDOW - 2, "Cut length is too large");
-    if (length <= DIFFICULTY_WINDOW - 2 * DIFFICULTY_CUT) {
+    static_assert(2 * DIFFICULTY_CUT <= DIFFICULTY_WINDOW_V6 - 2, "Cut length is too large");
+    if (length <= difficultyWindow - 2 * DIFFICULTY_CUT) {
       cut_begin = 0;
       cut_end = length;
     } else {
-      cut_begin = (length - (DIFFICULTY_WINDOW - 2 * DIFFICULTY_CUT) + 1) / 2;
-      cut_end = cut_begin + (DIFFICULTY_WINDOW - 2 * DIFFICULTY_CUT);
+      cut_begin = (length - (difficultyWindow - 2 * DIFFICULTY_CUT) + 1) / 2;
+      cut_end = cut_begin + (difficultyWindow - 2 * DIFFICULTY_CUT);
     }
     assert(/*cut_begin >= 0 &&*/ cut_begin + 2 <= cut_end && cut_end <= length);
     uint64_t time_span = timestamps[cut_end - 1] - timestamps[cut_begin];

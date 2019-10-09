@@ -1,4 +1,5 @@
-// Copyright (c) 2014-2019, The Monero Project
+// Copyrights(c) 2017-2019, The Electroneum Project
+// Copyrights(c) 2014-2019, The Monero Project
 // 
 // All rights reserved.
 // 
@@ -35,12 +36,12 @@
 
 #include <string>
 
-#undef MONERO_DEFAULT_LOG_CATEGORY
-#define MONERO_DEFAULT_LOG_CATEGORY "daemon"
+#undef ELECTRONEUM_DEFAULT_LOG_CATEGORY
+#define ELECTRONEUM_DEFAULT_LOG_CATEGORY "daemon"
 
 namespace daemonize
 {
-  std::string const t_executor::NAME = "Monero Daemon";
+  std::string const t_executor::NAME = "Electroneum Daemon";
 
   void t_executor::init_options(
       boost::program_options::options_description & configurable_options
@@ -58,7 +59,7 @@ namespace daemonize
       boost::program_options::variables_map const & vm
     )
   {
-    LOG_PRINT_L0("Monero '" << MONERO_RELEASE_NAME << "' (v" << MONERO_VERSION_FULL << ") Daemonised");
+    LOG_PRINT_L0("Electroneum '" << ELECTRONEUM_RELEASE_NAME << "' (v" << ELECTRONEUM_VERSION_FULL << ") Daemonised");
     return t_daemon{vm, public_rpc_port};
   }
 

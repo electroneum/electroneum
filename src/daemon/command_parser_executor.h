@@ -6,7 +6,8 @@
 
 */
 
-// Copyright (c) 2014-2019, The Monero Project
+// Copyrights(c) 2017-2019, The Electroneum Project
+// Copyrights(c) 2014-2019, The Monero Project
 // 
 // All rights reserved.
 // 
@@ -152,6 +153,12 @@ public:
   bool check_blockchain_pruning(const std::vector<std::string>& args);
 
   bool print_net_stats(const std::vector<std::string>& args);
+  
+  bool set_validator_key(const std::vector<std::string>& args);
+
+  bool generate_ed25519_keypair(const std::vector<std::string>& args);
+
+  bool sign_message(const std::vector<std::string>& args);
 };
 
 } // namespace daemonize

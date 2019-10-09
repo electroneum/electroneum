@@ -1,3 +1,4 @@
+# Copyright (c) 2017-2019, The Electroneum Project
 # Copyright (c) 2014-2019, The Monero Project
 #
 # All rights reserved.
@@ -38,7 +39,7 @@ set(blockchain_import_private_headers
   bootstrap_serialization.h
   )
 
-monero_private_headers(blockchain_import
+electroneum_private_headers(blockchain_import
 	  ${blockchain_import_private_headers})
 
 set(blockchain_export_sources
@@ -53,7 +54,7 @@ set(blockchain_export_private_headers
   bootstrap_serialization.h
   )
 
-monero_private_headers(blockchain_export
+electroneum_private_headers(blockchain_export
 	  ${blockchain_export_private_headers})
 
 
@@ -67,7 +68,7 @@ set(blockchain_blackball_private_headers
   bootstrap_serialization.h
   )
 
-monero_private_headers(blockchain_blackball
+electroneum_private_headers(blockchain_blackball
 	  ${blockchain_blackball_private_headers})
 
 set(blockchain_usage_sources
@@ -76,7 +77,7 @@ set(blockchain_usage_sources
 
 set(blockchain_usage_private_headers)
 
-monero_private_headers(blockchain_usage
+electroneum_private_headers(blockchain_usage
 	  ${blockchain_usage_private_headers})
 
 
@@ -87,7 +88,7 @@ set(blockchain_prune_known_spent_data_sources
 
 set(blockchain_prune_known_spent_data_private_headers)
 
-monero_private_headers(blockchain_prune_known_spent_data
+electroneum_private_headers(blockchain_prune_known_spent_data
 	  ${blockchain_prune_known_spent_data_private_headers})
 
 
@@ -98,7 +99,7 @@ set(blockchain_prune_sources
 
 set(blockchain_prune_private_headers)
 
-monero_private_headers(blockchain_prune
+electroneum_private_headers(blockchain_prune
 	  ${blockchain_prune_private_headers})
 
 
@@ -109,7 +110,7 @@ set(blockchain_ancestry_sources
 
 set(blockchain_ancestry_private_headers)
 
-monero_private_headers(blockchain_ancestry
+electroneum_private_headers(blockchain_ancestry
 	  ${blockchain_ancestry_private_headers})
 
 
@@ -120,7 +121,7 @@ set(blockchain_depth_sources
 
 set(blockchain_depth_private_headers)
 
-monero_private_headers(blockchain_depth
+electroneum_private_headers(blockchain_depth
 	  ${blockchain_depth_private_headers})
 
 set(blockchain_stats_sources
@@ -129,11 +130,11 @@ set(blockchain_stats_sources
 
 set(blockchain_stats_private_headers)
 
-monero_private_headers(blockchain_stats
+electroneum_private_headers(blockchain_stats
 	  ${blockchain_stats_private_headers})
 
 
-monero_add_executable(blockchain_import
+electroneum_add_executable(blockchain_import
   ${blockchain_import_sources}
   ${blockchain_import_private_headers})
 
@@ -147,6 +148,7 @@ target_link_libraries(blockchain_import
     ${Boost_SYSTEM_LIBRARY}
     ${Boost_THREAD_LIBRARY}
     ${CMAKE_THREAD_LIBS_INIT}
+    ${OPENSSL_LIBRARIES}
     ${EXTRA_LIBRARIES}
     ${Blocks})
 
@@ -157,10 +159,10 @@ endif()
 
 set_property(TARGET blockchain_import
 	PROPERTY
-	OUTPUT_NAME "monero-blockchain-import")
+	OUTPUT_NAME "electroneum-blockchain-import")
 install(TARGETS blockchain_import DESTINATION bin)
 
-monero_add_executable(blockchain_export
+electroneum_add_executable(blockchain_export
   ${blockchain_export_sources}
   ${blockchain_export_private_headers})
 
@@ -178,10 +180,10 @@ target_link_libraries(blockchain_export
 
 set_property(TARGET blockchain_export
 	PROPERTY
-	OUTPUT_NAME "monero-blockchain-export")
+	OUTPUT_NAME "electroneum-blockchain-export")
 install(TARGETS blockchain_export DESTINATION bin)
 
-monero_add_executable(blockchain_blackball
+electroneum_add_executable(blockchain_blackball
   ${blockchain_blackball_sources}
   ${blockchain_blackball_private_headers})
 
@@ -200,11 +202,11 @@ target_link_libraries(blockchain_blackball
 
 set_property(TARGET blockchain_blackball
 	PROPERTY
-	OUTPUT_NAME "monero-blockchain-mark-spent-outputs")
+	OUTPUT_NAME "electroneum-blockchain-mark-spent-outputs")
 install(TARGETS blockchain_blackball DESTINATION bin)
 
 
-monero_add_executable(blockchain_usage
+electroneum_add_executable(blockchain_usage
   ${blockchain_usage_sources}
   ${blockchain_usage_private_headers})
 
@@ -222,10 +224,10 @@ target_link_libraries(blockchain_usage
 
 set_property(TARGET blockchain_usage
 	PROPERTY
-	OUTPUT_NAME "monero-blockchain-usage")
+	OUTPUT_NAME "electroneum-blockchain-usage")
 install(TARGETS blockchain_usage DESTINATION bin)
 
-monero_add_executable(blockchain_ancestry
+electroneum_add_executable(blockchain_ancestry
   ${blockchain_ancestry_sources}
   ${blockchain_ancestry_private_headers})
 
@@ -243,10 +245,10 @@ target_link_libraries(blockchain_ancestry
 
 set_property(TARGET blockchain_ancestry
 	PROPERTY
-	OUTPUT_NAME "monero-blockchain-ancestry")
+	OUTPUT_NAME "electroneum-blockchain-ancestry")
 install(TARGETS blockchain_ancestry DESTINATION bin)
 
-monero_add_executable(blockchain_depth
+electroneum_add_executable(blockchain_depth
   ${blockchain_depth_sources}
   ${blockchain_depth_private_headers})
 
@@ -264,10 +266,10 @@ target_link_libraries(blockchain_depth
 
 set_property(TARGET blockchain_depth
 	PROPERTY
-	OUTPUT_NAME "monero-blockchain-depth")
+	OUTPUT_NAME "electroneum-blockchain-depth")
 install(TARGETS blockchain_depth DESTINATION bin)
 
-monero_add_executable(blockchain_stats
+electroneum_add_executable(blockchain_stats
   ${blockchain_stats_sources}
   ${blockchain_stats_private_headers})
 
@@ -285,10 +287,10 @@ target_link_libraries(blockchain_stats
 
 set_property(TARGET blockchain_stats
 	PROPERTY
-	OUTPUT_NAME "monero-blockchain-stats")
+	OUTPUT_NAME "electroneum-blockchain-stats")
 install(TARGETS blockchain_stats DESTINATION bin)
 
-monero_add_executable(blockchain_prune_known_spent_data
+electroneum_add_executable(blockchain_prune_known_spent_data
   ${blockchain_prune_known_spent_data_sources}
   ${blockchain_prune_known_spent_data_private_headers})
 
@@ -307,16 +309,16 @@ target_link_libraries(blockchain_prune_known_spent_data
 
 set_property(TARGET blockchain_prune_known_spent_data
 	PROPERTY
-	OUTPUT_NAME "monero-blockchain-prune-known-spent-data")
+	OUTPUT_NAME "electroneum-blockchain-prune-known-spent-data")
 install(TARGETS blockchain_prune_known_spent_data DESTINATION bin)
 
-monero_add_executable(blockchain_prune
+electroneum_add_executable(blockchain_prune
   ${blockchain_prune_sources}
   ${blockchain_prune_private_headers})
 
 set_property(TARGET blockchain_prune
 	PROPERTY
-	OUTPUT_NAME "monero-blockchain-prune")
+	OUTPUT_NAME "electroneum-blockchain-prune")
 install(TARGETS blockchain_prune DESTINATION bin)
 
 target_link_libraries(blockchain_prune

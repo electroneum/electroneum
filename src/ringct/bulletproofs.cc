@@ -43,8 +43,8 @@ extern "C"
 #include "multiexp.h"
 #include "bulletproofs.h"
 
-#undef MONERO_DEFAULT_LOG_CATEGORY
-#define MONERO_DEFAULT_LOG_CATEGORY "bulletproofs"
+#undef ELECTRONEUM_DEFAULT_LOG_CATEGORY
+#define ELECTRONEUM_DEFAULT_LOG_CATEGORY "bulletproofs"
 
 //#define DEBUG_BP
 

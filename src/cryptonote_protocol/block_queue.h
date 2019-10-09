@@ -1,3 +1,4 @@
+// Copyright (c) 2017-2019, The Electroneum Project
 // Copyright (c) 2017-2019, The Monero Project
 // 
 // All rights reserved.
@@ -37,8 +38,8 @@
 #include <boost/thread/recursive_mutex.hpp>
 #include <boost/uuid/uuid.hpp>
 
-#undef MONERO_DEFAULT_LOG_CATEGORY
-#define MONERO_DEFAULT_LOG_CATEGORY "cn.block_queue"
+#undef ELECTRONEUM_DEFAULT_LOG_CATEGORY
+#define ELECTRONEUM_DEFAULT_LOG_CATEGORY "cn.block_queue"
 
 namespace cryptonote
 {

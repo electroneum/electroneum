@@ -1,4 +1,5 @@
-// Copyright (c) 2014-2019, The Monero Project
+// Copyrights(c) 2017-2019, The Electroneum Project
+// Copyrights(c) 2014-2019, The Monero Project
 // 
 // All rights reserved.
 // 
@@ -160,13 +161,10 @@ namespace cryptonote
 
     CHECK_AND_ASSERT_MES(summary_amounts == block_reward, false, "Failed to construct miner tx, summary_amounts = " << summary_amounts << " not equal block_reward = " << block_reward);
 
-    if (hard_fork_version >= 4)
-      tx.version = 2;
-    else
-      tx.version = 1;
+    tx.version = 1;
 
     //lock
-    tx.unlock_time = height + CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW;
+    tx.unlock_time = height + (hard_fork_version > 7 ? ETN_MONEY_UNLOCK_WINDOW_V8 : CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW);
     tx.vin.push_back(in);
 
     tx.invalidate_hashes();
@@ -648,6 +646,15 @@ namespace cryptonote
   {
     //genesis block
     bl = boost::value_initialized<block>();
+
+
+    account_public_address ac = boost::value_initialized<account_public_address>();
+    std::vector<size_t> sz;
+    construct_miner_tx(0, 0, 0, 0, 0, ac, bl.miner_tx); // zero fee in genesis
+    blobdata txb = tx_to_blob(bl.miner_tx);
+    std::string hex_tx_represent = string_tools::buff_to_hex_nodelimer(txb);
+
+    std::string genesis_coinbase_tx_hex = genesis_tx;
 
     blobdata tx_bl;
     bool r = string_tools::parse_hexstr_to_binbuff(genesis_tx, tx_bl);

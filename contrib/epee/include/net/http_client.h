@@ -57,8 +57,8 @@
 
 //#pragma comment(lib, "shlwapi.lib")
 
-#undef MONERO_DEFAULT_LOG_CATEGORY
-#define MONERO_DEFAULT_LOG_CATEGORY "net.http"
+#undef ELECTRONEUM_DEFAULT_LOG_CATEGORY
+#define ELECTRONEUM_DEFAULT_LOG_CATEGORY "net.http"
 
 extern epee::critical_section gregexp_lock;
 
@@ -408,7 +408,7 @@ namespace net_utils
 					//--
 
 					bool res = m_net_client.send(req_buff, timeout);
-					CHECK_AND_ASSERT_MES(res, false, "HTTP_CLIENT: Failed to SEND");
+                    CHECK_AND_NO_ASSERT_MES_L(res, false, 1, "HTTP_CLIENT: Failed to SEND");
 					if(body.size())
 						res = m_net_client.send(body, timeout);
 					CHECK_AND_ASSERT_MES(res, false, "HTTP_CLIENT: Failed to SEND");

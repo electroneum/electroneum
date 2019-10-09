@@ -151,7 +151,7 @@ namespace lmdb
 
             \pre `!is_end()`
 
-            \tparam U must match `T`, used for `MONERO_FIELD` sanity checking.
+            \tparam U must match `T`, used for `ELECTRONEUM_FIELD` sanity checking.
             \tparam G field type to extract from the value
             \tparam uoffset to `G` type, or `0` when `std::is_same<U, G>()`.
 
@@ -160,7 +160,7 @@ namespace lmdb
         template<typename U, typename G = U, std::size_t uoffset = 0>
         G get_value() const noexcept
         {
-            static_assert(std::is_same<U, T>(), "bad MONERO_FIELD usage?");
+            static_assert(std::is_same<U, T>(), "bad ELECTRONEUM_FIELD usage?");
             static_assert(std::is_pod<U>(), "value type must be pod");
             static_assert(std::is_pod<G>(), "field type must be pod");
             static_assert(sizeof(G) + uoffset <= sizeof(U), "bad field and/or offset");
@@ -237,7 +237,7 @@ namespace lmdb
             position that will reach `.is_end()` after the last duplicate key
             record. Calling `make_iterator()` will return an iterator whose
             `operator*` will return entire value (`T`).
-            `make_iterator<MONERO_FIELD(account, id)>()` will return an
+            `make_iterator<ELECTRONEUM_FIELD(account, id)>()` will return an
             iterator whose `operator*` will return a `decltype(account.id)`
             object - the other fields in the struct `account` are never copied
             from the database.
@@ -248,7 +248,7 @@ namespace lmdb
         template<typename U = T, typename F = U, std::size_t offset = 0>
         value_iterator<U, F, offset> make_iterator() const
         {
-            static_assert(std::is_same<U, T>(), "was MONERO_FIELD used with wrong type?");
+            static_assert(std::is_same<U, T>(), "was ELECTRONEUM_FIELD used with wrong type?");
             return {cur.get()};
         }
 
@@ -256,7 +256,7 @@ namespace lmdb
             Return a range from current cursor position until last duplicate
             key record. Useful in for-each range loops or in templated code
             expecting a range of elements. Calling `make_range()` will return
-            a range of `T` objects. `make_range<MONERO_FIELD(account, id)>()`
+            a range of `T` objects. `make_range<ELECTRONEUM_FIELD(account, id)>()`
             will return a range of `decltype(account.id)` objects - the other
             fields in the struct `account` are never copied from the database.
 

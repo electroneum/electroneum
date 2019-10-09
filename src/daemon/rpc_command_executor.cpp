@@ -1,4 +1,5 @@
-// Copyright (c) 2014-2019, The Monero Project
+// Copyrights(c) 2017-2019, The Electroneum Project
+// Copyrights(c) 2014-2019, The Monero Project
 // 
 // All rights reserved.
 // 
@@ -40,8 +41,8 @@
 #include <ctime>
 #include <string>
 
-#undef MONERO_DEFAULT_LOG_CATEGORY
-#define MONERO_DEFAULT_LOG_CATEGORY "daemon"
+#undef ELECTRONEUM_DEFAULT_LOG_CATEGORY
+#define ELECTRONEUM_DEFAULT_LOG_CATEGORY "daemon"
 
 namespace daemonize {
 
@@ -558,8 +559,8 @@ bool t_rpc_command_executor::mining_status() {
     uint64_t daily = 86400ull / mres.block_target * mres.block_reward * ratio;
     uint64_t monthly = 86400ull / mres.block_target * 30.5 * mres.block_reward * ratio;
     uint64_t yearly = 86400ull / mres.block_target * 356 * mres.block_reward * ratio;
-    tools::msg_writer() << "Expected: " << cryptonote::print_money(daily) << " monero daily, "
-        << cryptonote::print_money(monthly) << " monero monthly, " << cryptonote::print_money(yearly) << " yearly";
+    tools::msg_writer() << "Expected: " << cryptonote::print_money(daily) << " etn daily, "
+        << cryptonote::print_money(monthly) << " etn monthly, " << cryptonote::print_money(yearly) << " yearly";
   }
 
   return true;
@@ -1198,7 +1199,7 @@ bool t_rpc_command_executor::print_transaction_pool_stats() {
   else
   {
     uint64_t backlog = (res.pool_stats.bytes_total + full_reward_zone - 1) / full_reward_zone;
-    backlog_message = (boost::format("estimated %u block (%u minutes) backlog") % backlog % (backlog * DIFFICULTY_TARGET_V2 / 60)).str();
+    backlog_message = (boost::format("estimated %u block (%u minutes) backlog") % backlog % (backlog * DIFFICULTY_TARGET_V6 / 60)).str();
   }
 
   tools::msg_writer() << n_transactions << " tx(es), " << res.pool_stats.bytes_total << " bytes total (min " << res.pool_stats.bytes_min << ", max " << res.pool_stats.bytes_max << ", avg " << avg_bytes << ", median " << res.pool_stats.bytes_med << ")" << std::endl
@@ -1299,8 +1300,8 @@ bool t_rpc_command_executor::stop_daemon()
 //# ifdef WIN32
 //    // Stop via service API
 //    // TODO - this is only temporary!  Get rid of hard-coded constants!
-//    bool ok = windows::stop_service("BitMonero Daemon");
-//    ok = windows::uninstall_service("BitMonero Daemon");
+//    bool ok = windows::stop_service("Electroneum Daemon");
+//    ok = windows::uninstall_service("Electroneum Daemon");
 //    //bool ok = windows::stop_service(SERVICE_NAME);
 //    //ok = windows::uninstall_service(SERVICE_NAME);
 //    if (ok)
@@ -1344,10 +1345,10 @@ bool t_rpc_command_executor::print_status()
   bool daemon_is_alive = m_rpc_client->check_connection();
 
   if(daemon_is_alive) {
-    tools::success_msg_writer() << "monerod is running";
+    tools::success_msg_writer() << "electroneumd is running";
   }
   else {
-    tools::fail_msg_writer() << "monerod is NOT running";
+    tools::fail_msg_writer() << "electroneumd is NOT running";
   }
 
   return true;
@@ -2021,15 +2022,19 @@ bool t_rpc_command_executor::update(const std::string &command)
   req.command = command;
   if (m_is_rpc)
   {
+    LOG_PRINT_L0("is rpc");
     if (!m_rpc_client->rpc_request(req, res, "/update", fail_message.c_str()))
     {
+      LOG_PRINT_L0("update command failed");
       return true;
     }
   }
   else
   {
+    LOG_PRINT_L0("not rpc");
     if (!m_rpc_server->on_update(req, res) || res.status != CORE_RPC_STATUS_OK)
     {
+      LOG_PRINT_L0("rpc error");
       tools::fail_msg_writer() << make_error(fail_message, res.status);
       return true;
     }
@@ -2037,6 +2042,7 @@ bool t_rpc_command_executor::update(const std::string &command)
 
   if (!res.update)
   {
+    LOG_PRINT_L0("no update");
     tools::msg_writer() << "No update available";
     return true;
   }
@@ -2181,6 +2187,30 @@ bool t_rpc_command_executor::pop_blocks(uint64_t num_blocks)
   return true;
 }
 
+bool t_rpc_command_executor::set_validator_key(const std::string &key) {
+  cryptonote::COMMAND_RPC_SET_VALIDATOR_KEY::request req;
+  cryptonote::COMMAND_RPC_SET_VALIDATOR_KEY::response res;
+  std::string fail_message = "Unsuccessful";
+  epee::json_rpc::error error_resp;
+
+  req.validator_key = key;
+
+  if (m_is_rpc) {
+    if (!m_rpc_client->json_rpc_request(req, res, "set_validator_key", fail_message.c_str())) {
+      return true;
+    }
+  } else {
+    if (!m_rpc_server->on_set_validator_key(req, res, error_resp) || res.status != CORE_RPC_STATUS_OK)
+    {
+      tools::fail_msg_writer() << make_error(fail_message, res.status);
+      return true;
+    }
+  }
+
+  tools::success_msg_writer() << "Validator Key successfully set";
+  return true;
+}
+
 bool t_rpc_command_executor::prune_blockchain()
 {
     cryptonote::COMMAND_RPC_PRUNE_BLOCKCHAIN::request req;
@@ -2244,6 +2274,54 @@ bool t_rpc_command_executor::check_blockchain_pruning()
       tools::success_msg_writer() << "Blockchain is not pruned";
     }
     return true;
+}
+
+bool t_rpc_command_executor::generate_ed25519_keypair() {
+  cryptonote::COMMAND_RPC_GENERATE_ED25519_KEYPAIR::request req;
+  cryptonote::COMMAND_RPC_GENERATE_ED25519_KEYPAIR::response res;
+  std::string fail_message = "Unsuccessful";
+  epee::json_rpc::error error_resp;
+
+  if (m_is_rpc) {
+    if (!m_rpc_client->json_rpc_request(req, res, "generate_ed25519_keypair", fail_message.c_str())) {
+      return true;
+    }
+  } else {
+    if (!m_rpc_server->on_generate_ed25519_keypair(req, res, error_resp) || res.status != CORE_RPC_STATUS_OK)
+    {
+      tools::fail_msg_writer() << make_error(fail_message, res.status);
+      return true;
+    }
+  }
+
+  tools::success_msg_writer() << "Private Key:" << res.privateKey;
+  tools::success_msg_writer() << "Public Key:" << res.publicKey;
+  return true;
+}
+
+bool t_rpc_command_executor::sign_message(const std::string privateKey, const std::string message) {
+  cryptonote::COMMAND_RPC_SIGN_MESSAGE::request req;
+  cryptonote::COMMAND_RPC_SIGN_MESSAGE::response res;
+  std::string fail_message = "Unsuccessful";
+  epee::json_rpc::error error_resp;
+
+  req.privateKey = privateKey;
+  req.message = message;
+
+  if (m_is_rpc) {
+    if (!m_rpc_client->json_rpc_request(req, res, "sign_message", fail_message.c_str())) {
+      return true;
+    }
+  } else {
+    if (!m_rpc_server->on_sign_message(req, res, error_resp) || res.status != CORE_RPC_STATUS_OK)
+    {
+      tools::fail_msg_writer() << make_error(fail_message, res.status);
+      return true;
+    }
+  }
+
+  tools::success_msg_writer() << "Signature: " << res.signature;
+  return true;
 }
 
 }// namespace daemonize

@@ -1,4 +1,5 @@
-// Copyright (c) 2014-2019, The Monero Project
+// Copyrights(c) 2017-2019, The Electroneum Project
+// Copyrights(c) 2014-2019, The Monero Project
 // 
 // All rights reserved.
 // 
@@ -41,8 +42,8 @@
 
 using namespace epee;
 
-#undef MONERO_DEFAULT_LOG_CATEGORY
-#define MONERO_DEFAULT_LOG_CATEGORY "cn"
+#undef ELECTRONEUM_DEFAULT_LOG_CATEGORY
+#define ELECTRONEUM_DEFAULT_LOG_CATEGORY "cn"
 
 #define ENCRYPTED_PAYMENT_ID_TAIL 0x8d
 
@@ -51,25 +52,25 @@ using namespace epee;
 using namespace crypto;
 
 static const uint64_t valid_decomposed_outputs[] = {
-  (uint64_t)1, (uint64_t)2, (uint64_t)3, (uint64_t)4, (uint64_t)5, (uint64_t)6, (uint64_t)7, (uint64_t)8, (uint64_t)9, // 1 piconero
+  (uint64_t)1, (uint64_t)2, (uint64_t)3, (uint64_t)4, (uint64_t)5, (uint64_t)6, (uint64_t)7, (uint64_t)8, (uint64_t)9,
   (uint64_t)10, (uint64_t)20, (uint64_t)30, (uint64_t)40, (uint64_t)50, (uint64_t)60, (uint64_t)70, (uint64_t)80, (uint64_t)90,
-  (uint64_t)100, (uint64_t)200, (uint64_t)300, (uint64_t)400, (uint64_t)500, (uint64_t)600, (uint64_t)700, (uint64_t)800, (uint64_t)900,
+  (uint64_t)100, (uint64_t)200, (uint64_t)300, (uint64_t)400, (uint64_t)500, (uint64_t)600, (uint64_t)700, (uint64_t)800, (uint64_t)900, // 100 = 1 Electroneum
   (uint64_t)1000, (uint64_t)2000, (uint64_t)3000, (uint64_t)4000, (uint64_t)5000, (uint64_t)6000, (uint64_t)7000, (uint64_t)8000, (uint64_t)9000,
   (uint64_t)10000, (uint64_t)20000, (uint64_t)30000, (uint64_t)40000, (uint64_t)50000, (uint64_t)60000, (uint64_t)70000, (uint64_t)80000, (uint64_t)90000,
   (uint64_t)100000, (uint64_t)200000, (uint64_t)300000, (uint64_t)400000, (uint64_t)500000, (uint64_t)600000, (uint64_t)700000, (uint64_t)800000, (uint64_t)900000,
-  (uint64_t)1000000, (uint64_t)2000000, (uint64_t)3000000, (uint64_t)4000000, (uint64_t)5000000, (uint64_t)6000000, (uint64_t)7000000, (uint64_t)8000000, (uint64_t)9000000, // 1 micronero
+  (uint64_t)1000000, (uint64_t)2000000, (uint64_t)3000000, (uint64_t)4000000, (uint64_t)5000000, (uint64_t)6000000, (uint64_t)7000000, (uint64_t)8000000, (uint64_t)9000000,
   (uint64_t)10000000, (uint64_t)20000000, (uint64_t)30000000, (uint64_t)40000000, (uint64_t)50000000, (uint64_t)60000000, (uint64_t)70000000, (uint64_t)80000000, (uint64_t)90000000,
   (uint64_t)100000000, (uint64_t)200000000, (uint64_t)300000000, (uint64_t)400000000, (uint64_t)500000000, (uint64_t)600000000, (uint64_t)700000000, (uint64_t)800000000, (uint64_t)900000000,
   (uint64_t)1000000000, (uint64_t)2000000000, (uint64_t)3000000000, (uint64_t)4000000000, (uint64_t)5000000000, (uint64_t)6000000000, (uint64_t)7000000000, (uint64_t)8000000000, (uint64_t)9000000000,
   (uint64_t)10000000000, (uint64_t)20000000000, (uint64_t)30000000000, (uint64_t)40000000000, (uint64_t)50000000000, (uint64_t)60000000000, (uint64_t)70000000000, (uint64_t)80000000000, (uint64_t)90000000000,
   (uint64_t)100000000000, (uint64_t)200000000000, (uint64_t)300000000000, (uint64_t)400000000000, (uint64_t)500000000000, (uint64_t)600000000000, (uint64_t)700000000000, (uint64_t)800000000000, (uint64_t)900000000000,
-  (uint64_t)1000000000000, (uint64_t)2000000000000, (uint64_t)3000000000000, (uint64_t)4000000000000, (uint64_t)5000000000000, (uint64_t)6000000000000, (uint64_t)7000000000000, (uint64_t)8000000000000, (uint64_t)9000000000000, // 1 monero
+  (uint64_t)1000000000000, (uint64_t)2000000000000, (uint64_t)3000000000000, (uint64_t)4000000000000, (uint64_t)5000000000000, (uint64_t)6000000000000, (uint64_t)7000000000000, (uint64_t)8000000000000, (uint64_t)9000000000000,
   (uint64_t)10000000000000, (uint64_t)20000000000000, (uint64_t)30000000000000, (uint64_t)40000000000000, (uint64_t)50000000000000, (uint64_t)60000000000000, (uint64_t)70000000000000, (uint64_t)80000000000000, (uint64_t)90000000000000,
   (uint64_t)100000000000000, (uint64_t)200000000000000, (uint64_t)300000000000000, (uint64_t)400000000000000, (uint64_t)500000000000000, (uint64_t)600000000000000, (uint64_t)700000000000000, (uint64_t)800000000000000, (uint64_t)900000000000000,
   (uint64_t)1000000000000000, (uint64_t)2000000000000000, (uint64_t)3000000000000000, (uint64_t)4000000000000000, (uint64_t)5000000000000000, (uint64_t)6000000000000000, (uint64_t)7000000000000000, (uint64_t)8000000000000000, (uint64_t)9000000000000000,
   (uint64_t)10000000000000000, (uint64_t)20000000000000000, (uint64_t)30000000000000000, (uint64_t)40000000000000000, (uint64_t)50000000000000000, (uint64_t)60000000000000000, (uint64_t)70000000000000000, (uint64_t)80000000000000000, (uint64_t)90000000000000000,
   (uint64_t)100000000000000000, (uint64_t)200000000000000000, (uint64_t)300000000000000000, (uint64_t)400000000000000000, (uint64_t)500000000000000000, (uint64_t)600000000000000000, (uint64_t)700000000000000000, (uint64_t)800000000000000000, (uint64_t)900000000000000000,
-  (uint64_t)1000000000000000000, (uint64_t)2000000000000000000, (uint64_t)3000000000000000000, (uint64_t)4000000000000000000, (uint64_t)5000000000000000000, (uint64_t)6000000000000000000, (uint64_t)7000000000000000000, (uint64_t)8000000000000000000, (uint64_t)9000000000000000000, // 1 meganero
+  (uint64_t)1000000000000000000, (uint64_t)2000000000000000000, (uint64_t)3000000000000000000, (uint64_t)4000000000000000000, (uint64_t)5000000000000000000, (uint64_t)6000000000000000000, (uint64_t)7000000000000000000, (uint64_t)8000000000000000000, (uint64_t)9000000000000000000,
   (uint64_t)10000000000000000000ull
 };
 
@@ -426,11 +427,6 @@ namespace cryptonote
   //---------------------------------------------------------------
   bool get_tx_fee(const transaction& tx, uint64_t & fee)
   {
-    if (tx.version > 1)
-    {
-      fee = tx.rct_signatures.txnFee;
-      return true;
-    }
     uint64_t amount_in = 0;
     uint64_t amount_out = 0;
     for(auto& in: tx.vin)
@@ -762,10 +758,7 @@ namespace cryptonote
         << out.target.type().name() << ", expected " << typeid(txout_to_key).name()
         << ", in transaction id=" << get_transaction_hash(tx));
 
-      if (tx.version == 1)
-      {
-        CHECK_AND_NO_ASSERT_MES(0 < out.amount, false, "zero amount output in transaction id=" << get_transaction_hash(tx));
-      }
+      CHECK_AND_NO_ASSERT_MES(0 < out.amount, false, "zero amount output in transaction id=" << get_transaction_hash(tx));
 
       if(!check_key(boost::get<txout_to_key>(out.target).key))
         return false;
@@ -904,11 +897,7 @@ namespace cryptonote
   {
     switch (decimal_point)
     {
-      case 12:
-      case 9:
-      case 6:
-      case 3:
-      case 0:
+      case 2:
         default_decimal_point = decimal_point;
         break;
       default:
@@ -927,16 +916,10 @@ namespace cryptonote
       decimal_point = default_decimal_point;
     switch (decimal_point)
     {
-      case 12:
-        return "monero";
-      case 9:
-        return "millinero";
-      case 6:
-        return "micronero";
-      case 3:
-        return "nanonero";
-      case 0:
-        return "piconero";
+      case 2:
+        return "electroneum";
+    case 0:
+        return "ecent";
       default:
         ASSERT_MES_AND_THROW("Invalid decimal point specification: " << decimal_point);
     }
@@ -1150,45 +1133,7 @@ namespace cryptonote
   //---------------------------------------------------------------
   bool calculate_block_hash(const block& b, crypto::hash& res, const blobdata *blob)
   {
-    blobdata bd;
-    if (!blob)
-    {
-      bd = block_to_blob(b);
-      blob = &bd;
-    }
-
-    bool hash_result = get_object_hash(get_block_hashing_blob(b), res);
-    if (!hash_result)
-      return false;
-
-    if (b.miner_tx.vin.size() == 1 && b.miner_tx.vin[0].type() == typeid(cryptonote::txin_gen))
-    {
-      const cryptonote::txin_gen &txin_gen = boost::get<cryptonote::txin_gen>(b.miner_tx.vin[0]);
-      if (txin_gen.height != 202612)
-        return true;
-    }
-
-    // EXCEPTION FOR BLOCK 202612
-    const std::string correct_blob_hash_202612 = "3a8a2b3a29b50fc86ff73dd087ea43c6f0d6b8f936c849194d5c84c737903966";
-    const std::string existing_block_id_202612 = "bbd604d2ba11ba27935e006ed39c9bfdd99b76bf4a50654bc1e1e61217962698";
-    crypto::hash block_blob_hash = get_blob_hash(*blob);
-
-    if (string_tools::pod_to_hex(block_blob_hash) == correct_blob_hash_202612)
-    {
-      string_tools::hex_to_pod(existing_block_id_202612, res);
-      return true;
-    }
-
-    {
-      // make sure that we aren't looking at a block with the 202612 block id but not the correct blobdata
-      if (string_tools::pod_to_hex(res) == existing_block_id_202612)
-      {
-        LOG_ERROR("Block with block id for 202612 but incorrect block blob hash found!");
-        res = null_hash;
-        return false;
-      }
-    }
-    return hash_result;
+    return get_object_hash(get_block_hashing_blob(b), res);
   }
   //---------------------------------------------------------------
   bool get_block_hash(const block& b, crypto::hash& res)
@@ -1220,16 +1165,9 @@ namespace cryptonote
   //---------------------------------------------------------------
   bool get_block_longhash(const block& b, crypto::hash& res, uint64_t height)
   {
-    // block 202612 bug workaround
-    if (height == 202612)
-    {
-      static const std::string longhash_202612 = "84f64766475d51837ac9efbef1926486e58563c95a19fef4aec3254f03000000";
-      string_tools::hex_to_pod(longhash_202612, res);
-      return true;
-    }
     blobdata bd = get_block_hashing_blob(b);
-    const int cn_variant = b.major_version >= 7 ? b.major_version - 6 : 0;
-    crypto::cn_slow_hash(bd.data(), bd.size(), res, cn_variant, height);
+    const int cn_variant = b.major_version == 6 ? b.major_version - 5 : 0; // Emergency HF so anti-asic is only if HF 6
+    crypto::cn_slow_hash(bd.data(), bd.size(), res, cn_variant);
     return true;
   }
   //---------------------------------------------------------------

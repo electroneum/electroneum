@@ -40,7 +40,7 @@
 #include <stdexcept>
 
 //  Public interface for libwallet library
-namespace Monero {
+namespace Electroneum {
 
 enum NetworkType : uint8_t {
     MAINNET = 0,
@@ -1243,7 +1243,7 @@ struct WalletManager
     //! stops mining
     virtual bool stopMining() = 0;
 
-    //! resolves an OpenAlias address to a monero address
+    //! resolves an OpenAlias address to a electroneum address
     virtual std::string resolveOpenAlias(const std::string &address, bool &dnssec_valid) const = 0;
 
     //! checks for an update and returns version, hash and url
@@ -1273,5 +1273,5 @@ struct WalletManagerFactory
 
 }
 
-namespace Bitmonero = Monero;
+namespace Bitelectroneum = Electroneum;
 

@@ -1,4 +1,5 @@
-// Copyright (c) 2014-2019, The Monero Project
+// Copyrights(c) 2017-2019, The Electroneum Project
+// Copyrights(c) 2014-2019, The Monero Project
 // 
 // All rights reserved.
 // 
@@ -39,8 +40,8 @@
 #include "wallet_rpc_server_commands_defs.h"
 #include "wallet2.h"
 
-#undef MONERO_DEFAULT_LOG_CATEGORY
-#define MONERO_DEFAULT_LOG_CATEGORY "wallet.rpc"
+#undef ELECTRONEUM_DEFAULT_LOG_CATEGORY
+#define ELECTRONEUM_DEFAULT_LOG_CATEGORY "wallet.rpc"
 
 namespace tools
 {
@@ -56,11 +57,11 @@ namespace tools
 
     wallet_rpc_server();
     ~wallet_rpc_server();
-
     bool init(const boost::program_options::variables_map *vm);
     bool run();
     void stop();
     void set_wallet(wallet2 *cr);
+    void set_blockchain_storage(electroneum::MicroCore* core = nullptr, cryptonote::Blockchain* blockchain_storage = nullptr);
 
   private:
 
@@ -260,6 +261,8 @@ namespace tools
 
       void check_background_mining();
 
+      void load_database(std::string blockchain_db_path);
+
       wallet2 *m_wallet;
       std::string m_wallet_dir;
       tools::private_file rpc_login_file;
@@ -268,5 +271,11 @@ namespace tools
       const boost::program_options::variables_map *m_vm;
       uint32_t m_auto_refresh_period;
       boost::posix_time::ptime m_last_auto_refresh_time;
+
+      bool m_testnet;
+      bool m_physical_refresh;
+      electroneum::MicroCore* m_core;
+      cryptonote::Blockchain* m_blockchain_storage;
+      bool is_connected_to_db = false;
   };
 }

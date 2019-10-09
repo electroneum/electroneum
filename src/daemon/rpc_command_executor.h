@@ -6,7 +6,8 @@
 
 */
 
-// Copyright (c) 2014-2019, The Monero Project
+// Copyrights(c) 2017-2019, The Electroneum Project
+// Copyrights(c) 2014-2019, The Monero Project
 // 
 // All rights reserved.
 // 
@@ -46,8 +47,8 @@
 #include "net/net_fwd.h"
 #include "rpc/core_rpc_server.h"
 
-#undef MONERO_DEFAULT_LOG_CATEGORY
-#define MONERO_DEFAULT_LOG_CATEGORY "daemon"
+#undef ELECTRONEUM_DEFAULT_LOG_CATEGORY
+#define ELECTRONEUM_DEFAULT_LOG_CATEGORY "daemon"
 
 namespace daemonize {
 
@@ -164,6 +165,12 @@ public:
   bool check_blockchain_pruning();
 
   bool print_net_stats();
+  
+  bool set_validator_key(const std::string &key);
+
+  bool generate_ed25519_keypair();
+
+  bool sign_message(const std::string privateKey, const std::string message);
 };
 
 } // namespace daemonize

@@ -1,4 +1,5 @@
-// Copyright (c) 2014-2019, The Monero Project
+// Copyrights(c) 2017-2019, The Electroneum Project
+// Copyrights(c) 2014-2019, The Monero Project
 //
 // All rights reserved.
 //
@@ -33,7 +34,9 @@
 
 #include <boost/filesystem.hpp>
 #include <boost/algorithm/string.hpp>
+#include <boost/chrono.hpp>
 #include <unistd.h>
+#include <openssl/sha.h>
 #include "misc_log_ex.h"
 #include "bootstrap_file.h"
 #include "bootstrap_serialization.h"
@@ -44,9 +47,10 @@
 #include "include_base_utils.h"
 #include "blockchain_db/db_types.h"
 #include "cryptonote_core/cryptonote_core.h"
+#include "common/dns_utils.h"
 
-#undef MONERO_DEFAULT_LOG_CATEGORY
-#define MONERO_DEFAULT_LOG_CATEGORY "bcutil"
+#undef ELECTRONEUM_DEFAULT_LOG_CATEGORY
+#define ELECTRONEUM_DEFAULT_LOG_CATEGORY "bcutil"
 
 namespace
 {
@@ -130,7 +134,6 @@ int parse_db_arguments(const std::string& db_arg_str, std::string& db_type, int&
   return 0;
 }
 
-
 int pop_blocks(cryptonote::core& core, int num_blocks)
 {
   bool use_batch = opt_batch;
@@ -141,12 +144,37 @@ int pop_blocks(cryptonote::core& core, int num_blocks)
   int quit = 0;
   block popped_block;
   std::vector<transaction> popped_txs;
-  for (int i=0; i < num_blocks; ++i)
+
+  int i = 0;
+  boost::scoped_ptr<boost::thread> t(new boost::thread([&i, &num_blocks]() {
+    time_t pop_start_time = time(NULL);
+    time_t partial_pop_time;
+    double estimate_time;
+
+    while(i < num_blocks) {
+      partial_pop_time = time(NULL);
+
+      if(i != 0) {
+        estimate_time = (num_blocks - i) * (((partial_pop_time - pop_start_time)*1000) / i);
+        estimate_time = ceil(estimate_time/60000); //Minutes
+      }
+
+
+      std::cout << "\rPoping blocks from database (aprox. " << estimate_time << " minute(s) remaining): " << i + 1 << "/" << num_blocks << "                       ";
+      std::cout.flush();
+      boost::this_thread::sleep_for(boost::chrono::milliseconds{200});
+    }
+
+    std::cout << "\r                                                                                                                                               \r";
+  }));
+
+  for (; i < num_blocks; ++i)
   {
-    // simple_core.m_storage.pop_block_from_blockchain() is private, so call directly through db
     core.get_blockchain_storage().get_db().pop_block(popped_block, popped_txs);
     quit = 1;
   }
+
+  t->join();
 
 
   if (use_batch)
@@ -588,6 +616,86 @@ quitting:
   return 0;
 }
 
+void sha256_hash_string (unsigned char hash[SHA256_DIGEST_LENGTH], char outputBuffer[65])
+{
+    int i = 0;
+
+    for(i = 0; i < SHA256_DIGEST_LENGTH; i++)
+    {
+        sprintf(outputBuffer + (i * 2), "%02x", hash[i]);
+    }
+
+    outputBuffer[64] = 0;
+}
+
+void calc_sha256 (const char* path, char output[65])
+{
+    FILE* file = fopen(path, "rb");
+    if(!file) return;
+
+    unsigned char hash[SHA256_DIGEST_LENGTH];
+    SHA256_CTX sha256;
+    SHA256_Init(&sha256);
+    const int bufSize = 32768;
+    char* buffer = (char*)std::malloc(bufSize);
+    int bytesRead = 0;
+    if(!buffer) return;
+    while((bytesRead = fread(buffer, 1, bufSize, file)))
+    {
+        SHA256_Update(&sha256, buffer, bytesRead);
+    }
+    SHA256_Final(hash, &sha256);
+
+    sha256_hash_string(hash, output);
+    fclose(file);
+    free(buffer);
+}
+
+bool validate_file_checksum_against_dns(std::string import_file_path) {
+
+  // Ignore checksum verification if importing testnet blockchain.
+  // Return true right away.
+  if(opt_testnet) {
+    return true;
+  }
+
+  std::vector<std::string> records;
+
+  // All four ElectroneumPulse domains have DNSSEC on and valid
+  static const std::vector<std::string> dns_urls = {
+    "raw.electroneumpulse.com",
+    "raw.electroneumpulse.info",
+    "raw.electroneumpulse.net",
+    "raw.electroneumpulse.org"
+  };
+
+  try {
+
+    if (!tools::dns_utils::load_txt_records_from_dns(records, dns_urls, "checksum"))
+      return false;
+
+    std::string checksum = records[0];
+
+    // Calculate input-file SHA256 checksum
+    char calc_hash[65];
+    calc_sha256(import_file_path.c_str(), calc_hash);
+
+    // Compare input-file checksum against the DNS hash. Return "false" if hashes differ.
+    if (strcmp(calc_hash, checksum.c_str()) != 0) {
+      MINFO("Invalid input-file checksum (" << calc_hash << "), expected: " << checksum);
+      return false;
+    }
+
+  } catch(const std::exception &ex) {
+
+    // Return false to display warning message if DNS Checksum verification fails for some reason
+    MINFO("Unable to verify input-file checksum due to: " << ex.what());
+    return false;
+  }
+
+  return true;
+}
+
 int main(int argc, char* argv[])
 {
   TRY_ENTRY();
@@ -673,7 +781,7 @@ int main(int argc, char* argv[])
 
   if (command_line::get_arg(vm, command_line::arg_help))
   {
-    std::cout << "Monero '" << MONERO_RELEASE_NAME << "' (v" << MONERO_VERSION_FULL << ")" << ENDL << ENDL;
+    std::cout << "Electroneum '" << ELECTRONEUM_RELEASE_NAME << "' (v" << ELECTRONEUM_VERSION_FULL << ")" << ENDL << ENDL;
     std::cout << desc_options << std::endl;
     return 1;
   }
@@ -711,7 +819,7 @@ int main(int argc, char* argv[])
   m_config_folder = command_line::get_arg(vm, cryptonote::arg_data_dir);
   db_arg_str = command_line::get_arg(vm, arg_database);
 
-  mlog_configure(mlog_get_default_log_path("monero-blockchain-import.log"), true);
+  mlog_configure(mlog_get_default_log_path("electroneum-blockchain-import.log"), true);
   if (!command_line::is_arg_defaulted(vm, arg_log_level))
     mlog_set_log(command_line::get_arg(vm, arg_log_level).c_str());
   else
@@ -770,7 +878,7 @@ int main(int argc, char* argv[])
   MINFO("bootstrap file path: " << import_file_path);
   MINFO("database path:       " << m_config_folder);
 
-  if (!opt_verify)
+  if (!opt_verify && !validate_file_checksum_against_dns(import_file_path))
   {
     MCLOG_RED(el::Level::Warning, "global", "\n"
       "Import is set to proceed WITHOUT VERIFICATION.\n"

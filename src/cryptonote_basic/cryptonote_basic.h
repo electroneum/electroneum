@@ -1,4 +1,5 @@
-// Copyright (c) 2014-2019, The Monero Project
+// Copyrights(c) 2017-2019, The Electroneum Project
+// Copyrights(c) 2014-2019, The Monero Project
 // 
 // All rights reserved.
 // 
@@ -155,6 +156,16 @@ namespace cryptonote
   template<typename T> static inline unsigned int getpos(T &ar) { return 0; }
   template<> inline unsigned int getpos(binary_archive<true> &ar) { return ar.stream().tellp(); }
   template<> inline unsigned int getpos(binary_archive<false> &ar) { return ar.stream().tellg(); }
+  
+  struct validator_db {
+    uint64_t expiration_date;
+    std::vector<uint8_t> validators;
+
+    BEGIN_SERIALIZE_OBJECT()
+      VARINT_FIELD(expiration_date)
+      FIELD(validators)
+    END_SERIALIZE()
+  };
 
   class transaction_prefix
   {
@@ -403,14 +414,17 @@ namespace cryptonote
 
   public:
     block(): block_header(), hash_valid(false) {}
-    block(const block &b): block_header(b), hash_valid(false), miner_tx(b.miner_tx), tx_hashes(b.tx_hashes) { if (b.is_hash_valid()) { hash = b.hash; set_hash_valid(true); } }
-    block &operator=(const block &b) { block_header::operator=(b); hash_valid = false; miner_tx = b.miner_tx; tx_hashes = b.tx_hashes; if (b.is_hash_valid()) { hash = b.hash; set_hash_valid(true); } return *this; }
+    block(const block &b): block_header(b), hash_valid(false), miner_tx(b.miner_tx), tx_hashes(b.tx_hashes), signature(b.signature), signatory(b.signatory) { if (b.is_hash_valid()) { hash = b.hash; set_hash_valid(true); } }
+    block &operator=(const block &b) { block_header::operator=(b); hash_valid = false; miner_tx = b.miner_tx; tx_hashes = b.tx_hashes; signature = b.signature; signatory = b.signatory; if (b.is_hash_valid()) { hash = b.hash; set_hash_valid(true); } return *this; }
     void invalidate_hashes() { set_hash_valid(false); }
     bool is_hash_valid() const { return hash_valid.load(std::memory_order_acquire); }
     void set_hash_valid(bool v) const { hash_valid.store(v,std::memory_order_release); }
 
     transaction miner_tx;
     std::vector<crypto::hash> tx_hashes;
+
+    mutable std::vector<uint8_t> signature;
+    mutable std::vector<uint8_t> signatory;
 
     // hash cash
     mutable crypto::hash hash;
@@ -422,8 +436,12 @@ namespace cryptonote
       FIELDS(*static_cast<block_header *>(this))
       FIELD(miner_tx)
       FIELD(tx_hashes)
+      FIELD(signature)
+      FIELD(signatory)
+      
       if (tx_hashes.size() > CRYPTONOTE_MAX_TX_PER_BLOCK)
         return false;
+      
     END_SERIALIZE()
   };
 

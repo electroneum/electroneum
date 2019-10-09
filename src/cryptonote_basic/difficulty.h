@@ -1,4 +1,5 @@
-// Copyright (c) 2014-2019, The Monero Project
+// Copyrights(c) 2017-2019, The Electroneum Project
+// Copyrights(c) 2014-2019, The Monero Project
 // 
 // All rights reserved.
 // 
@@ -54,11 +55,11 @@ namespace cryptonote
      * @return true if valid, else false
      */
     bool check_hash_64(const crypto::hash &hash, uint64_t difficulty);
-    uint64_t next_difficulty_64(std::vector<std::uint64_t> timestamps, std::vector<uint64_t> cumulative_difficulties, size_t target_seconds);
+    uint64_t next_difficulty_64(std::vector<std::uint64_t> timestamps, std::vector<uint64_t> cumulative_difficulties, size_t target_seconds, uint8_t version = 1);
 
     bool check_hash_128(const crypto::hash &hash, difficulty_type difficulty);
     bool check_hash(const crypto::hash &hash, difficulty_type difficulty);
-    difficulty_type next_difficulty(std::vector<std::uint64_t> timestamps, std::vector<difficulty_type> cumulative_difficulties, size_t target_seconds);
+    difficulty_type next_difficulty(std::vector<std::uint64_t> timestamps, std::vector<difficulty_type> cumulative_difficulties, size_t target_seconds, uint8_t version = 1);
 
     std::string hex(difficulty_type v);
 }

@@ -1,4 +1,5 @@
-// Copyright (c) 2014-2019, The Monero Project
+// Copyrights(c) 2017-2019, The Electroneum Project
+// Copyrights(c) 2014-2019, The Monero Project
 //
 // All rights reserved.
 //
@@ -53,14 +54,14 @@
 using namespace std;
 using namespace cryptonote;
 
-#undef MONERO_DEFAULT_LOG_CATEGORY
-#define MONERO_DEFAULT_LOG_CATEGORY "WalletAPI"
+#undef ELECTRONEUM_DEFAULT_LOG_CATEGORY
+#define ELECTRONEUM_DEFAULT_LOG_CATEGORY "WalletAPI"
 
-namespace Monero {
+namespace Electroneum {
 
 namespace {
     // copy-pasted from simplewallet
-    static const size_t DEFAULT_MIXIN = 6;
+    static const size_t DEFAULT_MIXIN = DEFAULT_MIX;
     static const int    DEFAULT_REFRESH_INTERVAL_MILLIS = 1000 * 10;
     // limit maximum refresh interval as one minute
     static const int    MAX_REFRESH_INTERVAL_MILLIS = 1000 * 60 * 1;
@@ -72,7 +73,7 @@ namespace {
     std::string get_default_ringdb_path(cryptonote::network_type nettype)
     {
       boost::filesystem::path dir = tools::get_default_data_dir();
-      // remove .bitmonero, replace with .shared-ringdb
+      // remove .electroneum, replace with .shared-ringdb
       dir = dir.remove_filename();
       dir /= ".shared-ringdb";
       if (nettype == cryptonote::TESTNET)
@@ -399,19 +400,19 @@ void Wallet::init(const char *argv0, const char *default_log_base_name, const st
 }
 
 void Wallet::debug(const std::string &category, const std::string &str) {
-    MCDEBUG(category.empty() ? MONERO_DEFAULT_LOG_CATEGORY : category.c_str(), str);
+    MCDEBUG(category.empty() ? ELECTRONEUM_DEFAULT_LOG_CATEGORY : category.c_str(), str);
 }
 
 void Wallet::info(const std::string &category, const std::string &str) {
-    MCINFO(category.empty() ? MONERO_DEFAULT_LOG_CATEGORY : category.c_str(), str);
+    MCINFO(category.empty() ? ELECTRONEUM_DEFAULT_LOG_CATEGORY : category.c_str(), str);
 }
 
 void Wallet::warning(const std::string &category, const std::string &str) {
-    MCWARNING(category.empty() ? MONERO_DEFAULT_LOG_CATEGORY : category.c_str(), str);
+    MCWARNING(category.empty() ? ELECTRONEUM_DEFAULT_LOG_CATEGORY : category.c_str(), str);
 }
 
 void Wallet::error(const std::string &category, const std::string &str) {
-    MCERROR(category.empty() ? MONERO_DEFAULT_LOG_CATEGORY : category.c_str(), str);
+    MCERROR(category.empty() ? ELECTRONEUM_DEFAULT_LOG_CATEGORY : category.c_str(), str);
 }
 
 ///////////////////////// WalletImpl implementation ////////////////////////
@@ -1539,7 +1540,7 @@ PendingTransaction *WalletImpl::createTransaction(const string &dst_addr, const 
             setStatusError(writer.str());
         } catch (const tools::error::not_enough_outs_to_mix& e) {
             std::ostringstream writer;
-            writer << tr("not enough outputs for specified ring size") << " = " << (e.mixin_count() + 1) << ":";
+            writer << tr("not enough outputs.");
             for (const std::pair<uint64_t, uint64_t> outs_for_amount : e.scanty_outs()) {
                 writer << "\n" << tr("output amount") << " = " << print_money(outs_for_amount.first) << ", " << tr("found outputs to use") << " = " << outs_for_amount.second;
             }
@@ -1624,7 +1625,7 @@ PendingTransaction *WalletImpl::createSweepUnmixableTransaction()
             setStatusError(writer.str());
         } catch (const tools::error::not_enough_outs_to_mix& e) {
             std::ostringstream writer;
-            writer << tr("not enough outputs for specified ring size") << " = " << (e.mixin_count() + 1) << ":";
+            writer << tr("not enough outputs.");
             for (const std::pair<uint64_t, uint64_t> outs_for_amount : e.scanty_outs()) {
                 writer << "\n" << tr("output amount") << " = " << print_money(outs_for_amount.first) << ", " << tr("found outputs to use") << " = " << outs_for_amount.second;
             }
@@ -2421,4 +2422,4 @@ uint64_t WalletImpl::coldKeyImageSync(uint64_t &spent, uint64_t &unspent)
 }
 } // namespace
 
-namespace Bitmonero = Monero;
+namespace Bitelectroneum = Electroneum;
