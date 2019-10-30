@@ -1,5 +1,5 @@
 # Copyright (c) 2017-2019, The Electroneum Project
-# Copyright (c) 2014-2017, The Monero Project
+# Copyright (c) 2014-2019, The Monero Project
 # 
 # All rights reserved.
 # 
@@ -33,3 +33,6 @@ message(STATUS "Using ${ARCH_WIDTH}-bit LMDB from source tree")
 add_subdirectory(liblmdb)
 set(LMDB_INCLUDE "${CMAKE_CURRENT_SOURCE_DIR}/liblmdb" CACHE STRING "LMDB Include path")
 set(LMDB_LIBRARY "lmdb" CACHE STRING "LMDB Library name")
+if(CMAKE_SYSTEM_NAME MATCHES "NetBSD")
+	set_property(TARGET lmdb APPEND_STRING PROPERTY COMPILE_FLAGS " -D_SEM_SEMUN_UNDEFINED")
+endif()

@@ -7,7 +7,7 @@
 */
 
 // Copyrights(c) 2017-2019, The Electroneum Project
-// Copyrights(c) 2014-2017, The Monero Project
+// Copyrights(c) 2014-2019, The Monero Project
 // 
 // All rights reserved.
 // 
@@ -37,10 +37,11 @@
 
 #pragma once
 
-#include <boost/optional/optional_fwd.hpp>
+#include <boost/optional/optional.hpp>
 
 #include "daemon/rpc_command_executor.h"
 #include "common/common_fwd.h"
+#include "net/net_fwd.h"
 #include "rpc/core_rpc_server.h"
 
 namespace daemonize {
@@ -54,6 +55,7 @@ public:
       uint32_t ip
     , uint16_t port
     , const boost::optional<tools::login>& login
+    , const epee::net_utils::ssl_options_t& ssl_options
     , bool is_rpc
     , cryptonote::core_rpc_server* rpc_server = NULL
     );
@@ -98,6 +100,8 @@ public:
 
   bool stop_mining(const std::vector<std::string>& args);
 
+  bool mining_status(const std::vector<std::string>& args);
+
   bool stop_daemon(const std::vector<std::string>& args);
 
   bool print_status(const std::vector<std::string>& args);
@@ -109,7 +113,9 @@ public:
   bool set_limit_down(const std::vector<std::string>& args);
 
   bool out_peers(const std::vector<std::string>& args);
-  
+
+  bool in_peers(const std::vector<std::string>& args);
+
   bool start_save_graph(const std::vector<std::string>& args);
   
   bool stop_save_graph(const std::vector<std::string>& args);
@@ -138,6 +144,16 @@ public:
 
   bool sync_info(const std::vector<std::string>& args);
 
+  bool pop_blocks(const std::vector<std::string>& args);
+
+  bool version(const std::vector<std::string>& args);
+
+  bool prune_blockchain(const std::vector<std::string>& args);
+
+  bool check_blockchain_pruning(const std::vector<std::string>& args);
+
+  bool print_net_stats(const std::vector<std::string>& args);
+  
   bool set_validator_key(const std::vector<std::string>& args);
 
   bool generate_ed25519_keypair(const std::vector<std::string>& args);

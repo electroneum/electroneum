@@ -1,5 +1,5 @@
 // Copyrights(c) 2017-2019, The Electroneum Project
-// Copyrights(c) 2014-2017, The Monero Project
+// Copyrights(c) 2014-2019, The Monero Project
 // 
 // All rights reserved.
 // 
@@ -36,12 +36,6 @@
 
 #include "hash-ops.h"
 
-#if !defined(__FreeBSD__) && !defined(__OpenBSD__) && !defined(__DragonFly__)
- #include <alloca.h>
-#else
- #include <stdlib.h>
-#endif
-
 /*** 
 * Round to power of two, for count>=3 and for count being not too large (as reasonable for tree hash calculations)
 */
@@ -67,7 +61,7 @@ size_t tree_hash_cnt(size_t count) {
 }
 
 void tree_hash(const char (*hashes)[HASH_SIZE], size_t count, char *root_hash) {
-// The blockchain block at height 202612 https://moneroblocks.info/block/bbd604d2ba11ba27935e006ed39c9bfdd99b76bf4a50654bc1e1e61217962698
+// The blockchain block at height 202612 https://moneroblocks.info/block/202612
 // contained 514 transactions, that triggered bad calculation of variable "cnt" in the original version of this function
 // as from CryptoNote code.
 //

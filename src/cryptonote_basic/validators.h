@@ -83,11 +83,11 @@ namespace electroneum {
           return this->publicKey;
         }
 
-        inline const uint64_t getStartHeight() {
+        inline uint64_t getStartHeight() {
           return this->startHeight;
         }
 
-        inline const uint64_t getEndHeight() {
+        inline uint64_t getEndHeight() {
           return this->endHeight;
         }
 

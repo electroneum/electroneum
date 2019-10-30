@@ -27,6 +27,7 @@
 #pragma once
 
 #include "misc_log_ex.h"
+#include "string_tools.h"
 #include <atomic>
 #include <condition_variable>
 #include <functional>
@@ -37,6 +38,8 @@
 #include <stdio.h>
 #endif
 #include <boost/thread.hpp>
+#include <boost/algorithm/string/classification.hpp>
+#include <boost/algorithm/string/split.hpp>
 
 #ifdef HAVE_READLINE
   #include "readline_buffer.h"
@@ -60,7 +63,8 @@ namespace epee
 
     ~async_stdin_reader()
     {
-      stop();
+      try { stop(); }
+      catch (...) { /* ignore */ }
     }
 
 #ifdef HAVE_READLINE
@@ -348,8 +352,12 @@ eof:
 
           std::string command;
           bool get_line_ret = m_stdin_reader.get_line(command);
-          if (!m_running || m_stdin_reader.eos())
+          if (!m_running)
+            break;
+          if (m_stdin_reader.eos())
           {
+            MGINFO("EOF on stdin, exiting");
+            std::cout << std::endl;
             break;
           }
           if (!get_line_ret)
@@ -398,11 +406,17 @@ eof:
 
 
   template<class t_server, class t_handler>
-  bool start_default_console(t_server* ptsrv, t_handler handlr, const std::string& prompt, const std::string& usage = "")
+  bool start_default_console(t_server* ptsrv, t_handler handlr, std::function<std::string(void)> prompt, const std::string& usage = "")
   {
     std::shared_ptr<async_console_handler> console_handler = std::make_shared<async_console_handler>();
     boost::thread([=](){console_handler->run<t_server, t_handler>(ptsrv, handlr, prompt, usage);}).detach();
     return true;
+  }
+
+  template<class t_server, class t_handler>
+  bool start_default_console(t_server* ptsrv, t_handler handlr, const std::string& prompt, const std::string& usage = "")
+  {
+    return start_default_console(ptsrv, handlr, [prompt](){ return prompt; }, usage);
   }
 
   template<class t_server>
@@ -418,17 +432,29 @@ eof:
     }
 
   template<class t_server, class t_handler>
-  bool run_default_console_handler_no_srv_param(t_server* ptsrv, t_handler handlr, const std::string& prompt, const std::string& usage = "")
+  bool run_default_console_handler_no_srv_param(t_server* ptsrv, t_handler handlr, std::function<std::string(void)> prompt, const std::string& usage = "")
   {
     async_console_handler console_handler;
     return console_handler.run(ptsrv, boost::bind<bool>(no_srv_param_adapter<t_server, t_handler>, _1, _2, handlr), prompt, usage);
   }
 
   template<class t_server, class t_handler>
-  bool start_default_console_handler_no_srv_param(t_server* ptsrv, t_handler handlr, const std::string& prompt, const std::string& usage = "")
+  bool run_default_console_handler_no_srv_param(t_server* ptsrv, t_handler handlr, const std::string& prompt, const std::string& usage = "")
+  {
+    return run_default_console_handler_no_srv_param(ptsrv, handlr, [prompt](){return prompt;},usage);
+  }
+
+  template<class t_server, class t_handler>
+  bool start_default_console_handler_no_srv_param(t_server* ptsrv, t_handler handlr, std::function<std::string(void)> prompt, const std::string& usage = "")
   {
     boost::thread( boost::bind(run_default_console_handler_no_srv_param<t_server, t_handler>, ptsrv, handlr, prompt, usage) );
     return true;
+  }
+
+  template<class t_server, class t_handler>
+  bool start_default_console_handler_no_srv_param(t_server* ptsrv, t_handler handlr, const std::string& prompt, const std::string& usage = "")
+  {
+    return start_default_console_handler_no_srv_param(ptsrv, handlr, [prompt](){return prompt;}, usage);
   }
 
   /*template<class a>
@@ -456,29 +482,35 @@ eof:
   class command_handler {
   public:
     typedef boost::function<bool (const std::vector<std::string> &)> callback;
-    typedef std::map<std::string, std::pair<callback, std::string> > lookup;
+    typedef std::map<std::string, std::pair<callback, std::pair<std::string, std::string>>> lookup;
 
     std::string get_usage()
     {
       std::stringstream ss;
-      size_t max_command_len = 0;
-      for(auto& x:m_command_handlers)
-        if(x.first.size() > max_command_len)
-          max_command_len = x.first.size();
 
       for(auto& x:m_command_handlers)
       {
-        ss.width(max_command_len + 3);
-        ss << std::left <<  x.first << x.second.second << ENDL;
+        ss << x.second.second.first << ENDL;
       }
       return ss.str();
     }
 
-    void set_handler(const std::string& cmd, const callback& hndlr, const std::string& usage = "")
+    std::pair<std::string, std::string> get_documentation(const std::vector<std::string>& cmd)
+    {
+      if(cmd.empty())
+        return std::make_pair("", "");
+      auto it = m_command_handlers.find(cmd.front());
+      if(it == m_command_handlers.end())
+        return std::make_pair("", "");
+      return it->second.second;
+    }
+
+    void set_handler(const std::string& cmd, const callback& hndlr, const std::string& usage = "", const std::string& description = "")
     {
       lookup::mapped_type & vt = m_command_handlers[cmd];
       vt.first = hndlr;
-      vt.second = usage;
+      vt.second.first = description.empty() ? cmd : usage;
+      vt.second.second = description.empty() ? usage : description;
 #ifdef HAVE_READLINE
       rdln::readline_buffer::add_completion(cmd);
 #endif

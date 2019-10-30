@@ -1,5 +1,5 @@
 // Copyrights(c) 2017-2019, The Electroneum Project
-// Copyrights(c) 2014-2017, The Monero Project
+// Copyrights(c) 2014-2019, The Monero Project
 // 
 // All rights reserved.
 // 
@@ -51,8 +51,8 @@ namespace Language
   class Singleton
   {
     Singleton() {}
-    Singleton(Singleton &s) {}
-    Singleton& operator=(const Singleton&) {}
+    Singleton(Singleton &s) = delete;
+    Singleton& operator=(const Singleton&) = delete;
   public:
     static T* instance()
     {

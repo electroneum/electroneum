@@ -1,5 +1,5 @@
 // Copyrights(c) 2017-2019, The Electroneum Project
-// Copyright (c) 2014-2017, The Monero Project
+// Copyright (c) 2014-2019, The Monero Project
 //
 // All rights reserved.
 //
@@ -33,13 +33,15 @@
 
 #include <stdlib.h>
 #include "include_base_utils.h"
+#include "common/threadpool.h"
+#include "crypto/crypto.h"
+#include <boost/optional.hpp>
 #include <random>
 #include <boost/filesystem/fstream.hpp>
 #include <boost/thread/mutex.hpp>
 #include <boost/thread/thread.hpp>
 #include <boost/algorithm/string/join.hpp>
 using namespace epee;
-namespace bf = boost::filesystem;
 
 #undef ELECTRONEUM_DEFAULT_LOG_CATEGORY
 #define ELECTRONEUM_DEFAULT_LOG_CATEGORY "net.dns"
@@ -101,7 +103,7 @@ get_builtin_cert(void)
 static const char* const*
 get_builtin_ds(void)
 {
-   static const char * const ds[] =
+  static const char * const ds[] =
   {
     ". IN DS 19036 8 2 49AAC11D7B6F6446702E54A1607371607A1A41855200FD2CE1CDDE32F24E8FB5\n",
     ". IN DS 20326 8 2 E06D44B80B8F1D39A95C0B0D7C65D08458E880409BBC683457104237C7F8EC8D\n",
@@ -119,10 +121,25 @@ get_builtin_ds(void)
 namespace tools
 {
 
-// fuck it, I'm tired of dealing with getnameinfo()/inet_ntop/etc
-std::string ipv4_to_string(const char* src, size_t len)
+static const char *get_record_name(int record_type)
 {
-  assert(len >= 4);
+  switch (record_type)
+  {
+    case DNS_TYPE_A: return "A";
+    case DNS_TYPE_TXT: return "TXT";
+    case DNS_TYPE_AAAA: return "AAAA";
+    default: return "unknown";
+  }
+}
+
+// fuck it, I'm tired of dealing with getnameinfo()/inet_ntop/etc
+boost::optional<std::string> ipv4_to_string(const char* src, size_t len)
+{
+  if (len < 4)
+  {
+    MERROR("Invalid IPv4 address: " << std::string(src, len));
+    return boost::none;
+  }
 
   std::stringstream ss;
   unsigned int bytes[4];
@@ -140,9 +157,13 @@ std::string ipv4_to_string(const char* src, size_t len)
 
 // this obviously will need to change, but is here to reflect the above
 // stop-gap measure and to make the tests pass at least...
-std::string ipv6_to_string(const char* src, size_t len)
+boost::optional<std::string> ipv6_to_string(const char* src, size_t len)
 {
-  assert(len >= 8);
+  if (len < 8)
+  {
+    MERROR("Invalid IPv4 address: " << std::string(src, len));
+    return boost::none;
+  }
 
   std::stringstream ss;
   unsigned int bytes[8];
@@ -162,8 +183,10 @@ std::string ipv6_to_string(const char* src, size_t len)
   return ss.str();
 }
 
-std::string txt_to_string(const char* src, size_t len)
+boost::optional<std::string> txt_to_string(const char* src, size_t len)
 {
+  if (len == 0)
+    return boost::none;
   return std::string(src+1, len-1);
 }
 
@@ -212,13 +235,24 @@ public:
     char *str;
 };
 
+static void add_anchors(ub_ctx *ctx)
+{
+  const char * const *ds = ::get_builtin_ds();
+  while (*ds)
+  {
+    MINFO("adding trust anchor: " << *ds);
+    ub_ctx_add_ta(ctx, string_copy(*ds++));
+  }
+}
+
 DNSResolver::DNSResolver() : m_data(new DNSResolverData())
 {
   int use_dns_public = 0;
   std::vector<std::string> dns_public_addr;
-  if (auto res = getenv("DNS_PUBLIC"))
+  const char *DNS_PUBLIC = getenv("DNS_PUBLIC");
+  if (DNS_PUBLIC)
   {
-    dns_public_addr = tools::dns_utils::parse_dns_public(res);
+    dns_public_addr = tools::dns_utils::parse_dns_public(DNS_PUBLIC);
     if (!dns_public_addr.empty())
     {
       MGINFO("Using public DNS server(s): " << boost::join(dns_public_addr, ", ") << " (TCP)");
@@ -246,11 +280,27 @@ DNSResolver::DNSResolver() : m_data(new DNSResolverData())
     ub_ctx_hosts(m_data->m_ub_context, NULL);
   }
 
-  const char * const *ds = ::get_builtin_ds();
-  while (*ds)
+  add_anchors(m_data->m_ub_context);
+
+  if (!DNS_PUBLIC)
   {
-    MINFO("adding trust anchor: " << *ds);
-    ub_ctx_add_ta(m_data->m_ub_context, string_copy(*ds++));
+    // if no DNS_PUBLIC specified, we try a lookup to what we know
+    // should be a valid DNSSEC record, and switch to known good
+    // DNSSEC resolvers if verification fails
+    bool available, valid;
+    static const char *probe_hostname = "updates.electroneumpulse.org";
+    auto records = get_txt_record(probe_hostname, available, valid);
+    if (!valid)
+    {
+      MINFO("Failed to verify DNSSEC record from " << probe_hostname << ", falling back to TCP with well known DNSSEC resolvers");
+      ub_ctx_delete(m_data->m_ub_context);
+      m_data->m_ub_context = ub_ctx_create();
+      add_anchors(m_data->m_ub_context);
+      for (const auto &ip: DEFAULT_DNS_PUBLIC_ADDR)
+        ub_ctx_set_fwd(m_data->m_ub_context, string_copy(ip));
+      ub_ctx_set_option(m_data->m_ub_context, string_copy("do-udp:"), string_copy("no"));
+      ub_ctx_set_option(m_data->m_ub_context, string_copy("do-tcp:"), string_copy("yes"));
+    }
   }
 }
 
@@ -266,7 +316,7 @@ DNSResolver::~DNSResolver()
   }
 }
 
-std::vector<std::string> DNSResolver::get_record(const std::string& url, int record_type, std::string (*reader)(const char *,size_t), bool& dnssec_available, bool& dnssec_valid)
+std::vector<std::string> DNSResolver::get_record(const std::string& url, int record_type, boost::optional<std::string> (*reader)(const char *,size_t), bool& dnssec_available, bool& dnssec_valid)
 {
   std::vector<std::string> addresses;
   dnssec_available = false;
@@ -283,13 +333,18 @@ std::vector<std::string> DNSResolver::get_record(const std::string& url, int rec
   // call DNS resolver, blocking.  if return value not zero, something went wrong
   if (!ub_resolve(m_data->m_ub_context, string_copy(url.c_str()), record_type, DNS_CLASS_IN, &result))
   {
-    dnssec_available = (result->secure || (!result->secure && result->bogus));
+    dnssec_available = (result->secure || result->bogus);
     dnssec_valid = result->secure && !result->bogus;
     if (result->havedata)
     {
       for (size_t i=0; result->data[i] != NULL; i++)
       {
-        addresses.push_back((*reader)(result->data[i], result->len[i]));
+        boost::optional<std::string> res = (*reader)(result->data[i], result->len[i]);
+        if (res)
+        {
+          MINFO("Found \"" << *res << "\" in " << get_record_name(record_type) << " record for " << url);
+          addresses.push_back(*res);
+        }
       }
     }
   }
@@ -427,7 +482,7 @@ std::string get_account_address_as_str_from_url(const std::string& url, bool& dn
   auto addresses = addresses_from_url(url, dnssec_valid);
   if (addresses.empty())
   {
-    LOG_PRINT_L1("wrong address: " << url);
+    LOG_ERROR("wrong address: " << url);
     return {};
   }
   return dns_confirm(url, addresses, dnssec_valid);
@@ -465,22 +520,19 @@ bool load_txt_records_from_dns(std::vector<std::string> &good_records, const std
   std::vector<std::vector<std::string> > records;
   records.resize(dns_urls.size());
 
-  std::random_device rd;
-  std::mt19937 gen(rd());
-  std::uniform_int_distribution<int> dis(0, dns_urls.size() - 1);
-  size_t first_index = dis(gen);
+  size_t first_index = crypto::rand_idx(dns_urls.size());
 
   // send all requests in parallel
-  std::vector<boost::thread> threads(dns_urls.size());
   std::deque<bool> avail(dns_urls.size(), false), valid(dns_urls.size(), false);
+  tools::threadpool& tpool = tools::threadpool::getInstance();
+  tools::threadpool::waiter waiter;
   for (size_t n = 0; n < dns_urls.size(); ++n)
   {
-    threads[n] = boost::thread([n, dns_urls, &records, &avail, &valid](){
+    tpool.submit(&waiter,[n, dns_urls, &records, &avail, &valid](){
       records[n] = tools::DNSResolver::instance().get_txt_record(dns_urls[n], avail[n], valid[n]); 
     });
   }
-  for (size_t n = 0; n < dns_urls.size(); ++n)
-    threads[n].join();
+  waiter.wait(&tpool);
 
   size_t cur_index = first_index;
   do

@@ -1,5 +1,5 @@
 # Copyright (c) 2017-2019, The Electroneum Project
-# Copyright (c) 2014-2017, The Monero Project
+# Copyright (c) 2014-2019, The Monero Project
 #
 # All rights reserved.
 #
@@ -44,20 +44,22 @@ electroneum_add_executable(simplewallet
 target_link_libraries(simplewallet
   PRIVATE
     wallet
-    rpc
+    rpc_base
     cryptonote_core
     cncrypto
     common
     mnemonics
-    p2p
+    ${EPEE_READLINE}
+    version
     ${Boost_CHRONO_LIBRARY}
     ${Boost_PROGRAM_OPTIONS_LIBRARY}
     ${Boost_FILESYSTEM_LIBRARY}
+    ${Boost_LOCALE_LIBRARY}
+    ${ICU_LIBRARIES}
     ${Boost_THREAD_LIBRARY}
     ${CMAKE_THREAD_LIBS_INIT}
+    ${GNU_READLINE_LIBRARY}
     ${EXTRA_LIBRARIES})
-add_dependencies(simplewallet
-  version)
 set_property(TARGET simplewallet
   PROPERTY
     OUTPUT_NAME "electroneum-wallet-cli")

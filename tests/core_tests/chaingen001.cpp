@@ -1,5 +1,5 @@
 // Copyrights(c) 2017-2019, The Electroneum Project
-// Copyrights(c) 2014-2017, The Monero Project
+// Copyrights(c) 2014-2019, The Monero Project
 // 
 // All rights reserved.
 // 
@@ -79,7 +79,7 @@ bool one_block::verify_1(cryptonote::core& c, size_t ev_index, const std::vector
     //CHECK_TEST_CONDITION(get_block_reward(0) == get_balance(alice, events, chain, mtx));
 
     // check height
-    std::list<cryptonote::block> blocks;
+    std::vector<cryptonote::block> blocks;
     std::list<crypto::public_key> outs;
     bool r = c.get_blocks(0, 100, blocks);
     //c.get_outs(100, outs);

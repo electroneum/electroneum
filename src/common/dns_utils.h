@@ -1,5 +1,5 @@
 // Copyrights(c) 2017-2019, The Electroneum Project
-// Copyrights(c) 2014-2017, The Monero Project
+// Copyrights(c) 2014-2019, The Monero Project
 // 
 // All rights reserved.
 // 
@@ -32,6 +32,7 @@
 #include <vector>
 #include <string>
 #include <functional>
+#include <boost/optional/optional_fwd.hpp>
 
 namespace tools
 {
@@ -145,7 +146,7 @@ private:
    * @return A vector of strings containing the requested record; or an empty vector
    */
   // TODO: modify this to accommodate DNSSEC
-  std::vector<std::string> get_record(const std::string& url, int record_type, std::string (*reader)(const char *,size_t), bool& dnssec_available, bool& dnssec_valid);
+  std::vector<std::string> get_record(const std::string& url, int record_type, boost::optional<std::string> (*reader)(const char *,size_t), bool& dnssec_available, bool& dnssec_valid);
 
   /**
    * @brief Checks a string to see if it looks like a URL
@@ -168,6 +169,8 @@ std::vector<std::string> addresses_from_url(const std::string& url, bool& dnssec
 std::string get_account_address_as_str_from_url(const std::string& url, bool& dnssec_valid, std::function<std::string(const std::string&, const std::vector<std::string>&, bool)> confirm_dns);
 
 bool load_txt_records_from_dns(std::vector<std::string> &records, const std::vector<std::string> &dns_urls, std::string type);
+
+std::vector<std::string> parse_dns_public(const char *s);
 
 std::vector<std::string> parse_dns_public(const char *s);
 

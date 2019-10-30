@@ -1,5 +1,5 @@
 // Copyrights(c) 2017-2019, The Electroneum Project
-// Copyrights(c) 2014-2017, The Monero Project
+// Copyrights(c) 2014-2019, The Monero Project
 //
 // All rights reserved.
 // 
@@ -31,6 +31,7 @@
 #include "net/http_auth.h"
 
 #include <boost/algorithm/string/predicate.hpp>
+#include <boost/algorithm/string/join.hpp>
 #include <boost/fusion/adapted/std_pair.hpp>
 #include <boost/range/algorithm/find_if.hpp>
 #include <boost/range/iterator_range_core.hpp>
@@ -60,11 +61,17 @@
 
 #include "md5_l.h"
 #include "string_tools.h"
+#include "crypto/crypto.h"
 
 namespace {
 namespace http = epee::net_utils::http;
 using fields = std::unordered_map<std::string, std::string>;
 using auth_responses = std::vector<fields>;
+
+void rng(size_t len, uint8_t *ptr)
+{
+  crypto::rand(len, ptr);
+}
 
 std::string quoted(std::string str)
 {
@@ -212,7 +219,7 @@ std::string get_a1(const http::login& user, const fields& src)
 {
   const std::string& realm = src.at(u8"realm");
   return boost::join(
-    std::vector<std::string>{user.username, realm, user.password}, u8":"
+    std::vector<std::string>{user.username, realm, std::string(user.password.data(), user.password.size())}, u8":"
   );
 }
 
@@ -250,13 +257,13 @@ std::string get_nc(std::uint32_t count)
 
 TEST(HTTP_Server_Auth, NotRequired)
 {
-  http::http_server_auth auth{};
+  http::http_server_auth auth{}; // no rng here
   EXPECT_FALSE(auth.get_response(http::http_request_info{}));
 }
 
 TEST(HTTP_Server_Auth, MissingAuth)
 {
-  http::http_server_auth auth{{"foo", "bar"}};
+  http::http_server_auth auth{{"foo", "bar"}, rng};
   EXPECT_TRUE(bool(auth.get_response(http::http_request_info{})));
   {
     http::http_request_info request{};
@@ -267,7 +274,7 @@ TEST(HTTP_Server_Auth, MissingAuth)
 
 TEST(HTTP_Server_Auth, BadSyntax)
 {
-  http::http_server_auth auth{{"foo", "bar"}};
+  http::http_server_auth auth{{"foo", "bar"}, rng};
   EXPECT_TRUE(bool(auth.get_response(make_request({{u8"algorithm", "fo\xFF"}}))));
   EXPECT_TRUE(bool(auth.get_response(make_request({{u8"cnonce", "\"000\xFF\""}}))));
   EXPECT_TRUE(bool(auth.get_response(make_request({{u8"cnonce \xFF =", "\"000\xFF\""}}))));
@@ -277,7 +284,7 @@ TEST(HTTP_Server_Auth, BadSyntax)
 TEST(HTTP_Server_Auth, MD5)
 {
   http::login user{"foo", "bar"};
-  http::http_server_auth auth{user};
+  http::http_server_auth auth{user, rng};
 
   const auto response = auth.get_response(make_request(fields{}));
   ASSERT_TRUE(bool(response));
@@ -326,7 +333,7 @@ TEST(HTTP_Server_Auth, MD5_sess)
   constexpr const char cnonce[] = "not a good cnonce";
 
   http::login user{"foo", "bar"};
-  http::http_server_auth auth{user};
+  http::http_server_auth auth{user, rng};
 
   const auto response = auth.get_response(make_request(fields{}));
   ASSERT_TRUE(bool(response));
@@ -378,7 +385,7 @@ TEST(HTTP_Server_Auth, MD5_auth)
   constexpr const char qop[] = "auth";
 
   http::login user{"foo", "bar"};
-  http::http_server_auth auth{user};
+  http::http_server_auth auth{user, rng};
 
   const auto response = auth.get_response(make_request(fields{}));
   ASSERT_TRUE(bool(response));
@@ -446,7 +453,7 @@ TEST(HTTP_Server_Auth, MD5_sess_auth)
   constexpr const char qop[] = "auth";
 
   http::login user{"foo", "bar"};
-  http::http_server_auth auth{user};
+  http::http_server_auth auth{user, rng};
 
   const auto response = auth.get_response(make_request(fields{}));
   ASSERT_TRUE(bool(response));
@@ -523,7 +530,7 @@ TEST(HTTP_Auth, DogFood)
 
   const http::login user{"some_user", "ultimate password"};
 
-  http::http_server_auth server{user};
+  http::http_server_auth server{user, rng};
   http::http_client_auth client{user};
 
   http::http_request_info request{};

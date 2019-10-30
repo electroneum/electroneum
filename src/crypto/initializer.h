@@ -1,5 +1,5 @@
 // Copyrights(c) 2017-2019, The Electroneum Project
-// Copyrights(c) 2014-2017, The Monero Project
+// Copyrights(c) 2014-2019, The Monero Project
 // 
 // All rights reserved.
 // 
@@ -32,15 +32,20 @@
 #pragma once
 
 #if defined(__GNUC__)
+#if defined(__sun) && defined(__SVR4)
+#define INITIALIZER(name) __attribute__((constructor)) static void name(void)
+#define FINALIZER(name) __attribute__((destructor)) static void name(void)
+#else
 #define INITIALIZER(name) __attribute__((constructor(101))) static void name(void)
 #define FINALIZER(name) __attribute__((destructor(101))) static void name(void)
+#endif
 #define REGISTER_FINALIZER(name) ((void) 0)
 
 #elif defined(_MSC_VER)
 #include <assert.h>
 #include <stdlib.h>
-// http://stackoverflow.com/questions/1113409/attribute-constructor-equivalent-in-vc
-// http://msdn.microsoft.com/en-us/library/bb918180.aspx
+// https://stackoverflow.com/questions/1113409/attribute-constructor-equivalent-in-vc
+// https://msdn.microsoft.com/en-us/library/bb918180.aspx
 #pragma section(".CRT$XCT", read)
 #define INITIALIZER(name) \
   static void __cdecl name(void); \

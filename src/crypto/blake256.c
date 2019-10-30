@@ -1,5 +1,5 @@
 // Copyrights(c) 2017-2019, The Electroneum Project
-// Copyrights(c) 2014-2017, The Monero Project
+// Copyrights(c) 2014-2019, The Monero Project
 // 
 // All rights reserved.
 // 
@@ -32,7 +32,7 @@
  * The blake256_* and blake224_* functions are largely copied from
  * blake256_light.c and blake224_light.c from the BLAKE website:
  *
- *     http://131002.net/blake/
+ *     https://131002.net/blake/
  *
  * The hmac_* functions implement HMAC-BLAKE-256 and HMAC-BLAKE-224.
  * HMAC is specified by RFC 2104.
@@ -158,7 +158,7 @@ void blake256_update(state *S, const uint8_t *data, uint64_t datalen) {
     int left = S->buflen >> 3;
     int fill = 64 - left;
 
-    if (left && (((datalen >> 3) & 0x3F) >= (unsigned) fill)) {
+    if (left && (((datalen >> 3)) >= (unsigned) fill)) {
         memcpy((void *) (S->buf + left), (void *) data, fill);
         S->t[0] += 512;
         if (S->t[0] == 0) S->t[1]++;

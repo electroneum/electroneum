@@ -21,7 +21,7 @@
 // OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //
-// Code surrounding the word list is Copyright (c) 2014-2017, The Monero Project
+// Code surrounding the word list is Copyright (c) 2014-2019, The Monero Project
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without modification, are
@@ -71,7 +71,10 @@ namespace Language
   class Japanese: public Base
   {
   public:
-    Japanese(): Base("日本語", std::vector<std::string>({
+    Japanese(): Base("日本語", "Japanese", {}, 3)
+    {
+      static constexpr const char * const words[NWORDS] =
+      {
         "あいこくしん",
         "あいさつ",
         "あいだ",
@@ -1698,8 +1701,8 @@ namespace Language
         "ひさん",
         "びじゅつかん",
         "ひしょ"
-      }), 3)
-    {
+      };
+      set_words(words);
       populate_maps();
     }
   };

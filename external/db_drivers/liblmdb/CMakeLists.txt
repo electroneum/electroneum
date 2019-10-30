@@ -1,5 +1,5 @@
 # Copyright (c) 2017-2019, The Electroneum Project
-# Copyright (c) 2014-2017, The Monero Project
+# Copyright (c) 2014-2019, The Monero Project
 # 
 # All rights reserved.
 # 
@@ -47,11 +47,20 @@ add_library(lmdb
 target_link_libraries(lmdb
   PRIVATE
     ${CMAKE_THREAD_LIBS_INIT})
-if(WIN32)
-  target_link_libraries(lmdb
-    -lntdll)
-endif()
 if(${ARCH_WIDTH} EQUAL 32)
   target_compile_definitions(lmdb
     PUBLIC -DMDB_VL32)
 endif()
+
+# GUI/libwallet install target
+if (BUILD_GUI_DEPS)
+    if(IOS)
+        set(lib_folder lib-${ARCH})
+    else()
+        set(lib_folder lib)
+    endif()
+    install(TARGETS lmdb
+        ARCHIVE DESTINATION ${lib_folder}
+        LIBRARY DESTINATION ${lib_folder})
+endif()
+set_property(TARGET lmdb APPEND PROPERTY COMPILE_FLAGS "-fPIC")

@@ -1,5 +1,5 @@
 // Copyrights(c) 2017-2019, The Electroneum Project
-// Copyrights(c) 2014-2017, The Monero Project
+// Copyrights(c) 2014-2019, The Monero Project
 // 
 // All rights reserved.
 // 
@@ -34,6 +34,7 @@
 #include <atomic>
 
 #include <boost/asio/io_service.hpp>
+#include <boost/uuid/uuid_io.hpp>
 
 #include "include_base_utils.h"
 #include "string_tools.h"
@@ -63,7 +64,7 @@ namespace net_load_tests
     {
     }
 
-    virtual int invoke(int command, const std::string& in_buff, std::string& buff_out, test_connection_context& context)
+    virtual int invoke(int command, const epee::span<const uint8_t> in_buff, std::string& buff_out, test_connection_context& context)
     {
       //m_invoke_counter.inc();
       //std::unique_lock<std::mutex> lock(m_mutex);
@@ -74,7 +75,7 @@ namespace net_load_tests
       return LEVIN_OK;
     }
 
-    virtual int notify(int command, const std::string& in_buff, test_connection_context& context)
+    virtual int notify(int command, const epee::span<const uint8_t> in_buff, test_connection_context& context)
     {
       //m_notify_counter.inc();
       //std::unique_lock<std::mutex> lock(m_mutex);
@@ -138,7 +139,6 @@ namespace net_load_tests
   public:
     open_close_test_helper(test_tcp_server& tcp_server, size_t open_request_target, size_t max_opened_connection_count)
       : m_tcp_server(tcp_server)
-      , m_open_request_target(open_request_target)
       , m_max_opened_connection_count(max_opened_connection_count)
       , m_opened_connection_count(0)
       , m_next_opened_conn_idx(0)
@@ -152,6 +152,11 @@ namespace net_load_tests
     bool handle_new_connection(const boost::uuids::uuid& connection_id, bool ignore_close_fails = false)
     {
       size_t idx = m_next_opened_conn_idx.fetch_add(1, std::memory_order_relaxed);
+      if (idx >= m_connections.size())
+      {
+        LOG_PRINT_L0("ERROR: connections overflow");
+        exit(1);
+      }
       m_connections[idx] = connection_id;
 
       size_t prev_connection_count = m_opened_connection_count.fetch_add(1, std::memory_order_relaxed);
@@ -199,7 +204,6 @@ namespace net_load_tests
 
   private:
     test_tcp_server& m_tcp_server;
-    size_t m_open_request_target;
     size_t m_max_opened_connection_count;
     std::atomic<size_t> m_opened_connection_count;
     std::atomic<size_t> m_next_opened_conn_idx;

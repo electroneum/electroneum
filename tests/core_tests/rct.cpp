@@ -1,5 +1,5 @@
 // Copyrights(c) 2017-2019, The Electroneum Project
-// Copyrights(c) 2014-2017, The Monero Project
+// Copyrights(c) 2014-2019, The Monero Project
 // 
 // All rights reserved.
 // 
@@ -31,7 +31,8 @@
 
 #include "ringct/rctSigs.h"
 #include "chaingen.h"
-#include "chaingen_tests_list.h"
+#include "rct.h"
+#include "device/device.hpp"
 
 using namespace epee;
 using namespace crypto;
@@ -118,7 +119,10 @@ bool gen_rct_tx_validation_base::generate_with(std::vector<test_event_entry>& ev
     destinations.push_back(td); // 30 -> 7.39 * 4
 
     crypto::secret_key tx_key;
-    bool r = construct_tx_and_get_tx_key(miner_accounts[n].get_keys(), sources, destinations, std::vector<uint8_t>(), rct_txes[n], 0, tx_key, true);
+    std::vector<crypto::secret_key> additional_tx_keys;
+    std::unordered_map<crypto::public_key, cryptonote::subaddress_index> subaddresses;
+    subaddresses[miner_accounts[n].get_keys().m_account_address.m_spend_public_key] = {0,0};
+    bool r = construct_tx_and_get_tx_key(miner_accounts[n].get_keys(), subaddresses, sources, destinations, cryptonote::account_public_address{}, std::vector<uint8_t>(), rct_txes[n], 0, tx_key, additional_tx_keys, true);
     CHECK_AND_ASSERT_MES(r, false, "failed to construct transaction");
     events.push_back(rct_txes[n]);
     starting_rct_tx_hashes.push_back(get_transaction_hash(rct_txes[n]));
@@ -130,10 +134,11 @@ bool gen_rct_tx_validation_base::generate_with(std::vector<test_event_entry>& ev
       CHECK_AND_ASSERT_MES(r, false, "Failed to generate key derivation");
       crypto::secret_key amount_key;
       crypto::derivation_to_scalar(derivation, o, amount_key);
-      if (rct_txes[n].rct_signatures.type == rct::RCTTypeSimple)
-        rct::decodeRctSimple(rct_txes[n].rct_signatures, rct::sk2rct(amount_key), o, rct_tx_masks[o+n*4]);
+      const uint8_t type = rct_txes[n].rct_signatures.type;
+      if (type == rct::RCTTypeSimple || type == rct::RCTTypeBulletproof || type == rct::RCTTypeBulletproof2)
+        rct::decodeRctSimple(rct_txes[n].rct_signatures, rct::sk2rct(amount_key), o, rct_tx_masks[o+n*4], hw::get_device("default"));
       else
-        rct::decodeRct(rct_txes[n].rct_signatures, rct::sk2rct(amount_key), o, rct_tx_masks[o+n*4]);
+        rct::decodeRct(rct_txes[n].rct_signatures, rct::sk2rct(amount_key), o, rct_tx_masks[o+n*4], hw::get_device("default"));
     }
 
     CHECK_AND_ASSERT_MES(generator.construct_block_manually(blk_txes[n], blk_last, miner_account,
@@ -216,7 +221,10 @@ bool gen_rct_tx_validation_base::generate_with(std::vector<test_event_entry>& ev
 
   transaction tx;
   crypto::secret_key tx_key;
-  bool r = construct_tx_and_get_tx_key(miner_accounts[0].get_keys(), sources, destinations, std::vector<uint8_t>(), tx, 0, tx_key, true);
+  std::vector<crypto::secret_key> additional_tx_keys;
+  std::unordered_map<crypto::public_key, cryptonote::subaddress_index> subaddresses;
+  subaddresses[miner_accounts[0].get_keys().m_account_address.m_spend_public_key] = {0,0};
+  bool r = construct_tx_and_get_tx_key(miner_accounts[0].get_keys(), subaddresses, sources, destinations, cryptonote::account_public_address{}, std::vector<uint8_t>(), tx, 0, tx_key, additional_tx_keys, true);
   CHECK_AND_ASSERT_MES(r, false, "failed to construct transaction");
 
   if (post_tx)
@@ -485,8 +493,9 @@ bool gen_rct_tx_pre_rct_altered_extra::generate(std::vector<test_event_entry>& e
   const int mixin = 2;
   const int out_idx[] = {0, -1};
   const uint64_t amount_paid = 10000;
+  bool failed = false;
   return generate_with(events, out_idx, mixin, amount_paid, false,
-    NULL, [](transaction &tx) {std::string extra_nonce; crypto::hash pid = cryptonote::null_hash; set_payment_id_to_tx_extra_nonce(extra_nonce, pid); add_extra_nonce_to_tx_extra(tx.extra, extra_nonce);});
+    NULL, [&failed](transaction &tx) {std::string extra_nonce; crypto::hash pid = crypto::null_hash; set_payment_id_to_tx_extra_nonce(extra_nonce, pid); if (!add_extra_nonce_to_tx_extra(tx.extra, extra_nonce)) failed = true; }) && !failed;
 }
 
 bool gen_rct_tx_rct_altered_extra::generate(std::vector<test_event_entry>& events) const
@@ -494,7 +503,8 @@ bool gen_rct_tx_rct_altered_extra::generate(std::vector<test_event_entry>& event
   const int mixin = 2;
   const int out_idx[] = {1, -1};
   const uint64_t amount_paid = 10000;
+  bool failed = false;
   return generate_with(events, out_idx, mixin, amount_paid, false,
-    NULL, [](transaction &tx) {std::string extra_nonce; crypto::hash pid = cryptonote::null_hash; set_payment_id_to_tx_extra_nonce(extra_nonce, pid); add_extra_nonce_to_tx_extra(tx.extra, extra_nonce);});
+    NULL, [&failed](transaction &tx) {std::string extra_nonce; crypto::hash pid = crypto::null_hash; set_payment_id_to_tx_extra_nonce(extra_nonce, pid); if (!add_extra_nonce_to_tx_extra(tx.extra, extra_nonce)) failed = true; }) && !failed;
 }
 

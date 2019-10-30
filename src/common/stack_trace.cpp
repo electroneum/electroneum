@@ -1,5 +1,5 @@
 // Copyright (c) 2017-2019, The Electroneum Project
-// Copyright (c) 2016, The Monero Project
+// Copyright (c) 2016-2019, The Monero Project
 //
 // All rights reserved.
 //
@@ -29,7 +29,10 @@
 
 #if !defined __GNUC__ || defined __MINGW32__ || defined __MINGW64__ || defined __ANDROID__
 #define USE_UNWIND
+#else
+#define ELPP_FEATURE_CRASH_LOG 1
 #endif
+#include "easylogging++/easylogging++.h"
 
 #include <stdexcept>
 #ifdef USE_UNWIND
@@ -40,15 +43,25 @@
 #ifndef STATICLIB
 #include <dlfcn.h>
 #endif
+#include <boost/algorithm/string.hpp>
 #include "common/stack_trace.h"
 #include "misc_log_ex.h"
 
 #undef ELECTRONEUM_DEFAULT_LOG_CATEGORY
 #define ELECTRONEUM_DEFAULT_LOG_CATEGORY "stacktrace"
 
-#define ST_LOG(x) CINFO(el::base::Writer,el::base::DispatchAction::FileOnlyLog,ELECTRONEUM_DEFAULT_LOG_CATEGORY) << x
+#define ST_LOG(x) \
+  do { \
+    auto elpp = ELPP; \
+    if (elpp) { \
+      CINFO(el::base::Writer,el::base::DispatchAction::FileOnlyLog,ELECTRONEUM_DEFAULT_LOG_CATEGORY) << x; \
+    } \
+    else { \
+      std::cout << x << std::endl; \
+    } \
+  } while(0)
 
-// from http://stackoverflow.com/questions/11665829/how-can-i-print-stack-trace-for-caught-exceptions-in-c-code-injection-in-c
+// from https://stackoverflow.com/questions/11665829/how-can-i-print-stack-trace-for-caught-exceptions-in-c-code-injection-in-c
 
 // The decl of __cxa_throw in /usr/include/.../cxxabi.h uses
 // 'std::type_info *', but GCC's built-in protype uses 'void *'.

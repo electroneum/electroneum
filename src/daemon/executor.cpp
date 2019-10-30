@@ -1,5 +1,5 @@
 // Copyrights(c) 2017-2019, The Electroneum Project
-// Copyrights(c) 2014-2017, The Monero Project
+// Copyrights(c) 2014-2019, The Monero Project
 // 
 // All rights reserved.
 // 
@@ -31,7 +31,6 @@
 
 #include "daemon/executor.h"
 
-#include "common/command_line.h"
 #include "cryptonote_config.h"
 #include "version.h"
 
@@ -61,21 +60,21 @@ namespace daemonize
     )
   {
     LOG_PRINT_L0("Electroneum '" << ELECTRONEUM_RELEASE_NAME << "' (v" << ELECTRONEUM_VERSION_FULL << ") Daemonised");
-    return t_daemon{vm};
+    return t_daemon{vm, public_rpc_port};
   }
 
   bool t_executor::run_non_interactive(
       boost::program_options::variables_map const & vm
     )
   {
-    return t_daemon{vm}.run(false);
+    return t_daemon{vm, public_rpc_port}.run(false);
   }
 
   bool t_executor::run_interactive(
       boost::program_options::variables_map const & vm
     )
   {
-    return t_daemon{vm}.run(true);
+    return t_daemon{vm, public_rpc_port}.run(true);
   }
 }
 

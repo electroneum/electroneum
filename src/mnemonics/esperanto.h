@@ -1,5 +1,5 @@
 // Copyrights(c) 2017-2019, The Electroneum Project
-// Copyrights(c) 2014-2017, The Monero Project
+// Copyrights(c) 2014-2019, The Monero Project
 // 
 // All rights reserved.
 // 
@@ -38,7 +38,7 @@
  * Sources:
  *   Baza Radikaro Oficiala
  *   Reta Vortaro (http://www.reta-vortaro.de/revo/)
- *   Esperanto Panorama - Esperanto-English Dictionary (http://www.esperanto-panorama.net/vortaro/eoen.htm)
+ *   Esperanto Panorama - Esperanto-English Dictionary (https://www.esperanto-panorama.net/vortaro/eoen.htm)
  *   ESPDIC - Paul Denisowski (http://www.denisowski.org/Esperanto/ESPDIC/espdic.txt)
  */
 
@@ -59,7 +59,10 @@ namespace Language
   class Esperanto: public Base
   {
   public:
-    Esperanto(): Base("Esperanto", std::vector<std::string>({
+    Esperanto(): Base("Esperanto", "Esperanto", {}, 4)
+    {
+      static constexpr const char * const words[NWORDS] =
+      {
       "abako",
       "abdiki",
       "abelo",
@@ -1686,8 +1689,8 @@ namespace Language
       "zorgi",
       "zukino",
       "zumilo",
-      }), 4)
-    {
+      };
+      set_words(words);
       populate_maps();
     }
   };

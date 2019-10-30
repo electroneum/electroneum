@@ -21,7 +21,7 @@
 // OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //
-// Code surrounding the word list is Copyright (c) 2014-2017, The Monero Project
+// Code surrounding the word list is Copyright (c) 2014-2019, The Monero Project
 //
 // All rights reserved.
 //
@@ -72,7 +72,10 @@ namespace Language
   class Spanish: public Base
   {
   public:
-    Spanish(): Base("Español", std::vector<std::string>({
+    Spanish(): Base("Español", "Spanish", {}, 4)
+    {
+      static constexpr const char * const words[NWORDS] =
+      {
         "ábaco",
         "abdomen",
         "abeja",
@@ -1699,8 +1702,8 @@ namespace Language
         "risa",
         "ritmo",
         "rito"
-      }), 4)
-    {
+      };
+      set_words(words);
       populate_maps(ALLOW_SHORT_WORDS);
     }
   };

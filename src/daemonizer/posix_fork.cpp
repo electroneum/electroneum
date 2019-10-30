@@ -12,7 +12,6 @@
 #include <unistd.h>
 #include <stdexcept>
 #include <string>
-#include <sys/stat.h>
 
 #ifndef TMPDIR
 #define TMPDIR "/tmp"
@@ -115,6 +114,7 @@ void fork(const std::string & pidfile)
     quit("Unable to open /dev/null");
   }
 
+#ifdef DEBUG_TMPDIR_LOG
   // Send standard output to a log file.
   const char *tmpdir = getenv("TMPDIR");
   if (!tmpdir)
@@ -133,6 +133,7 @@ void fork(const std::string & pidfile)
   {
     quit("Unable to dup output descriptor");
   }
+#endif
 }
 
 } // namespace posix

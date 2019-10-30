@@ -1,9 +1,9 @@
 #include "readline_buffer.h"
 #include <readline/readline.h>
 #include <readline/history.h>
-#include <sys/select.h>
-#include <unistd.h>
-#include <boost/thread.hpp>
+#include <iostream>
+#include <boost/thread/mutex.hpp>
+#include <boost/thread/lock_guard.hpp>
 #include <boost/algorithm/string.hpp>
 
 static void install_line_handler();
@@ -44,7 +44,7 @@ std::vector<std::string>& rdln::readline_buffer::completion_commands()
 }
 
 rdln::readline_buffer::readline_buffer()
-: std::stringbuf(), m_cout_buf(NULL)
+: std::stringbuf(), m_cout_buf(NULL), m_prompt_length(0)
 {
   current = this;
 }
@@ -86,8 +86,11 @@ void rdln::readline_buffer::set_prompt(const std::string& prompt)
   if(m_cout_buf == NULL)
     return;
   boost::lock_guard<boost::mutex> lock(sync_mutex);
+  rl_set_prompt(std::string(m_prompt_length, ' ').c_str());
+  rl_redisplay();
   rl_set_prompt(prompt.c_str());
   rl_redisplay();
+  m_prompt_length = prompt.size();
 }
 
 void rdln::readline_buffer::add_completion(const std::string& command)
@@ -111,7 +114,7 @@ int rdln::readline_buffer::sync()
   int end = 0, point = 0;
 #endif
 
-  if (rl_end || *rl_prompt)
+  if (rl_end || (rl_prompt && *rl_prompt))
   {
 #if RL_READLINE_VERSION >= 0x0700
     rl_clear_visible_line();
@@ -134,7 +137,7 @@ int rdln::readline_buffer::sync()
   while ( this->snextc() != EOF );
 
 #if RL_READLINE_VERSION < 0x0700
-  if (end || *rl_prompt)
+  if (end || (rl_prompt && *rl_prompt))
   {
     rl_restore_prompt();
     rl_line_buffer = line;

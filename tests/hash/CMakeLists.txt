@@ -1,5 +1,5 @@
 # Copyright (c) 2017-2019, The Electroneum Project
-# Copyright (c) 2014-2017, The Monero Project
+# Copyright (c) 2014-2019, The Monero Project
 #
 # All rights reserved.
 #
@@ -37,14 +37,19 @@ add_executable(hash-tests
   ${hash_headers})
 target_link_libraries(hash-tests
   PRIVATE
+    common
     cncrypto
     ${EXTRA_LIBRARIES})
 set_property(TARGET hash-tests
   PROPERTY
     FOLDER "tests")
 
-foreach (hash IN ITEMS fast slow slow-1 tree extra-blake extra-groestl extra-jh extra-skein)
+foreach (hash IN ITEMS fast slow slow-1 slow-2 slow-4 tree extra-blake extra-groestl extra-jh extra-skein)
   add_test(
     NAME    "hash-${hash}"
     COMMAND hash-tests "${hash}" "${CMAKE_CURRENT_SOURCE_DIR}/tests-${hash}.txt")
 endforeach ()
+
+add_test(
+  NAME    "hash-variant2-int-sqrt"
+  COMMAND hash-tests "variant2_int_sqrt")

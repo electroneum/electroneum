@@ -3,7 +3,7 @@
 /// @brief This is the place to implement our handlers for protocol network actions, e.g. for ratelimit for download-requests
 
 // Copyrights(c) 2017-2019, The Electroneum Project
-// Copyrights(c) 2014-2017, The Monero Project
+// Copyrights(c) 2014-2019, The Monero Project
 // 
 // All rights reserved.
 // 
@@ -31,20 +31,8 @@
 // STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
 // THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include <boost/asio.hpp>
 #include <string>
 #include <vector>
-#include <boost/noncopyable.hpp>
-#include <boost/shared_ptr.hpp>
-#include <atomic>
-
-#include <boost/asio.hpp>
-#include <boost/array.hpp>
-#include <boost/noncopyable.hpp>
-#include <boost/shared_ptr.hpp>
-#include <boost/enable_shared_from_this.hpp>
-#include <boost/interprocess/detail/atomic.hpp>
-#include <boost/thread/thread.hpp>
 
 #include <memory>
 
@@ -52,26 +40,16 @@
 
 #include "net/net_utils_base.h" 
 #include "misc_log_ex.h" 
-#include <boost/lambda/bind.hpp>
-#include <boost/lambda/lambda.hpp>
-#include <boost/uuid/random_generator.hpp>
 #include <boost/chrono.hpp>
-#include <boost/utility/value_init.hpp>
-#include <boost/asio/deadline_timer.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/thread/thread.hpp> 
 #include "misc_language.h"
 #include "pragma_comp_defs.h"
-#include <sstream>
-#include <iomanip>
 #include <algorithm>
 
 
-#include <boost/asio/basic_socket.hpp>
-#include <boost/asio/ip/unicast.hpp>
-
 #include "cryptonote_protocol_handler.h"
-#include "p2p/network_throttle.hpp"
+#include "net/network_throttle.hpp"
 
 #include "cryptonote_core/cryptonote_core.h" // e.g. for the send_stop_signal()
 
@@ -141,7 +119,7 @@ void cryptonote_protocol_handler_base::handler_response_blocks_now(size_t packet
 
 		{ 
 	  	CRITICAL_REGION_LOCAL(	network_throttle_manager::m_lock_get_global_throttle_out );
-			delay = network_throttle_manager::get_global_throttle_out().get_sleep_time_after_tick( packet_size ); // decission from global
+			delay = network_throttle_manager::get_global_throttle_out().get_sleep_time_after_tick( packet_size );
 		}
 
 		

@@ -1,5 +1,5 @@
 // Copyrights(c) 2017-2019, The Electroneum Project
-// Copyrights(c) 2014-2017, The Monero Project
+// Copyrights(c) 2014-2019, The Monero Project
 // 
 // All rights reserved.
 // 
@@ -40,7 +40,9 @@ namespace cryptonote
 
   struct cryptonote_connection_context: public epee::net_utils::connection_context_base
   {
-      cryptonote_connection_context(): m_state(state_before_handshake), m_remote_blockchain_height(0), m_last_response_height(0) {}
+    cryptonote_connection_context(): m_state(state_before_handshake), m_remote_blockchain_height(0), m_last_response_height(0),
+        m_last_request_time(boost::date_time::not_a_date_time), m_callback_request_count(0),
+        m_last_known_hash(crypto::null_hash), m_pruning_seed(0), m_rpc_port(0), m_anchor(false) {}
 
     enum state
     {
@@ -52,13 +54,16 @@ namespace cryptonote
     };
 
     state m_state;
-    std::list<crypto::hash> m_needed_objects;
+    std::vector<crypto::hash> m_needed_objects;
     std::unordered_set<crypto::hash> m_requested_objects;
     uint64_t m_remote_blockchain_height;
     uint64_t m_last_response_height;
     boost::posix_time::ptime m_last_request_time;
     epee::copyable_atomic m_callback_request_count; //in debug purpose: problem with double callback rise
     crypto::hash m_last_known_hash;
+    uint32_t m_pruning_seed;
+    uint16_t m_rpc_port;
+    bool m_anchor;
     std::list<std::pair<std::string, uint8_t>> emergency_lists_recv;
     std::list<std::string> emergency_lists_sent;
     //size_t m_score;  TODO: add score calculations
@@ -69,18 +74,37 @@ namespace cryptonote
     switch (s)
     {
     case cryptonote_connection_context::state_before_handshake:
-      return "state_before_handshake";
+      return "before_handshake";
     case cryptonote_connection_context::state_synchronizing:
-      return "state_synchronizing";
+      return "synchronizing";
     case cryptonote_connection_context::state_standby:
-      return "state_standby";
+      return "standby";
     case cryptonote_connection_context::state_idle:
-      return "state_idle";
+      return "idle";
     case cryptonote_connection_context::state_normal:
-      return "state_normal";
+      return "normal";
     default:
       return "unknown";
     }    
+  }
+
+  inline char get_protocol_state_char(cryptonote_connection_context::state s)
+  {
+    switch (s)
+    {
+    case cryptonote_connection_context::state_before_handshake:
+      return 'h';
+    case cryptonote_connection_context::state_synchronizing:
+      return 's';
+    case cryptonote_connection_context::state_standby:
+      return 'w';
+    case cryptonote_connection_context::state_idle:
+      return 'i';
+    case cryptonote_connection_context::state_normal:
+      return 'n';
+    default:
+      return 'u';
+    }
   }
 
 }
