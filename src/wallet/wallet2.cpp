@@ -3922,7 +3922,7 @@ bool wallet2::load_keys(const std::string& keys_file_name, const epee::wipeable_
     m_refresh_from_block_height = 0;
     m_confirm_missing_payment_id = true;
     m_confirm_non_default_ring_size = true;
-    m_ask_password = AskPasswordToDecrypt;
+    m_ask_password = AskPasswordOnAction;
     cryptonote::set_default_decimal_point(CRYPTONOTE_DISPLAY_DECIMAL_POINT);
     m_min_output_count = 0;
     m_min_output_value = 0;
