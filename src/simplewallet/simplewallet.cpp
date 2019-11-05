@@ -4092,6 +4092,7 @@ bool simple_wallet::init(const boost::program_options::variables_map& vm)
   if (welcome)
     message_writer(console_color_yellow, true) << tr("If you are new to Electroneum, type \"welcome\" for a brief overview.");
 
+  /* Comment out this warning message for now
   if (m_long_payment_id_support)
   {
     message_writer(console_color_red, false) <<
@@ -4099,6 +4100,7 @@ bool simple_wallet::init(const boost::program_options::variables_map& vm)
     message_writer(console_color_red, false) <<
         tr("It is recommended that you do not use them, and ask recipients who ask for one to not endanger your privacy.");
   }
+  */
 
   return true;
 }
@@ -4132,7 +4134,7 @@ bool simple_wallet::handle_command_line(const boost::program_options::variables_
   m_do_not_relay                  = command_line::get_arg(vm, arg_do_not_relay);
   m_subaddress_lookahead          = command_line::get_arg(vm, arg_subaddress_lookahead);
   m_use_english_language_names    = command_line::get_arg(vm, arg_use_english_language_names);
-  m_long_payment_id_support       = command_line::get_arg(vm, arg_long_payment_id_support);
+  m_long_payment_id_support       =  true; //Hard code long payment id support to TRUE for now //command_line::get_arg(vm, arg_long_payment_id_support);
   m_restoring                     = !m_generate_from_view_key.empty() ||
                                     !m_generate_from_spend_key.empty() ||
                                     !m_generate_from_keys.empty() ||
