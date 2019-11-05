@@ -152,6 +152,7 @@
 
 #define THREAD_STACK_SIZE                       5 * 1024 * 1024
 
+#define CURRENT_HARDFORK_VERSION                  8
 #define HF_VERSION_DYNAMIC_FEE                    100
 #define HF_VERSION_MIN_MIXIN_4                    100
 #define HF_VERSION_MIN_MIXIN_6                    100
