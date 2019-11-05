@@ -7713,7 +7713,7 @@ bool simple_wallet::get_transfers(std::vector<std::string>& local_args, std::vec
         const uint64_t unlock_time = pd.m_unlock_time;
         if (pd.m_unlock_time < CRYPTONOTE_MAX_BLOCK_NUMBER)
         {
-          uint64_t bh = std::max(pd.m_unlock_time, pd.m_block_height + (m_wallet->use_fork_rules(8, 0) ? ETN_MONEY_UNLOCK_WINDOW_V8 : CRYPTONOTE_DEFAULT_TX_SPENDABLE_AGE));
+          uint64_t bh = std::max(pd.m_unlock_time, pd.m_block_height + (m_wallet->use_fork_rules(8, 0) ? ETN_DEFAULT_TX_SPENDABLE_AGE_V8 : CRYPTONOTE_DEFAULT_TX_SPENDABLE_AGE));
           if (bh >= last_block_height)
             locked_msg = std::to_string(bh - last_block_height) + " blks";
         }
@@ -9204,7 +9204,7 @@ bool simple_wallet::show_transfer(const std::vector<std::string> &args)
       success_msg_writer() << "Payment ID: " << payment_id;
       if (pd.m_unlock_time < CRYPTONOTE_MAX_BLOCK_NUMBER)
       {
-        uint64_t bh = std::max(pd.m_unlock_time, pd.m_block_height + (m_wallet->use_fork_rules(8, 0) ? ETN_MONEY_UNLOCK_WINDOW_V8 : CRYPTONOTE_DEFAULT_TX_SPENDABLE_AGE));
+        uint64_t bh = std::max(pd.m_unlock_time, pd.m_block_height + (m_wallet->use_fork_rules(8, 0) ? ETN_DEFAULT_TX_SPENDABLE_AGE_V8 : CRYPTONOTE_DEFAULT_TX_SPENDABLE_AGE));
         uint64_t last_block_reward = m_wallet->get_last_block_reward();
         uint64_t suggested_threshold = last_block_reward ? (pd.m_amount + last_block_reward - 1) / last_block_reward : 0;
         if (bh >= last_block_height)

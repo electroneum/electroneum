@@ -1298,7 +1298,7 @@ bool Blockchain::prevalidate_miner_transaction(const block& b, uint64_t height)
     return false;
   }
   MDEBUG("Miner tx hash: " << get_transaction_hash(b.miner_tx));
-  CHECK_AND_ASSERT_MES(b.miner_tx.unlock_time == height + (get_current_hard_fork_version() > 7 ? ETN_MONEY_UNLOCK_WINDOW_V8 : CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW), false, "coinbase transaction transaction has the wrong unlock time=" << b.miner_tx.unlock_time << ", expected " << height + CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW);
+  CHECK_AND_ASSERT_MES(b.miner_tx.unlock_time == height + (get_current_hard_fork_version() > 7 ? ETN_MINED_MONEY_UNLOCK_WINDOW_V8 : CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW), false, "coinbase transaction transaction has the wrong unlock time=" << b.miner_tx.unlock_time << ", expected " << height + CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW);
 
   //check outs overflow
   //NOTE: not entirely sure this is necessary, given that this function is
@@ -2092,7 +2092,7 @@ uint64_t Blockchain::get_num_mature_outputs(uint64_t amount) const
   {
     const tx_out_index toi = m_db->get_output_tx_and_index(amount, num_outs - 1);
     const uint64_t height = m_db->get_tx_block_height(toi.first);
-    if (height + (get_current_hard_fork_version() > 7 ? ETN_MONEY_UNLOCK_WINDOW_V8 : CRYPTONOTE_DEFAULT_TX_SPENDABLE_AGE) <= blockchain_height)
+    if (height + (get_current_hard_fork_version() > 7 ? ETN_DEFAULT_TX_SPENDABLE_AGE_V8 : CRYPTONOTE_DEFAULT_TX_SPENDABLE_AGE) <= blockchain_height)
       break;
     --num_outs;
   }

@@ -43,12 +43,13 @@
 #define CRYPTONOTE_MAX_TX_PER_BLOCK                     0x10000000
 #define CRYPTONOTE_PUBLIC_ADDRESS_TEXTBLOB_VER          0
 #define CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW            18
-#define ETN_MONEY_UNLOCK_WINDOW_V8                      5
+#define ETN_MINED_MONEY_UNLOCK_WINDOW_V8                5
 #define CURRENT_TRANSACTION_VERSION                     2
 #define CURRENT_BLOCK_MAJOR_VERSION                     1
 #define CURRENT_BLOCK_MINOR_VERSION                     0
 #define CRYPTONOTE_BLOCK_FUTURE_TIME_LIMIT              60*60*2
 #define CRYPTONOTE_DEFAULT_TX_SPENDABLE_AGE             10
+#define ETN_DEFAULT_TX_SPENDABLE_AGE_V8                 5
 
 #define BLOCKCHAIN_TIMESTAMP_CHECK_WINDOW               60
 

@@ -981,12 +981,12 @@ gamma_picker::gamma_picker(const std::vector<uint64_t> &rct_offsets, double shap
     rct_offsets(rct_offsets)
 {
   gamma = std::gamma_distribution<double>(shape, scale);
-  THROW_WALLET_EXCEPTION_IF(rct_offsets.size() <= CRYPTONOTE_DEFAULT_TX_SPENDABLE_AGE, error::wallet_internal_error, "Bad offset calculation");
+  THROW_WALLET_EXCEPTION_IF(rct_offsets.size() <= ETN_DEFAULT_TX_SPENDABLE_AGE_V8, error::wallet_internal_error, "Bad offset calculation");
   const size_t blocks_in_a_year = 86400 * 365 / DIFFICULTY_TARGET_V6;
   const size_t blocks_to_consider = std::min<size_t>(rct_offsets.size(), blocks_in_a_year);
   const size_t outputs_to_consider = rct_offsets.back() - (blocks_to_consider < rct_offsets.size() ? rct_offsets[rct_offsets.size() - blocks_to_consider - 1] : 0);
   begin = rct_offsets.data();
-  end = rct_offsets.data() + rct_offsets.size() - CRYPTONOTE_DEFAULT_TX_SPENDABLE_AGE;
+  end = rct_offsets.data() + rct_offsets.size() - ETN_DEFAULT_TX_SPENDABLE_AGE_V8;
   num_rct_outputs = *(end - 1);
   THROW_WALLET_EXCEPTION_IF(num_rct_outputs == 0, error::wallet_internal_error, "No rct outputs");
   average_output_time = DIFFICULTY_TARGET_V6 * blocks_to_consider / outputs_to_consider; // this assumes constant target over the whole rct range
@@ -2473,7 +2473,7 @@ void wallet2::pull_blocks(uint64_t start_height, uint64_t &blocks_start_height, 
   if(m_physical_refresh) {
     r = tools::wallet2::get_blocks_from_db(req, res);
   } else {
-    r = invoke_http_bin("/getblocks.bin", req, res, rpc_timeout);
+    r = invoke_http_bin("/getblocks.bin", req, res, rpc_timeout); //
   }
 
   m_daemon_rpc_mutex.unlock();
@@ -5776,7 +5776,10 @@ std::map<uint32_t, std::pair<uint64_t, uint64_t>> wallet2::unlocked_balance_per_
       }
       else
       {
-        uint64_t unlock_height = td.m_block_height + std::max<uint64_t>(CRYPTONOTE_DEFAULT_TX_SPENDABLE_AGE, CRYPTONOTE_LOCKED_TX_ALLOWED_DELTA_BLOCKS);
+
+        uint64_t v8height = m_nettype == TESTNET ? 446674 : 589169;
+        uint16_t UNLOCK_WINDOW = td.m_block_height > v8height ? ETN_DEFAULT_TX_SPENDABLE_AGE_V8 : CRYPTONOTE_DEFAULT_TX_SPENDABLE_AGE;
+        uint64_t unlock_height = td.m_block_height + std::max<uint64_t>(UNLOCK_WINDOW, CRYPTONOTE_LOCKED_TX_ALLOWED_DELTA_BLOCKS);
         if (td.m_tx.unlock_time < CRYPTONOTE_MAX_BLOCK_NUMBER && td.m_tx.unlock_time > unlock_height)
           unlock_height = td.m_tx.unlock_time;
         blocks_to_unlock = unlock_height > blockchain_height ? unlock_height - blockchain_height : 0;
@@ -5971,7 +5974,7 @@ bool wallet2::is_transfer_unlocked(uint64_t unlock_time, uint64_t block_height) 
     return false;
 
   uint64_t v8height = m_nettype == TESTNET ? 446674 : 589169;
-  uint16_t UNLOCK_WINDOW = block_height > v8height ? ETN_MONEY_UNLOCK_WINDOW_V8 : CRYPTONOTE_DEFAULT_TX_SPENDABLE_AGE;
+  uint16_t UNLOCK_WINDOW = block_height > v8height ? ETN_DEFAULT_TX_SPENDABLE_AGE_V8 : CRYPTONOTE_DEFAULT_TX_SPENDABLE_AGE;
   
   if(block_height + UNLOCK_WINDOW > get_blockchain_current_height())
     return false;
@@ -7671,6 +7674,9 @@ void wallet2::get_outs(std::vector<std::vector<tools::wallet2::get_outs_entry>> 
     bool is_shortly_after_segregation_fork = height >= segregation_fork_height && height < segregation_fork_height + SEGREGATION_FORK_VICINITY;
     bool is_after_segregation_fork = height >= segregation_fork_height;
 
+    uint64_t v8height = m_nettype == TESTNET ? 446674 : 589169;
+    uint16_t TX_SPENDABLE_AGE_V8 = height > v8height ? ETN_DEFAULT_TX_SPENDABLE_AGE_V8 : CRYPTONOTE_DEFAULT_TX_SPENDABLE_AGE;
+
     // if we have at least one rct out, get the distribution, or fall back to the previous system
     uint64_t rct_start_height;
     std::vector<uint64_t> rct_offsets;
@@ -7686,7 +7692,7 @@ void wallet2::get_outs(std::vector<std::vector<tools::wallet2::get_outs_entry>> 
     if (has_rct_distribution)
     {
       // check we're clear enough of rct start, to avoid corner cases below
-      THROW_WALLET_EXCEPTION_IF(rct_offsets.size() <= CRYPTONOTE_DEFAULT_TX_SPENDABLE_AGE,
+      THROW_WALLET_EXCEPTION_IF(rct_offsets.size() <= TX_SPENDABLE_AGE_V8,
           error::get_output_distribution, "Not enough rct outputs");
       THROW_WALLET_EXCEPTION_IF(rct_offsets.back() <= max_rct_index,
           error::get_output_distribution, "Daemon reports suspicious number of rct outputs");
@@ -7781,7 +7787,7 @@ void wallet2::get_outs(std::vector<std::vector<tools::wallet2::get_outs_entry>> 
       const uint64_t amount = td.is_rct() ? 0 : td.amount();
       std::unordered_set<uint64_t> seen_indices;
       // request more for rct in base recent (locked) coinbases are picked, since they're locked for longer
-      size_t requested_outputs_count = base_requested_outputs_count + (td.is_rct() ? CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW - CRYPTONOTE_DEFAULT_TX_SPENDABLE_AGE : 0);
+      size_t requested_outputs_count = base_requested_outputs_count + (td.is_rct() ? CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW - TX_SPENDABLE_AGE_V8 : 0);
       size_t start = req.outputs.size();
       bool use_histogram = amount != 0 || !has_rct_distribution;
 
@@ -7850,7 +7856,7 @@ void wallet2::get_outs(std::vector<std::vector<tools::wallet2::get_outs_entry>> 
       else
       {
         // the base offset of the first rct output in the first unlocked block (or the one to be if there's none)
-        num_outs = rct_offsets[rct_offsets.size() - CRYPTONOTE_DEFAULT_TX_SPENDABLE_AGE];
+        num_outs = rct_offsets[rct_offsets.size() - TX_SPENDABLE_AGE_V8];
         LOG_PRINT_L1("" << num_outs << " unlocked rct outputs");
         THROW_WALLET_EXCEPTION_IF(num_outs == 0, error::wallet_internal_error,
             "histogram reports no unlocked rct outputs, not even ours");
@@ -8096,7 +8102,7 @@ void wallet2::get_outs(std::vector<std::vector<tools::wallet2::get_outs_entry>> 
     for(size_t idx: selected_transfers)
     {
       const transfer_details &td = m_transfers[idx];
-      size_t requested_outputs_count = base_requested_outputs_count + (td.is_rct() ? CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW - CRYPTONOTE_DEFAULT_TX_SPENDABLE_AGE : 0);
+      size_t requested_outputs_count = base_requested_outputs_count + (td.is_rct() ? CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW - TX_SPENDABLE_AGE_V8 : 0);
       outs.push_back(std::vector<get_outs_entry>());
       outs.back().reserve(fake_outputs_count + 1);
       const rct::key mask = td.is_rct() ? rct::commit(td.amount(), td.m_mask) : rct::zeroCommit(td.amount());
@@ -8116,7 +8122,7 @@ void wallet2::get_outs(std::vector<std::vector<tools::wallet2::get_outs_entry>> 
       }
       bool use_histogram = amount != 0 || !has_rct_distribution;
       if (!use_histogram)
-        num_outs = rct_offsets[rct_offsets.size() - CRYPTONOTE_DEFAULT_TX_SPENDABLE_AGE];
+        num_outs = rct_offsets[rct_offsets.size() - TX_SPENDABLE_AGE_V8];
 
       // make sure the real outputs we asked for are really included, along
       // with the correct key and mask: this guards against an active attack
