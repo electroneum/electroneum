@@ -184,3 +184,14 @@ namespace config
     uint32_t const GENESIS_NONCE = 10000;
   }
 }
+namespace cryptonote
+{
+  enum network_type : uint8_t
+  {
+    MAINNET = 0,
+    TESTNET,
+    STAGENET,
+    FAKECHAIN,
+    UNDEFINED = 255
+  };
+}
