@@ -148,7 +148,6 @@ namespace electroneum {
           }
 
           if(saveToDB) {
-            //TODO: MERGE-FIX
             m_db.set_validator_list(this->serialized_v_list, this->last_updated + this->timeout);
           }
 
