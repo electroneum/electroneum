@@ -1104,7 +1104,7 @@ wallet2::wallet2(network_type nettype, uint64_t kdf_rounds, bool unattended):
   m_explicit_refresh_from_block_height(true),
   m_confirm_missing_payment_id(true),
   m_confirm_non_default_ring_size(true),
-  m_ask_password(AskPasswordToDecrypt),
+  m_ask_password(AskPasswordOnAction),
   m_min_output_count(0),
   m_min_output_value(0),
   m_merge_destinations(false),
@@ -8325,6 +8325,7 @@ void wallet2::transfer_selected(const std::vector<cryptonote::tx_destination_ent
   if (needed_money < found_money)
   {
     change_dts.addr = get_subaddress({subaddr_account, 0});
+    change_dts.is_subaddress = subaddr_account != 0;
     change_dts.amount = found_money - needed_money;
   }
 

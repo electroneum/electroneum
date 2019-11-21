@@ -2005,8 +2005,8 @@ namespace nodetool
     etc., because someone could give faulty addresses over Tor/I2P to get the
     real peer with that identity banned/blacklisted. */
 
-    if(!context.m_is_income && zone.m_our_address.get_zone() == zone_type)
-      rsp.local_peerlist_new.push_back(peerlist_entry{zone.m_our_address, zone.m_config.m_peer_id, std::time(nullptr)});
+    //if(!context.m_is_income && zone.m_our_address.get_zone() == zone_type)
+    //  rsp.local_peerlist_new.push_back(peerlist_entry{zone.m_our_address, zone.m_config.m_peer_id, std::time(nullptr)});
 
     LOG_DEBUG_CC(context, "COMMAND_TIMED_SYNC");
     return 1;
