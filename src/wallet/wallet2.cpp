@@ -12799,7 +12799,8 @@ std::string wallet2::make_uri(const std::string &address, const std::string &pay
   if (!payment_id.empty())
   {
     crypto::hash pid32;
-    if (!wallet2::parse_long_payment_id(payment_id, pid32))
+    crypto::hash8 pid8;
+    if (!wallet2::parse_long_payment_id(payment_id, pid32) && !parse_short_payment_id(payment_id, pid8))
     {
       error = "Invalid payment id";
       return std::string();
