@@ -212,7 +212,7 @@ bool UnsignedTransactionImpl::checkLoadedTx(const std::function<size_t()> get_nu
   else
     change_string += tr("no change");
   uint64_t fee = amount - amount_to_dests;
-  m_confirmationMessage = (boost::format(tr("Loaded %lu transactions, for %s, fee %s, %s, %s, with min ring size %lu. %s")) % (unsigned long)get_num_txes() % cryptonote::print_money(amount) % cryptonote::print_money(fee) % dest_string % change_string % (unsigned long)min_ring_size % extra_message).str();
+  m_confirmationMessage = (boost::format(tr("Loaded %lu transactions, for %s, fee %s, %s, %s. %s")) % (unsigned long)get_num_txes() % cryptonote::print_money(amount) % cryptonote::print_money(fee) % dest_string % change_string % extra_message).str();
   return true;
 }
 
