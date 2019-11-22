@@ -76,7 +76,9 @@ namespace hw {
       additional_key = need_additional_txkeys;
       index = real_output_index;
       Pout = P;
-      AKout = AK;
+      
+      // Comment out this line for now (only used by rct transactions)
+      //AKout = AK;
     }
 
     ABPkeys::ABPkeys(const ABPkeys& keys) {
@@ -320,7 +322,9 @@ namespace hw {
     bool device_ledger::reset() {
       reset_buffer();
       int offset = set_command_header_noopt(INS_RESET);
-      memmove(this->buffer_send+offset, ELECTRONEUM_VERSION, strlen(ELECTRONEUM_VERSION));
+      const size_t verlen = strlen(ELECTRONEUM_VERSION);
+      ASSERT_X(offset + verlen <= BUFFER_SEND_SIZE, "ELECTRONEUM_VERSION is too long")
+      memmove(this->buffer_send+offset, ELECTRONEUM_VERSION, verlen);
       offset += strlen(ELECTRONEUM_VERSION);
       this->buffer_send[4] = offset-5;
       this->length_send = offset;
@@ -416,10 +420,10 @@ namespace hw {
       #ifdef DEBUG_HWDEVICE
       cryptonote::account_public_address pubkey;
       this->get_public_address(pubkey);
-      #endif
       crypto::secret_key vkey;
       crypto::secret_key skey;
       this->get_secret_keys(vkey,skey);
+      #endif
 
       return true;
     }
@@ -1343,11 +1347,13 @@ namespace hw {
       if(need_additional_txkeys_x) {
         log_hexbuffer("additional_tx_public_keys_x: [[OUT]] additional_tx_public_keys_x", additional_tx_public_keys_x.back().data, 32);
       }
-      log_hexbuffer("generate_output_ephemeral_keys: [[OUT]] amount_keys ", (char*)amount_keys_x.back().bytes, 32);
+      if(tx_version > 1) {
+        log_hexbuffer("generate_output_ephemeral_keys: [[OUT]] amount_keys ", (char*)amount_keys_x.back().bytes, 32);
+      }
       log_hexbuffer("generate_output_ephemeral_keys: [[OUT]] out_eph_public_key ", out_eph_public_key_x.data, 32);
       #endif
 
-      ASSERT_X(tx_version > 1, "TX version not supported"<<tx_version);
+      //ASSERT_X(tx_version > 1, "TX version not supported"<<tx_version);
 
       // make additional tx pubkey if necessary
       cryptonote::keypair additional_txkey;
@@ -1405,7 +1411,7 @@ namespace hw {
       offset = 0;
       unsigned int recv_len = this->length_recv;
       
-      //if (tx_version > 1)
+      if (tx_version > 1)
       {
         ASSERT_X(recv_len>=32, "Not enought data from device");
         crypto::secret_key scalar1;
@@ -1434,8 +1440,10 @@ namespace hw {
                                    amount_keys.back(), out_eph_public_key);
 
       #ifdef DEBUG_HWDEVICE
-      log_hexbuffer("generate_output_ephemeral_keys: clear amount_key", (const char*)hw::ledger::decrypt(amount_keys.back()).bytes, 32);
-      hw::ledger::check32("generate_output_ephemeral_keys", "amount_key", (const char*)amount_keys_x.back().bytes, (const char*)hw::ledger::decrypt(amount_keys.back()).bytes);
+      if(tx_version > 1) {
+        log_hexbuffer("generate_output_ephemeral_keys: clear amount_key", (const char *) hw::ledger::decrypt(amount_keys.back()).bytes, 32);
+        hw::ledger::check32("generate_output_ephemeral_keys", "amount_key", (const char *) amount_keys_x.back().bytes, (const char *) hw::ledger::decrypt(amount_keys.back()).bytes);
+      }
       if (need_additional_txkeys) {
         hw::ledger::check32("generate_output_ephemeral_keys", "additional_tx_key", additional_tx_public_keys_x.back().data, additional_tx_public_keys.back().data);
       }
