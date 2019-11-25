@@ -317,6 +317,7 @@ namespace cryptonote
 
       //key_derivation recv_derivation;
       in_contexts.push_back(input_generation_context_data());
+      // Tx output private key which gets its value assigned inside generate_key_image_helper
       keypair& in_ephemeral = in_contexts.back().in_ephemeral;
       crypto::key_image img;
       const auto& out_key = reinterpret_cast<const crypto::public_key&>(src_entr.outputs[src_entr.real_output].second.dest);

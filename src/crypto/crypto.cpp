@@ -541,29 +541,47 @@ POP_WARNINGS
     for (i = 0; i < pubs_count; i++) {
       ge_p2 tmp2;
       ge_p3 tmp3;
+      // Comments below use the same notation as the Cryptonote whitepaper.
       if (i == sec_index) {
+        // Generate a random q_s
         random_scalar(k);
+        // L_s = q_s*G
         ge_scalarmult_base(&tmp3, &k);
+        // L_s in byte form
         ge_p3_tobytes(&buf->ab[i].a, &tmp3);
+        // tmp3 now becomes H_p(P_s)
         hash_to_ec(*pubs[i], tmp3);
+        // R_s = q_s * H_p(P_s)
         ge_scalarmult(&tmp2, &k, &tmp3);
+        // R_s in byte form
         ge_tobytes(&buf->ab[i].b, &tmp2);
       } else {
+        // Generate our random scalars w_i & q_i
         random_scalar(sig[i].c);
         random_scalar(sig[i].r);
+        // Takes the byte form of P_i and converts to an ed25519 point.
         if (ge_frombytes_vartime(&tmp3, &*pubs[i]) != 0) {
           local_abort("invalid pubkey");
         }
+        // Returns L_i = (q_i*G) + (w_i*P_i)
         ge_double_scalarmult_base_vartime(&tmp2, &sig[i].c, &tmp3, &sig[i].r);
+        // L_i in byte form
         ge_tobytes(&buf->ab[i].a, &tmp2);
         hash_to_ec(*pubs[i], tmp3);
+        // R_i = (q_i * H_p(P_i)) + w_i*I
         ge_double_scalarmult_precomp_vartime(&tmp2, &sig[i].r, &tmp3, &sig[i].c, image_pre);
+        // R_i in byte form
         ge_tobytes(&buf->ab[i].b, &tmp2);
+        // Add c_i to the running sum of c_i's
         sc_add(&sum, &sum, &sig[i].c);
       }
     }
+    // Keccak1600 Hash (H_s) of the buffer of all L&R, which is then converted to a 32 byte integer modulo l.
     hash_to_scalar(buf.get(), rs_comm_size(pubs_count), h);
+    // c_s = c-sum(c_i)  where i != s
     sc_sub(&sig[sec_index].c, &h, &sum);
+    // Close the loop: r_s = q_s - c_s*x
+    // where x is the real output private key. This is the same x used to generate the key image
     sc_mulsub(&sig[sec_index].r, &sig[sec_index].c, &unwrap(sec), &k);
   }
 
