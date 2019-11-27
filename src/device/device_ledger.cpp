@@ -33,9 +33,22 @@
 #include "cryptonote_basic/account.h"
 #include "cryptonote_basic/subaddress_index.h"
 #include "cryptonote_core/cryptonote_tx_utils.h"
+#include "crypto/crypto.h"
 
 #include <boost/thread/locks.hpp> 
 #include <boost/thread/lock_guard.hpp>
+
+namespace {
+    static void local_abort(const char *msg)
+    {
+        fprintf(stderr, "%s\n", msg);
+#ifdef NDEBUG
+        _exit(1);
+#else
+        abort();
+#endif
+    }
+}
 
 namespace hw {
 
@@ -1160,6 +1173,25 @@ namespace hw {
 
         return true;
     }
+        /* ===================================================================== */
+        /* ===                        Misc                                ==== */
+        /* ===================================================================== */
+
+        static inline unsigned char *operator &(crypto::ec_point &point) {
+            return &reinterpret_cast<unsigned char &>(point);
+        }
+
+        static inline const unsigned char *operator &(const crypto::ec_point &point) {
+            return &reinterpret_cast<const unsigned char &>(point);
+        }
+
+        static inline unsigned char *operator &(crypto::ec_scalar &scalar) {
+            return &reinterpret_cast<unsigned char &>(scalar);
+        }
+
+        static inline const unsigned char *operator &(const crypto::ec_scalar &scalar) {
+            return &reinterpret_cast<const unsigned char &>(scalar);
+        }
 
     /* ======================================================================= */
     /*                               TRANSACTION                               */
@@ -1908,6 +1940,90 @@ namespace hw {
         AUTO_LOCK_CMD();
         send_simple(INS_CLOSE_TX);
         return true;
+    }
+
+    bool device_ledger::generate_ring_signature(const crypto::hash &prefix_hash, const crypto::key_image &image,
+                                                     const std::vector<const crypto::public_key *> &pubsvector,
+                                                     const crypto::secret_key &sec, std::size_t sec_index,
+                                                     crypto::signature *sig){
+        //Todo: refactor function calls?
+        const crypto::public_key *const *pubs = pubsvector.data();
+        size_t pubs_count = pubsvector.size();
+        size_t i;
+        ge_p3 image_unp;
+        ge_dsmp image_pre;
+        crypto::ec_scalar sum, k, h;
+        boost::shared_ptr<crypto::rs_comm> buf(reinterpret_cast<crypto::rs_comm *>(malloc(crypto::rs_comm_size(pubs_count))), free);
+        if (!buf)
+            local_abort("malloc failure");
+        assert(sec_index < pubs_count);
+#if !defined(NDEBUG)
+        {
+            ge_p3 t;
+            crypto::public_key t2;
+            crypto::key_image t3;
+            assert(sc_check(&sec) == 0);
+            ge_scalarmult_base(&t, &sec);
+            ge_p3_tobytes(&t2, &t);
+            assert(*pubs[sec_index] == t2);
+            generate_key_image(*pubs[sec_index], sec, t3);
+            assert(image == t3);
+            for (i = 0; i < pubs_count; i++) {
+                assert(check_key(*pubs[i]));
+            }
+        }
+#endif
+        if (ge_frombytes_vartime(&image_unp, &image) != 0) {
+            local_abort("invalid key image");
+        }
+        ge_dsm_precomp(image_pre, &image_unp);
+        sc_0(&sum);
+        buf->h = prefix_hash;
+        for (i = 0; i < pubs_count; i++) {
+            ge_p2 tmp2;
+            ge_p3 tmp3;
+            // Comments below use the same notation as the Cryptonote whitepaper.
+            if (i == sec_index) {
+                // Generate a random q_s
+                random_scalar(k);
+                // L_s = q_s*G
+                ge_scalarmult_base(&tmp3, &k);
+                // L_s in byte form
+                ge_p3_tobytes(&buf->ab[i].a, &tmp3);
+                // tmp3 now becomes H_p(P_s)
+                hash_to_ec(*pubs[i], tmp3);
+                // R_s = q_s * H_p(P_s)
+                ge_scalarmult(&tmp2, &k, &tmp3);
+                // R_s in byte form
+                ge_tobytes(&buf->ab[i].b, &tmp2);
+            } else {
+                // Generate our random scalars w_i & q_i
+                random_scalar(sig[i].c);
+                random_scalar(sig[i].r);
+                // Takes the byte form of P_i and converts to an ed25519 point.
+                if (ge_frombytes_vartime(&tmp3, &*pubs[i]) != 0) {
+                    local_abort("invalid pubkey");
+                }
+                // Returns L_i = (q_i*G) + (w_i*P_i)
+                ge_double_scalarmult_base_vartime(&tmp2, &sig[i].c, &tmp3, &sig[i].r);
+                // L_i in byte form
+                ge_tobytes(&buf->ab[i].a, &tmp2);
+                hash_to_ec(*pubs[i], tmp3);
+                // R_i = (q_i * H_p(P_i)) + w_i*I
+                ge_double_scalarmult_precomp_vartime(&tmp2, &sig[i].r, &tmp3, &sig[i].c, image_pre);
+                // R_i in byte form
+                ge_tobytes(&buf->ab[i].b, &tmp2);
+                // Add c_i to the running sum of c_i's
+                sc_add(&sum, &sum, &sig[i].c);
+            }
+        }
+        // Keccak1600 Hash (H_s) of the buffer of all L&R, which is then converted to a 32 byte integer modulo l.
+        hash_to_scalar(buf.get(), crypto::rs_comm_size(pubs_count), h);
+        // c_s = c-sum(c_i)  where i != s
+        sc_sub(&sig[sec_index].c, &h, &sum);
+        // Close the loop: r_s = q_s - c_s*x
+        // where x is the real output private key. This is the same x used to generate the key image
+        sc_mulsub(&sig[sec_index].r, &sig[sec_index].c, &unwrap(sec), &k);
     }
 
     /* ---------------------------------------------------------- */

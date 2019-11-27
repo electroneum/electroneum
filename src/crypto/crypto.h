@@ -54,6 +54,11 @@
 #include "hex.h"
 #include "span.h"
 #include "hash.h"
+#include "warnings.h"
+
+extern "C" {
+#include "crypto-ops.h"
+}
 
 namespace crypto {
 
@@ -108,6 +113,20 @@ namespace crypto {
 
   void hash_to_scalar(const void *data, size_t length, ec_scalar &res);
   void random32_unbiased(unsigned char *bytes);
+  void random_scalar(ec_scalar &res);
+  size_t rs_comm_size(size_t pubs_count);
+    PUSH_WARNINGS
+    DISABLE_VS_WARNINGS(4200)
+    struct ec_point_pair {
+        ec_point a, b;
+    };
+    struct rs_comm {
+        hash h;
+        struct ec_point_pair ab[];
+    };
+    POP_WARNINGS
+
+  void hash_to_ec(const public_key &key, ge_p3 &res);
 
   static_assert(sizeof(ec_point) == 32 && sizeof(ec_scalar) == 32 &&
     sizeof(public_key) == 32 && sizeof(secret_key) == 32 &&

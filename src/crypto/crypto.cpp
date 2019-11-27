@@ -40,7 +40,6 @@
 #include <boost/shared_ptr.hpp>
 
 #include "common/varint.h"
-#include "warnings.h"
 #include "crypto.h"
 #include "hash.h"
 
@@ -73,21 +72,21 @@ namespace crypto {
   const crypto::public_key null_pkey = crypto::public_key{};
   const crypto::secret_key null_skey = crypto::secret_key{};
 
-  static inline unsigned char *operator &(ec_point &point) {
-    return &reinterpret_cast<unsigned char &>(point);
-  }
+    static inline unsigned char *operator &(ec_point &point) {
+        return &reinterpret_cast<unsigned char &>(point);
+    }
 
-  static inline const unsigned char *operator &(const ec_point &point) {
-    return &reinterpret_cast<const unsigned char &>(point);
-  }
+    static inline const unsigned char *operator &(const ec_point &point) {
+        return &reinterpret_cast<const unsigned char &>(point);
+    }
 
-  static inline unsigned char *operator &(ec_scalar &scalar) {
-    return &reinterpret_cast<unsigned char &>(scalar);
-  }
+    static inline unsigned char *operator &(ec_scalar &scalar) {
+        return &reinterpret_cast<unsigned char &>(scalar);
+    }
 
-  static inline const unsigned char *operator &(const ec_scalar &scalar) {
-    return &reinterpret_cast<const unsigned char &>(scalar);
-  }
+    static inline const unsigned char *operator &(const ec_scalar &scalar) {
+        return &reinterpret_cast<const unsigned char &>(scalar);
+    }
 
   void generate_random_bytes_thread_safe(size_t N, uint8_t *bytes)
   {
@@ -120,7 +119,7 @@ namespace crypto {
     sc_reduce32(bytes);
   }
   /* generate a random 32-byte (256-bit) integer and copy it to res */
-  static inline void random_scalar(ec_scalar &res) {
+  void random_scalar(ec_scalar &res) {
     random32_unbiased((unsigned char*)res.data);
   }
 
@@ -470,7 +469,7 @@ namespace crypto {
     return sc_isnonzero(&c2) == 0;
   }
 
-  static void hash_to_ec(const public_key &key, ge_p3 &res) {
+  void hash_to_ec(const public_key &key, ge_p3 &res) {
     hash h;
     ge_p2 point;
     ge_p1p1 point2;
@@ -489,18 +488,7 @@ namespace crypto {
     ge_tobytes(&image, &point2);
   }
 
-PUSH_WARNINGS
-DISABLE_VS_WARNINGS(4200)
-  struct ec_point_pair {
-    ec_point a, b;
-  };
-  struct rs_comm {
-    hash h;
-    struct ec_point_pair ab[];
-  };
-POP_WARNINGS
-
-  static inline size_t rs_comm_size(size_t pubs_count) {
+  size_t rs_comm_size(size_t pubs_count) {
     return sizeof(rs_comm) + pubs_count * sizeof(ec_point_pair);
   }
 
