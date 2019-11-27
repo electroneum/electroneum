@@ -1,5 +1,4 @@
-// Copyrights(c) 2017-2019, The Electroneum Project
-// Copyrights(c) 2014-2019, The Monero Project
+// Copyright (c) 2014-2019, The Monero Project
 // 
 // All rights reserved.
 // 
@@ -28,7 +27,6 @@
 // THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // 
 // Parts of this file are originally copyright (c) 2012-2013 The Cryptonote developers
-#include <boost/regex.hpp>
 
 #include <boost/regex.hpp>
 
@@ -63,8 +61,6 @@
 #include "bulletproof.h"
 #include "crypto_ops.h"
 #include "multiexp.h"
-
-namespace po = boost::program_options;
 
 namespace po = boost::program_options;
 
@@ -107,22 +103,6 @@ int main(int argc, char** argv)
   p.verbose = command_line::get_arg(vm, arg_verbose);
   p.stats = command_line::get_arg(vm, arg_stats);
   p.loop_multiplier = command_line::get_arg(vm, arg_loop_multiplier);
-
-  po::options_description desc_options("Command line options");
-  const command_line::arg_descriptor<std::string> arg_filter = { "filter", "Regular expression filter for which tests to run" };
-  command_line::add_arg(desc_options, arg_filter, "");
-
-   po::variables_map vm;
-  bool r = command_line::handle_error_helper(desc_options, [&]()
-  {
-    po::store(po::parse_command_line(argc, argv, desc_options), vm);
-    po::notify(vm);
-    return true;
-  });
-  if (!r)
-    return 1;
-
-  const std::string filter = tools::glob_to_regex(command_line::get_arg(vm, arg_filter));
 
   performance_timer timer;
   timer.start();

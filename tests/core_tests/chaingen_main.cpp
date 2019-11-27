@@ -106,10 +106,10 @@ int main(int argc, char* argv[])
     GENERATE_AND_PLAY(one_block);
     GENERATE_AND_PLAY(gen_chain_switch_1);
     GENERATE_AND_PLAY(gen_ring_signature_1);
-
+    GENERATE_AND_PLAY(gen_ring_signature_2);
     //GENERATE_AND_PLAY(gen_ring_signature_big); // Takes up to XXX hours (if CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW == 10)
 
-    //Block verification tests
+    // Block verification tests
     GENERATE_AND_PLAY(gen_block_big_major_version);
     GENERATE_AND_PLAY(gen_block_big_minor_version);
     GENERATE_AND_PLAY(gen_block_ts_not_checked);
@@ -169,7 +169,6 @@ int main(int argc, char* argv[])
     GENERATE_AND_PLAY(gen_double_spend_in_alt_chain_in_different_blocks<true>);
 
     GENERATE_AND_PLAY(gen_uint_overflow_1);
-
     GENERATE_AND_PLAY(gen_uint_overflow_2);
 
     GENERATE_AND_PLAY(gen_block_reward);
@@ -181,7 +180,6 @@ int main(int argc, char* argv[])
 //    GENERATE_AND_PLAY(gen_v2_tx_unmixable_two);
     GENERATE_AND_PLAY(gen_v2_tx_dust);
 
-    /*
     GENERATE_AND_PLAY(gen_rct_tx_valid_from_pre_rct);
     GENERATE_AND_PLAY(gen_rct_tx_valid_from_rct);
     GENERATE_AND_PLAY(gen_rct_tx_valid_from_mixed);
@@ -210,7 +208,6 @@ int main(int argc, char* argv[])
     GENERATE_AND_PLAY(gen_rct_tx_pre_rct_increase_vin_and_fee);
     GENERATE_AND_PLAY(gen_rct_tx_pre_rct_altered_extra);
     GENERATE_AND_PLAY(gen_rct_tx_rct_altered_extra);
-    */
 
     GENERATE_AND_PLAY(gen_multisig_tx_valid_22_1_2);
     GENERATE_AND_PLAY(gen_multisig_tx_valid_22_1_2_many_inputs);

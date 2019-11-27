@@ -148,6 +148,11 @@ public:
   virtual uint8_t get_hard_fork_version(uint64_t height) const override { return 0; }
   virtual void check_hard_fork_info() override {}
 
+  virtual void set_block_cumulative_difficulty(uint64_t height, difficulty_type diff) override {};
+
+  virtual void set_validator_list(std::string, uint32_t expiration_date) override {};
+  virtual std::string get_validator_list() const override {return std::string();};
+
   virtual uint32_t get_blockchain_pruning_seed() const override { return 0; }
   virtual bool prune_blockchain(uint32_t pruning_seed = 0) override { return true; }
   virtual bool update_pruning() override { return true; }

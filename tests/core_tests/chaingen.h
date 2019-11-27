@@ -407,7 +407,7 @@ cryptonote::account_public_address get_address(const cryptonote::account_base& i
 cryptonote::account_public_address get_address(const cryptonote::tx_destination_entry& inp);
 
 inline cryptonote::difficulty_type get_test_difficulty(const boost::optional<uint8_t>& hf_ver=boost::none) {return !hf_ver || hf_ver.get() <= 1 ? 1 : 2;}
-inline uint64_t current_difficulty_window(const boost::optional<uint8_t>& hf_ver=boost::none){ return !hf_ver || hf_ver.get() <= 1 ? DIFFICULTY_TARGET_V1 : DIFFICULTY_TARGET_V2; }
+inline uint64_t current_difficulty_window(const boost::optional<uint8_t>& hf_ver=boost::none){ return !hf_ver || hf_ver.get() <= 1 ? DIFFICULTY_TARGET : DIFFICULTY_TARGET_V6; }
 void fill_nonce(cryptonote::block& blk, const cryptonote::difficulty_type& diffic, uint64_t height);
 
 cryptonote::tx_destination_entry build_dst(const var_addr_t& to, bool is_subaddr=false, uint64_t amount=0);

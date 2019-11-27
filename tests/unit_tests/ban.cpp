@@ -1,5 +1,4 @@
-// Copyrights(c) 2017-2019, The Electroneum Project
-// Copyrights(c) 2014-2019, The Monero Project
+// Copyright (c) 2014-2019, The Monero Project
 // 
 // All rights reserved.
 // 
@@ -83,6 +82,7 @@ public:
   uint64_t get_earliest_ideal_height_for_version(uint8_t version) const { return 0; }
   cryptonote::difficulty_type get_block_cumulative_difficulty(uint64_t height) const { return 0; }
   bool fluffy_blocks_enabled() const { return false; }
+  uint64_t prevalidate_block_hashes(uint64_t height, const std::vector<crypto::hash> &hashes) { return 0; }
   bool pad_transactions() { return false; }
   uint32_t get_blockchain_pruning_seed() const { return 0; }
   bool prune_blockchain(uint32_t pruning_seed = 0) { return true; }
