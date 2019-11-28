@@ -1500,8 +1500,6 @@ void cn_slow_hash(const void *data, size_t length, char *hash, int variant, int 
     }
     memcpy(text, state.init, INIT_SIZE_BYTE);
 
-    VARIANT1_INIT64();
-
     aes_ctx = (oaes_ctx *) oaes_alloc();
     oaes_key_import_data(aes_ctx, state.hs.b, AES_KEY_SIZE);
 
