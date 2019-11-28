@@ -145,7 +145,7 @@ TEST(uri, bad_payment_id)
 
 TEST(uri, short_payment_id)
 {
-  PARSE_URI("electroneum:" TEST_ADDRESS"?tx_payment_id=1234567890123456", false);
+  PARSE_URI("electroneum:" TEST_ADDRESS"?tx_payment_id=1234567890123456", true);
 }
 
 TEST(uri, long_payment_id)
