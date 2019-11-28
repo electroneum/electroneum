@@ -106,8 +106,6 @@ local.properties
 /testnet
 
 ### Dev Stuff ###
-cmake-build-debug/
-cmake-build-debug-remote/
-cmake-build-release/
+cmake-build*/
 utils/post_build/
 .vscode/
