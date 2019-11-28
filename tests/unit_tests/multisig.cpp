@@ -75,9 +75,7 @@ static void make_wallet(unsigned int idx, tools::wallet2 &wallet)
     wallet.set_subaddress_lookahead(1, 1);
     wallet.generate("", "", spendkey, true, false);
     ASSERT_TRUE(test_addresses[idx].address == wallet.get_account().get_public_address_str(cryptonote::TESTNET));
-    wallet.decrypt_keys("");
     ASSERT_TRUE(test_addresses[idx].spendkey == epee::string_tools::pod_to_hex(wallet.get_account().get_keys().m_spend_secret_key));
-    wallet.encrypt_keys("");
   }
   catch (const std::exception &e)
   {
@@ -106,9 +104,7 @@ static void make_wallets(std::vector<tools::wallet2>& wallets, unsigned int M)
   for (size_t i = 0; i < wallets.size(); ++i) {
     make_wallet(i, wallets[i]);
 
-    wallets[i].decrypt_keys("");
     mis[i] = wallets[i].get_multisig_info();
-    wallets[i].encrypt_keys("");
   }
 
   for (auto& wallet: wallets) {
