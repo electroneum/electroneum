@@ -634,7 +634,7 @@ TEST(Serialization, portability_wallet)
   {}
   ASSERT_TRUE(r);
   /*
-  fields of tools::wallet2 to be checked: 
+  fields of tools::wallet2 to be checked:
     std::vector<crypto::hash>                                       m_blockchain
     std::vector<transfer_details>                                   m_transfers               // TODO
     cryptonote::account_public_address                              m_account_public_address
@@ -649,20 +649,20 @@ TEST(Serialization, portability_wallet)
     std::vector<tools::wallet2::address_book_row>                   m_address_book
   */
   // blockchain
-  ASSERT_TRUE(w.m_blockchain.size() == 1);
-  ASSERT_TRUE(epee::string_tools::pod_to_hex(w.m_blockchain[0]) == "48ca7cd3c8de5b6a4d53d2861fbdaedca141553559f9be9520068053cda8430b");
+  ASSERT_TRUE(w.m_blockchain.size() == 105);
+  ASSERT_TRUE(epee::string_tools::pod_to_hex(w.m_blockchain[0]) == "9070199e8ed5f151babde58284c1fa0fd4cd6478499adff4eb41884ccdc3e377");
   // transfers (TODO)
-  ASSERT_TRUE(w.m_transfers.size() == 3);
+  ASSERT_TRUE(w.m_transfers.size() == 20);
   // account public address
-  ASSERT_TRUE(epee::string_tools::pod_to_hex(w.m_account_public_address.m_view_public_key) == "e47d4b6df6ab7339539148c2a03ad3e2f3434e5ab2046848e1f21369a3937cad");
-  ASSERT_TRUE(epee::string_tools::pod_to_hex(w.m_account_public_address.m_spend_public_key) == "13daa2af00ad26a372d317195de0bdd716f7a05d33bc4d7aff1664b6ee93c060");
+  ASSERT_TRUE(epee::string_tools::pod_to_hex(w.m_account_public_address.m_view_public_key) == "5bb38f9514f70673e1d4e87242d8c2d0a99cb4aeae3cda282869c9de4ca7d71f");
+  ASSERT_TRUE(epee::string_tools::pod_to_hex(w.m_account_public_address.m_spend_public_key) == "7b0ca4ee4cf32ac393b0306402d71b2c4a3db02c45ffbb780c2fde677b03848d");
   // key images
-  ASSERT_TRUE(w.m_key_images.size() == 3);
+  ASSERT_TRUE(w.m_key_images.size() == 20);
   {
     crypto::key_image ki[3];
-    epee::string_tools::hex_to_pod("c5680d3735b90871ca5e3d90cd82d6483eed1151b9ab75c2c8c3a7d89e00a5a8", ki[0]);
-    epee::string_tools::hex_to_pod("d54cbd435a8d636ad9b01b8d4f3eb13bd0cf1ce98eddf53ab1617f9b763e66c0", ki[1]);
-    epee::string_tools::hex_to_pod("6c3cd6af97c4070a7aef9b1344e7463e29c7cd245076fdb65da447a34da3ca76", ki[2]);
+    epee::string_tools::hex_to_pod("461325ee51dbc9debaad955411287f08a39aa4e184afa25ba79d76525e32c27e", ki[0]);
+    epee::string_tools::hex_to_pod("3fe808aa18a71fa20b30f26d275278e5e284818200651f483e257b5e2b12b874", ki[1]);
+    epee::string_tools::hex_to_pod("5974a90353fb388d397f1deb900071d1c03f281ac341cadfa553040f3b937548", ki[2]);
     ASSERT_EQ_MAP(0, w.m_key_images, ki[0]);
     ASSERT_EQ_MAP(1, w.m_key_images, ki[1]);
     ASSERT_EQ_MAP(2, w.m_key_images, ki[2]);
@@ -670,7 +670,7 @@ TEST(Serialization, portability_wallet)
   // unconfirmed txs
   ASSERT_TRUE(w.m_unconfirmed_txs.size() == 0);
   // payments
-  ASSERT_TRUE(w.m_payments.size() == 2);
+  ASSERT_TRUE(w.m_payments.size() == 4);
   {
     auto pd0 = w.m_payments.begin();
     auto pd1 = pd0;
@@ -679,24 +679,24 @@ TEST(Serialization, portability_wallet)
     ASSERT_TRUE(epee::string_tools::pod_to_hex(pd1->first) == "0000000000000000000000000000000000000000000000000000000000000000");
     if (epee::string_tools::pod_to_hex(pd0->second.m_tx_hash) == "ec34c9bb12b99af33d49691384eee5bed9171498ff04e59516505f35d1fc5efc")
       swap(pd0, pd1);
-    ASSERT_TRUE(epee::string_tools::pod_to_hex(pd0->second.m_tx_hash) == "15024343b38e77a1a9860dfed29921fa17e833fec837191a6b04fa7cb9605b8e");
-    ASSERT_TRUE(epee::string_tools::pod_to_hex(pd1->second.m_tx_hash) == "ec34c9bb12b99af33d49691384eee5bed9171498ff04e59516505f35d1fc5efc");
-    ASSERT_TRUE(pd0->second.m_amount == 13400845012231);
-    ASSERT_TRUE(pd1->second.m_amount == 1200000000000);
-    ASSERT_TRUE(pd0->second.m_block_height == 818424);
-    ASSERT_TRUE(pd1->second.m_block_height == 818522);
-    ASSERT_TRUE(pd0->second.m_unlock_time == 818484);
-    ASSERT_TRUE(pd1->second.m_unlock_time == 0);
-    ASSERT_TRUE(pd0->second.m_timestamp == 1483263366);
-    ASSERT_TRUE(pd1->second.m_timestamp == 1483272963);
+    ASSERT_TRUE(epee::string_tools::pod_to_hex(pd0->second.m_tx_hash) == "c02c01691271e26da9c4dad4f30b270984c98b555d85528871dea60c453a0bdc");
+    ASSERT_TRUE(epee::string_tools::pod_to_hex(pd1->second.m_tx_hash) == "682e3af2997fc46222a4e8690ae628fcc9cf657e9b93d16c341d5ba622c39607");
+    ASSERT_TRUE(pd0->second.m_amount == 801071);
+    ASSERT_TRUE(pd1->second.m_amount == 801070);
+    ASSERT_TRUE(pd0->second.m_block_height == 19);
+    ASSERT_TRUE(pd1->second.m_block_height == 20);
+    ASSERT_TRUE(pd0->second.m_unlock_time == 37);
+    ASSERT_TRUE(pd1->second.m_unlock_time == 38);
+    ASSERT_TRUE(pd0->second.m_timestamp == 1529981363);
+    ASSERT_TRUE(pd1->second.m_timestamp == 1529981381);
   }
   // tx keys
   ASSERT_TRUE(w.m_tx_keys.size() == 2);
   {
     const std::vector<std::pair<std::string, std::string>> txid_txkey =
     {
-      {"b9aac8c020ab33859e0c0b6331f46a8780d349e7ac17b067116e2d87bf48daad", "bf3614c6de1d06c09add5d92a5265d8c76af706f7bc6ac830d6b0d109aa87701"},
-      {"6e7013684d35820f66c6679197ded9329bfe0e495effa47e7b25258799858dba", "e556884246df5a787def6732c6ea38f1e092fa13e5ea98f732b99c07a6332003"},
+      {"ba1deb702d98d78f589ffda136031ef355c4b27213205653f0682abc73fd2069", "4fef24852171a1baa436975ad76f9c7fdba990fb3a817442eccf6e12d62cb200"},
+      {"d26df736b0a0f6946d8a05596848acd531d65d57926ac64b17f0c22611f3f437", "088732a6d90686d8999f03c8f9910c86edd6e1543e2611727a9502cbad2fa605"},
     };
     for (size_t i = 0; i < txid_txkey.size(); ++i)
     {
@@ -708,25 +708,25 @@ TEST(Serialization, portability_wallet)
     }
   }
   // confirmed txs
-  ASSERT_TRUE(w.m_confirmed_txs.size() == 1);
+  ASSERT_TRUE(w.m_confirmed_txs.size() == 2);
   // tx notes
   ASSERT_TRUE(w.m_tx_notes.size() == 2);
   {
     crypto::hash h[2];
-    epee::string_tools::hex_to_pod("15024343b38e77a1a9860dfed29921fa17e833fec837191a6b04fa7cb9605b8e", h[0]);
-    epee::string_tools::hex_to_pod("6e7013684d35820f66c6679197ded9329bfe0e495effa47e7b25258799858dba", h[1]);
+    epee::string_tools::hex_to_pod("d26df736b0a0f6946d8a05596848acd531d65d57926ac64b17f0c22611f3f437", h[0]);
+    epee::string_tools::hex_to_pod("ba1deb702d98d78f589ffda136031ef355c4b27213205653f0682abc73fd2069", h[1]);
     ASSERT_EQ_MAP("sample note", w.m_tx_notes, h[0]);
     ASSERT_EQ_MAP("sample note 2", w.m_tx_notes, h[1]);
   }
   // unconfirmed payments
   ASSERT_TRUE(w.m_unconfirmed_payments.size() == 0);
   // pub keys
-  ASSERT_TRUE(w.m_pub_keys.size() == 3);
+  ASSERT_TRUE(w.m_pub_keys.size() == 20);
   {
     crypto::public_key pubkey[3];
-    epee::string_tools::hex_to_pod("33f75f264574cb3a9ea5b24220a5312e183d36dc321c9091dfbb720922a4f7b0", pubkey[0]);
-    epee::string_tools::hex_to_pod("5066ff2ce9861b1d131cf16eeaa01264933a49f28242b97b153e922ec7b4b3cb", pubkey[1]);
-    epee::string_tools::hex_to_pod("0d8467e16e73d16510452b78823e082e05ee3a63788d40de577cf31eb555f0c8", pubkey[2]);
+    epee::string_tools::hex_to_pod("11354e39cfe37df3173285f1d76624f940d721dfc81e2648638afa929ecbf997", pubkey[0]);
+    epee::string_tools::hex_to_pod("070a7f025c601dc44f8bd8de9ad162a91215b1618d658cece39a60a6aa29a2fd", pubkey[1]);
+    epee::string_tools::hex_to_pod("bb64979c04341600f963ec0c9a09855b7ae4dc8ba90ab6322313636fd42c11c7", pubkey[2]);
     ASSERT_EQ_MAP(0, w.m_pub_keys, pubkey[0]);
     ASSERT_EQ_MAP(1, w.m_pub_keys, pubkey[1]);
     ASSERT_EQ_MAP(2, w.m_pub_keys, pubkey[2]);
@@ -735,10 +735,10 @@ TEST(Serialization, portability_wallet)
   ASSERT_TRUE(w.m_address_book.size() == 1);
   {
     auto address_book_row = w.m_address_book.begin();
-    ASSERT_TRUE(epee::string_tools::pod_to_hex(address_book_row->m_address.m_spend_public_key) == "9bc53a6ff7b0831c9470f71b6b972dbe5ad1e8606f72682868b1dda64e119fb3");
-    ASSERT_TRUE(epee::string_tools::pod_to_hex(address_book_row->m_address.m_view_public_key) == "49fece1ef97dc0c0f7a5e2106e75e96edd910f7e86b56e1e308cd0cf734df191");
-    ASSERT_TRUE(epee::string_tools::pod_to_hex(address_book_row->m_payment_id) == "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef");
-    ASSERT_TRUE(address_book_row->m_description == "testnet wallet 9y52S6");
+    ASSERT_TRUE(epee::string_tools::pod_to_hex(address_book_row->m_address.m_spend_public_key) == "7d996b0f2db6dbb5f2a086211f2399a4a7479b2c911af307fdc3f7f61a88cb0e");
+    ASSERT_TRUE(epee::string_tools::pod_to_hex(address_book_row->m_address.m_view_public_key) == "1c06bcac7082f73af10460b5f2849aded79374b2fbdaae5d9384b9b6514fddcb");
+    ASSERT_TRUE(epee::string_tools::pod_to_hex(address_book_row->m_payment_id) == "393d7376d934a9a9000000000000000000000000000000000000000000000000");
+    ASSERT_TRUE(address_book_row->m_description == "testnet etn wallet");
   }
 }
 
@@ -747,7 +747,7 @@ TEST(Serialization, portability_wallet)
 TEST(Serialization, portability_outputs)
 {
   // read file
-  const boost::filesystem::path filename = unit_test::data_dir / "outputs";
+  const boost::filesystem::path filename = unit_test::data_dir / "outputs_etnkA3";
   std::string data;
   bool r = epee::file_io_utils::load_file_to_string(filename.string(), data);
   ASSERT_TRUE(r);
@@ -778,7 +778,7 @@ TEST(Serialization, portability_outputs)
     return plaintext;
   };
   crypto::secret_key view_secret_key;
-  epee::string_tools::hex_to_pod("339673bb1187e2f73ba7841ab6841c5553f96e9f13f8fe6612e69318db4e9d0a", view_secret_key);
+  epee::string_tools::hex_to_pod("f747f4a4838027c9af80e6364a941b60c538e67e9ea198b6ec452b74c276de06", view_secret_key);
   bool authenticated = true;
   data = decrypt(std::string(data, magiclen), view_secret_key, authenticated);
   ASSERT_FALSE(data.empty());
@@ -787,8 +787,8 @@ TEST(Serialization, portability_outputs)
   ASSERT_FALSE(data.size() < headerlen);
   const crypto::public_key &public_spend_key = *(const crypto::public_key*)&data[0];
   const crypto::public_key &public_view_key = *(const crypto::public_key*)&data[sizeof(crypto::public_key)];
-  ASSERT_TRUE(epee::string_tools::pod_to_hex(public_spend_key) == "13daa2af00ad26a372d317195de0bdd716f7a05d33bc4d7aff1664b6ee93c060");
-  ASSERT_TRUE(epee::string_tools::pod_to_hex(public_view_key) == "e47d4b6df6ab7339539148c2a03ad3e2f3434e5ab2046848e1f21369a3937cad");
+  ASSERT_TRUE(epee::string_tools::pod_to_hex(public_spend_key) == "7b0ca4ee4cf32ac393b0306402d71b2c4a3db02c45ffbb780c2fde677b03848d");
+  ASSERT_TRUE(epee::string_tools::pod_to_hex(public_view_key) == "5bb38f9514f70673e1d4e87242d8c2d0a99cb4aeae3cda282869c9de4ca7d71f");
   r = false;
   std::vector<tools::wallet2::transfer_details> outputs;
   try
@@ -802,7 +802,7 @@ TEST(Serialization, portability_outputs)
   {}
   ASSERT_TRUE(r);
   /*
-  fields of tools::wallet2::transfer_details to be checked: 
+  fields of tools::wallet2::transfer_details to be checked:
     uint64_t                        m_block_height
     cryptonote::transaction_prefix  m_tx                        // TODO
     crypto::hash                    m_txid
@@ -817,46 +817,46 @@ TEST(Serialization, portability_outputs)
     bool                            m_key_image_known
     size_t                          m_pk_index
   */
-  ASSERT_TRUE(outputs.size() == 3);
+  ASSERT_EQ(outputs.size(), 20);
   auto& td0 = outputs[0];
   auto& td1 = outputs[1];
   auto& td2 = outputs[2];
-  ASSERT_TRUE(td0.m_block_height == 818424);
-  ASSERT_TRUE(td1.m_block_height == 818522);
-  ASSERT_TRUE(td2.m_block_height == 818522);
-  ASSERT_TRUE(epee::string_tools::pod_to_hex(td0.m_txid) == "15024343b38e77a1a9860dfed29921fa17e833fec837191a6b04fa7cb9605b8e");
-  ASSERT_TRUE(epee::string_tools::pod_to_hex(td1.m_txid) == "ec34c9bb12b99af33d49691384eee5bed9171498ff04e59516505f35d1fc5efc");
-  ASSERT_TRUE(epee::string_tools::pod_to_hex(td2.m_txid) == "6e7013684d35820f66c6679197ded9329bfe0e495effa47e7b25258799858dba");
-  ASSERT_TRUE(td0.m_internal_output_index == 0);
-  ASSERT_TRUE(td1.m_internal_output_index == 0);
-  ASSERT_TRUE(td2.m_internal_output_index == 1);
-  ASSERT_TRUE(td0.m_global_output_index == 19642);
-  ASSERT_TRUE(td1.m_global_output_index == 19757);
-  ASSERT_TRUE(td2.m_global_output_index == 19760);
-  ASSERT_TRUE (td0.m_spent);
-  ASSERT_FALSE(td1.m_spent);
+  ASSERT_EQ(td0.m_block_height, 19);
+  ASSERT_EQ(td1.m_block_height, 19);
+  ASSERT_EQ(td2.m_block_height, 19);
+  ASSERT_EQ(epee::string_tools::pod_to_hex(td0.m_txid), "c02c01691271e26da9c4dad4f30b270984c98b555d85528871dea60c453a0bdc");
+  ASSERT_EQ(epee::string_tools::pod_to_hex(td1.m_txid), "c02c01691271e26da9c4dad4f30b270984c98b555d85528871dea60c453a0bdc");
+  ASSERT_EQ(epee::string_tools::pod_to_hex(td2.m_txid), "c02c01691271e26da9c4dad4f30b270984c98b555d85528871dea60c453a0bdc");
+  ASSERT_EQ(td0.m_internal_output_index, 0);
+  ASSERT_EQ(td1.m_internal_output_index, 1);
+  ASSERT_EQ(td2.m_internal_output_index, 2);
+  ASSERT_EQ(td0.m_global_output_index, 1);
+  ASSERT_EQ(td1.m_global_output_index, 11);
+  ASSERT_EQ(td2.m_global_output_index, 17);
+  ASSERT_FALSE(td0.m_spent);
+  ASSERT_TRUE(td1.m_spent);
   ASSERT_FALSE(td2.m_spent);
-  ASSERT_TRUE(td0.m_spent_height == 0);
-  ASSERT_TRUE(td1.m_spent_height == 0);
-  ASSERT_TRUE(td2.m_spent_height == 0);
-  ASSERT_TRUE(epee::string_tools::pod_to_hex(td0.m_key_image) == "c5680d3735b90871ca5e3d90cd82d6483eed1151b9ab75c2c8c3a7d89e00a5a8");
-  ASSERT_TRUE(epee::string_tools::pod_to_hex(td1.m_key_image) == "d54cbd435a8d636ad9b01b8d4f3eb13bd0cf1ce98eddf53ab1617f9b763e66c0");
-  ASSERT_TRUE(epee::string_tools::pod_to_hex(td2.m_key_image) == "6c3cd6af97c4070a7aef9b1344e7463e29c7cd245076fdb65da447a34da3ca76");
-  ASSERT_TRUE(epee::string_tools::pod_to_hex(td0.m_mask) == "0100000000000000000000000000000000000000000000000000000000000000");
-  ASSERT_TRUE(epee::string_tools::pod_to_hex(td1.m_mask) == "d3997a7b27fa199a377643b88cbd3f20f447496746dabe92d288730ecaeda007");
-  ASSERT_TRUE(epee::string_tools::pod_to_hex(td2.m_mask) == "789bafff169ef206aa21219342c69ca52ce1d78d776c10b21d14bdd960fc7703");
-  ASSERT_TRUE(td0.m_amount == 13400845012231);
-  ASSERT_TRUE(td1.m_amount == 1200000000000);
-  ASSERT_TRUE(td2.m_amount == 11066009260865);
-  ASSERT_TRUE(td0.m_rct);
-  ASSERT_TRUE(td1.m_rct);
-  ASSERT_TRUE(td2.m_rct);
+  ASSERT_EQ(td0.m_spent_height, 0);
+  ASSERT_EQ(td1.m_spent_height, 101);
+  ASSERT_EQ(td2.m_spent_height, 0);
+  ASSERT_EQ(epee::string_tools::pod_to_hex(td0.m_key_image), "461325ee51dbc9debaad955411287f08a39aa4e184afa25ba79d76525e32c27e");
+  ASSERT_EQ(epee::string_tools::pod_to_hex(td1.m_key_image), "3fe808aa18a71fa20b30f26d275278e5e284818200651f483e257b5e2b12b874");
+  ASSERT_EQ(epee::string_tools::pod_to_hex(td2.m_key_image), "5974a90353fb388d397f1deb900071d1c03f281ac341cadfa553040f3b937548");
+  ASSERT_EQ(epee::string_tools::pod_to_hex(td0.m_mask), "0100000000000000000000000000000000000000000000000000000000000000");
+  ASSERT_EQ(epee::string_tools::pod_to_hex(td1.m_mask), "0100000000000000000000000000000000000000000000000000000000000000");
+  ASSERT_EQ(epee::string_tools::pod_to_hex(td2.m_mask), "0100000000000000000000000000000000000000000000000000000000000000");
+  ASSERT_EQ(td0.m_amount, 1);
+  ASSERT_EQ(td1.m_amount, 70);
+  ASSERT_EQ(td2.m_amount, 1000);
+  ASSERT_FALSE(td0.m_rct);
+  ASSERT_FALSE(td1.m_rct);
+  ASSERT_FALSE(td2.m_rct);
   ASSERT_TRUE(td0.m_key_image_known);
   ASSERT_TRUE(td1.m_key_image_known);
   ASSERT_TRUE(td2.m_key_image_known);
-  ASSERT_TRUE(td0.m_pk_index == 0);
-  ASSERT_TRUE(td1.m_pk_index == 0);
-  ASSERT_TRUE(td2.m_pk_index == 0);
+  ASSERT_EQ(td0.m_pk_index, 0);
+  ASSERT_EQ(td1.m_pk_index, 0);
+  ASSERT_EQ(td2.m_pk_index, 0);
 }
 
 struct unsigned_tx_set
@@ -890,7 +890,7 @@ TEST(Serialization, portability_unsigned_tx)
     ar >> exported_txs;
     r = true;
   }
-  catch (...)  
+  catch (...)
   {}
   ASSERT_TRUE(r);
   /*
@@ -907,7 +907,7 @@ TEST(Serialization, portability_unsigned_tx)
     uint64_t                                      unlock_time
     bool                                          use_rct
     std::vector<cryptonote::tx_destination_entry> dests
-  
+
   fields of cryptonote::tx_source_entry to be checked:
     std::vector<std::pair<uint64_t, rct::ctkey>>  outputs
     size_t                                        real_output
@@ -916,7 +916,7 @@ TEST(Serialization, portability_unsigned_tx)
     uint64_t                                      amount
     bool                                          rct
     rct::key                                      mask
-  
+
   fields of cryptonote::tx_destination_entry to be checked:
     uint64_t                amount
     account_public_address  addr
@@ -947,21 +947,21 @@ TEST(Serialization, portability_unsigned_tx)
   // tcd.sources[0].{real_output, real_out_tx_key, real_output_in_tx_index, amount, rct, mask}
   ASSERT_TRUE(tse.real_output == 4);
   ASSERT_TRUE(epee::string_tools::pod_to_hex(tse.real_out_tx_key) == "4d86c7ba1c285fe4bc1cd7b54ba894fa89fa02fc6b0bbeea67d53251acd14a05");
-  ASSERT_TRUE(tse.real_output_in_tx_index == 1); 
+  ASSERT_TRUE(tse.real_output_in_tx_index == 1);
   ASSERT_TRUE(tse.amount == 11066009260865);
   ASSERT_TRUE(tse.rct);
   ASSERT_TRUE(epee::string_tools::pod_to_hex(tse.mask) == "789bafff169ef206aa21219342c69ca52ce1d78d776c10b21d14bdd960fc7703");
   // tcd.change_dts
   ASSERT_TRUE(tcd.change_dts.amount == 9631208773403);
-  ASSERT_TRUE(cryptonote::get_account_address_as_str(nettype, false, tcd.change_dts.addr) == "9svHk1wHPo3ULf2AZykghzcye6sitaRE4MaDjPC6uanTHCynHjJHZaiAb922PojE1GexhhRt1LVf5DC43feyrRZMLXQr3mk");
+  ASSERT_TRUE(cryptonote::get_account_address_as_str(nettype, false, tcd.change_dts.addr) == "etnjxQKSvwhVxnJ4VatxuJebGw3bk6EKLYVmksCHY7BTRiNiZFKWbhwVgHHBqwGwfuAqhjDJpNzDX1jkuKmBxSXU6bAiwJfVue");
   // tcd.splitted_dsts
   ASSERT_TRUE(tcd.splitted_dsts.size() == 2);
   auto& splitted_dst0 = tcd.splitted_dsts[0];
   auto& splitted_dst1 = tcd.splitted_dsts[1];
   ASSERT_TRUE(splitted_dst0.amount == 1400000000000);
   ASSERT_TRUE(splitted_dst1.amount == 9631208773403);
-  ASSERT_TRUE(cryptonote::get_account_address_as_str(nettype, false, splitted_dst0.addr) == "9xnhrMczQkPeoGi6dyu6BgKAYX4tZsDs6KHCkyTStDBKL4M4pM1gfCR3utmTAcSaKHGa1R5o266FbdnubErmij3oMdLyYgA");
-  ASSERT_TRUE(cryptonote::get_account_address_as_str(nettype, false, splitted_dst1.addr) == "9svHk1wHPo3ULf2AZykghzcye6sitaRE4MaDjPC6uanTHCynHjJHZaiAb922PojE1GexhhRt1LVf5DC43feyrRZMLXQr3mk");
+  ASSERT_TRUE(cryptonote::get_account_address_as_str(nettype, false, splitted_dst0.addr) == "etnkCu7s6mRGi3RJm5CKgZSFsJhbrhb2XRqPSdBqMiNnf2A7Nw3kncTLhZ3SbVJ2bH1W7pPq9LExDHVbHu9fTZJv1HeRSuyVUc");
+  ASSERT_TRUE(cryptonote::get_account_address_as_str(nettype, false, splitted_dst1.addr) == "etnjxQKSvwhVxnJ4VatxuJebGw3bk6EKLYVmksCHY7BTRiNiZFKWbhwVgHHBqwGwfuAqhjDJpNzDX1jkuKmBxSXU6bAiwJfVue");
   // tcd.selected_transfers
   ASSERT_TRUE(tcd.selected_transfers.size() == 1);
   ASSERT_TRUE(tcd.selected_transfers.front() == 2);
@@ -974,7 +974,7 @@ TEST(Serialization, portability_unsigned_tx)
   ASSERT_TRUE(tcd.dests.size() == 1);
   auto& dest = tcd.dests[0];
   ASSERT_TRUE(dest.amount == 1400000000000);
-  ASSERT_TRUE(cryptonote::get_account_address_as_str(nettype, false, dest.addr) == "9xnhrMczQkPeoGi6dyu6BgKAYX4tZsDs6KHCkyTStDBKL4M4pM1gfCR3utmTAcSaKHGa1R5o266FbdnubErmij3oMdLyYgA");
+  ASSERT_TRUE(cryptonote::get_account_address_as_str(nettype, false, dest.addr) == "etnkCu7s6mRGi3RJm5CKgZSFsJhbrhb2XRqPSdBqMiNnf2A7Nw3kncTLhZ3SbVJ2bH1W7pPq9LExDHVbHu9fTZJv1HeRSuyVUc");
   // transfers
   ASSERT_TRUE(exported_txs.transfers.size() == 3);
   auto& td0 = exported_txs.transfers[0];
@@ -983,7 +983,7 @@ TEST(Serialization, portability_unsigned_tx)
   ASSERT_TRUE(td0.m_block_height == 818424);
   ASSERT_TRUE(td1.m_block_height == 818522);
   ASSERT_TRUE(td2.m_block_height == 818522);
-  ASSERT_TRUE(epee::string_tools::pod_to_hex(td0.m_txid) == "15024343b38e77a1a9860dfed29921fa17e833fec837191a6b04fa7cb9605b8e");
+  ASSERT_TRUE(epee::string_tools::pod_to_hex(td0.m_txid) =="15024343b38e77a1a9860dfed29921fa17e833fec837191a6b04fa7cb9605b8e");
   ASSERT_TRUE(epee::string_tools::pod_to_hex(td1.m_txid) == "ec34c9bb12b99af33d49691384eee5bed9171498ff04e59516505f35d1fc5efc");
   ASSERT_TRUE(epee::string_tools::pod_to_hex(td2.m_txid) == "6e7013684d35820f66c6679197ded9329bfe0e495effa47e7b25258799858dba");
   ASSERT_TRUE(td0.m_internal_output_index == 0);
@@ -1046,7 +1046,7 @@ TEST(Serialization, portability_signed_tx)
   fields of tools::wallet2::signed_tx_set to be checked:
     std::vector<pending_tx>         ptx
     std::vector<crypto::key_image>  key_images
-  
+
   fields of tools::walllet2::pending_tx to be checked:
     cryptonote::transaction                       tx                  // TODO
     uint64_t                                      dust
@@ -1068,7 +1068,7 @@ TEST(Serialization, portability_signed_tx)
   ASSERT_FALSE(ptx.dust_added_to_fee);
   // ptx.change.{amount, addr}
   ASSERT_TRUE(ptx.change_dts.amount == 9631208773403);
-  ASSERT_TRUE(cryptonote::get_account_address_as_str(nettype, false, ptx.change_dts.addr) == "9svHk1wHPo3ULf2AZykghzcye6sitaRE4MaDjPC6uanTHCynHjJHZaiAb922PojE1GexhhRt1LVf5DC43feyrRZMLXQr3mk");
+  ASSERT_TRUE(cryptonote::get_account_address_as_str(nettype, false, ptx.change_dts.addr) == "etnjxQKSvwhVxnJ4VatxuJebGw3bk6EKLYVmksCHY7BTRiNiZFKWbhwVgHHBqwGwfuAqhjDJpNzDX1jkuKmBxSXU6bAiwJfVue");
   // ptx.selected_transfers
   ASSERT_TRUE(ptx.selected_transfers.size() == 1);
   ASSERT_TRUE(ptx.selected_transfers.front() == 2);
@@ -1078,7 +1078,7 @@ TEST(Serialization, portability_signed_tx)
   // ptx.dests
   ASSERT_TRUE(ptx.dests.size() == 1);
   ASSERT_TRUE(ptx.dests[0].amount == 1400000000000);
-  ASSERT_TRUE(cryptonote::get_account_address_as_str(nettype, false, ptx.dests[0].addr) == "9xnhrMczQkPeoGi6dyu6BgKAYX4tZsDs6KHCkyTStDBKL4M4pM1gfCR3utmTAcSaKHGa1R5o266FbdnubErmij3oMdLyYgA");
+  ASSERT_TRUE(cryptonote::get_account_address_as_str(nettype, false, ptx.dests[0].addr) == "etnkCu7s6mRGi3RJm5CKgZSFsJhbrhb2XRqPSdBqMiNnf2A7Nw3kncTLhZ3SbVJ2bH1W7pPq9LExDHVbHu9fTZJv1HeRSuyVUc");
   // ptx.construction_data
   auto& tcd = ptx.construction_data;
   ASSERT_TRUE(tcd.sources.size() == 1);
@@ -1103,21 +1103,21 @@ TEST(Serialization, portability_signed_tx)
   // ptx.construction_data.sources[0].{real_output, real_out_tx_key, real_output_in_tx_index, amount, rct, mask}
   ASSERT_TRUE(tse.real_output == 4);
   ASSERT_TRUE(epee::string_tools::pod_to_hex(tse.real_out_tx_key) == "4d86c7ba1c285fe4bc1cd7b54ba894fa89fa02fc6b0bbeea67d53251acd14a05");
-  ASSERT_TRUE(tse.real_output_in_tx_index == 1); 
+  ASSERT_TRUE(tse.real_output_in_tx_index == 1);
   ASSERT_TRUE(tse.amount == 11066009260865);
   ASSERT_TRUE(tse.rct);
   ASSERT_TRUE(epee::string_tools::pod_to_hex(tse.mask) == "789bafff169ef206aa21219342c69ca52ce1d78d776c10b21d14bdd960fc7703");
   // ptx.construction_data.change_dts
   ASSERT_TRUE(tcd.change_dts.amount == 9631208773403);
-  ASSERT_TRUE(cryptonote::get_account_address_as_str(nettype, false, tcd.change_dts.addr) == "9svHk1wHPo3ULf2AZykghzcye6sitaRE4MaDjPC6uanTHCynHjJHZaiAb922PojE1GexhhRt1LVf5DC43feyrRZMLXQr3mk");
+  ASSERT_TRUE(cryptonote::get_account_address_as_str(nettype, false, tcd.change_dts.addr) == "etnjxQKSvwhVxnJ4VatxuJebGw3bk6EKLYVmksCHY7BTRiNiZFKWbhwVgHHBqwGwfuAqhjDJpNzDX1jkuKmBxSXU6bAiwJfVue");
   // ptx.construction_data.splitted_dsts
   ASSERT_TRUE(tcd.splitted_dsts.size() == 2);
   auto& splitted_dst0 = tcd.splitted_dsts[0];
   auto& splitted_dst1 = tcd.splitted_dsts[1];
   ASSERT_TRUE(splitted_dst0.amount == 1400000000000);
   ASSERT_TRUE(splitted_dst1.amount == 9631208773403);
-  ASSERT_TRUE(cryptonote::get_account_address_as_str(nettype, false, splitted_dst0.addr) == "9xnhrMczQkPeoGi6dyu6BgKAYX4tZsDs6KHCkyTStDBKL4M4pM1gfCR3utmTAcSaKHGa1R5o266FbdnubErmij3oMdLyYgA");
-  ASSERT_TRUE(cryptonote::get_account_address_as_str(nettype, false, splitted_dst1.addr) == "9svHk1wHPo3ULf2AZykghzcye6sitaRE4MaDjPC6uanTHCynHjJHZaiAb922PojE1GexhhRt1LVf5DC43feyrRZMLXQr3mk");
+  ASSERT_TRUE(cryptonote::get_account_address_as_str(nettype, false, splitted_dst0.addr) == "etnkCu7s6mRGi3RJm5CKgZSFsJhbrhb2XRqPSdBqMiNnf2A7Nw3kncTLhZ3SbVJ2bH1W7pPq9LExDHVbHu9fTZJv1HeRSuyVUc");
+  ASSERT_TRUE(cryptonote::get_account_address_as_str(nettype, false, splitted_dst1.addr) == "etnjxQKSvwhVxnJ4VatxuJebGw3bk6EKLYVmksCHY7BTRiNiZFKWbhwVgHHBqwGwfuAqhjDJpNzDX1jkuKmBxSXU6bAiwJfVue");
   // ptx.construction_data.selected_transfers
   ASSERT_TRUE(tcd.selected_transfers.size() == 1);
   ASSERT_TRUE(tcd.selected_transfers.front() == 2);
@@ -1130,7 +1130,7 @@ TEST(Serialization, portability_signed_tx)
   ASSERT_TRUE(tcd.dests.size() == 1);
   auto& dest = tcd.dests[0];
   ASSERT_TRUE(dest.amount == 1400000000000);
-  ASSERT_TRUE(cryptonote::get_account_address_as_str(nettype, false, dest.addr) == "9xnhrMczQkPeoGi6dyu6BgKAYX4tZsDs6KHCkyTStDBKL4M4pM1gfCR3utmTAcSaKHGa1R5o266FbdnubErmij3oMdLyYgA");
+  ASSERT_TRUE(cryptonote::get_account_address_as_str(nettype, false, dest.addr) == "etnkCu7s6mRGi3RJm5CKgZSFsJhbrhb2XRqPSdBqMiNnf2A7Nw3kncTLhZ3SbVJ2bH1W7pPq9LExDHVbHu9fTZJv1HeRSuyVUc");
   // key_images
   ASSERT_TRUE(exported_txs.key_images.size() == 3);
   auto& ki0 = exported_txs.key_images[0];
