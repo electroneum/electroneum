@@ -659,7 +659,8 @@ TEST(NetUtils, NetworkAddress)
   EXPECT_FALSE(empty.is_loopback());
   EXPECT_FALSE(empty.is_local());
   EXPECT_EQ(epee::net_utils::address_type::invalid, empty.get_type_id());
-  EXPECT_EQ(epee::net_utils::zone::invalid, empty.get_zone());
+  //Temporary get_zone == public to support backwards compatibility with v0.11 nodes
+  EXPECT_EQ(epee::net_utils::zone::public_, empty.get_zone());
   EXPECT_FALSE(empty.is_blockable());
   EXPECT_THROW(empty.as<custom_address>(), std::bad_cast);
 
