@@ -188,6 +188,7 @@ namespace hw {
     #define INS_DERIVE_SECRET_KEY               0x38
     #define INS_GEN_KEY_IMAGE                   0x3A
     #define INS_SECRET_KEY_ADD                  0x3C
+    #define INS_SCALAR_MULSUB                   0x3D
     #define INS_SECRET_KEY_SUB                  0x3E
     #define INS_GENERATE_KEYPAIR                0x40
     #define INS_SECRET_SCAL_MUL_KEY             0x42
@@ -909,6 +910,32 @@ namespace hw {
 
         return sec;
 
+    }
+
+    bool device_ledger::mulsub_eqx(crypto::ec_scalar& r, const crypto::ec_scalar& c, const crypto::ec_scalar& x, const crypto::ec_scalar& q){
+
+        bool res = false;
+
+        int offset = set_command_header_noopt(INS_SCALAR_MULSUB);
+        //c_s
+        memmove(this->buffer_send+offset, c.data, 32);
+        offset += 32;
+        //x
+        memmove(this->buffer_send+offset, x.data, 32);
+        offset += 32;
+        //q_s
+        memmove(this->buffer_send+offset, q.data, 32);
+        offset += 32;
+
+        this->buffer_send[4] = offset-5;
+        this->length_send = offset;
+        this->exchange();
+
+        //r for closing the loop
+        memmove(r.data, &this->buffer_recv[0], 32);
+
+        res = true;
+        return res;
     }
 
     bool device_ledger::generate_key_derivation(const crypto::public_key &pub, const crypto::secret_key &sec, crypto::key_derivation &derivation) {
@@ -2039,7 +2066,8 @@ namespace hw {
         // Close the loop: r_s = q_s - c_s*x
         // where x is the real output private key. This is the same x used to generate the key image.
         // Todo: Next step is to pass encrypted q_s and x to the device and perform mulsub onboard.
-        sc_mulsub(&sig[sec_index].r, &sig[sec_index].c, &unwrap(sec), &unwrap(q_s));
+        //sc_mulsub(&sig[sec_index].r, &sig[sec_index].c, &unwrap(sec), &unwrap(q_s));
+        this->mulsub_eqx(sig[sec_index].r, sig[sec_index].c, unwrap(sec), unwrap(q_s));
     }
 
     /* ---------------------------------------------------------- */
