@@ -1,0 +1,1779 @@
+{
+	"info": {
+		"_postman_id": "7b63332f-f1e1-4708-90b6-c2319676ea55",
+		"name": "Electroneum Wallet RPC",
+		"description": "# Introduction\nWhat does your API do?\n\n# Overview\nThings that the developers should know about\n\n# Authentication\nWhat is the preferred way of using the API?\n\n# Error Codes\nWhat errors and status codes can a user expect?\n\n# Rate limit\nIs there a limit to the number of requests an user can send?",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Init",
+			"item": [
+				{
+					"name": "Create Wallet",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "141cf10e-ac74-46f6-be76-ae031ced4cfc",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"jsonrpc\": \"2.0\",\n    \"id\": \"0\",\n    \"method\": \"create_wallet\",\n    \"params\": {\n        \"filename\": \"{{wallet}}\",\n        \"password\": \"{{wallet_password}}\",\n        \"language\": \"English\"\n    }\n}"
+						},
+						"url": {
+							"raw": "http://{{address}}:{{port}}/json_rpc",
+							"protocol": "http",
+							"host": [
+								"{{address}}"
+							],
+							"port": "{{port}}",
+							"path": [
+								"json_rpc"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Close Wallet",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "7e495c06-b653-4795-8679-0ac9de936e29",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"jsonrpc\": \"2.0\",\n    \"id\": \"0\",\n    \"method\": \"close_wallet\"\n}"
+						},
+						"url": {
+							"raw": "http://{{address}}:{{port}}/json_rpc",
+							"protocol": "http",
+							"host": [
+								"{{address}}"
+							],
+							"port": "{{port}}",
+							"path": [
+								"json_rpc"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Open Wallet",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "9a073da8-4e37-4378-b509-1f9c313cda13",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"jsonrpc\": \"2.0\",\n    \"id\": \"0\",\n    \"method\": \"open_wallet\",\n    \"params\": {\n        \"filename\": \"{{wallet}}\",\n        \"password\": \"{{wallet_password}}\"\n    }\n}"
+						},
+						"url": {
+							"raw": "http://{{address}}:{{port}}/json_rpc",
+							"protocol": "http",
+							"host": [
+								"{{address}}"
+							],
+							"port": "{{port}}",
+							"path": [
+								"json_rpc"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Change Wallet Password",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "1cd46c2c-4bb6-4c33-8650-2e663e5a1864",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"jsonrpc\": \"2.0\",\n    \"id\": \"0\",\n    \"method\": \"change_wallet_password\",\n    \"params\": {\n        \"old_password\": \"{{wallet_password}}\",\n        \"new_password\": \"{{wallet_new_password}}\"\n    }\n}"
+						},
+						"url": {
+							"raw": "http://{{address}}:{{port}}/json_rpc",
+							"protocol": "http",
+							"host": [
+								"{{address}}"
+							],
+							"port": "{{port}}",
+							"path": [
+								"json_rpc"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Height",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "dab05ee9-9494-4bb1-ab8d-ed2fbf7d8592",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"var jsonData = pm.response.json()",
+									"pm.test(\"Body matches string\", function () {",
+									"    pm.expect(pm.response.text()).to.include(\"height\");",
+									"    ",
+									"    pm.environment.set(\"blockchain_height\", jsonData.result.height);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"jsonrpc\": \"2.0\",\n    \"id\": \"0\",\n    \"method\": \"getheight\"\n}"
+						},
+						"url": {
+							"raw": "http://{{address}}:{{port}}/json_rpc",
+							"protocol": "http",
+							"host": [
+								"{{address}}"
+							],
+							"port": "{{port}}",
+							"path": [
+								"json_rpc"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Address",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "e028fce9-aed0-43f1-8902-d0027b2b8706",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"var jsonData = pm.response.json()",
+									"pm.test(\"Check attribute [address] value\", function () {",
+									"    pm.expect(pm.response.text()).to.include(\"address\");",
+									"    pm.expect(jsonData.result.address).to.include(\"etn\");",
+									"    ",
+									"    pm.environment.set(\"wallet_address\", jsonData.result.address);",
+									"});",
+									"pm.test(\"Check attribute [addresses.address] value\", function () {",
+									"    pm.expect(pm.response.text()).to.include(\"addresses\");",
+									"    pm.expect(jsonData.result.addresses[0].address).to.include(\"etn\");",
+									"});",
+									"pm.test(\"Check attribute [addresses.address_index] value\", function () {",
+									"    pm.expect(pm.response.text()).to.include(\"address_index\");",
+									"    pm.expect(jsonData.result.addresses[0].address_index).to.eql(0);",
+									"});",
+									"pm.test(\"Check attribute [addresses.label] value\", function () {",
+									"    pm.expect(pm.response.text()).to.include(\"label\");",
+									"    pm.expect(jsonData.result.addresses[0].label).to.eql(\"Primary account\");",
+									"});",
+									"pm.test(\"Check attribute [addresses.used] value\", function () {",
+									"    pm.expect(pm.response.text()).to.include(\"used\");",
+									"    pm.expect(jsonData.result.addresses[0].used).to.eql(false);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"id": "fcc6cf74-8ca6-4cb8-9a54-d244b107d562",
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"jsonrpc\": \"2.0\",\n    \"id\": \"0\",\n    \"method\": \"get_address\"\n}"
+						},
+						"url": {
+							"raw": "http://{{address}}:{{port}}/json_rpc",
+							"protocol": "http",
+							"host": [
+								"{{address}}"
+							],
+							"port": "{{port}}",
+							"path": [
+								"json_rpc"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Balance",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "1eaebca1-0ffc-4179-9a5e-f3989e47c88a",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"var jsonData = pm.response.json()",
+									"pm.test(\"Check attribute [balance] value\", function () {",
+									"    pm.expect(pm.response.text()).to.include(\"balance\");",
+									"    pm.expect(jsonData.result.balance).to.eql(0);",
+									"    ",
+									"    pm.environment.set(\"wallet_balance\", jsonData.result.balance);",
+									"});",
+									"pm.test(\"Check attribute [blocks_to_unlock] value\", function () {",
+									"    pm.expect(pm.response.text()).to.include(\"blocks_to_unlock\");",
+									"    pm.expect(jsonData.result.blocks_to_unlock).to.eql(0);",
+									"});",
+									"pm.test(\"Check attribute [multisig_import_needed] value\", function () {",
+									"    pm.expect(pm.response.text()).to.include(\"multisig_import_needed\");",
+									"    pm.expect(jsonData.result.multisig_import_needed).to.eql(false);",
+									"});",
+									"pm.test(\"Check attribute [unlocked_balance] value\", function () {",
+									"    pm.expect(pm.response.text()).to.include(\"unlocked_balance\");",
+									"    pm.expect(jsonData.result.unlocked_balance).to.eql(0);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"jsonrpc\": \"2.0\",\n    \"id\": \"0\",\n    \"method\": \"get_balance\"\n}"
+						},
+						"url": {
+							"raw": "http://{{address}}:{{port}}/json_rpc",
+							"protocol": "http",
+							"host": [
+								"{{address}}"
+							],
+							"port": "{{port}}",
+							"path": [
+								"json_rpc"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Generate Blocks (REGTEST MODE ONLY)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "1eaebca1-0ffc-4179-9a5e-f3989e47c88a",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"var jsonData = pm.response.json()",
+									"pm.test(\"Check attribute [balance] value\", function () {",
+									"    pm.expect(pm.response.text()).to.include(\"balance\");",
+									"    pm.expect(jsonData.result.balance).to.eql(0);",
+									"    ",
+									"    pm.environment.set(\"wallet_balance\", jsonData.result.balance);",
+									"});",
+									"pm.test(\"Check attribute [blocks_to_unlock] value\", function () {",
+									"    pm.expect(pm.response.text()).to.include(\"blocks_to_unlock\");",
+									"    pm.expect(jsonData.result.blocks_to_unlock).to.eql(0);",
+									"});",
+									"pm.test(\"Check attribute [multisig_import_needed] value\", function () {",
+									"    pm.expect(pm.response.text()).to.include(\"multisig_import_needed\");",
+									"    pm.expect(jsonData.result.multisig_import_needed).to.eql(false);",
+									"});",
+									"pm.test(\"Check attribute [unlocked_balance] value\", function () {",
+									"    pm.expect(pm.response.text()).to.include(\"unlocked_balance\");",
+									"    pm.expect(jsonData.result.unlocked_balance).to.eql(0);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"jsonrpc\": \"2.0\",\n    \"id\": \"0\",\n    \"method\": \"get_balance\"\n}"
+						},
+						"url": {
+							"raw": "http://{{address}}:{{port}}/json_rpc",
+							"protocol": "http",
+							"host": [
+								"{{address}}"
+							],
+							"port": "{{port}}",
+							"path": [
+								"json_rpc"
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"protocolProfileBehavior": {}
+		},
+		{
+			"name": "SubAddresses",
+			"item": [
+				{
+					"name": "Create SubAddresses",
+					"item": [
+						{
+							"name": "Get SubAddress",
+							"event": [
+								{
+									"listen": "prerequest",
+									"script": {
+										"id": "0138121a-3652-48a4-8d1f-76a2c991b049",
+										"exec": [
+											""
+										],
+										"type": "text/javascript"
+									}
+								},
+								{
+									"listen": "test",
+									"script": {
+										"id": "27cbeed6-6d29-41f5-b30a-74731fc66f80",
+										"exec": [
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"var jsonData = pm.response.json()",
+											"pm.test(\"Assert no subaddress\", function () {",
+											"    pm.expect(jsonData.result.addresses.length).to.eql(1);",
+											"});",
+											"",
+											"",
+											"pm.test(\"Check attribute [address] value\", function () {",
+											"    pm.expect(pm.response.text()).to.include(\"address\");",
+											"    pm.expect(jsonData.result.address).to.include(\"etn\");",
+											"});",
+											"pm.test(\"Check attribute [addresses.address] value\", function () {",
+											"    pm.expect(pm.response.text()).to.include(\"addresses\");",
+											"    pm.expect(jsonData.result.addresses[0].address).to.include(\"etn\");",
+											"});",
+											"pm.test(\"Check attribute [addresses.address_index] value\", function () {",
+											"    pm.expect(pm.response.text()).to.include(\"address_index\");",
+											"    pm.expect(jsonData.result.addresses[0].address_index).to.eql(0);",
+											"});",
+											"pm.test(\"Check attribute [addresses.label] value\", function () {",
+											"    pm.expect(pm.response.text()).to.include(\"label\");",
+											"    pm.expect(jsonData.result.addresses[0].label).to.eql(\"Primary account\");",
+											"});",
+											"pm.test(\"Check attribute [addresses.used] value\", function () {",
+											"    pm.expect(pm.response.text()).to.include(\"used\");",
+											"    pm.expect(jsonData.result.addresses[0].used).to.eql(false);",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"name": "Content-Type",
+										"type": "text",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"jsonrpc\": \"2.0\",\n    \"id\": \"0\",\n    \"method\": \"get_address\",\n    \"params\": {\n        \"account_index\": 0\n    }\n}"
+								},
+								"url": {
+									"raw": "http://{{address}}:{{port}}/json_rpc",
+									"protocol": "http",
+									"host": [
+										"{{address}}"
+									],
+									"port": "{{port}}",
+									"path": [
+										"json_rpc"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Create SubAddress 1",
+							"event": [
+								{
+									"listen": "prerequest",
+									"script": {
+										"id": "0138121a-3652-48a4-8d1f-76a2c991b049",
+										"exec": [
+											""
+										],
+										"type": "text/javascript"
+									}
+								},
+								{
+									"listen": "test",
+									"script": {
+										"id": "27cbeed6-6d29-41f5-b30a-74731fc66f80",
+										"exec": [
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"var jsonData = pm.response.json()",
+											"pm.test(\"Check attribute [address] value\", function () {",
+											"    pm.expect(pm.response.text()).to.include(\"address\");",
+											"    pm.expect(jsonData.result.address).to.include(\"etnk\");",
+											"    ",
+											"    pm.environment.set(\"wallet_sub_address_1\", jsonData.result.address);",
+											"});",
+											"pm.test(\"Check attribute [address_index] value\", function () {",
+											"    pm.expect(pm.response.text()).to.include(\"address_index\");",
+											"    pm.expect(jsonData.result.address_index).to.eql(1);",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"name": "Content-Type",
+										"type": "text",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"jsonrpc\": \"2.0\",\n    \"id\": \"0\",\n    \"method\": \"create_address\",\n    \"params\": {\n        \"account_index\": 0,\n        \"label\": \"new-sub-1\"\n    }\n}"
+								},
+								"url": {
+									"raw": "http://{{address}}:{{port}}/json_rpc",
+									"protocol": "http",
+									"host": [
+										"{{address}}"
+									],
+									"port": "{{port}}",
+									"path": [
+										"json_rpc"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Create SubAddress 2",
+							"event": [
+								{
+									"listen": "prerequest",
+									"script": {
+										"id": "0138121a-3652-48a4-8d1f-76a2c991b049",
+										"exec": [
+											""
+										],
+										"type": "text/javascript"
+									}
+								},
+								{
+									"listen": "test",
+									"script": {
+										"id": "27cbeed6-6d29-41f5-b30a-74731fc66f80",
+										"exec": [
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"var jsonData = pm.response.json()",
+											"pm.test(\"Check attribute [address] value\", function () {",
+											"    pm.expect(pm.response.text()).to.include(\"address\");",
+											"    pm.expect(jsonData.result.address).to.include(\"etnk\");",
+											"    ",
+											"    pm.environment.set(\"wallet_sub_address_2\", jsonData.result.address);",
+											"});",
+											"pm.test(\"Check attribute [address_index] value\", function () {",
+											"    pm.expect(pm.response.text()).to.include(\"address_index\");",
+											"    pm.expect(jsonData.result.address_index).to.eql(2);",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"name": "Content-Type",
+										"type": "text",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"jsonrpc\": \"2.0\",\n    \"id\": \"0\",\n    \"method\": \"create_address\",\n    \"params\": {\n        \"account_index\": 0,\n        \"label\": \"new-sub-2\"\n    }\n}"
+								},
+								"url": {
+									"raw": "http://{{address}}:{{port}}/json_rpc",
+									"protocol": "http",
+									"host": [
+										"{{address}}"
+									],
+									"port": "{{port}}",
+									"path": [
+										"json_rpc"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Label SubAddress",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"id": "3921c0aa-29bb-44ac-8cf5-e8d4bcace034",
+										"exec": [
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"name": "Content-Type",
+										"type": "text",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"jsonrpc\": \"2.0\",\n    \"id\": \"0\",\n    \"method\": \"label_address\",\n    \"params\": {\n        \"index\": {\n            \"major\": 0,\n            \"minor\": 1\n        },\n        \"label\": \"new-sub-1-new\"\n    }\n}"
+								},
+								"url": {
+									"raw": "http://{{address}}:{{port}}/json_rpc",
+									"protocol": "http",
+									"host": [
+										"{{address}}"
+									],
+									"port": "{{port}}",
+									"path": [
+										"json_rpc"
+									]
+								}
+							},
+							"response": []
+						}
+					],
+					"protocolProfileBehavior": {},
+					"_postman_isSubFolder": true
+				},
+				{
+					"name": "Get SubAddress",
+					"item": [
+						{
+							"name": "Get SubAddresses",
+							"event": [
+								{
+									"listen": "prerequest",
+									"script": {
+										"id": "0138121a-3652-48a4-8d1f-76a2c991b049",
+										"exec": [
+											""
+										],
+										"type": "text/javascript"
+									}
+								},
+								{
+									"listen": "test",
+									"script": {
+										"id": "27cbeed6-6d29-41f5-b30a-74731fc66f80",
+										"exec": [
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"var jsonData = pm.response.json()",
+											"pm.test(\"Assert 2 subaddress\", function () {",
+											"    pm.expect(jsonData.result.addresses.length).to.eql(3);",
+											"});",
+											"",
+											"pm.test(\"Check attribute [address] value\", function () {",
+											"    pm.expect(pm.response.text()).to.include(\"address\");",
+											"    pm.expect(jsonData.result.address).to.eql(pm.environment.get(\"wallet_address\"));",
+											"    pm.expect(jsonData.result.addresses[0].address).to.eql(pm.environment.get(\"wallet_address\"));",
+											"    pm.expect(jsonData.result.addresses[1].address).to.eql(pm.environment.get(\"wallet_sub_address_1\"));",
+											"    pm.expect(jsonData.result.addresses[2].address).to.eql(pm.environment.get(\"wallet_sub_address_2\"));",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"name": "Content-Type",
+										"type": "text",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"jsonrpc\": \"2.0\",\n    \"id\": \"0\",\n    \"method\": \"get_address\",\n    \"params\": {\n        \"account_index\": 0\n    }\n}"
+								},
+								"url": {
+									"raw": "http://{{address}}:{{port}}/json_rpc",
+									"protocol": "http",
+									"host": [
+										"{{address}}"
+									],
+									"port": "{{port}}",
+									"path": [
+										"json_rpc"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Get SubAddresses Index",
+							"event": [
+								{
+									"listen": "prerequest",
+									"script": {
+										"id": "0138121a-3652-48a4-8d1f-76a2c991b049",
+										"exec": [
+											""
+										],
+										"type": "text/javascript"
+									}
+								},
+								{
+									"listen": "test",
+									"script": {
+										"id": "27cbeed6-6d29-41f5-b30a-74731fc66f80",
+										"exec": [
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"var jsonData = pm.response.json()",
+											"pm.test(\"Check attribute [index] value\", function () {",
+											"    pm.expect(jsonData.result.index.major).to.eql(0);",
+											"    pm.expect(jsonData.result.index.minor).to.eql(1);",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"name": "Content-Type",
+										"type": "text",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"jsonrpc\": \"2.0\",\n    \"id\": \"0\",\n    \"method\": \"get_address_index\",\n    \"params\": {\n        \"address\": \"{{wallet_sub_address_1}}\"\n    }\n}"
+								},
+								"url": {
+									"raw": "http://{{address}}:{{port}}/json_rpc",
+									"protocol": "http",
+									"host": [
+										"{{address}}"
+									],
+									"port": "{{port}}",
+									"path": [
+										"json_rpc"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Get SubAddresses By Index",
+							"event": [
+								{
+									"listen": "prerequest",
+									"script": {
+										"id": "0138121a-3652-48a4-8d1f-76a2c991b049",
+										"exec": [
+											""
+										],
+										"type": "text/javascript"
+									}
+								},
+								{
+									"listen": "test",
+									"script": {
+										"id": "27cbeed6-6d29-41f5-b30a-74731fc66f80",
+										"exec": [
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"var jsonData = pm.response.json()",
+											"pm.test(\"Assert 1 subaddress\", function () {",
+											"    pm.expect(jsonData.result.addresses.length).to.eql(1);",
+											"});",
+											"",
+											"pm.test(\"Check attribute [address] value\", function () {",
+											"    pm.expect(pm.response.text()).to.include(\"address\");",
+											"    pm.expect(jsonData.result.address).to.eql(pm.environment.get(\"wallet_address\"));",
+											"    pm.expect(jsonData.result.addresses[0].address).to.eql(pm.environment.get(\"wallet_sub_address_1\"));",
+											"    pm.expect(jsonData.result.addresses[0].label).to.eql(\"new-sub-1-new\");",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"name": "Content-Type",
+										"type": "text",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"jsonrpc\": \"2.0\",\n    \"id\": \"0\",\n    \"method\": \"get_address\",\n    \"params\": {\n        \"account_index\": 0,\n        \"address_index\": [\n            1\n        ]\n    }\n}"
+								},
+								"url": {
+									"raw": "http://{{address}}:{{port}}/json_rpc",
+									"protocol": "http",
+									"host": [
+										"{{address}}"
+									],
+									"port": "{{port}}",
+									"path": [
+										"json_rpc"
+									]
+								}
+							},
+							"response": []
+						}
+					],
+					"protocolProfileBehavior": {},
+					"_postman_isSubFolder": true
+				}
+			],
+			"protocolProfileBehavior": {}
+		},
+		{
+			"name": "Accounts",
+			"item": [
+				{
+					"name": "Create Account",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "7a79a5e8-b619-47c8-846f-b8d5a210eaeb",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"var jsonData = pm.response.json()",
+									"pm.test(\"Check attribute [address] value\", function () {",
+									"    pm.expect(pm.response.text()).to.include(\"address\");",
+									"    pm.expect(jsonData.result.address).to.include(\"etnk\");",
+									"    ",
+									"    pm.environment.set(\"wallet_acc_address_1\", jsonData.result.address);",
+									"});",
+									"pm.test(\"Check attribute [account_index] value\", function () {",
+									"    pm.expect(pm.response.text()).to.include(\"account_index\");",
+									"    pm.expect(jsonData.result.account_index).to.eql(1);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"jsonrpc\": \"2.0\",\n    \"id\": \"0\",\n    \"method\": \"create_account\",\n    \"params\": {\n        \"label\": \"Secondary account\"\n    }\n}"
+						},
+						"url": {
+							"raw": "http://{{address}}:{{port}}/json_rpc",
+							"protocol": "http",
+							"host": [
+								"{{address}}"
+							],
+							"port": "{{port}}",
+							"path": [
+								"json_rpc"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Label Account",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "7a79a5e8-b619-47c8-846f-b8d5a210eaeb",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"jsonrpc\": \"2.0\",\n    \"id\": \"0\",\n    \"method\": \"label_account\",\n    \"params\": {\n        \"account_index\": 1,\n        \"label\": \"Secondary account new\"\n    }\n}"
+						},
+						"url": {
+							"raw": "http://{{address}}:{{port}}/json_rpc",
+							"protocol": "http",
+							"host": [
+								"{{address}}"
+							],
+							"port": "{{port}}",
+							"path": [
+								"json_rpc"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Tag Account",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "7a79a5e8-b619-47c8-846f-b8d5a210eaeb",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"jsonrpc\": \"2.0\",\n    \"id\": \"0\",\n    \"method\": \"tag_accounts\",\n    \"params\": {\n        \"tag\": \"account-2-tag\",\n        \"accounts\": [1]\n    }\n}"
+						},
+						"url": {
+							"raw": "http://{{address}}:{{port}}/json_rpc",
+							"protocol": "http",
+							"host": [
+								"{{address}}"
+							],
+							"port": "{{port}}",
+							"path": [
+								"json_rpc"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Accounts",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "a12d4384-5758-4568-bca8-290a2b89e35d",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"var jsonData = pm.response.json()",
+									"pm.test(\"Check attribute [base_address] value\", function () {",
+									"    pm.expect(pm.response.text()).to.include(\"base_address\");",
+									"    pm.expect(jsonData.result.subaddress_accounts[0].account_index).to.eql(0);",
+									"    pm.expect(jsonData.result.subaddress_accounts[0].base_address).to.eql(pm.environment.get(\"wallet_address\"));",
+									"    pm.expect(jsonData.result.subaddress_accounts[0].label).to.eql(\"Primary account\");",
+									"    pm.expect(jsonData.result.subaddress_accounts[0].tag).to.eql(\"\");",
+									"});",
+									"pm.test(\"Check attribute [base_address] value\", function () {",
+									"    pm.expect(pm.response.text()).to.include(\"base_address\");",
+									"    pm.expect(jsonData.result.subaddress_accounts[1].account_index).to.eql(1);",
+									"    pm.expect(jsonData.result.subaddress_accounts[1].base_address).to.eql(pm.environment.get(\"wallet_acc_address_1\"));",
+									"    pm.expect(jsonData.result.subaddress_accounts[1].label).to.eql(\"Secondary account new\");",
+									"    pm.expect(jsonData.result.subaddress_accounts[1].tag).to.eql(\"account-2-tag\");",
+									"});",
+									"",
+									"pm.test(\"Check attribute [subaddress_accounts] value\", function () {",
+									"    pm.expect(pm.response.text()).to.include(\"subaddress_accounts\");",
+									"    pm.expect(jsonData.result.subaddress_accounts.length).to.eql(2);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"jsonrpc\": \"2.0\",\n    \"id\": \"0\",\n    \"method\": \"get_accounts\",\n    \"params\": {}\n}"
+						},
+						"url": {
+							"raw": "http://{{address}}:{{port}}/json_rpc",
+							"protocol": "http",
+							"host": [
+								"{{address}}"
+							],
+							"port": "{{port}}",
+							"path": [
+								"json_rpc"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Accounts Tags",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "a12d4384-5758-4568-bca8-290a2b89e35d",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"var jsonData = pm.response.json();",
+									"pm.test(\"Check attribute [tag] value\", function () {",
+									"    pm.expect(jsonData.result.account_tags[0].tag).to.eql(\"account-2-tag\");",
+									"});",
+									"",
+									"pm.test(\"Check attribute [account_tags] value\", function () {",
+									"    pm.expect(pm.response.text()).to.include(\"account_tags\");",
+									"    pm.expect(jsonData.result.account_tags.length).to.eql(1);",
+									"});",
+									"",
+									"pm.test(\"Check attribute [account_tags] value\", function () {",
+									"    pm.expect(pm.response.text()).to.include(\"accounts\");",
+									"    pm.expect(jsonData.result.account_tags[0].accounts.length).to.eql(1);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"jsonrpc\": \"2.0\",\n    \"id\": \"0\",\n    \"method\": \"get_account_tags\",\n    \"params\": \"\"\n}"
+						},
+						"url": {
+							"raw": "http://{{address}}:{{port}}/json_rpc",
+							"protocol": "http",
+							"host": [
+								"{{address}}"
+							],
+							"port": "{{port}}",
+							"path": [
+								"json_rpc"
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"protocolProfileBehavior": {}
+		},
+		{
+			"name": "Integrated Address",
+			"item": [
+				{
+					"name": "Make Integrated Address",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "eafcf07e-0f3c-4f3b-8988-5c175708b527",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"var jsonData = pm.response.json()",
+									"pm.test(\"Body matches string\", function () {",
+									"    pm.expect(pm.response.text()).to.include(\"integrated_address\");",
+									"    pm.expect(pm.response.text()).to.include(\"payment_id\");",
+									"    ",
+									"    pm.environment.set(\"integrated_address\", jsonData.result.integrated_address);",
+									"    pm.environment.set(\"payment_id\", jsonData.result.payment_id);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"jsonrpc\": \"2.0\",\n    \"id\": \"0\",\n    \"method\": \"make_integrated_address\",\n    \"params\": {\n        \"payment_id\": \"\"\n    }\n}"
+						},
+						"url": {
+							"raw": "http://{{address}}:{{port}}/json_rpc",
+							"protocol": "http",
+							"host": [
+								"{{address}}"
+							],
+							"port": "{{port}}",
+							"path": [
+								"json_rpc"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Split Integrated Address",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "f5df9b41-e654-4caa-b570-0e00b66152d7",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"var jsonData = pm.response.json()",
+									"pm.test(\"Body matches string\", function () {",
+									"    pm.expect(pm.response.text()).to.include(\"is_subaddress\");",
+									"    pm.expect(pm.response.text()).to.include(\"payment_id\");",
+									"    pm.expect(pm.response.text()).to.include(\"standard_address\");",
+									"    ",
+									"    pm.expect(jsonData.result.is_subaddress).to.eql(false);",
+									"    pm.expect(jsonData.result.payment_id).to.eql(pm.environment.get(\"payment_id\"));",
+									"    pm.expect(jsonData.result.standard_address).to.eql(pm.environment.get(\"wallet_address\"));",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"jsonrpc\": \"2.0\",\n    \"id\": \"0\",\n    \"method\": \"split_integrated_address\",\n    \"params\": {\n        \"integrated_address\": \"{{integrated_address}}\"\n    }\n}"
+						},
+						"url": {
+							"raw": "http://{{address}}:{{port}}/json_rpc",
+							"protocol": "http",
+							"host": [
+								"{{address}}"
+							],
+							"port": "{{port}}",
+							"path": [
+								"json_rpc"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Make URI",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "351f3a21-4286-4731-88d6-c52480065ab8",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"var jsonData = pm.response.json()",
+									"pm.test(\"Body matches string\", function () {",
+									"    pm.expect(pm.response.text()).to.include(\"uri\");",
+									"    ",
+									"    ",
+									"    var wallet_address = pm.environment.get(\"wallet_address\");",
+									"    var payment_id = pm.environment.get(\"payment_id\");",
+									"    ",
+									"    var expected_uri = \"electroneum:\" + wallet_address + \"?tx_payment_id=\" + payment_id + \"&tx_amount=0.10&recipient_name=recipient-name&tx_description=description\";",
+									"    ",
+									"    pm.expect(jsonData.result.uri).to.eql(expected_uri);",
+									"    ",
+									"    ",
+									"    pm.environment.set(\"make_uri\", jsonData.result.uri);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"jsonrpc\": \"2.0\",\n    \"id\": \"0\",\n    \"method\": \"make_uri\",\n    \"params\": {\n        \"address\": \"{{wallet_address}}\",\n        \"amount\": 10,\n        \"payment_id\": \"{{payment_id}}\",\n        \"tx_description\": \"description\",\n        \"recipient_name\": \"recipient-name\"\n    }\n}"
+						},
+						"url": {
+							"raw": "http://{{address}}:{{port}}/json_rpc",
+							"protocol": "http",
+							"host": [
+								"{{address}}"
+							],
+							"port": "{{port}}",
+							"path": [
+								"json_rpc"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Parse URI",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "4e27e988-e046-41e7-8b83-26da0b69c42d",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"var jsonData = pm.response.json()",
+									"pm.test(\"Body matches string\", function () {",
+									"    pm.expect(pm.response.text()).to.include(\"uri\");",
+									"    pm.expect(pm.response.text()).to.include(\"address\");",
+									"    pm.expect(pm.response.text()).to.include(\"amount\");",
+									"    pm.expect(pm.response.text()).to.include(\"payment_id\");",
+									"    pm.expect(pm.response.text()).to.include(\"recipient_name\");",
+									"    pm.expect(pm.response.text()).to.include(\"tx_description\");",
+									"    ",
+									"    ",
+									"    var wallet_address = pm.environment.get(\"wallet_address\");",
+									"    var payment_id = pm.environment.get(\"payment_id\");",
+									"",
+									"    ",
+									"    pm.expect(jsonData.result.uri.address).to.eql(wallet_address);",
+									"    pm.expect(jsonData.result.uri.payment_id).to.eql(payment_id);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"jsonrpc\": \"2.0\",\n    \"id\": \"0\",\n    \"method\": \"parse_uri\",\n    \"params\": {\n        \"uri\": \"{{make_uri}}\"\n    }\n}"
+						},
+						"url": {
+							"raw": "http://{{address}}:{{port}}/json_rpc",
+							"protocol": "http",
+							"host": [
+								"{{address}}"
+							],
+							"port": "{{port}}",
+							"path": [
+								"json_rpc"
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"protocolProfileBehavior": {}
+		},
+		{
+			"name": "Transfer & Payments",
+			"item": [
+				{
+					"name": "Transfer",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "d86d2ec4-19c4-45a4-9a98-6cfde9e49e2d",
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"jsonrpc\": \"2.0\",\n    \"id\": \"0\",\n    \"method\": \"transfer\",\n    \"params\": {\n        \"destinations\": [\n            {\n                \"amount\": 10,\n                \"address\": \"etnkJAoYGNxZMgN7h9QSrrRXFwt3AmGkT3AwpWqpQnfj2rT6ehGCTcm83h6mVvverP53ujESK22eiLZR1mL9sDcG2b8p8Zp8UC\"\n            },\n            {\n                \"amount\": 10,\n                \"address\": \"etnkJAoYGNxZMgN7h9QSrrRXFwt3AmGkT3AwpWqpQnfj2rT6ehGCTcm83h6mVvverP53ujESK22eiLZR1mL9sDcG2b8p8Zp8UC\"\n            }\n        ],\n        \"mixin\": 4,\n        \"get_tx_key\": true,\n        \"get_tx_hex\": false\n    }\n}"
+						},
+						"url": {
+							"raw": "http://{{address}}:{{port}}/json_rpc",
+							"protocol": "http",
+							"host": [
+								"{{address}}"
+							],
+							"port": "{{port}}",
+							"path": [
+								"json_rpc"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Transfer Split",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"jsonrpc\": \"2.0\",\n    \"id\": \"0\",\n    \"method\": \"transfer_split\",\n    \"params\": {\n        \"destinations\": [\n            {\n                \"amount\": 10,\n                \"address\": \"etnkJAoYGNxZMgN7h9QSrrRXFwt3AmGkT3AwpWqpQnfj2rT6ehGCTcm83h6mVvverP53ujESK22eiLZR1mL9sDcG2b8p8Zp8UC\"\n            },\n            {\n                \"amount\": 20,\n                \"address\": \"etnkJAoYGNxZMgN7h9QSrrRXFwt3AmGkT3AwpWqpQnfj2rT6ehGCTcm83h6mVvverP53ujESK22eiLZR1mL9sDcG2b8p8Zp8UC\"\n            },\n            {\n                \"amount\": 20,\n                \"address\": \"etnkJAoYGNxZMgN7h9QSrrRXFwt3AmGkT3AwpWqpQnfj2rT6ehGCTcm83h6mVvverP53ujESK22eiLZR1mL9sDcG2b8p8Zp8UC\"\n            },\n            {\n                \"amount\": 20,\n                \"address\": \"etnkJAoYGNxZMgN7h9QSrrRXFwt3AmGkT3AwpWqpQnfj2rT6ehGCTcm83h6mVvverP53ujESK22eiLZR1mL9sDcG2b8p8Zp8UC\"\n            },\n            {\n                \"amount\": 20,\n                \"address\": \"etnkJAoYGNxZMgN7h9QSrrRXFwt3AmGkT3AwpWqpQnfj2rT6ehGCTcm83h6mVvverP53ujESK22eiLZR1mL9sDcG2b8p8Zp8UC\"\n            }\n        ],\n        \"get_tx_key\": true,\n        \"new_algorithm\": true\n    }\n}"
+						},
+						"url": {
+							"raw": "http://{{address}}:{{port}}/json_rpc",
+							"protocol": "http",
+							"host": [
+								"{{address}}"
+							],
+							"port": "{{port}}",
+							"path": [
+								"json_rpc"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Incoming Transfers",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"jsonrpc\": \"2.0\",\n    \"id\": \"0\",\n    \"method\": \"incoming_transfers\",\n    \"params\": {\n        \"transfer_type\": \"all\"\n    }\n}"
+						},
+						"url": {
+							"raw": "http://{{address}}:{{port}}/json_rpc",
+							"protocol": "http",
+							"host": [
+								"{{address}}"
+							],
+							"port": "{{port}}",
+							"path": [
+								"json_rpc"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Transfers",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"jsonrpc\": \"2.0\",\n    \"id\": \"0\",\n    \"method\": \"get_transfers\",\n    \"params\": {\n        \"pool\": true,\n        \"in\": true,\n        \"out\": true\n    }\n}"
+						},
+						"url": {
+							"raw": "http://{{address}}:{{port}}/json_rpc",
+							"protocol": "http",
+							"host": [
+								"{{address}}"
+							],
+							"port": "{{port}}",
+							"path": [
+								"json_rpc"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Transfers By Tx Id",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"jsonrpc\": \"2.0\",\n    \"id\": \"0\",\n    \"method\": \"get_transfer_by_txid\",\n    \"params\": {\n        \"txid\": \"3b684da84b029c4848808628e3c59b3241c7165981aa4f63f71159211b822d7a\"\n    }\n}"
+						},
+						"url": {
+							"raw": "http://{{address}}:{{port}}/json_rpc",
+							"protocol": "http",
+							"host": [
+								"{{address}}"
+							],
+							"port": "{{port}}",
+							"path": [
+								"json_rpc"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Payments",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"jsonrpc\": \"2.0\",\n    \"id\": \"0\",\n    \"method\": \"get_payments\",\n    \"params\": {\n        \"payment_id\": \"4279257e0a20608e25dba8744949c9e1caff4fcdafc7d5362ecf14225f3d9030\"\n    }\n}"
+						},
+						"url": {
+							"raw": "http://{{address}}:{{port}}/json_rpc",
+							"protocol": "http",
+							"host": [
+								"{{address}}"
+							],
+							"port": "{{port}}",
+							"path": [
+								"json_rpc"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Payments Bulk",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"jsonrpc\": \"2.0\",\n    \"id\": \"0\",\n    \"method\": \"get_bulk_payments\",\n    \"params\": {\n        \"payment_ids\": [\n            \"4ca8a395e101a094c7d4926dbd076d962903224209398a873833b27984da46b0\"\n        ],\n        \"min_block_height\": 100\n    }\n}"
+						},
+						"url": {
+							"raw": "http://{{address}}:{{port}}/json_rpc",
+							"protocol": "http",
+							"host": [
+								"{{address}}"
+							],
+							"port": "{{port}}",
+							"path": [
+								"json_rpc"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Sweep Dust",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"jsonrpc\": \"2.0\",\n    \"id\": \"0\",\n    \"method\": \"sweep_dust\"\n}"
+						},
+						"url": {
+							"raw": "http://{{address}}:{{port}}/json_rpc",
+							"protocol": "http",
+							"host": [
+								"{{address}}"
+							],
+							"port": "{{port}}",
+							"path": [
+								"json_rpc"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Sweep All",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"jsonrpc\": \"2.0\",\n    \"id\": \"0\",\n    \"method\": \"sweep_all\",\n    \"params\": {\n        \"address\": \"etnkJAoYGNxZMgN7h9QSrrRXFwt3AmGkT3AwpWqpQnfj2rT6ehGCTcm83h6mVvverP53ujESK22eiLZR1mL9sDcG2b8p8Zp8UC\",\n        \"unlock_time\": 0,\n        \"get_tx_keys\": true\n    }\n}"
+						},
+						"url": {
+							"raw": "http://{{address}}:{{port}}/json_rpc",
+							"protocol": "http",
+							"host": [
+								"{{address}}"
+							],
+							"port": "{{port}}",
+							"path": [
+								"json_rpc"
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"protocolProfileBehavior": {}
+		},
+		{
+			"name": "Rescan Blockchain",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"type": "text",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"jsonrpc\": \"2.0\",\n    \"id\": \"0\",\n    \"method\": \"rescan_blockchain\"\n}"
+				},
+				"url": {
+					"raw": "http://{{address}}:{{port}}/json_rpc",
+					"protocol": "http",
+					"host": [
+						"{{address}}"
+					],
+					"port": "{{port}}",
+					"path": [
+						"json_rpc"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Stop Wallet RPC",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"type": "text",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"jsonrpc\": \"2.0\",\n    \"id\": \"0\",\n    \"method\": \"stop_wallet\"\n}"
+				},
+				"url": {
+					"raw": "http://{{address}}:{{port}}/json_rpc",
+					"protocol": "http",
+					"host": [
+						"{{address}}"
+					],
+					"port": "{{port}}",
+					"path": [
+						"json_rpc"
+					]
+				}
+			},
+			"response": []
+		}
+	],
+	"protocolProfileBehavior": {}
+}
