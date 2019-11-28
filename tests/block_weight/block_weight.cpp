@@ -141,7 +141,7 @@ static uint32_t lcg()
 
 static void test(test_t t, uint64_t blocks)
 {
-  PREFIX(10);
+  PREFIX(HF_VERSION_LONG_TERM_BLOCK_WEIGHT);
 
   for (uint64_t h = 0; h < LONG_TERM_BLOCK_WEIGHT_WINDOW; ++h)
   {
