@@ -1953,21 +1953,22 @@ namespace hw {
         ge_p3 image_unp;
         ge_dsmp image_pre;
         crypto::ec_scalar sum, k, h;
+        crypto::secret_key q_s;
         boost::shared_ptr<crypto::rs_comm> buf(reinterpret_cast<crypto::rs_comm *>(malloc(crypto::rs_comm_size(pubs_count))), free);
         if (!buf)
             local_abort("malloc failure");
         assert(sec_index < pubs_count);
 #if !defined(NDEBUG)
         {
-            ge_p3 t;
-            crypto::public_key t2;
-            crypto::key_image t3;
-            assert(sc_check(&sec) == 0);
-            ge_scalarmult_base(&t, &sec);
-            ge_p3_tobytes(&t2, &t);
-            assert(*pubs[sec_index] == t2);
-            generate_key_image(*pubs[sec_index], sec, t3);
-            assert(image == t3);
+            //ge_p3 t;
+            //crypto::public_key t2;
+            //crypto::key_image t3;
+            //assert(sc_check(&sec) == 0);
+            //ge_scalarmult_base(&t, &sec);
+            //ge_p3_tobytes(&t2, &t);
+            //assert(*pubs[sec_index] == t2);
+            //generate_key_image(*pubs[sec_index], sec, t3);
+            //assert(image == t3);
             for (i = 0; i < pubs_count; i++) {
                 assert(check_key(*pubs[i]));
             }
@@ -1985,15 +1986,29 @@ namespace hw {
             // Comments below use the same notation as the Cryptonote whitepaper.
             if (i == sec_index) {
                 // Generate a random q_s
-                random_scalar(k);
-                // L_s = q_s*G
-                ge_scalarmult_base(&tmp3, &k);
+                //random_scalar(k)
+                // L_s = q_s*G;
+                // Generate q_s onboard and perform L-transform. Pass q_s back encrypted.
+                // If q_s were leaked in cleartext, someone could reverse engineer the output private key, and therefore
+                // reverse engineer the overall private key. q_s being kept secret means we can 'close the loop' later on with
+                // r_s = q_s -c_s*x where only r,c are known, for which there are l solutions (r'=q'-x') => privacy is maintained.
+                crypto::public_key L_s;
+                ge_p3 tmpimg;
+                this->generate_keys(L_s, q_s);
+                ge_frombytes_vartime(&tmp3, &L_s);
+                //ge_scalarmult_base(&tmp3, &k);
                 // L_s in byte form
                 ge_p3_tobytes(&buf->ab[i].a, &tmp3);
                 // tmp3 now becomes H_p(P_s)
                 hash_to_ec(*pubs[i], tmp3);
-                // R_s = q_s * H_p(P_s)
-                ge_scalarmult(&tmp2, &k, &tmp3);
+                // Onboard the device, this next step is equivalent to doing a key image calculation with q_s instead of x.
+                // Complete R-transform : R_s = q_s * H_p(P_s)
+                crypto::key_image R_s;
+                this->generate_key_image(*pubs[i], q_s,R_s);
+                ge_frombytes_vartime(&tmpimg, &R_s);
+                // Key image is a p3 representation of an ed25519 point so convert to p2 first
+                ge_p3_to_p2(&tmp2, &tmpimg);
+                //ge_scalarmult(&tmp2, &k, &tmp3);
                 // R_s in byte form
                 ge_tobytes(&buf->ab[i].b, &tmp2);
             } else {
@@ -2022,8 +2037,9 @@ namespace hw {
         // c_s = c-sum(c_i)  where i != s
         sc_sub(&sig[sec_index].c, &h, &sum);
         // Close the loop: r_s = q_s - c_s*x
-        // where x is the real output private key. This is the same x used to generate the key image
-        sc_mulsub(&sig[sec_index].r, &sig[sec_index].c, &unwrap(sec), &k);
+        // where x is the real output private key. This is the same x used to generate the key image.
+        // Todo: Next step is to pass encrypted q_s and x to the device and perform mulsub onboard.
+        sc_mulsub(&sig[sec_index].r, &sig[sec_index].c, &unwrap(sec), &unwrap(q_s));
     }
 
     /* ---------------------------------------------------------- */
