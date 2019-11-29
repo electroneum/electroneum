@@ -46,10 +46,6 @@ Copyright (c) 2017-2019, The Electroneum Project
 Copyright (c) 2014-2017, The Monero Project
 Portions Copyright (c) 2012-2013, The Cryptonote developers
 
-# Contributing
-
-If you want to help out, see [CONTRIBUTING](CONTRIBUTING.md) for a set of guidelines.
-
 ## Scheduled software upgrades
 
 | Software upgrade block height | Date       | Fork version | Minimum Electroneum version | Recommended Electroneum version | Details                                                                            |
