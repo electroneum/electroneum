@@ -810,7 +810,7 @@ namespace cryptonote
     bad_semantics_txes_lock.unlock();
 
     uint8_t version = m_blockchain_storage.get_current_hard_fork_version();
-    const size_t max_tx_version = version == 1 ? 1 : 2;
+    const size_t max_tx_version = version < HF_VERSION_ENABLE_RCT ? 1 : 2;
     if (tx.version == 0 || tx.version > max_tx_version)
     {
       // v2 is the latest one we know
@@ -1088,6 +1088,14 @@ namespace cryptonote
       MERROR_VER("tx with invalid outputs, rejected for tx id= " << get_transaction_hash(tx));
       return false;
     }
+    if (tx.version > 1)
+    {
+      if (tx.rct_signatures.outPk.size() != tx.vout.size())
+      {
+        MERROR_VER("tx with mismatched vout/outPk count, rejected for tx id= " << get_transaction_hash(tx));
+        return false;
+      }
+    }
 
     if(!check_money_overflow(tx))
     {
@@ -1095,15 +1103,19 @@ namespace cryptonote
       return false;
     }
 
-    uint64_t amount_in = 0;
-    get_inputs_money_amount(tx, amount_in);
-    uint64_t amount_out = get_outs_money_amount(tx);
-
-    if(amount_in <= amount_out)
+    if (tx.version == 1)
     {
-      MERROR_VER("tx with wrong amounts: ins " << amount_in << ", outs " << amount_out << ", rejected for tx id= " << get_transaction_hash(tx));
-      return false;
+      uint64_t amount_in = 0;
+      get_inputs_money_amount(tx, amount_in);
+      uint64_t amount_out = get_outs_money_amount(tx);
+
+      if(amount_in <= amount_out)
+      {
+        MERROR_VER("tx with wrong amounts: ins " << amount_in << ", outs " << amount_out << ", rejected for tx id= " << get_transaction_hash(tx));
+        return false;
+      }
     }
+    // for version > 1, ringct signatures check verifies amounts match
 
     if(!keeped_by_block && get_transaction_weight(tx) >= m_blockchain_storage.get_current_cumulative_block_weight_limit() - CRYPTONOTE_COINBASE_BLOB_RESERVED_SIZE)
     {

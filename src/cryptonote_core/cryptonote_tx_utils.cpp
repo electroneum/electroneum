@@ -161,7 +161,10 @@ namespace cryptonote
 
     CHECK_AND_ASSERT_MES(summary_amounts == block_reward, false, "Failed to construct miner tx, summary_amounts = " << summary_amounts << " not equal block_reward = " << block_reward);
 
-    tx.version = 1;
+    if (hard_fork_version >= HF_VERSION_ENABLE_RCT)
+      tx.version = 2;
+    else
+      tx.version = 1;
 
     //lock
     tx.unlock_time = height + (hard_fork_version > 7 ? ETN_MINED_MONEY_UNLOCK_WINDOW_V8 : CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW);

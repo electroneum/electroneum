@@ -202,6 +202,7 @@ namespace cryptonote
     bool get_description(const std::vector<std::string> &args);
     bool status(const std::vector<std::string> &args);
     bool wallet_info(const std::vector<std::string> &args);
+    bool set_default_ring_size(const std::vector<std::string> &args);
     bool set_default_priority(const std::vector<std::string> &args);
     bool sign(const std::vector<std::string> &args);
     bool verify(const std::vector<std::string> &args);

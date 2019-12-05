@@ -1583,15 +1583,24 @@ bool Blockchain::create_block_template(block& b, const crypto::hash *from_block,
     {
       LOG_ERROR("Creating block template: error: invalid transaction weight");
     }
-
-    uint64_t inputs_amount;
-    if (!get_inputs_money_amount(cur_tx.tx, inputs_amount))
+    if (cur_tx.tx.version == 1)
     {
-      LOG_ERROR("Creating block template: error: cannot get inputs amount");
+      uint64_t inputs_amount;
+      if (!get_inputs_money_amount(cur_tx.tx, inputs_amount))
+      {
+        LOG_ERROR("Creating block template: error: cannot get inputs amount");
+      }
+      else if (cur_tx.fee != inputs_amount - get_outs_money_amount(cur_tx.tx))
+      {
+        LOG_ERROR("Creating block template: error: invalid fee");
+      }
     }
-    else if (cur_tx.fee != inputs_amount - get_outs_money_amount(cur_tx.tx))
+    else
     {
-      LOG_ERROR("Creating block template: error: invalid fee");
+      if (cur_tx.fee != cur_tx.tx.rct_signatures.txnFee)
+      {
+        LOG_ERROR("Creating block template: error: invalid fee");
+      }
     }
   }
   if (txs_weight != real_txs_weight)
@@ -2763,7 +2772,7 @@ bool Blockchain::check_tx_outputs(const transaction& tx, tx_verification_context
   const uint8_t hf_version = m_hardfork->get_current_version();
 
   // from hard fork 2, we forbid dust and compound outputs
-  if (hf_version >= 2) {
+  if (hf_version >= HF_VERSION_FORBID_DUST_OUTPUTS) {
     for (auto &o: tx.vout) {
       if (tx.version == 1)
       {
@@ -2776,7 +2785,7 @@ bool Blockchain::check_tx_outputs(const transaction& tx, tx_verification_context
   }
 
   // in a v2 tx, all outputs must have 0 amount
-  if (hf_version >= 3) {
+  if (hf_version >= HF_VERSION_ENFORCE_RCT) {
     if (tx.version >= 2) {
       for (auto &o: tx.vout) {
         if (o.amount != 0) {
@@ -2788,7 +2797,7 @@ bool Blockchain::check_tx_outputs(const transaction& tx, tx_verification_context
   }
 
   // from v4, forbid invalid pubkeys
-  if (hf_version >= 4) {
+  if (hf_version >= HF_VERSION_FORBID_INVALID_PUBKEYS) {
     for (const auto &o: tx.vout) {
       if (o.target.type() == typeid(txout_to_key)) {
         const txout_to_key& out_to_key = boost::get<txout_to_key>(o.target);
@@ -2966,8 +2975,9 @@ bool Blockchain::check_tx_inputs(transaction& tx, tx_verification_context &tvc, 
       {
         const txin_to_key& in_to_key = boost::get<txin_to_key>(txin);
 
-        // Ensure Ring Size = 1
-        if (in_to_key.key_offsets.size() != DEFAULT_RINGSIZE)
+        // Ensure Ring Size = 1 from V6
+        if (hf_version >= HF_VERSION_ENFORCE_0_DECOY_TXS && hf_version < HF_VERSION_ENFORCE_0_DECOY_TXS_END &&
+              in_to_key.key_offsets.size() != DEFAULT_RINGSIZE)
         {
           MERROR_VER("Tx " << get_transaction_hash(tx) << " must have a ringsize of (" << (DEFAULT_RINGSIZE)
                            << "), and more than one mixable input with unmixable inputs");
@@ -3021,7 +3031,7 @@ bool Blockchain::check_tx_inputs(transaction& tx, tx_verification_context &tvc, 
       }
     }
     // min/max tx version based on HF, and we accept v1 txes if having a non mixable
-    const size_t max_tx_version = 1;
+    const size_t max_tx_version = (hf_version < HF_VERSION_ENABLE_RCT) ? 1 : 2;
     if (tx.version > max_tx_version)
     {
       MERROR_VER("transaction version " << (unsigned)tx.version << " is higher than max accepted version " << max_tx_version);
@@ -3720,7 +3730,7 @@ leave:
     m_validators->enable();
   }
 
-  if(bl.major_version >= 8) {
+  if(bl.major_version >= 8 && m_nettype != FAKECHAIN) {
 
     if(!m_validators->isValid()) {
       bvc.m_validator_list_update_failed = true;

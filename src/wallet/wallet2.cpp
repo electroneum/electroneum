@@ -2346,7 +2346,10 @@ void wallet2::process_outgoing(const crypto::hash &txid, const cryptonote::trans
     // wallet (eg, we're a cold wallet and the hot wallet sent it). For RCT transactions,
     // we only see 0 input amounts, so have to deduce amount out from other parameters.
     entry.first->second.m_amount_in = spent;
-    entry.first->second.m_amount_out = get_outs_money_amount(tx);
+    if (tx.version == 1)
+      entry.first->second.m_amount_out = get_outs_money_amount(tx);
+    else
+      entry.first->second.m_amount_out = spent - tx.rct_signatures.txnFee;
     entry.first->second.m_change = received;
 
     std::vector<tx_extra_field> tx_extra_fields;
@@ -7125,23 +7128,25 @@ int wallet2::get_fee_algorithm() const
 //------------------------------------------------------------------------------------------------------------------------------
 uint64_t wallet2::get_min_ring_size() const
 {
-  /*
-  if (use_fork_rules(8, 10))
+  if (use_fork_rules(HF_VERSION_MIN_MIXIN_10, 10))
     return 11;
-  if (use_fork_rules(7, 10))
+  if (use_fork_rules(HF_VERSION_MIN_MIXIN_6, 10))
     return 7;
-  */
-  if (use_fork_rules(6, 10))
+  if (use_fork_rules(HF_VERSION_MIN_MIXIN_4, 10))
+    return 5;
+  if (use_fork_rules(HF_VERSION_ENFORCE_0_DECOY_TXS, 10))
     return 1;
-  if (use_fork_rules(2, 10))
+  if (use_fork_rules(HF_VERSION_MIN_MIXIN_2, 10))
     return 3;
   return 0;
 }
 //------------------------------------------------------------------------------------------------------------------------------
 uint64_t wallet2::get_max_ring_size() const
 {
-  if (use_fork_rules(6, 10))
-    return 1;
+  if (use_fork_rules(HF_VERSION_MAX_RING_11, 10))
+    return 11;
+  //if (use_fork_rules(HF_VERSION_ENFORCE_0_DECOY_TXS, 10))
+  //  return 1;
   return 0;
 }
 //------------------------------------------------------------------------------------------------------------------------------

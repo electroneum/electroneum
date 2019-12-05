@@ -154,10 +154,17 @@
 #define THREAD_STACK_SIZE                       5 * 1024 * 1024
 
 #define CURRENT_HARDFORK_VERSION                  8
+#define HF_VERSION_FORBID_DUST_OUTPUTS            2
+#define HF_VERSION_FORBID_INVALID_PUBKEYS         4
+#define HF_VERSION_ENFORCE_0_DECOY_TXS            6
+#define HF_VERSION_ENFORCE_0_DECOY_TXS_END        100
 #define HF_VERSION_DYNAMIC_FEE                    100
+#define HF_VERSION_MIN_MIXIN_2                    2
 #define HF_VERSION_MIN_MIXIN_4                    100
 #define HF_VERSION_MIN_MIXIN_6                    100
 #define HF_VERSION_MIN_MIXIN_10                   100
+#define HF_VERSION_MAX_RING_11                    100
+#define HF_VERSION_ENABLE_RCT                     100
 #define HF_VERSION_ENFORCE_RCT                    100
 #define HF_VERSION_PER_BYTE_FEE                   100
 #define HF_VERSION_SMALLER_BP                     100
@@ -166,8 +173,6 @@
 #define HF_VERSION_ALLOW_BULLETPROOF              100
 #define HF_VERSION_FORBIT_BORROMEAN_RANGE_PROOFS  HF_VERSION_ALLOW_BULLETPROOF + 1
 
-//RingCT
-#define HF_VERSION_ENABLE_RCT                   100 //Make RCT enabled from v7
 
 #define PER_KB_FEE_QUANTIZATION_DECIMALS        2
 
