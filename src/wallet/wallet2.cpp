@@ -7145,8 +7145,8 @@ uint64_t wallet2::get_max_ring_size() const
 {
   if (use_fork_rules(HF_VERSION_MAX_RING_11, 10))
     return 11;
-  //if (use_fork_rules(HF_VERSION_ENFORCE_0_DECOY_TXS, 10))
-  //  return 1;
+  if (use_fork_rules(HF_VERSION_ENFORCE_0_DECOY_TXS, 10))
+    return 1;
   return 0;
 }
 //------------------------------------------------------------------------------------------------------------------------------
