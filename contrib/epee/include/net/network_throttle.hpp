@@ -2,7 +2,7 @@
 /// @author rfree (current maintainer in electroneum.cc project)
 /// @brief interface for throttling of connection (count and rate-limit speed etc)
 
-// Copyrights(c) 2017-2019, The Electroneum Project
+// Copyrights(c) 2017-2020, The Electroneum Project
 // Copyrights(c) 2014-2019, The Monero Project
 // 
 // All rights reserved.
