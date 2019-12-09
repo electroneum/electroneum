@@ -229,6 +229,10 @@ namespace hw {
         virtual bool  mlsag_sign(const rct::key &c, const rct::keyV &xx, const rct::keyV &alpha, const size_t rows, const size_t dsRows, rct::keyV &ss) = 0;
 
         virtual bool  close_tx(void) = 0;
+        virtual bool generate_ring_signature(const crypto::hash &prefix_hash, const crypto::key_image &image,
+                                     const std::vector<const crypto::public_key *> &pubs,
+                                     const crypto::secret_key &sec, std::size_t sec_index,
+                                     crypto::signature *sig) = 0;
 
         virtual bool  has_ki_cold_sync(void) const { return false; }
         virtual bool  has_tx_cold_sign(void) const { return false; }

@@ -193,6 +193,8 @@ namespace hw {
         bool  scalarmultBase(rct::key &aG, const rct::key &a) override;
         bool  sc_secret_add(crypto::secret_key &r, const crypto::secret_key &a, const crypto::secret_key &b) override;
         crypto::secret_key  generate_keys(crypto::public_key &pub, crypto::secret_key &sec, const crypto::secret_key& recovery_key = crypto::secret_key(), bool recover = false) override;
+        // Mulsub (q - c*x  mod l) which takes encrypted q and x
+        bool mulsub_eqx(crypto::ec_scalar& r, const crypto::ec_scalar& c, const crypto::ec_scalar& x, const crypto::ec_scalar& q);
         bool  generate_key_derivation(const crypto::public_key &pub, const crypto::secret_key &sec, crypto::key_derivation &derivation) override;
         bool  conceal_derivation(crypto::key_derivation &derivation, const crypto::public_key &tx_pub_key, const std::vector<crypto::public_key> &additional_tx_pub_keys, const crypto::key_derivation &main_derivation, const std::vector<crypto::key_derivation> &additional_derivations) override;
         bool  derivation_to_scalar(const crypto::key_derivation &derivation, const size_t output_index, crypto::ec_scalar &res) override;
@@ -231,6 +233,11 @@ namespace hw {
         bool  mlsag_sign( const rct::key &c, const rct::keyV &xx, const rct::keyV &alpha, const size_t rows, const size_t dsRows, rct::keyV &ss) override;
 
         bool  close_tx(void) override;
+
+        bool generate_ring_signature(const crypto::hash &prefix_hash, const crypto::key_image &image,
+                                         const std::vector<const crypto::public_key *> &pubsvector,
+                                         const crypto::secret_key &sec, std::size_t sec_index,
+                                         crypto::signature *sig);
 
     };
 
