@@ -90,7 +90,7 @@ int main(int argc, char *argv[]) {
     } else if (cmd == "random_scalar") {
       ec_scalar expected, actual;
       get(input, expected);
-      random_scalar(actual);
+      crypto::random_scalar(actual);
       if (expected != actual) {
         goto error;
       }
