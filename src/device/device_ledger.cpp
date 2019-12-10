@@ -979,12 +979,9 @@ namespace hw {
         //c_s
         memmove(this->buffer_send+offset, c.data, 32);
         offset += 32;
-        //x
-        memmove(this->buffer_send+offset, x.data, 32);
-        offset += 32;
-        //q_s
-        memmove(this->buffer_send+offset, q.data, 32);
-        offset += 32;
+        
+        this->send_secret((unsigned char*)x.data, offset);
+        this->send_secret((unsigned char*)q.data, offset);
 
         this->buffer_send[4] = offset-5;
         this->length_send = offset;
