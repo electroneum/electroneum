@@ -288,7 +288,7 @@ namespace cryptonote
     command_line::add_arg(desc, arg_bg_mining_miner_target_percentage);
   }
   //-----------------------------------------------------------------------------------------------------
-  bool miner::init(const boost::program_options::variables_map& vm, network_type nettype)
+  bool miner::init(const boost::program_options::variables_map& vm, network_type nettype, bool fallback_to_pow)
   {
     if(command_line::has_arg(vm, arg_extra_messages))
     {
@@ -343,6 +343,8 @@ namespace cryptonote
       set_idle_threshold( command_line::get_arg(vm, arg_bg_mining_idle_threshold_percentage) );
     if(command_line::has_arg(vm, arg_bg_mining_miner_target_percentage))
       set_mining_target( command_line::get_arg(vm, arg_bg_mining_miner_target_percentage) );
+
+    m_fallback_to_pow = fallback_to_pow;
 
     return true;
   }
@@ -551,7 +553,7 @@ namespace cryptonote
         CRITICAL_REGION_BEGIN(m_template_lock);
         b = m_template;
 
-        if(b.major_version >= 8 && b.signature.empty()) {
+        if(!m_fallback_to_pow && b.major_version >= 8 && b.signature.empty()) {
           continue;
         }
 

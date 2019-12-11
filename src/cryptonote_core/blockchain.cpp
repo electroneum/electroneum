@@ -322,7 +322,7 @@ uint64_t Blockchain::get_current_blockchain_height() const
 //------------------------------------------------------------------
 //FIXME: possibly move this into the constructor, to avoid accidentally
 //       dereferencing a null BlockchainDB pointer
-bool Blockchain::init(BlockchainDB* db, const network_type nettype, bool offline, const cryptonote::test_options *test_options, difficulty_type fixed_difficulty, const GetCheckpointsCallback& get_checkpoints/* = nullptr*/, bool ignore_bsig)
+bool Blockchain::init(BlockchainDB* db, const network_type nettype, bool offline, const cryptonote::test_options *test_options, difficulty_type fixed_difficulty, const GetCheckpointsCallback& get_checkpoints/* = nullptr*/, bool ignore_bsig, bool fallback_to_pow)
 {
   LOG_PRINT_L3("Blockchain::" << __func__);
 
@@ -349,6 +349,7 @@ bool Blockchain::init(BlockchainDB* db, const network_type nettype, bool offline
   m_offline = offline;
   m_fixed_difficulty = fixed_difficulty;
   m_ignore_bsig = ignore_bsig;
+  m_fallback_to_pow = fallback_to_pow;
   if (m_hardfork == nullptr)
   {
     if (m_nettype ==  FAKECHAIN || m_nettype == STAGENET)
@@ -1681,7 +1682,7 @@ bool Blockchain::create_block_template(block& b, const crypto::hash *from_block,
     //if (!from_block)
     //  cache_block_template(b, miner_address, ex_nonce, diffic, height, expected_reward, pool_cookie);
 
-    if(hf_version >= 8) {
+    if(!m_fallback_to_pow && hf_version >= 8) {
       sign_block(b, m_validator_key);
     }
 
@@ -1810,21 +1811,24 @@ bool Blockchain::handle_alternative_block(const block& b, const crypto::hash& id
     return false;
   }
 
-  if(b.minor_version >= 8 && !m_validators->isEnabled()) {
-    m_validators->enable();
-  }
-
   if(b.major_version >= 8) {
 
-    if(!m_validators->isValid()) {
-      bvc.m_validator_list_update_failed = true;
-      return false;
-    }
+    if(!m_fallback_to_pow) {
 
-    if(!verify_block_signature(b)) {
-      MERROR_VER("Block with id: " << id << std::endl << " has wrong digital signature");
-      bvc.m_verifivation_failed = true;
-      return false;
+      if(!m_validators->isEnabled()) {
+        m_validators->enable();
+      }
+
+      if(!m_validators->isValid()) {
+        bvc.m_validator_list_update_failed = true;
+        return false;
+      }
+
+      if(!verify_block_signature(b)) {
+        MERROR_VER("Block with id: " << id << std::endl << " has wrong digital signature");
+        bvc.m_verifivation_failed = true;
+        return false;
+      }
     }
   }
 
@@ -1867,7 +1871,7 @@ bool Blockchain::handle_alternative_block(const block& b, const crypto::hash& id
     uint64_t block_reward = get_outs_money_amount(b.miner_tx);
     bei.already_generated_coins = block_reward + (alt_chain.size() ? it_prev->second.already_generated_coins : m_db->get_block_already_generated_coins(prev_height));
 
-    if(b.major_version >= 8)
+    if(!m_fallback_to_pow && b.major_version >= 8)
     {
       std::vector<uint8_t> prev_signatory = alt_chain.size() ? it_prev->second.bl.signatory : m_db->get_block(b.prev_id).signatory;
       CHECK_AND_ASSERT_MES(b.signatory != prev_signatory, false, "a single validator can't mine blocks in sequence");
@@ -3726,27 +3730,30 @@ leave:
     return false;
   }
 
-  if(bl.minor_version >= 8 && !m_validators->isEnabled()) {
-    m_validators->enable();
-  }
-
   if(bl.major_version >= 8 && m_nettype != FAKECHAIN) {
 
-    if(!m_validators->isValid()) {
-      bvc.m_validator_list_update_failed = true;
-      goto leave;
-    }
+    if(!m_fallback_to_pow) {
 
-    if(!verify_block_signature(bl) && !m_ignore_bsig) {
-      MERROR_VER("Block with id: " << id << std::endl << " has wrong digital signature");
-      bvc.m_verifivation_failed = true;
-      goto leave;
-    }
-    if(bl.signatory == m_db->get_block(bl.prev_id).signatory &&  !m_ignore_bsig){
-      MERROR_VER("Block with id: " << id << std::endl << " has the same signatory as the previous block, which is not allowed");
-      bvc.m_verifivation_failed = true;
-      bvc.m_sequential_block = true;
-      goto leave;
+      if(!m_validators->isEnabled()) {
+        m_validators->enable();
+      }
+
+      if(!m_validators->isValid()) {
+        bvc.m_validator_list_update_failed = true;
+        goto leave;
+      }
+
+      if(!verify_block_signature(bl) && !m_ignore_bsig) {
+        MERROR_VER("Block with id: " << id << std::endl << " has wrong digital signature");
+        bvc.m_verifivation_failed = true;
+        goto leave;
+      }
+      if(bl.signatory == m_db->get_block(bl.prev_id).signatory &&  !m_ignore_bsig){
+        MERROR_VER("Block with id: " << id << std::endl << " has the same signatory as the previous block, which is not allowed");
+        bvc.m_verifivation_failed = true;
+        bvc.m_sequential_block = true;
+        goto leave;
+      }
     }
   }
 

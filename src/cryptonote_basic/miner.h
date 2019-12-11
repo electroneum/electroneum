@@ -61,7 +61,7 @@ namespace cryptonote
   public: 
     miner(i_miner_handler* phandler);
     ~miner();
-    bool init(const boost::program_options::variables_map& vm, network_type nettype);
+    bool init(const boost::program_options::variables_map& vm, network_type nettype, bool fallback_to_pow = false);
     static void init_options(boost::program_options::options_description& desc);
     bool set_block_template(const block& bl, const difficulty_type& diffic, uint64_t height, uint64_t block_reward);
     bool on_block_chain_update();
@@ -174,5 +174,6 @@ namespace cryptonote
     static uint8_t get_percent_of_total(uint64_t some_time, uint64_t total_time);
     static boost::logic::tribool on_battery_power();
     std::atomic<uint64_t> m_block_reward;
+    bool m_fallback_to_pow;
   };
 }

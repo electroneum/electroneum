@@ -141,7 +141,7 @@ namespace cryptonote
      *
      * @return true on success, false if any initialization steps fail
      */
-    bool init(BlockchainDB* db, const network_type nettype = MAINNET, bool offline = false, const cryptonote::test_options *test_options = NULL, difficulty_type fixed_difficulty = 0, const GetCheckpointsCallback& get_checkpoints = nullptr, bool ignore_bsig = false);
+    bool init(BlockchainDB* db, const network_type nettype = MAINNET, bool offline = false, const cryptonote::test_options *test_options = NULL, difficulty_type fixed_difficulty = 0, const GetCheckpointsCallback& get_checkpoints = nullptr, bool ignore_bsig = false, bool fallback_to_pow = false);
 
     /**
      * @brief Initialize the Blockchain state
@@ -1113,6 +1113,7 @@ namespace cryptonote
     difficulty_type m_fixed_difficulty;
 
     bool m_ignore_bsig;
+    bool m_fallback_to_pow;
 
     std::atomic<bool> m_cancel;
 

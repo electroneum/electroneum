@@ -219,6 +219,13 @@ namespace cryptonote
   , "Validator Key"
   , ""
   };
+  const command_line::arg_descriptor<bool> arg_fallback_to_pow  = {
+    "fallback-to-pow"
+    , "Disables all Validator feature and fallback consensus to standard Proof-of-Work (CryptoNote V1)."
+      "This argument is a decentralization safety measure in case something happens with Electroneum Ltd"
+      "so that users can fork the network to Proof of Work. (Anti Meteor Feature)"
+    , false
+  };
 
   //using namespace electroneum::basic;
 
@@ -352,6 +359,7 @@ namespace cryptonote
     command_line::add_arg(desc, arg_reorg_notify);
     command_line::add_arg(desc, arg_block_rate_notify);
     command_line::add_arg(desc, arg_validator_key);
+    command_line::add_arg(desc, arg_fallback_to_pow);
 
     miner::init_options(desc);
     BlockchainDB::init_options(desc);
@@ -667,7 +675,8 @@ namespace cryptonote
     };
     const difficulty_type fixed_difficulty = command_line::get_arg(vm, arg_fixed_difficulty);
     const bool ignore_bsig = command_line::get_arg(vm, arg_skip_block_sig_verification);
-    r = m_blockchain_storage.init(db.release(), m_nettype, m_offline, regtest ? &regtest_test_options : test_options, fixed_difficulty, get_checkpoints, ignore_bsig);
+    m_fallback_to_pow = command_line::get_arg(vm, arg_fallback_to_pow);
+    r = m_blockchain_storage.init(db.release(), m_nettype, m_offline, regtest ? &regtest_test_options : test_options, fixed_difficulty, get_checkpoints, ignore_bsig, m_fallback_to_pow);
 
     r = m_mempool.init(max_txpool_weight);
     CHECK_AND_ASSERT_MES(r, false, "Failed to initialize memory pool");
@@ -702,7 +711,7 @@ namespace cryptonote
       return false;
     }
 
-    r = m_miner.init(vm, m_nettype);
+    r = m_miner.init(vm, m_nettype, m_fallback_to_pow);
     CHECK_AND_ASSERT_MES(r, false, "Failed to initialize miner instance");
 
     if (prune_blockchain)
@@ -718,12 +727,14 @@ namespace cryptonote
         CHECK_AND_ASSERT_MES(m_blockchain_storage.update_blockchain_pruning(), false, "Failed to update blockchain pruning");
       }
     }
-    
-    m_validators = std::unique_ptr<electroneum::basic::Validators>(new electroneum::basic::Validators(m_blockchain_storage.get_db(), m_pprotocol, m_nettype == TESTNET));
-    m_blockchain_storage.set_validators_list_instance(m_validators);
 
-    if(m_blockchain_storage.get_current_blockchain_height() >= ((m_nettype == TESTNET ? 446674 : 589169) - 720 )) { //V8 Height - 1 day
-      m_validators->enable();
+    if(!m_fallback_to_pow) {
+      m_validators = std::unique_ptr<electroneum::basic::Validators>(new electroneum::basic::Validators(m_blockchain_storage.get_db(), m_pprotocol, m_nettype == TESTNET));
+      m_blockchain_storage.set_validators_list_instance(m_validators);
+
+      if(m_blockchain_storage.get_current_blockchain_height() >= ((m_nettype == TESTNET ? 446674 : 589169) - 720 )) { //V8 Height - 1 day
+        m_validators->enable();
+      }
     }
 
     return load_state_data();
@@ -1423,6 +1434,10 @@ namespace cryptonote
         arg.b.txs.push_back(tx);
 
       m_pprotocol->relay_block(arg, exclude_context);
+
+      if(m_fallback_to_pow) {
+        m_miner.resume();
+      }
     } else {
       update_miner_block_template();
       m_miner.resume();
@@ -1669,7 +1684,10 @@ namespace cryptonote
     m_blockchain_pruning_interval.do_call(boost::bind(&core::update_blockchain_pruning, this));
     m_miner.on_idle();
     m_mempool.on_idle();
-    m_validators->on_idle();
+
+    if(!m_fallback_to_pow) {
+      m_validators->on_idle();
+    }
 
     return true;
   }

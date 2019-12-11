@@ -67,6 +67,7 @@ namespace cryptonote
   extern const command_line::arg_descriptor<bool> arg_skip_block_sig_verification;
   extern const command_line::arg_descriptor<bool> arg_offline;
   extern const command_line::arg_descriptor<size_t> arg_block_download_max_size;
+  extern const command_line::arg_descriptor<bool> arg_fallback_to_pow;
 
   /************************************************************************/
   /*                                                                      */
@@ -1109,6 +1110,8 @@ namespace cryptonote
      bool m_pad_transactions;
 
      std::shared_ptr<tools::Notify> m_block_rate_notify;
+
+     bool m_fallback_to_pow;
    };
 }
 
