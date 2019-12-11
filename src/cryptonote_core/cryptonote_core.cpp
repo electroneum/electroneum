@@ -223,7 +223,8 @@ namespace cryptonote
     "fallback-to-pow"
     , "Disables all Validator feature and fallback consensus to standard Proof-of-Work (CryptoNote V1)."
       "This argument is a decentralization safety measure in case something happens with Electroneum Ltd"
-      "so that users can fork the network to Proof of Work. (Anti Meteor Feature)"
+      "so that users can fork the network to Proof of Work. (Anti Meteor Feature)."
+      "***WARNING: IF YOU USE THIS ARGUMENT AND MINE BLOCKS AND LATER WISH TO RETURN TO THE TIP OF THE V8 *MODERATED* BLOCKCHAIN, YOU WILL HAVE TO MANUALLY POP BLOCKS BACK USING THE DAEMON (OR IMPORT) PROGRAM"
     , false
   };
 
