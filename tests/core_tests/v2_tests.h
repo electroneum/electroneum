@@ -1,5 +1,5 @@
-// Copyrights(c) 2017-2019, The Electroneum Project
-// Copyrights(c) 2014-2017, The Monero Project
+// Copyrights(c) 2017-2020, The Electroneum Project
+// Copyrights(c) 2014-2019, The Monero Project
 // 
 // All rights reserved.
 // 
@@ -82,7 +82,7 @@ template<>
 struct get_test_options<gen_v2_tx_validation_base> {
   const std::pair<uint8_t, uint64_t> hard_forks[3] = {std::make_pair(1, 0), std::make_pair(2, 1), std::make_pair(0, 0)};
   const cryptonote::test_options test_options = {
-    hard_forks
+    hard_forks, 0
   };
 };
 

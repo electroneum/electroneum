@@ -1,5 +1,5 @@
-// Copyrights(c) 2017-2019, The Electroneum Project
-// Copyrights(c) 2014-2017, The Monero Project
+// Copyrights(c) 2017-2020, The Electroneum Project
+// Copyrights(c) 2014-2019, The Monero Project
 // 
 // All rights reserved.
 // 
@@ -88,7 +88,7 @@ struct variant_reader
 };
 
 // This one just fails when you call it.... okay
-// So the TEnd parameter must be specified/differnt from TBegin
+// So the TEnd parameter must be specified/different from TBegin
 template <class Archive, class Variant, class TBegin>
 struct variant_reader<Archive, Variant, TBegin, TBegin>
 {

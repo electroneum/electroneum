@@ -1,4 +1,4 @@
-// Copyrights(c) 2017-2019, The Electroneum Project
+// Copyrights(c) 2017-2020, The Electroneum Project
 //
 // All rights reserved.
 //
@@ -83,11 +83,11 @@ namespace electroneum {
           return this->publicKey;
         }
 
-        inline const uint64_t getStartHeight() {
+        inline uint64_t getStartHeight() {
           return this->startHeight;
         }
 
-        inline const uint64_t getEndHeight() {
+        inline uint64_t getEndHeight() {
           return this->endHeight;
         }
 

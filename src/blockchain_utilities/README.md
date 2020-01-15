@@ -1,6 +1,6 @@
 # Electroneum Blockchain Utilities
 
-Copyright (c) 2014-2017, The Monero Project
+Copyright (c) 2014-2019, The Monero Project
 
 ## Introduction
 
@@ -79,7 +79,7 @@ LMDB flags (more than one may be specified):
 
 ## Examples:
 
-```
+```bash
 $ electroneum-blockchain-import --database lmdb#fastest
 
 $ electroneum-blockchain-import --database lmdb#nosync

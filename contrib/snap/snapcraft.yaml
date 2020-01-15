@@ -35,7 +35,6 @@ parts:
         plugin: cmake
         configflags:
             - -DBDB_STATIC=1
-            - -DUPNP_STATIC=1
             - -DBoost_USE_STATIC_LIBS=1
             - -DBoost_USE_STATIC_RUNTIME=1
             - -DARCH=default
@@ -46,11 +45,15 @@ parts:
             - libunbound-dev
             - libevent-dev
             - libboost-all-dev
+            - libzmqpp-dev
+            - libzmq3-dev
+            - libsodium-dev
             - libdb-dev
             - libunwind-dev
             - libminiupnpc-dev
             - libldns-dev
             - libexpat1-dev
+            - libreadline6-dev
             - bison
             - doxygen
             - graphviz

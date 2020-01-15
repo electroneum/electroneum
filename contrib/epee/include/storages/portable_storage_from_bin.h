@@ -137,6 +137,7 @@ namespace epee
       array_entry_t<type_name> sa;
       size_t size = read_varint();
       CHECK_AND_ASSERT_THROW_MES(size <= m_count, "Size sanity check failed");
+      sa.reserve(size);
       //TODO: add some optimization here later
       while(size--)
         sa.m_array.push_back(read<type_name>());        

@@ -1,5 +1,5 @@
-# Copyright (c) 2017-2019, The Electroneum Project
-# Copyright (c) 2014-2017, The Monero Project
+# Copyright (c) 2017-2020, The Electroneum Project
+# Copyright (c) 2014-2019, The Monero Project
 # 
 # All rights reserved.
 # 
@@ -34,6 +34,7 @@ project(easylogging CXX)
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
 find_package(Threads)
+find_package(Backtrace)
 
 add_library(easylogging
   easylogging++.cc)
@@ -42,7 +43,8 @@ include_directories("${CMAKE_CURRENT_SOURCE_DIR}")
 include_directories("${CMAKE_CURRENT_BINARY_DIR}")
 target_link_libraries(easylogging
   PRIVATE
-    ${CMAKE_THREAD_LIBS_INIT})
+    ${CMAKE_THREAD_LIBS_INIT}
+    ${Backtrace_LIBRARIES})
 
 # GUI/libwallet install target
 if (BUILD_GUI_DEPS)
@@ -52,6 +54,8 @@ if (BUILD_GUI_DEPS)
         set(lib_folder lib)
     endif()
     install(TARGETS easylogging
-        ARCHIVE DESTINATION ${lib_folder})
+        ARCHIVE DESTINATION ${lib_folder}
+        LIBRARY DESTINATION ${lib_folder})
 endif()
+set_property(TARGET easylogging APPEND PROPERTY COMPILE_FLAGS "-fPIC")
 

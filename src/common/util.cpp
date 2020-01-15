@@ -1,5 +1,5 @@
-// Copyrights(c) 2017-2019, The Electroneum Project
-// Copyrights(c) 2014-2017, The Monero Project
+// Copyrights(c) 2017-2020, The Electroneum Project
+// Copyrights(c) 2014-2019, The Monero Project
 // 
 // All rights reserved.
 // 
@@ -29,32 +29,100 @@
 // 
 // Parts of this file are originally copyright (c) 2012-2013 The Cryptonote developers
 
+#include <unistd.h>
 #include <cstdio>
+
+#ifdef __GLIBC__
+#include <gnu/libc-version.h>
+#endif
+
+#ifdef __GLIBC__
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <sys/resource.h>
+#include <unistd.h>
+#include <dirent.h>
+#include <string.h>
+#include <ctype.h>
+#include <string>
+#endif
+
+//tools::is_hdd
+#ifdef __GLIBC__
+  #include <sstream>
+  #include <sys/sysmacros.h>
+  #include <fstream>
+#endif
+
+#include "unbound.h"
 
 #include "include_base_utils.h"
 #include "file_io_utils.h"
+#include "wipeable_string.h"
+#include "misc_os_dependent.h"
 using namespace epee;
 
+#include "crypto/crypto.h"
 #include "util.h"
+#include "stack_trace.h"
+#include "memwipe.h"
 #include "cryptonote_config.h"
 #include "net/http_client.h"                        // epee::net_utils::...
 
 #ifdef WIN32
-#include <windows.h>
-#include <shlobj.h>
-#include <strsafe.h>
+#ifndef STRSAFE_NO_DEPRECATE
+#define STRSAFE_NO_DEPRECATE
+#endif
+  #include <windows.h>
+  #include <shlobj.h>
+  #include <strsafe.h>
 #else 
-#include <sys/utsname.h>
+  #include <sys/file.h>
+  #include <sys/utsname.h>
+  #include <sys/stat.h>
 #endif
 #include <boost/filesystem.hpp>
+#include <boost/algorithm/string.hpp>
 #include <boost/asio.hpp>
+#include <boost/format.hpp>
 #include <openssl/sha.h>
+
+#undef ELECTRONEUM_DEFAULT_LOG_CATEGORY
+#define ELECTRONEUM_DEFAULT_LOG_CATEGORY "util"
+
+namespace
+{
+
+#ifndef _WIN32
+static int flock_exnb(int fd)
+{
+  struct flock fl;
+  int ret;
+
+  memset(&fl, 0, sizeof(fl));
+  fl.l_type = F_WRLCK;
+  fl.l_whence = SEEK_SET;
+  fl.l_start = 0;
+  fl.l_len = 0;
+  ret = fcntl(fd, F_SETLK, &fl);
+  if (ret < 0)
+    MERROR("Error locking fd " << fd << ": " << errno << " (" << strerror(errno) << ")");
+  return ret;
+}
+#endif
+
+}
 
 namespace tools
 {
   std::function<void(int)> signal_handler::m_handler;
 
-  std::unique_ptr<std::FILE, tools::close_file> create_private_file(const std::string& name)
+  private_file::private_file() noexcept : m_handle(), m_filename() {}
+
+  private_file::private_file(std::FILE* handle, std::string&& filename) noexcept
+    : m_handle(handle), m_filename(std::move(filename)) {}
+
+  private_file private_file::create(std::string name)
   {
 #ifdef WIN32
     struct close_handle
@@ -71,17 +139,17 @@ namespace tools
       const bool fail = OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, std::addressof(temp)) == 0;
       process.reset(temp);
       if (fail)
-        return nullptr;
+        return {};
     }
 
     DWORD sid_size = 0;
     GetTokenInformation(process.get(), TokenOwner, nullptr, 0, std::addressof(sid_size));
     if (GetLastError() != ERROR_INSUFFICIENT_BUFFER)
-      return nullptr;
+      return {};
 
     std::unique_ptr<char[]> sid{new char[sid_size]};
     if (!GetTokenInformation(process.get(), TokenOwner, sid.get(), sid_size, std::addressof(sid_size)))
-      return nullptr;
+      return {};
 
     const PSID psid = reinterpret_cast<const PTOKEN_OWNER>(sid.get())->Owner;
     const DWORD daclSize =
@@ -89,17 +157,17 @@ namespace tools
 
     const std::unique_ptr<char[]> dacl{new char[daclSize]};
     if (!InitializeAcl(reinterpret_cast<PACL>(dacl.get()), daclSize, ACL_REVISION))
-      return nullptr;
+      return {};
 
     if (!AddAccessAllowedAce(reinterpret_cast<PACL>(dacl.get()), ACL_REVISION, (READ_CONTROL | FILE_GENERIC_READ | DELETE), psid))
-      return nullptr;
+      return {};
 
     SECURITY_DESCRIPTOR descriptor{};
     if (!InitializeSecurityDescriptor(std::addressof(descriptor), SECURITY_DESCRIPTOR_REVISION))
-      return nullptr;
+      return {};
 
     if (!SetSecurityDescriptorDacl(std::addressof(descriptor), true, reinterpret_cast<PACL>(dacl.get()), false))
-      return nullptr;
+      return {};
 
     SECURITY_ATTRIBUTES attributes{sizeof(SECURITY_ATTRIBUTES), std::addressof(descriptor), false};
     std::unique_ptr<void, close_handle> file{
@@ -107,7 +175,7 @@ namespace tools
         name.c_str(),
         GENERIC_WRITE, FILE_SHARE_READ,
         std::addressof(attributes),
-        CREATE_NEW, FILE_ATTRIBUTE_TEMPORARY,
+        CREATE_NEW, (FILE_ATTRIBUTE_TEMPORARY | FILE_FLAG_DELETE_ON_CLOSE),
         nullptr
       )
     };
@@ -122,22 +190,116 @@ namespace tools
         {
           _close(fd);
         }
-        return {real_file, tools::close_file{}};
+        return {real_file, std::move(name)};
       }
     }
 #else
-    const int fd = open(name.c_str(), (O_RDWR | O_EXCL | O_CREAT), S_IRUSR);
-    if (0 <= fd)
+    const int fdr = open(name.c_str(), (O_RDONLY | O_CREAT), S_IRUSR);
+    if (0 <= fdr)
     {
-      std::FILE* file = fdopen(fd, "w");
-      if (!file)
+      struct stat rstats = {};
+      if (fstat(fdr, std::addressof(rstats)) != 0)
       {
-        close(fd);
+        close(fdr);
+        return {};
       }
-      return {file, tools::close_file{}};
+      fchmod(fdr, (S_IRUSR | S_IWUSR));
+      const int fdw = open(name.c_str(), O_RDWR);
+      fchmod(fdr, rstats.st_mode);
+      close(fdr);
+
+      if (0 <= fdw)
+      {
+        struct stat wstats = {};
+        if (fstat(fdw, std::addressof(wstats)) == 0 &&
+            rstats.st_dev == wstats.st_dev && rstats.st_ino == wstats.st_ino &&
+            flock_exnb(fdw) == 0 && ftruncate(fdw, 0) == 0)
+        {
+          std::FILE* file = fdopen(fdw, "w");
+          if (file) return {file, std::move(name)};
+        }
+        close(fdw);
+      }
     }
 #endif
-    return nullptr;
+    return {};
+  }
+
+  private_file::~private_file() noexcept
+  {
+    try
+    {
+      boost::system::error_code ec{};
+      boost::filesystem::remove(filename(), ec);
+    }
+    catch (...) {}
+  }
+
+  file_locker::file_locker(const std::string &filename)
+  {
+#ifdef WIN32
+    m_fd = INVALID_HANDLE_VALUE;
+    std::wstring filename_wide;
+    try
+    {
+      filename_wide = string_tools::utf8_to_utf16(filename);
+    }
+    catch (const std::exception &e)
+    {
+      MERROR("Failed to convert path \"" << filename << "\" to UTF-16: " << e.what());
+      return;
+    }
+    m_fd = CreateFileW(filename_wide.c_str(), GENERIC_READ, 0, NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+    if (m_fd != INVALID_HANDLE_VALUE)
+    {
+      OVERLAPPED ov;
+      memset(&ov, 0, sizeof(ov));
+      if (!LockFileEx(m_fd, LOCKFILE_FAIL_IMMEDIATELY | LOCKFILE_EXCLUSIVE_LOCK, 0, 1, 0, &ov))
+      {
+        MERROR("Failed to lock " << filename << ": " << std::error_code(GetLastError(), std::system_category()));
+        CloseHandle(m_fd);
+        m_fd = INVALID_HANDLE_VALUE;
+      }
+    }
+    else
+    {
+      MERROR("Failed to open " << filename << ": " << std::error_code(GetLastError(), std::system_category()));
+    }
+#else
+    m_fd = open(filename.c_str(), O_RDWR | O_CREAT | O_CLOEXEC, 0666);
+    if (m_fd != -1)
+    {
+      if (flock_exnb(m_fd) == -1)
+      {
+        MERROR("Failed to lock " << filename << ": " << std::strerror(errno));
+        close(m_fd);
+        m_fd = -1;
+      }
+    }
+    else
+    {
+      MERROR("Failed to open " << filename << ": " << std::strerror(errno));
+    }
+#endif
+  }
+  file_locker::~file_locker()
+  {
+    if (locked())
+    {
+#ifdef WIN32
+      CloseHandle(m_fd);
+#else
+      close(m_fd);
+#endif
+    }
+  }
+  bool file_locker::locked() const
+  {
+#ifdef WIN32
+    return m_fd != INVALID_HANDLE_VALUE;
+#else
+    return m_fd != -1;
+#endif
   }
 
 #ifdef WIN32
@@ -178,10 +340,19 @@ namespace tools
       StringCchCopy(pszOS, BUFSIZE, TEXT("Microsoft "));
 
       // Test for the specific product.
+      if ( osvi.dwMajorVersion == 10 )
+      {
+        if ( osvi.dwMinorVersion == 0 )
+        {
+          if( osvi.wProductType == VER_NT_WORKSTATION )
+            StringCchCat(pszOS, BUFSIZE, TEXT("Windows 10 "));
+          else StringCchCat(pszOS, BUFSIZE, TEXT("Windows Server 2016 " ));
+        }
+      }
 
       if ( osvi.dwMajorVersion == 6 )
       {
-        if( osvi.dwMinorVersion == 0 )
+        if ( osvi.dwMinorVersion == 0 )
         {
           if( osvi.wProductType == VER_NT_WORKSTATION )
             StringCchCat(pszOS, BUFSIZE, TEXT("Windows Vista "));
@@ -193,6 +364,20 @@ namespace tools
           if( osvi.wProductType == VER_NT_WORKSTATION )
             StringCchCat(pszOS, BUFSIZE, TEXT("Windows 7 "));
           else StringCchCat(pszOS, BUFSIZE, TEXT("Windows Server 2008 R2 " ));
+        }
+
+        if ( osvi.dwMinorVersion == 2 )
+        {
+          if( osvi.wProductType == VER_NT_WORKSTATION )
+            StringCchCat(pszOS, BUFSIZE, TEXT("Windows 8 "));
+          else StringCchCat(pszOS, BUFSIZE, TEXT("Windows Server 2012 " ));
+        }
+
+        if ( osvi.dwMinorVersion == 3 )
+        {
+          if( osvi.wProductType == VER_NT_WORKSTATION )
+            StringCchCat(pszOS, BUFSIZE, TEXT("Windows 8.1 "));
+          else StringCchCat(pszOS, BUFSIZE, TEXT("Windows Server 2012 R2 " ));
         }
 
         pGPI = (PGPI) GetProcAddress(
@@ -368,7 +553,7 @@ namespace tools
 #else
 std::string get_nix_version_display_string()
 {
-  utsname un;
+  struct utsname un;
 
   if(uname(&un) < 0)
     return std::string("*nix: failed to get os version");
@@ -392,15 +577,22 @@ std::string get_nix_version_display_string()
 #ifdef WIN32
   std::string get_special_folder_path(int nfolder, bool iscreate)
   {
-    namespace fs = boost::filesystem;
-    char psz_path[MAX_PATH] = "";
+    WCHAR psz_path[MAX_PATH] = L"";
 
-    if(SHGetSpecialFolderPathA(NULL, psz_path, nfolder, iscreate))
+    if (SHGetSpecialFolderPathW(NULL, psz_path, nfolder, iscreate))
     {
-      return psz_path;
+      try
+      {
+        return string_tools::utf16_to_utf8(psz_path);
+      }
+      catch (const std::exception &e)
+      {
+        MERROR("utf16_to_utf8 failed: " << e.what());
+        return "";
+      }
     }
 
-    LOG_ERROR("SHGetSpecialFolderPathA() failed, could not obtain requested path.");
+    LOG_ERROR("SHGetSpecialFolderPathW() failed, could not obtain requested path.");
     return "";
   }
 #endif
@@ -412,8 +604,7 @@ std::string get_nix_version_display_string()
     // namespace fs = boost::filesystem;
     // Windows < Vista: C:\Documents and Settings\Username\Application Data\CRYPTONOTE_NAME
     // Windows >= Vista: C:\Users\Username\AppData\Roaming\CRYPTONOTE_NAME
-    // Mac: ~/Library/Application Support/CRYPTONOTE_NAME
-    // Unix: ~/.CRYPTONOTE_NAME
+    // Unix & Mac: ~/.CRYPTONOTE_NAME
     std::string config_folder;
 
 #ifdef WIN32
@@ -425,14 +616,7 @@ std::string get_nix_version_display_string()
       pathRet = "/";
     else
       pathRet = pszHome;
-#ifdef MAC_OSX
-    // Mac
-    pathRet /= "Library/Application Support";
-    config_folder =  (pathRet + "/" + CRYPTONOTE_NAME);
-#else
-    // Unix
     config_folder = (pathRet + "/." + CRYPTONOTE_NAME);
-#endif
 #endif
 
     return config_folder;
@@ -461,24 +645,46 @@ std::string get_nix_version_display_string()
     return res;
   }
 
-  std::error_code replace_file(const std::string& replacement_name, const std::string& replaced_name)
+  std::error_code replace_file(const std::string& old_name, const std::string& new_name)
   {
     int code;
 #if defined(WIN32)
     // Maximizing chances for success
-    DWORD attributes = ::GetFileAttributes(replaced_name.c_str());
+    std::wstring wide_replacement_name;
+    try { wide_replacement_name = string_tools::utf8_to_utf16(old_name); }
+    catch (...) { return std::error_code(GetLastError(), std::system_category()); }
+    std::wstring wide_replaced_name;
+    try { wide_replaced_name = string_tools::utf8_to_utf16(new_name); }
+    catch (...) { return std::error_code(GetLastError(), std::system_category()); }
+
+    DWORD attributes = ::GetFileAttributesW(wide_replaced_name.c_str());
     if (INVALID_FILE_ATTRIBUTES != attributes)
     {
-      ::SetFileAttributes(replaced_name.c_str(), attributes & (~FILE_ATTRIBUTE_READONLY));
+      ::SetFileAttributesW(wide_replaced_name.c_str(), attributes & (~FILE_ATTRIBUTE_READONLY));
     }
 
-    bool ok = 0 != ::MoveFileEx(replacement_name.c_str(), replaced_name.c_str(), MOVEFILE_REPLACE_EXISTING);
+    bool ok = 0 != ::MoveFileExW(wide_replacement_name.c_str(), wide_replaced_name.c_str(), MOVEFILE_REPLACE_EXISTING);
     code = ok ? 0 : static_cast<int>(::GetLastError());
 #else
-    bool ok = 0 == std::rename(replacement_name.c_str(), replaced_name.c_str());
+    bool ok = 0 == std::rename(old_name.c_str(), new_name.c_str());
     code = ok ? 0 : errno;
 #endif
     return std::error_code(code, std::system_category());
+  }
+
+  static bool unbound_built_with_threads()
+  {
+    ub_ctx *ctx = ub_ctx_create();
+    if (!ctx) return false; // cheat a bit, should not happen unless OOM
+    char *electroneum = strdup("electroneum"), *unbound = strdup("unbound");
+    ub_ctx_zone_add(ctx, electroneum, unbound); // this calls ub_ctx_finalize first, then errors out with UB_SYNTAX
+    free(unbound);
+    free(electroneum);
+    // if no threads, bails out early with UB_NOERROR, otherwise fails with UB_AFTERFINAL id already finalized
+    bool with_threads = ub_ctx_async(ctx, 1) != 0; // UB_AFTERFINAL is not defined in public headers, check any error
+    ub_ctx_delete(ctx);
+    MINFO("libunbound was built " << (with_threads ? "with" : "without") << " threads");
+    return with_threads;
   }
 
   bool sanitize_locale()
@@ -503,6 +709,97 @@ std::string get_nix_version_display_string()
     }
     return false;
   }
+
+#ifdef STACK_TRACE
+#ifdef _WIN32
+  // https://stackoverflow.com/questions/1992816/how-to-handle-seg-faults-under-windows
+  static LONG WINAPI windows_crash_handler(PEXCEPTION_POINTERS pExceptionInfo)
+  {
+    tools::log_stack_trace("crashing");
+    exit(1);
+    return EXCEPTION_CONTINUE_SEARCH;
+  }
+  static void setup_crash_dump()
+  {
+    SetUnhandledExceptionFilter(windows_crash_handler);
+  }
+#else
+  static void posix_crash_handler(int signal)
+  {
+    tools::log_stack_trace(("crashing with fatal signal " + std::to_string(signal)).c_str());
+#ifdef NDEBUG
+    _exit(1);
+#else
+    abort();
+#endif
+  }
+  static void setup_crash_dump()
+  {
+    signal(SIGSEGV, posix_crash_handler);
+    signal(SIGBUS, posix_crash_handler);
+    signal(SIGILL, posix_crash_handler);
+    signal(SIGFPE, posix_crash_handler);
+  }
+#endif
+#else
+  static void setup_crash_dump() {}
+#endif
+
+  bool disable_core_dumps()
+  {
+#ifdef __GLIBC__
+    // disable core dumps in release mode
+    struct rlimit rlimit;
+    rlimit.rlim_cur = rlimit.rlim_max = 0;
+    if (setrlimit(RLIMIT_CORE, &rlimit))
+    {
+      MWARNING("Failed to disable core dumps");
+      return false;
+    }
+#endif
+    return true;
+  }
+
+  ssize_t get_lockable_memory()
+  {
+#ifdef __GLIBC__
+    struct rlimit rlim;
+    if (getrlimit(RLIMIT_MEMLOCK, &rlim) < 0)
+    {
+      MERROR("Failed to determine the lockable memory limit");
+      return -1;
+    }
+    return rlim.rlim_cur;
+#else
+    return -1;
+#endif
+  }
+
+  bool on_startup()
+  {
+    mlog_configure("", true);
+
+    setup_crash_dump();
+
+    sanitize_locale();
+
+#ifdef __GLIBC__
+    const char *ver = gnu_get_libc_version();
+    if (!strcmp(ver, "2.25"))
+      MCLOG_RED(el::Level::Warning, "global", "Running with glibc " << ver << ", hangs may occur - change glibc version if possible");
+#endif
+
+#if OPENSSL_VERSION_NUMBER < 0x10100000 || defined(LIBRESSL_VERSION_TEXT)
+    SSL_library_init();
+#else
+    OPENSSL_init_ssl(0, NULL);
+#endif
+
+    if (!unbound_built_with_threads())
+      MCLOG_RED(el::Level::Warning, "global", "libunbound was not built with threads enabled - crashes may occur");
+
+    return true;
+  }
   void set_strict_default_file_permissions(bool strict)
   {
 #if defined(__MINGW32__) || defined(__MINGW__)
@@ -510,6 +807,44 @@ std::string get_nix_version_display_string()
 #else
     mode_t mode = strict ? 077 : 0;
     umask(mode);
+#endif
+  }
+
+  boost::optional<bool> is_hdd(const char *file_path)
+  {
+#ifdef __GLIBC__
+    struct stat st;
+    std::string prefix;
+    if(stat(file_path, &st) == 0)
+    {
+      std::ostringstream s;
+      s << "/sys/dev/block/" << major(st.st_dev) << ":" << minor(st.st_dev);
+      prefix = s.str();
+    }
+    else
+    {
+      return boost::none;
+    }
+    std::string attr_path = prefix + "/queue/rotational";
+    std::ifstream f(attr_path, std::ios_base::in);
+    if(not f.is_open())
+    {
+      attr_path = prefix + "/../queue/rotational";
+      f.open(attr_path, std::ios_base::in);
+      if(not f.is_open())
+      {
+          return boost::none;
+      }
+    }
+    unsigned short val = 0xdead;
+    f >> val;
+    if(not f.fail())
+    {
+      return (val == 1);
+    }
+    return boost::none;
+#else
+    return boost::none;
 #endif
   }
 
@@ -538,7 +873,7 @@ std::string get_nix_version_display_string()
 
   bool is_local_address(const std::string &address)
   {
-        // always assume Tor/I2P addresses to be untrusted by default
+    // always assume Tor/I2P addresses to be untrusted by default
     if (boost::ends_with(address, ".onion") || boost::ends_with(address, ".i2p"))
     {
       MDEBUG("Address '" << address << "' is Tor/I2P, non local");
@@ -580,13 +915,13 @@ std::string get_nix_version_display_string()
   int vercmp(const char *v0, const char *v1)
   {
     std::vector<std::string> f0, f1;
-    boost::split(f0, v0, boost::is_any_of("."));
-    boost::split(f1, v1, boost::is_any_of("."));
-    while (f0.size() < f1.size())
-      f0.push_back("0");
-    while (f1.size() < f0.size())
-      f1.push_back("0");
-    for (size_t i = 0; i < f0.size(); ++i) {
+    boost::split(f0, v0, boost::is_any_of(".-"));
+    boost::split(f1, v1, boost::is_any_of(".-"));
+    for (size_t i = 0; i < std::max(f0.size(), f1.size()); ++i) {
+      if (i >= f0.size())
+        return -1;
+      if (i >= f1.size())
+        return 1;
       int f0i = atoi(f0[i].c_str()), f1i = atoi(f1[i].c_str());
       int n = f0i - f1i;
       if (n)
@@ -639,6 +974,24 @@ std::string get_nix_version_display_string()
     return true;
   }
 
+  boost::optional<std::pair<uint32_t, uint32_t>> parse_subaddress_lookahead(const std::string& str)
+  {
+    auto pos = str.find(":");
+    bool r = pos != std::string::npos;
+    uint32_t major;
+    r = r && epee::string_tools::get_xtype_from_string(major, str.substr(0, pos));
+    uint32_t minor;
+    r = r && epee::string_tools::get_xtype_from_string(minor, str.substr(pos + 1));
+    if (r)
+    {
+      return std::make_pair(major, minor);
+    }
+    else
+    {
+      return {};
+    }
+  }
+  
   int display_simple_progress_spinner(int x) {
     std::string s;
     x++;
@@ -660,7 +1013,7 @@ std::string get_nix_version_display_string()
   {
     std::string newval;
 
-     bool escape = false;
+    bool escape = false;
     for (char c: val)
     {
       if (c == '*')
@@ -674,4 +1027,97 @@ std::string get_nix_version_display_string()
     }
     return newval;
   }
+  
+#ifdef _WIN32
+  std::string input_line_win()
+  {
+    HANDLE hConIn = CreateFileW(L"CONIN$", GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, nullptr, OPEN_EXISTING, 0, nullptr);
+    DWORD oldMode;
+
+    FlushConsoleInputBuffer(hConIn);
+    GetConsoleMode(hConIn, &oldMode);
+    SetConsoleMode(hConIn, ENABLE_LINE_INPUT | ENABLE_ECHO_INPUT | ENABLE_PROCESSED_INPUT);
+
+    wchar_t buffer[1024];
+    DWORD read;
+
+    ReadConsoleW(hConIn, buffer, sizeof(buffer)/sizeof(wchar_t)-1, &read, nullptr);
+    buffer[read] = 0;
+
+    SetConsoleMode(hConIn, oldMode);
+    CloseHandle(hConIn);
+  
+    int size_needed = WideCharToMultiByte(CP_UTF8, 0, buffer, -1, NULL, 0, NULL, NULL);
+    std::string buf(size_needed, '\0');
+    WideCharToMultiByte(CP_UTF8, 0, buffer, -1, &buf[0], size_needed, NULL, NULL);
+    buf.pop_back(); //size_needed includes null that we needed to have space for
+    return buf;
+  }
+#endif
+
+  void closefrom(int fd)
+  {
+#if defined __FreeBSD__ || defined __OpenBSD__ || defined __NetBSD__ || defined __DragonFly__
+    ::closefrom(fd);
+#else
+#if defined __GLIBC__
+    const int sc_open_max =  sysconf(_SC_OPEN_MAX);
+    const int MAX_FDS = std::min(65536, sc_open_max);
+#else
+    const int MAX_FDS = 65536;
+#endif
+    while (fd < MAX_FDS)
+    {
+      close(fd);
+      ++fd;
+    }
+#endif
+  }
+
+  std::string get_human_readable_timestamp(uint64_t ts)
+  {
+    char buffer[64];
+    if (ts < 1234567890)
+      return "<unknown>";
+    time_t tt = ts;
+    struct tm tm;
+    misc_utils::get_gmt_time(tt, tm);
+    strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", &tm);
+    return std::string(buffer);
+  }
+
+  std::string get_human_readable_bytes(uint64_t bytes)
+  {
+    // Use 1024 for "kilo", 1024*1024 for "mega" and so on instead of the more modern and standard-conforming
+    // 1000, 1000*1000 and so on, to be consistent with other Electroneum code that also uses base 2 units
+    struct byte_map
+    {
+        const char* const format;
+        const std::uint64_t bytes;
+    };
+
+    static constexpr const byte_map sizes[] =
+    {
+        {"%.0f B", 1024},
+        {"%.2f KB", 1024 * 1024},
+        {"%.2f MB", std::uint64_t(1024) * 1024 * 1024},
+        {"%.2f GB", std::uint64_t(1024) * 1024 * 1024 * 1024},
+        {"%.2f TB", std::uint64_t(1024) * 1024 * 1024 * 1024 * 1024}
+    };
+
+    struct bytes_less
+    {
+        bool operator()(const byte_map& lhs, const byte_map& rhs) const noexcept
+        {
+            return lhs.bytes < rhs.bytes;
+        }
+    };
+
+    const auto size = std::upper_bound(
+        std::begin(sizes), std::end(sizes) - 1, byte_map{"", bytes}, bytes_less{}
+    );
+    const std::uint64_t divisor = size->bytes / 1024;
+    return (boost::format(size->format) % (double(bytes) / divisor)).str();
+  }
+
 }

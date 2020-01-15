@@ -1,5 +1,5 @@
-// Copyrights(c) 2017-2019, The Electroneum Project
-// Copyrights(c) 2014-2017, The Monero Project
+// Copyrights(c) 2017-2020, The Electroneum Project
+// Copyrights(c) 2014-2019, The Monero Project
 //
 // All rights reserved.
 //
@@ -45,11 +45,16 @@ namespace wallet_args
   concurrency. Log file and concurrency arguments are handled, along with basic
   global init for the wallet process.
 
-  \return The list of parsed options, iff there are no errors.*/
-  boost::optional<boost::program_options::variables_map> main(
+  \return
+    pair.first: The list of parsed options, iff there are no errors.
+    pair.second: Should the execution terminate succesfully without actually launching the application
+  */
+  std::pair<boost::optional<boost::program_options::variables_map>, bool> main(
     int argc, char** argv,
     const char* const usage,
+    const char* const notice,
     boost::program_options::options_description desc_params,
     const boost::program_options::positional_options_description& positional_options,
+    const std::function<void(const std::string&, bool)> &print,
     const char *default_log_name, bool log_to_console = false);
 }

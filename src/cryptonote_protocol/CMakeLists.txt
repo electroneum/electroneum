@@ -1,5 +1,5 @@
-# Copyright (c) 2017-2019, The Electroneum Project
-# Copyright (c) 2014-2017, The Monero Project
+# Copyright (c) 2017-2020, The Electroneum Project
+# Copyright (c) 2014-2019, The Monero Project
 #
 # All rights reserved.
 #
@@ -40,5 +40,3 @@ target_link_libraries(cryptonote_protocol
     p2p
   PRIVATE
     ${EXTRA_LIBRARIES})
-add_dependencies(cryptonote_protocol
-  version)

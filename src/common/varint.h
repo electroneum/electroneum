@@ -1,5 +1,5 @@
-// Copyrights(c) 2017-2019, The Electroneum Project
-// Copyrights(c) 2014-2017, The Monero Project
+// Copyrights(c) 2017-2020, The Electroneum Project
+// Copyrights(c) 2014-2019, The Monero Project
 // 
 // All rights reserved.
 // 
@@ -46,7 +46,7 @@
  * is as follows: Strip the msb of each byte, then from left to right,
  * read in what remains, placing it in reverse, into the buffer. Thus,
  * the following bit stream: 0xff02 would return 0x027f. 0xff turns
- * into 0x7f, is placed on the beggining of the buffer, then 0x02 is
+ * into 0x7f, is placed on the beginning of the buffer, then 0x02 is
  * unchanged, since its msb is not set, and placed at the end of the
  * buffer.
  */
@@ -109,7 +109,7 @@ namespace tools {
 	return EVARINT_REPRESENT;
       }
 
-      write |= static_cast<T>(byte & 0x7f) << shift; /* Does the actualy placing into write, stripping the first bit */
+      write |= static_cast<T>(byte & 0x7f) << shift; /* Does the actually placing into write, stripping the first bit */
 
       /* If there is no next */
       if ((byte & 0x80) == 0) {
@@ -124,6 +124,6 @@ namespace tools {
    */
   template<typename InputIt, typename T>
     int read_varint(InputIt &&first, InputIt &&last, T &i) {
-    return read_varint<std::numeric_limits<T>::digits, InputIt, T>(std::move(first), std::move(last), i);
+    return read_varint<std::numeric_limits<T>::digits>(std::forward<InputIt>(first), std::forward<InputIt>(last), i);
   }
 }

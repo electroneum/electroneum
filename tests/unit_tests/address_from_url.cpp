@@ -1,5 +1,5 @@
-// Copyrights(c) 2017-2019, The Electroneum Project
-// Copyrights(c) 2014-2017, The Monero Project
+// Copyrights(c) 2017-2020, The Electroneum Project
+// Copyrights(c) 2014-2019, The Monero Project
 // 
 // All rights reserved.
 // 
@@ -33,6 +33,7 @@
 
 #include "wallet/wallet2.h"
 #include "common/dns_utils.h"
+#include "simplewallet/simplewallet.h"
 #include <string>
 
 TEST(AddressFromTXT, Success)
@@ -84,7 +85,7 @@ TEST(AddressFromTXT, Failure)
 
 TEST(AddressFromURL, Success)
 {
-  const std::string addr = "etnjwQwwEY65dhSMfKto64GgY7j7q2RUSZP1r8rXZ615J4egUC596R4crvZ5woWWTWBUztnKMUudzQ22E37LHiV48XWeJDFkkY";
+  const std::string addr = ETN_DONATION_ADDR;
   
   bool dnssec_result = false;
 
@@ -105,15 +106,14 @@ TEST(AddressFromURL, Success)
   }
 }
 
-// Test not passing as of 12/7/18 - Same result on moenro
-//TEST(AddressFromURL, Failure)
-//{
-//  bool dnssec_result = false;
-//
-//  std::vector<std::string> addresses = tools::dns_utils::addresses_from_url("example.invalid", dnssec_result);
-//
-//  // for a non-existing domain such as "example.invalid", the non-existence is proved with NSEC records
-//  ASSERT_TRUE(dnssec_result);
-//
-//  ASSERT_EQ(0, addresses.size());
-//}
+TEST(AddressFromURL, Failure)
+{
+  bool dnssec_result = false;
+
+  std::vector<std::string> addresses = tools::dns_utils::addresses_from_url("example.veryinvalid", dnssec_result);
+
+  // for a non-existing domain such as "example.invalid", the non-existence is proved with NSEC records
+  ASSERT_TRUE(dnssec_result);
+
+  ASSERT_EQ(0, addresses.size());
+}

@@ -1,5 +1,5 @@
-// Copyrights(c) 2017-2019, The Electroneum Project
-// Copyrights(c) 2014-2017, The Monero Project
+// Copyrights(c) 2017-2020, The Electroneum Project
+// Copyrights(c) 2014-2019, The Monero Project
 // 
 // All rights reserved.
 // 
@@ -46,7 +46,7 @@
 //#define VERBOSE
 
 #ifdef TEST_ORIGINAL
-uint64_t slow_memmem_original(void* start_buff, size_t buflen,void* pat,size_t patlen)
+size_t slow_memmem_original(void* start_buff, size_t buflen,void* pat,size_t patlen)
 {
   void* buf = start_buff;
   void* end=(char*)buf+buflen-patlen;
@@ -64,7 +64,7 @@ uint64_t slow_memmem_original(void* start_buff, size_t buflen,void* pat,size_t p
 #define slow_memmem slow_memmem_original
 #else
 namespace cryptonote {
-  uint64_t slow_memmem(const void* start_buff, size_t buflen,const void* pat,size_t patlen);
+  size_t slow_memmem(const void* start_buff, size_t buflen,const void* pat,size_t patlen);
 }
 using namespace cryptonote;
 #endif
@@ -74,7 +74,7 @@ static const struct {
   const char *buf;
   size_t patlen;
   const char *pat;
-  uint64_t res;
+  size_t res;
 } T[]={
   {0,"",0,"",0},
   {1,"",0,"",0},
@@ -82,7 +82,6 @@ static const struct {
   {1,"x",1,"x",0},
   {2,"x",1,"",1},
   {1,"x",1,"",0},
-  {1,"x",2,"",0},
   {1,"x",2,"x",0},
   {2,"ax",2,"x",0},
   {1,"xx",2,"xx",0},
@@ -104,7 +103,7 @@ static const struct {
   {8,"xxxxxxab",3,"xyz",0},
   {8,"xxxxxxab",6,"abcdef",0},
   {9,"\0xxxxxab",3,"ab",6},
-  {4,"\0\0a",3,"\0a",1},
+  {4,"\0\0a",3,"\0a",1}, //
 };
 
 TEST(slowmem,Success)
@@ -119,11 +118,10 @@ TEST(slowmem,Success)
     memcpy(buf,T[n].buf,T[n].buflen);
     void *pat=malloc(T[n].patlen);
     memcpy(pat,T[n].pat,T[n].patlen);
-    uint64_t res=slow_memmem(buf,T[n].buflen,pat,T[n].patlen);
+    size_t res=slow_memmem(buf,T[n].buflen,pat,T[n].patlen);
     free(pat);
     free(buf);
     ASSERT_EQ(res,T[n].res);
-ASSERT_EQ(1,1);
 #ifdef VERBOSE
     if (res!=T[n].res) printf("failed (got %zu, expected %zu)",res,T[n].res); else printf("ok");
     printf("\n");

@@ -1,58 +1,82 @@
-#ifndef ETN01_MICROCORE_H
-#define ETN01_MICROCORE_H
+#pragma once
 
 #include <iostream>
 
 #include "electroneum_headers.h"
 #include "tools.h"
 
-namespace etneg
+namespace electroneum
 {
-  using namespace cryptonote;
-  using namespace crypto;
-  using namespace std;
+    using namespace cryptonote;
+    using namespace crypto;
+    using namespace std;
 
-  /**
-       * Micro version of cryptonode::core class
-       * Micro version of constructor,
-       * init and destructor are implemted.
-       *
-       * Just enough to read the blockchain
-       * database for use in the example.
-       */
-  class MicroCore
-  {
-      string blockchain_path;
+    /**
+     * Micro version of cryptonode::core class
+     * Micro version of constructor,
+     * init and destructor are implemted.
+     *
+     * Just enough to read the blockchain
+     * database for use in the example.
+     */
+    class MicroCore {
 
-      tx_memory_pool m_mempool;
-      Blockchain m_blockchain_storage;
+        string blockchain_path;
+
+        tx_memory_pool m_mempool;
+        Blockchain m_blockchain_storage;
+
+        hw::device* m_device;
+
+        network_type nettype;
 
     public:
-      MicroCore();
+        MicroCore();
 
-      bool init(const string &_blockchain_path, bool testnet = false);
+        bool
+        init(const string& _blockchain_path, network_type nt);
 
-      Blockchain& get_core();
+        Blockchain&
+        get_core();
 
-      bool get_block_by_height(const uint64_t &height, block &blk);
+        tx_memory_pool&
+        get_mempool();
 
-      bool get_tx(const crypto::hash &tx_hash, transaction &tx);
+        bool
+        get_block_by_height(const uint64_t& height, block& blk);
 
-      bool get_tx(const string &tx_hash, transaction &tx);
+        bool
+        get_tx(const crypto::hash& tx_hash, transaction& tx);
 
-      bool find_output_in_tx(const transaction &tx, const public_key &output_pubkey, tx_out &out, size_t &output_index);
+        bool
+        get_tx(const string& tx_hash, transaction& tx);
 
-      bool get_tx_hash_from_output_pubkey(const public_key &output_pubkey, const uint64_t &block_height, crypto::hash &tx_hash, transaction &tx_found);
+        bool
+        find_output_in_tx(const transaction& tx,
+                          const public_key& output_pubkey,
+                          tx_out& out,
+                          size_t& output_index);
 
-      uint64_t get_blk_timestamp(uint64_t blk_height);
+        uint64_t
+        get_blk_timestamp(uint64_t blk_height);
 
-      string get_blkchain_path();
+        bool
+        get_block_complete_entry(block const& b, block_complete_entry& bce);
 
-      virtual ~MicroCore();
-  };
+        string
+        get_blkchain_path();
 
-  bool init_blockchain(const string &path, MicroCore *&mcore, Blockchain *&core_storage, bool testnet = false);
+        hw::device*
+        get_device() const;
+
+        virtual ~MicroCore();
+    };
+
+    bool
+    init_blockchain(const string& path,
+                    MicroCore*& mcore,
+                    Blockchain*& core_storage,
+                    network_type nt);
+
 
 }
-
-#endif

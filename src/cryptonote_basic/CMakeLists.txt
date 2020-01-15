@@ -1,5 +1,5 @@
-# Copyright (c) 2017-2019, The Electroneum Project
-# Copyright (c) 2014-2017, The Monero Project
+# Copyright (c) 2017-2020, The Electroneum Project
+# Copyright (c) 2014-2019, The Monero Project
 #
 # All rights reserved.
 #
@@ -28,14 +28,17 @@
 # THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 if(APPLE)
-  find_library(IOKIT_LIBRARY IOKit)
-  mark_as_advanced(IOKIT_LIBRARY)
-  list(APPEND EXTRA_LIBRARIES ${IOKIT_LIBRARY})
+  if(DEPENDS)
+    list(APPEND EXTRA_LIBRARIES "-framework Foundation -framework ApplicationServices -framework AppKit -framework IOKit")
+  else()
+    find_library(IOKIT_LIBRARY IOKit)
+    mark_as_advanced(IOKIT_LIBRARY)
+    list(APPEND EXTRA_LIBRARIES ${IOKIT_LIBRARY})
+  endif()
 endif()
 
 set(cryptonote_basic_sources
   account.cpp
-  checkpoints.cpp
   cryptonote_basic_impl.cpp
   cryptonote_format_utils.cpp
   difficulty.cpp
@@ -48,7 +51,6 @@ set(cryptonote_basic_headers)
 set(cryptonote_basic_private_headers
   account.h
   account_boost_serialization.h
-  checkpoints.h
   connection_context.h
   cryptonote_basic.h
   cryptonote_basic_impl.h
@@ -64,7 +66,7 @@ set(cryptonote_basic_private_headers
   validators_commands_defs.h)
 
 electroneum_private_headers(cryptonote_basic
-  ${crypto_private_headers})
+  ${cryptonote_basic_private_headers})
 electroneum_add_library(cryptonote_basic
   ${cryptonote_basic_sources}
   ${cryptonote_basic_headers}
@@ -73,6 +75,8 @@ target_link_libraries(cryptonote_basic
   PUBLIC
     common
     cncrypto
+    checkpoints
+    device
     ${Boost_DATE_TIME_LIBRARY}
     ${Boost_PROGRAM_OPTIONS_LIBRARY}
     ${Boost_SERIALIZATION_LIBRARY}

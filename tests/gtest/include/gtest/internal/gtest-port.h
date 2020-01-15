@@ -604,7 +604,7 @@ struct _RTL_CRITICAL_SECTION;
     || GTEST_OS_QNX || GTEST_OS_FREEBSD || GTEST_OS_NACL)
 #endif  // GTEST_HAS_PTHREAD
 
-#if GTEST_HAS_PTHREAD && !GTEST_OS_WINDOWS_MINGW
+#if GTEST_HAS_PTHREAD
 // gtest-port.h guarantees to #include <pthread.h> when GTEST_HAS_PTHREAD is
 // true.
 # include <pthread.h>  // NOLINT
@@ -790,7 +790,8 @@ using ::std::tuple_size;
      (GTEST_OS_MAC && !GTEST_OS_IOS) || \
      (GTEST_OS_WINDOWS_DESKTOP && _MSC_VER >= 1400) || \
      GTEST_OS_WINDOWS_MINGW || GTEST_OS_AIX || GTEST_OS_HPUX || \
-     GTEST_OS_OPENBSD || GTEST_OS_QNX || GTEST_OS_FREEBSD)
+     GTEST_OS_OPENBSD || GTEST_OS_QNX || GTEST_OS_FREEBSD || \
+     GTEST_OS_NETBSD)
 # define GTEST_HAS_DEATH_TEST 1
 #endif
 
@@ -1441,7 +1442,7 @@ void SetInjectableArgvs(const ::std::vector<testing::internal::string>*
 
 // Defines synchronization primitives.
 #if GTEST_IS_THREADSAFE
-#if GTEST_HAS_PTHREAD && !GTEST_OS_WINDOWS_MINGW
+# if GTEST_HAS_PTHREAD
 // Sleeps for (roughly) n milliseconds.  This function is only for testing
 // Google Test's own constructs.  Don't use it in user tests, either
 // directly or indirectly.
@@ -1458,7 +1459,7 @@ inline void SleepMilliseconds(int n) {
 // Notification has already been imported into the namespace.
 // Nothing to do here.
 
-#elif GTEST_HAS_PTHREAD && !GTEST_OS_WINDOWS_MINGW
+# elif GTEST_HAS_PTHREAD
 // Allows a controller thread to pause execution of newly created
 // threads until notified.  Instances of this class must be created
 // and destroyed in the controller thread.
@@ -1553,10 +1554,7 @@ class GTEST_API_ Notification {
 };
 # endif  // GTEST_HAS_NOTIFICATION_
 
-// On MinGW, we can have both GTEST_OS_WINDOWS and GTEST_HAS_PTHREAD
-// defined, but we don't want to use MinGW's pthreads implementation, which
-// has conformance problems with some versions of the POSIX standard.
-#if GTEST_HAS_PTHREAD && !GTEST_OS_WINDOWS_MINGW
+# if GTEST_HAS_PTHREAD
 
 // As a C-function, ThreadFuncWithCLinkage cannot be templated itself.
 // Consequently, it cannot select a correct instantiation of ThreadWithParam
@@ -1918,7 +1916,7 @@ class ThreadLocal : public ThreadLocalBase {
   GTEST_DISALLOW_COPY_AND_ASSIGN_(ThreadLocal);
 };
 
-# elif GTEST_HAS_PTHREAD && !GTEST_OS_WINDOWS_MINGW
+# elif GTEST_HAS_PTHREAD
 
 // MutexBase and Mutex implement mutex on pthreads-based platforms.
 class MutexBase {

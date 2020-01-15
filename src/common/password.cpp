@@ -1,5 +1,5 @@
-// Copyrights(c) 2017-2019, The Electroneum Project
-// Copyrights(c) 2014-2017, The Monero Project
+// Copyrights(c) 2017-2020, The Electroneum Project
+// Copyrights(c) 2014-2019, The Monero Project
 // 
 // All rights reserved.
 // 
@@ -32,7 +32,6 @@
 #include "password.h"
 
 #include <iostream>
-#include <memory.h>
 #include <stdio.h>
 
 #if defined(_WIN32)
@@ -43,9 +42,7 @@
 #include <unistd.h>
 #endif
 
-#ifdef HAVE_READLINE
-  #include "readline_buffer.h"
-#endif
+#define EOT 0x4
 
 namespace
 {
@@ -55,48 +52,57 @@ namespace
     return 0 != _isatty(_fileno(stdin));
   }
 
-  bool read_from_tty(std::string& pass)
+  bool read_from_tty(epee::wipeable_string& pass, bool hide_input)
   {
-    static constexpr const char BACKSPACE = 8;
-
     HANDLE h_cin = ::GetStdHandle(STD_INPUT_HANDLE);
 
     DWORD mode_old;
     ::GetConsoleMode(h_cin, &mode_old);
-    DWORD mode_new = mode_old & ~(ENABLE_ECHO_INPUT | ENABLE_LINE_INPUT);
+    DWORD mode_new = mode_old & ~((hide_input ? ENABLE_ECHO_INPUT : 0) | ENABLE_LINE_INPUT);
     ::SetConsoleMode(h_cin, mode_new);
 
     bool r = true;
     pass.reserve(tools::password_container::max_password_size);
+    std::vector<int> chlen;
+    chlen.reserve(tools::password_container::max_password_size);
     while (pass.size() < tools::password_container::max_password_size)
     {
       DWORD read;
-      char ch;
-      r = (TRUE == ::ReadConsoleA(h_cin, &ch, 1, &read, NULL));
+      wchar_t ucs2_ch;
+      r = (TRUE == ::ReadConsoleW(h_cin, &ucs2_ch, 1, &read, NULL));
       r &= (1 == read);
+
       if (!r)
       {
         break;
       }
-      else if (ch == '\n' || ch == '\r')
+      else if (ucs2_ch == L'\r')
       {
         std::cout << std::endl;
         break;
       }
-      else if (ch == BACKSPACE)
+      else if (ucs2_ch == L'\b')
       {
         if (!pass.empty())
         {
-          pass.back() = '\0';
-          pass.resize(pass.size() - 1);
-          std::cout << "\b \b";
+          int len = chlen.back();
+          chlen.pop_back();
+          while(len-- > 0) 
+            pass.pop_back();
         }
+        continue;
       }
-      else
-      {
-        pass.push_back(ch);
-        std::cout << '*';
-      }
+      
+      char utf8_ch[8] = {0};
+      int len;
+      if((len = WideCharToMultiByte(CP_UTF8, 0, &ucs2_ch, 1, utf8_ch, sizeof(utf8_ch), NULL, NULL)) <= 0)
+        break;
+
+      if(pass.size() + len >= tools::password_container::max_password_size)
+        break;
+
+      chlen.push_back(len);
+      pass += utf8_ch;
     }
 
     ::SetConsoleMode(h_cin, mode_old);
@@ -111,14 +117,14 @@ namespace
     return 0 != isatty(fileno(stdin));
   }
 
-  int getch() noexcept
+  int getch(bool hide_input) noexcept
   {
     struct termios tty_old;
     tcgetattr(STDIN_FILENO, &tty_old);
 
     struct termios tty_new;
     tty_new = tty_old;
-    tty_new.c_lflag &= ~(ICANON | ECHO);
+    tty_new.c_lflag &= ~(ICANON | (hide_input ? ECHO : 0));
     tcsetattr(STDIN_FILENO, TCSANOW, &tty_new);
 
     int ch = getchar();
@@ -128,15 +134,15 @@ namespace
     return ch;
   }
 
-  bool read_from_tty(std::string& aPass)
+  bool read_from_tty(epee::wipeable_string& aPass, bool hide_input)
   {
     static constexpr const char BACKSPACE = 127;
 
     aPass.reserve(tools::password_container::max_password_size);
     while (aPass.size() < tools::password_container::max_password_size)
     {
-      int ch = getch();
-      if (EOF == ch)
+      int ch = getch(hide_input);
+      if (EOF == ch || ch == EOT)
       {
         return false;
       }
@@ -149,15 +155,19 @@ namespace
       {
         if (!aPass.empty())
         {
-          aPass.back() = '\0';
-          aPass.resize(aPass.size() - 1);
-          std::cout << "\b \b";
+          aPass.pop_back();
+          if (!hide_input)
+            std::cout << "\b\b\b   \b\b\b" << std::flush;
+        }
+        else
+        {
+          if (!hide_input)
+            std::cout << "\b\b  \b\b" << std::flush;
         }
       }
       else
       {
         aPass.push_back(ch);
-        std::cout << '*';
       }
     }
 
@@ -166,31 +176,24 @@ namespace
 
 #endif // end !WIN32
 
-  void clear(std::string& pass) noexcept
-  {
-    //! TODO Call a memory wipe function that hopefully is not optimized out
-    pass.replace(0, pass.capacity(), pass.capacity(), '\0');
-    pass.clear();
-  }
-
-  bool read_from_tty(const bool verify, const char *message, std::string& pass1, std::string& pass2)
+  bool read_from_tty(const bool verify, const char *message, bool hide_input, epee::wipeable_string& pass1, epee::wipeable_string& pass2)
   {
     while (true)
     {
       if (message)
-        std::cout << message <<": ";
-      if (!read_from_tty(pass1))
+        std::cout << message <<": " << std::flush;
+      if (!read_from_tty(pass1, hide_input))
         return false;
       if (verify)
       {
-        std::cout << "Confirm Password: ";
-        if (!read_from_tty(pass2))
+        std::cout << "Confirm password: ";
+        if (!read_from_tty(pass2, hide_input))
           return false;
         if(pass1!=pass2)
         {
           std::cout << "Passwords do not match! Please try again." << std::endl;
-          clear(pass1);
-          clear(pass2);
+          pass1.clear();
+          pass2.clear();
         }
         else //new password matches
           return true;
@@ -203,7 +206,7 @@ namespace
     return false;
   }
 
-  bool read_from_file(std::string& pass)
+  bool read_from_file(epee::wipeable_string& pass)
   {
     pass.reserve(tools::password_container::max_password_size);
     for (size_t i = 0; i < tools::password_container::max_password_size; ++i)
@@ -235,34 +238,41 @@ namespace tools
     : m_password(std::move(password)) 
   {
   }
+  password_container::password_container(const epee::wipeable_string& password) noexcept
+    : m_password(password)
+  {
+  }
 
   password_container::~password_container() noexcept
   {
-    clear(m_password);
+    m_password.clear();
   }
 
-  boost::optional<password_container> password_container::prompt(const bool verify, const char *message)
+  std::atomic<bool> password_container::is_prompting(false);
+
+  boost::optional<password_container> password_container::prompt(const bool verify, const char *message, bool hide_input)
   {
-#ifdef HAVE_READLINE
-    rdln::suspend_readline pause_readline;
-#endif
+    is_prompting = true;
     password_container pass1{};
     password_container pass2{};
-    if (is_cin_tty() ? read_from_tty(verify, message, pass1.m_password, pass2.m_password) : read_from_file(pass1.m_password))
+    if (is_cin_tty() ? read_from_tty(verify, message, hide_input, pass1.m_password, pass2.m_password) : read_from_file(pass1.m_password))
+    {
+      is_prompting = false;
       return {std::move(pass1)};
+    }
 
+    is_prompting = false;
     return boost::none;
   }
 
-  boost::optional<login> login::parse(std::string&& userpass, bool verify, const char* message)
+  boost::optional<login> login::parse(std::string&& userpass, bool verify, const std::function<boost::optional<password_container>(bool)> &prompt)
   {
     login out{};
-    password_container wipe{std::move(userpass)};
 
-    const auto loc = wipe.password().find(':');
+    const auto loc = userpass.find(':');
     if (loc == std::string::npos)
     {
-      auto result = tools::password_container::prompt(verify, message);
+      auto result = prompt(verify);
       if (!result)
         return boost::none;
 
@@ -270,10 +280,11 @@ namespace tools
     }
     else
     {
-      out.password = password_container{wipe.password().substr(loc + 1)};
+      out.password = password_container{userpass.substr(loc + 1)};
     }
 
-    out.username = wipe.password().substr(0, loc);
+    out.username = userpass.substr(0, loc);
+    password_container wipe{std::move(userpass)};
     return {std::move(out)};
   }
 } 

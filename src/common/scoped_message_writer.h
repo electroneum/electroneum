@@ -1,5 +1,5 @@
-// Copyrights(c) 2017-2019, The Electroneum Project
-// Copyrights(c) 2014-2017, The Monero Project
+// Copyrights(c) 2017-2020, The Electroneum Project
+// Copyrights(c) 2014-2019, The Monero Project
 // 
 // All rights reserved.
 // 
@@ -74,7 +74,7 @@ public:
 #if defined(_MSC_VER)
     , m_oss(std::move(rhs.m_oss))
 #else
-      // GCC bug: http://gcc.gnu.org/bugzilla/show_bug.cgi?id=54316
+      // GCC bug: https://gcc.gnu.org/bugzilla/show_bug.cgi?id=54316
     , m_oss(rhs.m_oss.str(), std::ios_base::out | std::ios_base::ate)
 #endif
     , m_color(std::move(rhs.m_color))
@@ -102,13 +102,13 @@ public:
 
       MCLOG_FILE(m_log_level, "msgwriter", m_oss.str());
 
+      PAUSE_READLINE();
       if (epee::console_color_default == m_color)
       {
         std::cout << m_oss.str();
       }
       else
       {
-        PAUSE_READLINE();
         set_console_color(m_color, m_bright);
         std::cout << m_oss.str();
         epee::reset_console_color();

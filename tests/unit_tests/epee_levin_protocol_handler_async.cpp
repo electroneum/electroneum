@@ -1,5 +1,5 @@
-// Copyrights(c) 2017-2019, The Electroneum Project
-// Copyrights(c) 2014-2017, The Monero Project
+// Copyrights(c) 2017-2020, The Electroneum Project
+// Copyrights(c) 2014-2019, The Monero Project
 // 
 // All rights reserved.
 // 
@@ -57,22 +57,22 @@ namespace
     {
     }
 
-    virtual int invoke(int command, const std::string& in_buff, std::string& buff_out, test_levin_connection_context& context)
+    virtual int invoke(int command, const epee::span<const uint8_t> in_buff, std::string& buff_out, test_levin_connection_context& context)
     {
       m_invoke_counter.inc();
       boost::unique_lock<boost::mutex> lock(m_mutex);
       m_last_command = command;
-      m_last_in_buf = in_buff;
+      m_last_in_buf = std::string((const char*)in_buff.data(), in_buff.size());
       buff_out = m_invoke_out_buf;
       return m_return_code;
     }
 
-    virtual int notify(int command, const std::string& in_buff, test_levin_connection_context& context)
+    virtual int notify(int command, const epee::span<const uint8_t> in_buff, test_levin_connection_context& context)
     {
       m_notify_counter.inc();
       boost::unique_lock<boost::mutex> lock(m_mutex);
       m_last_command = command;
-      m_last_in_buf = in_buff;
+      m_last_in_buf = std::string((const char*)in_buff.data(), in_buff.size());
       return m_return_code;
     }
 
@@ -151,6 +151,7 @@ namespace
     }
 
     virtual bool close()                              { /*std::cout << "test_connection::close()" << std::endl; */return true; }
+    virtual bool send_done()                          { /*std::cout << "test_connection::send_done()" << std::endl; */return true; }
     virtual bool call_run_once_service_io()           { std::cout << "test_connection::call_run_once_service_io()" << std::endl; return true; }
     virtual bool request_callback()                   { std::cout << "test_connection::request_callback()" << std::endl; return true; }
     virtual boost::asio::io_service& get_io_service() { std::cout << "test_connection::get_io_service()" << std::endl; return m_io_service; }
@@ -188,9 +189,11 @@ namespace
 
     typedef std::unique_ptr<test_connection> test_connection_ptr;
 
-    async_protocol_handler_test()
+    async_protocol_handler_test():
+      m_pcommands_handler(new test_levin_commands_handler()),
+      m_commands_handler(*m_pcommands_handler)
     {
-      m_handler_config.m_pcommands_handler = &m_commands_handler;
+      m_handler_config.set_handler(m_pcommands_handler, [](epee::levin::levin_commands_handler<test_levin_connection_context> *handler) { delete handler; });
       m_handler_config.m_invoke_timeout = invoke_timeout;
       m_handler_config.m_max_packet_size = max_packet_size;
     }
@@ -213,7 +216,7 @@ namespace
   protected:
     boost::asio::io_service m_io_service;
     test_levin_protocol_handler_config m_handler_config;
-    test_levin_commands_handler m_commands_handler;
+    test_levin_commands_handler *m_pcommands_handler, &m_commands_handler;
   };
 
   class positive_test_connection_to_levin_protocol_handler_calls : public async_protocol_handler_test
@@ -292,7 +295,7 @@ TEST_F(positive_test_connection_to_levin_protocol_handler_calls, handler_initial
 TEST_F(positive_test_connection_to_levin_protocol_handler_calls, concurent_handler_initialization_and_destruction_is_correct)
 {
   const size_t connection_count = 10000;
-  auto create_and_destroy_connections = [this, connection_count]()
+  auto create_and_destroy_connections = [this]()
   {
     std::vector<test_connection_ptr> connections(connection_count);
     for (size_t i = 0; i < connection_count; ++i)

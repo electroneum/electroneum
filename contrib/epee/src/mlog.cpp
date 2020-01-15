@@ -28,7 +28,19 @@
 #ifndef _MLOG_H_
 #define _MLOG_H_
 
+#ifdef _WIN32
+#include <windows.h>
+#ifndef ENABLE_VIRTUAL_TERMINAL_PROCESSING
+#define ENABLE_VIRTUAL_TERMINAL_PROCESSING  0x0004
+#endif
+#endif
+
+#include <time.h>
 #include <atomic>
+#include <boost/filesystem.hpp>
+#include <boost/algorithm/string.hpp>
+#include "string_tools.h"
+#include "misc_os_dependent.h"
 #include "misc_log_ex.h"
 
 #undef ELECTRONEUM_DEFAULT_LOG_CATEGORY
@@ -43,18 +55,15 @@ using namespace epee;
 static std::string generate_log_filename(const char *base)
 {
   std::string filename(base);
+  static unsigned int fallback_counter = 0;
   char tmp[200];
   struct tm tm;
   time_t now = time(NULL);
-  if
-#ifdef WIN32
-  (!gmtime_s(&tm, &now))
-#else
-  (!gmtime_r(&now, &tm))
-#endif
-    strcpy(tmp, "unknown");
+  if (!epee::misc_utils::get_gmt_time(now, tm))
+    snprintf(tmp, sizeof(tmp), "part-%u", ++fallback_counter);
   else
     strftime(tmp, sizeof(tmp), "%Y-%m-%d-%H-%M-%S", &tm);
+  tmp[sizeof(tmp) - 1] = 0;
   filename += "-";
   filename += tmp;
   return filename;
@@ -91,10 +100,10 @@ static const char *get_default_categories(int level)
   switch (level)
   {
     case 0:
-      categories = "*:WARNING,net:FATAL,net.p2p:FATAL,net.cn:FATAL,global:INFO,verify:FATAL,stacktrace:INFO,logging:INFO,msgwriter:INFO";
+      categories = "*:WARNING,net:FATAL,net.http:FATAL,net.ssl:FATAL,net.p2p:FATAL,net.cn:FATAL,global:INFO,verify:FATAL,serialization:FATAL,stacktrace:INFO,logging:INFO,msgwriter:INFO";
       break;
     case 1:
-      categories = "*:WARNING,global:INFO,stacktrace:INFO,logging:INFO,msgwriter:INFO";
+      categories = "*:INFO,global:INFO,stacktrace:INFO,logging:INFO,msgwriter:INFO,perf.*:DEBUG";
       break;
     case 2:
       categories = "*:DEBUG";
@@ -111,7 +120,32 @@ static const char *get_default_categories(int level)
   return categories;
 }
 
-void mlog_configure(const std::string &filename_base, bool console)
+#ifdef WIN32
+bool EnableVTMode()
+{
+  // Set output mode to handle virtual terminal sequences
+  HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
+  if (hOut == INVALID_HANDLE_VALUE)
+  {
+    return false;
+  }
+
+  DWORD dwMode = 0;
+  if (!GetConsoleMode(hOut, &dwMode))
+  {
+    return false;
+  }
+
+  dwMode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
+  if (!SetConsoleMode(hOut, dwMode))
+  {
+    return false;
+  }
+  return true;
+}
+#endif
+
+void mlog_configure(const std::string &filename_base, bool console, const std::size_t max_log_file_size, const std::size_t max_log_files)
 {
   el::Configurations c;
   c.setGlobally(el::ConfigurationType::Filename, filename_base);
@@ -121,7 +155,7 @@ void mlog_configure(const std::string &filename_base, bool console)
     log_format = MLOG_BASE_FORMAT;
   c.setGlobally(el::ConfigurationType::Format, log_format);
   c.setGlobally(el::ConfigurationType::ToStandardOutput, console ? "true" : "false");
-  c.setGlobally(el::ConfigurationType::MaxLogFileSize, "104850000"); // 100 MB - 7600 bytes
+  c.setGlobally(el::ConfigurationType::MaxLogFileSize, std::to_string(max_log_file_size));
   el::Loggers::setDefaultConfigurations(c, true);
 
   el::Loggers::addFlag(el::LoggingFlag::HierarchicalLogging);
@@ -129,9 +163,65 @@ void mlog_configure(const std::string &filename_base, bool console)
   el::Loggers::addFlag(el::LoggingFlag::DisableApplicationAbortOnFatalLog);
   el::Loggers::addFlag(el::LoggingFlag::ColoredTerminalOutput);
   el::Loggers::addFlag(el::LoggingFlag::StrictLogFileSizeCheck);
-  el::Helpers::installPreRollOutCallback([filename_base](const char *name, size_t){
+  el::Helpers::installPreRollOutCallback([filename_base, max_log_files](const char *name, size_t){
     std::string rname = generate_log_filename(filename_base.c_str());
-    rename(name, rname.c_str());
+    int ret = rename(name, rname.c_str());
+    if (ret < 0)
+    {
+      // can't log a failure, but don't do the file removal below
+      return;
+    }
+    if (max_log_files != 0)
+    {
+      std::vector<boost::filesystem::path> found_files;
+      const boost::filesystem::directory_iterator end_itr;
+      const boost::filesystem::path filename_base_path(filename_base);
+      const boost::filesystem::path parent_path = filename_base_path.has_parent_path() ? filename_base_path.parent_path() : ".";
+      for (boost::filesystem::directory_iterator iter(parent_path); iter != end_itr; ++iter)
+      {
+        const std::string filename = iter->path().string();
+        if (filename.size() >= filename_base.size() && std::memcmp(filename.data(), filename_base.data(), filename_base.size()) == 0)
+        {
+          found_files.push_back(iter->path());
+        }
+      }
+      if (found_files.size() >= max_log_files)
+      {
+        std::sort(found_files.begin(), found_files.end(), [](const boost::filesystem::path &a, const boost::filesystem::path &b) {
+          boost::system::error_code ec;
+          std::time_t ta = boost::filesystem::last_write_time(boost::filesystem::path(a), ec);
+          if (ec)
+          {
+            MERROR("Failed to get timestamp from " << a << ": " << ec);
+            ta = std::time(nullptr);
+          }
+          std::time_t tb = boost::filesystem::last_write_time(boost::filesystem::path(b), ec);
+          if (ec)
+          {
+            MERROR("Failed to get timestamp from " << b << ": " << ec);
+            tb = std::time(nullptr);
+          }
+          static_assert(std::is_integral<time_t>(), "bad time_t");
+          return ta < tb;
+        });
+        for (size_t i = 0; i <= found_files.size() - max_log_files; ++i)
+        {
+          try
+          {
+            boost::system::error_code ec;
+            boost::filesystem::remove(found_files[i], ec);
+            if (ec)
+            {
+              MERROR("Failed to remove " << found_files[i] << ": " << ec);
+            }
+          }
+          catch (const std::exception &e)
+          {
+            MERROR("Failed to remove " << found_files[i] << ": " << e.what());
+          }
+        }
+      }
+    }
   });
   mlog_set_common_prefix();
   const char *electroneum_log = getenv("ELECTRONEUM_LOGS");
@@ -140,20 +230,59 @@ void mlog_configure(const std::string &filename_base, bool console)
     electroneum_log = get_default_categories(0);
   }
   mlog_set_log(electroneum_log);
+#ifdef WIN32
+  EnableVTMode();
+#endif
 }
 
 void mlog_set_categories(const char *categories)
 {
-  el::Loggers::setCategories(categories);
-  MLOG_LOG("New log categories: " << categories);
+  std::string new_categories;
+  if (*categories)
+  {
+    if (*categories == '+')
+    {
+      ++categories;
+      new_categories = mlog_get_categories();
+      if (*categories)
+      {
+        if (!new_categories.empty())
+          new_categories += ",";
+        new_categories += categories;
+      }
+    }
+    else if (*categories == '-')
+    {
+      ++categories;
+      new_categories = mlog_get_categories();
+      std::vector<std::string> single_categories;
+      boost::split(single_categories, categories, boost::is_any_of(","), boost::token_compress_on);
+      for (const std::string &s: single_categories)
+      {
+        size_t pos = new_categories.find(s);
+        if (pos != std::string::npos)
+          new_categories = new_categories.erase(pos, s.size());
+      }
+    }
+    else
+    {
+      new_categories = categories;
+    }
+  }
+  el::Loggers::setCategories(new_categories.c_str(), true);
+  MLOG_LOG("New log categories: " << el::Loggers::getCategories());
+}
+
+std::string mlog_get_categories()
+{
+  return el::Loggers::getCategories();
 }
 
 // maps epee style log level to new logging system
 void mlog_set_log_level(int level)
 {
   const char *categories = get_default_categories(level);
-  el::Loggers::setCategories(categories);
-  MLOG_LOG("New log categories: " << categories);
+  mlog_set_categories(categories);
 }
 
 void mlog_set_log(const char *log)
@@ -161,7 +290,12 @@ void mlog_set_log(const char *log)
   long level;
   char *ptr = NULL;
 
-  level = strtoll(log, &ptr, 10);
+  if (!*log)
+  {
+    mlog_set_categories(log);
+    return;
+  }
+  level = strtol(log, &ptr, 10);
   if (ptr && *ptr)
   {
     // we can have a default level, eg, 2,foo:ERROR

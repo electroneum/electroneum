@@ -1,5 +1,5 @@
-// Copyrights(c) 2017-2019, The Electroneum Project
-// Copyrights(c) 2014-2017, The Monero Project
+// Copyrights(c) 2017-2020, The Electroneum Project
+// Copyrights(c) 2014-2019, The Monero Project
 // 
 // All rights reserved.
 // 
@@ -29,10 +29,10 @@
 
 #pragma once
 
+#include "blocks/blocks.h"
 #include "cryptonote_core/cryptonote_core.h"
 #include "cryptonote_protocol/cryptonote_protocol_handler.h"
 #include "misc_log_ex.h"
-#include "daemon/command_line_args.h"
 
 #undef ELECTRONEUM_DEFAULT_LOG_CATEGORY
 #define ELECTRONEUM_DEFAULT_LOG_CATEGORY "daemon"
@@ -72,7 +72,12 @@ public:
   {
     //initialize core here
     MGINFO("Initializing core...");
-    if (!m_core.init(m_vm_HACK))
+#if defined(PER_BLOCK_CHECKPOINT)
+    const cryptonote::GetCheckpointsCallback& get_checkpoints = blocks::GetCheckpointsData;
+#else
+    const cryptonote::GetCheckpointsCallback& get_checkpoints = nullptr;
+#endif
+    if (!m_core.init(m_vm_HACK, nullptr, get_checkpoints))
     {
       return false;
     }

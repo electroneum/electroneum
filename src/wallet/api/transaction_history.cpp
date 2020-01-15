@@ -1,5 +1,5 @@
-// Copyrights(c) 2017-2019, The Electroneum Project
-// Copyrights(c) 2014-2017, The Monero Project
+// Copyrights(c) 2017-2020, The Electroneum Project
+// Copyrights(c) 2014-2019, The Monero Project
 //
 // All rights reserved.
 //
@@ -131,15 +131,14 @@ void TransactionHistoryImpl::refresh()
         ti->m_direction = TransactionInfo::Direction_In;
         ti->m_hash      = string_tools::pod_to_hex(pd.m_tx_hash);
         ti->m_blockheight = pd.m_block_height;
+        ti->m_subaddrIndex = { pd.m_subaddr_index.minor };
+        ti->m_subaddrAccount = pd.m_subaddr_index.major;
+        ti->m_label     = m_wallet->m_wallet->get_subaddress_label(pd.m_subaddr_index);
         ti->m_timestamp = pd.m_timestamp;
-        ti->m_confirmations = wallet_height - pd.m_block_height;
+        ti->m_confirmations = (wallet_height > pd.m_block_height) ? wallet_height - pd.m_block_height : 0;
         ti->m_unlock_time = pd.m_unlock_time;
         m_history.push_back(ti);
 
-        /* output.insert(std::make_pair(pd.m_block_height, std::make_pair(true, (boost::format("%20.20s %s %s %s")
-                                                                                 % print_money(pd.m_amount)
-                                                                                 % string_tools::pod_to_hex(pd.m_tx_hash)
-                                                                                 % payment_id % "-").str()))); */
     }
 
     // confirmed output transactions
@@ -175,12 +174,15 @@ void TransactionHistoryImpl::refresh()
         ti->m_direction = TransactionInfo::Direction_Out;
         ti->m_hash = string_tools::pod_to_hex(hash);
         ti->m_blockheight = pd.m_block_height;
+        ti->m_subaddrIndex = pd.m_subaddr_indices;
+        ti->m_subaddrAccount = pd.m_subaddr_account;
+        ti->m_label = pd.m_subaddr_indices.size() == 1 ? m_wallet->m_wallet->get_subaddress_label({pd.m_subaddr_account, *pd.m_subaddr_indices.begin()}) : "";
         ti->m_timestamp = pd.m_timestamp;
-        ti->m_confirmations = wallet_height - pd.m_block_height;
+        ti->m_confirmations = (wallet_height > pd.m_block_height) ? wallet_height - pd.m_block_height : 0;
 
         // single output transaction might contain multiple transfers
         for (const auto &d: pd.m_dests) {
-            ti->m_transfers.push_back({d.amount, get_account_address_as_str(m_wallet->m_wallet->testnet(), d.addr)});
+            ti->m_transfers.push_back({d.amount, get_account_address_as_str(m_wallet->m_wallet->nettype(), d.is_subaddress, d.addr)});
         }
         m_history.push_back(ti);
     }
@@ -200,12 +202,15 @@ void TransactionHistoryImpl::refresh()
 
         TransactionInfoImpl * ti = new TransactionInfoImpl();
         ti->m_paymentid = payment_id;
-        ti->m_amount = amount - pd.m_change;
+        ti->m_amount = amount - pd.m_change - fee;
         ti->m_fee    = fee;
         ti->m_direction = TransactionInfo::Direction_Out;
         ti->m_failed = is_failed;
         ti->m_pending = true;
         ti->m_hash = string_tools::pod_to_hex(hash);
+        ti->m_subaddrIndex = pd.m_subaddr_indices;
+        ti->m_subaddrAccount = pd.m_subaddr_account;
+        ti->m_label = pd.m_subaddr_indices.size() == 1 ? m_wallet->m_wallet->get_subaddress_label({pd.m_subaddr_account, *pd.m_subaddr_indices.begin()}) : "";
         ti->m_timestamp = pd.m_timestamp;
         ti->m_confirmations = 0;
         m_history.push_back(ti);
@@ -213,10 +218,10 @@ void TransactionHistoryImpl::refresh()
     
     
     // unconfirmed payments (tx pool)
-    std::list<std::pair<crypto::hash, tools::wallet2::payment_details>> upayments;
+    std::list<std::pair<crypto::hash, tools::wallet2::pool_payment_details>> upayments;
     m_wallet->m_wallet->get_unconfirmed_payments(upayments);
-    for (std::list<std::pair<crypto::hash, tools::wallet2::payment_details>>::const_iterator i = upayments.begin(); i != upayments.end(); ++i) {  
-        const tools::wallet2::payment_details &pd = i->second;
+    for (std::list<std::pair<crypto::hash, tools::wallet2::pool_payment_details>>::const_iterator i = upayments.begin(); i != upayments.end(); ++i) {
+        const tools::wallet2::payment_details &pd = i->second.m_pd;
         std::string payment_id = string_tools::pod_to_hex(i->first);
         if (payment_id.substr(16).find_first_not_of('0') == std::string::npos)
             payment_id = payment_id.substr(0,16);
@@ -227,6 +232,9 @@ void TransactionHistoryImpl::refresh()
         ti->m_hash      = string_tools::pod_to_hex(pd.m_tx_hash);
         ti->m_blockheight = pd.m_block_height;
         ti->m_pending = true;
+        ti->m_subaddrIndex = { pd.m_subaddr_index.minor };
+        ti->m_subaddrAccount = pd.m_subaddr_index.major;
+        ti->m_label     = m_wallet->m_wallet->get_subaddress_label(pd.m_subaddr_index);
         ti->m_timestamp = pd.m_timestamp;
         ti->m_confirmations = 0;
         m_history.push_back(ti);

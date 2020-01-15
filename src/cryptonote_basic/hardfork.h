@@ -1,5 +1,5 @@
-// Copyrights(c) 2017-2019, The Electroneum Project
-// Copyrights(c) 2014-2017, The Monero Project
+// Copyrights(c) 2017-2020, The Electroneum Project
+// Copyrights(c) 2014-2019, The Monero Project
 // 
 // All rights reserved.
 // 
@@ -80,7 +80,6 @@ namespace cryptonote
      * returns true if no error, false otherwise
      *
      * @param version the major block version for the fork
-     * @param voting_version the minor block version for the fork, used for voting
      * @param height The height the hardfork takes effect
      * @param time Approximate time of the hardfork (seconds since epoch)
      */
@@ -150,6 +149,16 @@ namespace cryptonote
      */
     bool reorganize_from_block_height(uint64_t height);
     bool reorganize_from_chain_height(uint64_t height);
+
+    /**
+     * @brief called when one or more blocks are popped from the blockchain
+     *
+     * The current fork will be updated by looking up the db,
+     * which is much cheaper than recomputing everything
+     *
+     * @param new_chain_height the height of the chain after popping
+     */
+    void on_block_popped(uint64_t new_chain_height);
 
     /**
      * @brief returns current state at the given time
@@ -222,6 +231,14 @@ namespace cryptonote
      */
     uint64_t get_window_size() const { return window_size; }
 
+    struct Params {
+      uint8_t version;
+      uint8_t threshold;
+      uint64_t height;
+      time_t time;
+      Params(uint8_t version, uint64_t height, uint8_t threshold, time_t time): version(version), threshold(threshold), height(height), time(time) {}
+    };
+
   private:
 
     uint8_t get_block_version(uint64_t height) const;
@@ -246,13 +263,6 @@ namespace cryptonote
     uint8_t original_version;
     uint64_t original_version_till_height;
 
-    struct Params {
-      uint8_t version;
-      uint8_t threshold;
-      uint64_t height;
-      time_t time;
-      Params(uint8_t version, uint64_t height, uint8_t threshold, time_t time): version(version), threshold(threshold), height(height), time(time) {}
-    };
     std::vector<Params> heights;
 
     std::deque<uint8_t> versions; /* rolling window of the last N blocks' versions */

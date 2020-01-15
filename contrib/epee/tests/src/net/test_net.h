@@ -29,7 +29,9 @@
 #include <boost/thread.hpp>
 #include <boost/bind.hpp> 
 
-#include "net/levin_server_cp2.h"
+#include "net/abstract_tcp_server2.h"
+#include "net/levin_protocol_handler.h"
+#include "net/levin_protocol_handler_async.h"
 #include "storages/abstract_invoke.h"
 
 namespace epee
@@ -60,7 +62,7 @@ namespace tests
   {
     const static int ID = 1000;
 
-    struct request
+    struct request_t
     {		
 
       std::string example_string_data;
@@ -73,9 +75,9 @@ namespace tests
         SERIALIZE_T(sub)
       END_NAMED_SERIALIZE_MAP()
     };
+    typedef epee::misc_utils::struct_init<request_t> request;
 
-
-    struct response
+    struct response_t
     {
       bool 	 m_success; 
       uint64_t example_id_data;
@@ -87,13 +89,14 @@ namespace tests
         SERIALIZE_STL_CONTAINER_T(subs)
       END_NAMED_SERIALIZE_MAP()
     };
+    typedef epee::misc_utils::struct_init<response_t> response;
   };
 
   struct COMMAND_EXAMPLE_2
   {
     const static int ID = 1001;
 
-    struct request
+    struct request_t
     {		
       std::string example_string_data2;
       uint64_t example_id_data;
@@ -103,8 +106,9 @@ namespace tests
         SERIALIZE_STL_ANSI_STRING(example_string_data2)
       END_NAMED_SERIALIZE_MAP()
     };
+    typedef epee::misc_utils::struct_init<request_t> request;
 
-    struct response
+    struct response_t
     {
       bool m_success; 
       uint64_t example_id_data;
@@ -114,6 +118,7 @@ namespace tests
         SERIALIZE_POD(m_success)
       END_NAMED_SERIALIZE_MAP()
     };
+    typedef epee::misc_utils::struct_init<response_t> response;
   };
   typedef boost::uuids::uuid uuid;
 
@@ -155,7 +160,7 @@ namespace tests
 
     bool init(const std::string& bind_port = "", const std::string& bind_ip = "0.0.0.0")
     {
-      m_net_server.get_config_object().m_pcommands_handler = this;
+      m_net_server.get_config_object().set_handler(this);
       m_net_server.get_config_object().m_invoke_timeout = 1000;
       LOG_PRINT_L0("Binding on " << bind_ip << ":" << bind_port);
       return m_net_server.init_server(bind_port, bind_ip);
@@ -261,7 +266,7 @@ namespace tests
     boost::thread th1( boost::bind(&test_levin_server::run, &srv1));
     boost::thread th2( boost::bind(&test_levin_server::run, &srv2));
 
-    LOG_PRINT_L0("Initalized servers, waiting for worker threads started...");
+    LOG_PRINT_L0("Initialized servers, waiting for worker threads started...");
     misc_utils::sleep_no_w(1000);  
 
 

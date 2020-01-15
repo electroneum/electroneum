@@ -1,5 +1,5 @@
-// Copyrights(c) 2017-2019, The Electroneum Project
-// Copyrights(c) 2014-2017, The Monero Project
+// Copyrights(c) 2017-2020, The Electroneum Project
+// Copyrights(c) 2014-2019, The Monero Project
 //
 // All rights reserved.
 //
@@ -37,6 +37,5 @@ namespace tools
   struct login;
   class password_container;
   class t_http_connection;
-  class task_region;
-  class thread_group;
+  class threadpool;
 }

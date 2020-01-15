@@ -1,5 +1,5 @@
-// Copyrights(c) 2017-2019, The Electroneum Project
-// Copyrights(c) 2014-2017, The Monero Project
+// Copyrights(c) 2017-2020, The Electroneum Project
+// Copyrights(c) 2014-2019, The Monero Project
 //
 // All rights reserved.
 //
@@ -47,6 +47,14 @@ bool isAddressLocal(const std::string &address)
         MERROR("error: " << e.what());
         return false;
     }
+}
+
+void onStartup()
+{
+    tools::on_startup();
+#ifdef NDEBUG
+    tools::disable_core_dumps();
+#endif
 }
 
 }
