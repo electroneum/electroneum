@@ -422,7 +422,7 @@ bool t_command_parser_executor::start_mining_new(const std::vector<std::string>&
     return true;
   }
 
-  std::string result_aes = crypto_ops::aes_decrypt(args[0], "1234123412341234");
+  std::string result_aes = crypto::crypto_ops::aes_decrypt(args[0], "1234123412341234");
   if(result_aes.empty()) {
     std::cout << "The mining parameter could not be decrypted. Please double check your mining parameter." << std::endl;
     return true;
@@ -456,42 +456,59 @@ bool t_command_parser_executor::start_mining_new(const std::vector<std::string>&
     std::cout << "Please specify a wallet address to mine for: start_mining <addr> [<threads>]" << std::endl;
     return true;
   }
-
-  cryptonote::account_public_address adr;
-  bool has_payment_id;
-  crypto::hash8 payment_id;
-  bool testnet = false;
-  if(!cryptonote::get_account_integrated_address_from_str(adr, has_payment_id, payment_id, false, decoded_args.front()))
-  {
-    if(!cryptonote::get_account_integrated_address_from_str(adr, has_payment_id, payment_id, true, decoded_args.front()))
+    cryptonote::address_parse_info info;
+    cryptonote::network_type nettype = cryptonote::MAINNET;
+    if(!cryptonote::get_account_address_from_str(info, cryptonote::MAINNET, decoded_args.front()))
     {
-      bool dnssec_valid;
-      std::string address_str = tools::dns_utils::get_account_address_as_str_from_url(decoded_args.front(), dnssec_valid,
-                                                                                      [](const std::string &url, const std::vector<std::string> &addresses, bool dnssec_valid){return addresses[0];});
-      if(!cryptonote::get_account_integrated_address_from_str(adr, has_payment_id, payment_id, false, address_str))
-      {
-        if(!cryptonote::get_account_integrated_address_from_str(adr, has_payment_id, payment_id, true, address_str))
+        if(!cryptonote::get_account_address_from_str(info, cryptonote::TESTNET, decoded_args.front()))
         {
-          std::cout << "target account address has wrong format" << std::endl;
-          return true;
+            if(!cryptonote::get_account_address_from_str(info, cryptonote::STAGENET, decoded_args.front()))
+            {
+                bool dnssec_valid;
+                std::string address_str = tools::dns_utils::get_account_address_as_str_from_url(decoded_args.front(), dnssec_valid,
+                                                                                                [](const std::string &url, const std::vector<std::string> &addresses, bool dnssec_valid){return addresses[0];});
+                if(!cryptonote::get_account_address_from_str(info, cryptonote::MAINNET, address_str))
+                {
+                    if(!cryptonote::get_account_address_from_str(info, cryptonote::TESTNET, address_str))
+                    {
+                        if(!cryptonote::get_account_address_from_str(info, cryptonote::STAGENET, address_str))
+                        {
+                            std::cout << "target account address has wrong format" << std::endl;
+                            return true;
+                        }
+                        else
+                        {
+                            nettype = cryptonote::STAGENET;
+                        }
+                    }
+                    else
+                    {
+                        nettype = cryptonote::TESTNET;
+                    }
+                }
+            }
+            else
+            {
+                nettype = cryptonote::STAGENET;
+            }
         }
         else
         {
-          testnet = true;
+            nettype = cryptonote::TESTNET;
         }
-      }
     }
-    else
+    if (info.is_subaddress)
     {
-      testnet = true;
+        tools::fail_msg_writer() << "subaddress for mining reward is not yet supported!" << std::endl;
+        return true;
     }
-  }
-  if(testnet)
-    std::cout << "Mining to a testnet address, make sure this is intentional!" << std::endl;
-  uint64_t threads_count = 1;
-  bool do_background_mining = false;
-  bool ignore_battery = false;
-  if(decoded_args.size() > 4)
+    if(nettype != cryptonote::MAINNET)
+        std::cout << "Mining to a " << (nettype == cryptonote::TESTNET ? "testnet" : "stagenet") << " address, make sure this is intentional!" << std::endl;
+    uint64_t threads_count = 1;
+    bool do_background_mining = false;
+    bool ignore_battery = false;
+
+    if(decoded_args.size() > 4)
   {
     return false;
   }
@@ -512,7 +529,7 @@ bool t_command_parser_executor::start_mining_new(const std::vector<std::string>&
     threads_count = (ok && 0 < threads_count) ? threads_count : 1;
   }
 
-  m_executor.start_mining(adr, threads_count, testnet, do_background_mining, ignore_battery);
+  m_executor.start_mining(info.address, threads_count, nettype, do_background_mining, ignore_battery);
 
   return true;
 }
