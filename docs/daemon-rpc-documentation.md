@@ -77,7 +77,7 @@ The majority of electroneumd RPC calls use the daemon's  `json_rpc`  interface
 
 ```
 IP=127.0.0.1
-PORT=18081
+PORT=26968
 METHOD='get_block_header_by_height'
 ALIAS='getblockheaderbyheight'
 PARAMS='{"height":912345}'
@@ -1678,7 +1678,7 @@ $ curl -X POST http://127.0.0.1:26968/get_peer_list -H 'Content-Type: applicatio
     "id": 5345237316225602120,
     "ip": 640304833,
     "last_seen": 1525540510,
-    "port": 18080
+    "port": 26967
   },{
     "host": "2183731038",
     "id": 14955030573998424430,
@@ -1693,13 +1693,13 @@ $ curl -X POST http://127.0.0.1:26968/get_peer_list -H 'Content-Type: applicatio
     "id": 10354694710033118926,
     "ip": 1221637955,
     "last_seen": 1525540511,
-    "port": 18080
+    "port": 26967
   },{
     "host": "1780407354",
     "id": 17193661050352240890,
     "ip": 1780407354,
     "last_seen": 1525540510,
-    "port": 18080
+    "port": 26967
   }, ...
   ]
 }

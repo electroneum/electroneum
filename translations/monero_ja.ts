@@ -5324,7 +5324,7 @@ WARNING: Do not reuse your Electroneum keys on another fork, UNLESS this fork ha
     </message>
     <message>
         <location filename="../src/wallet/wallet2.cpp" line="247"/>
-        <source>Use daemon instance at port &lt;arg&gt; instead of 18081</source>
+        <source>Use daemon instance at port &lt;arg&gt; instead of 26968</source>
         <translation>１８０８１の代わりにポート &lt;arg&gt;でデーモンインスタンスを使ってください</translation>
     </message>
     <message>
