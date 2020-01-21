@@ -2321,14 +2321,23 @@ namespace cryptonote
   //------------------------------------------------------------------------------------------------------------------------------
   bool core_rpc_server::on_sign_message(const COMMAND_RPC_SIGN_MESSAGE::request& req, COMMAND_RPC_SIGN_MESSAGE::response& res, epee::json_rpc::error& error_resp, const connection_context *ctx)
   {
-    std::string v = m_core.sign_message(boost::algorithm::unhex(req.privateKey), req.message);
-    if(v.empty()) {
-      error_resp.code = CORE_RPC_ERROR_CODE_INTERNAL_ERROR;
-      error_resp.message = "Failed to sign message.";
-      return false;
+    try {
+        std::string v = m_core.sign_message(boost::algorithm::unhex(req.privateKey), req.message);
+
+        if (v.empty()) {
+            error_resp.code = CORE_RPC_ERROR_CODE_INTERNAL_ERROR;
+            error_resp.message = "Failed to sign message.";
+            return false;
+        }
+
+        res.signature = v;
     }
 
-    res.signature = v;
+    catch(std::exception){
+        error_resp.code = CORE_RPC_ERROR_CODE_INTERNAL_ERROR;
+        error_resp.message = "Failed to sign message. Please check that you are using a valid private key.";
+        return false;
+    }
 
     res.status = CORE_RPC_STATUS_OK;
     return true;
