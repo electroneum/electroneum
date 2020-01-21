@@ -2516,7 +2516,7 @@ Outputs per *: </source>
     </message>
     <message>
         <location filename="../src/wallet/wallet2.cpp" line="108"/>
-        <source>Wallet password (escape/quote as needed)</source>
+        <source>Wallet password (escape/quote as needed - *For a wallet without a password use "")</source>
         <translation type="unfinished"></translation>
     </message>
     <message>

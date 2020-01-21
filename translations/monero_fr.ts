@@ -5396,7 +5396,7 @@ ATTENTION : Ne réutilisez pas vos clés Electroneum avec un autre fork, À MOIN
     </message>
     <message>
         <location filename="../src/wallet/wallet2.cpp" line="245"/>
-        <source>Wallet password (escape/quote as needed)</source>
+        <source>Wallet password (escape/quote as needed - *For a wallet without a password use "")</source>
         <translation>Mot de passe du portefeuille (échapper/citer si nécessaire)</translation>
     </message>
     <message>

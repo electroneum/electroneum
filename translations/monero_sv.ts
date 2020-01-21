@@ -5390,7 +5390,7 @@ WARNING: Do not reuse your Electroneum keys on another fork, UNLESS this fork ha
     </message>
     <message>
         <location filename="../src/wallet/wallet2.cpp" line="245"/>
-        <source>Wallet password (escape/quote as needed)</source>
+        <source>Wallet password (escape/quote as needed - *For a wallet without a password use "")</source>
         <translation>Lösenord för plånboken (använd escape-sekvenser eller citattecken efter behov)</translation>
     </message>
     <message>
