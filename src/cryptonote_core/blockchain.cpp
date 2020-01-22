@@ -4084,8 +4084,6 @@ leave:
         << "/" << t_checktx << "/" << t_dblspnd << "/" << vmt << "/" << addblock << ")ms");
   }
 
-  normalize_v7_difficulties();
-
   bvc.m_added_to_main_chain = true;
   ++m_sync_counter;
 
