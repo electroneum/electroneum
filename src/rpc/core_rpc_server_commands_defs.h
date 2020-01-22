@@ -1856,7 +1856,7 @@ namespace cryptonote
       std::string host;
       uint32_t ip;
       bool ban;
-      uint32_t seconds;
+      int32_t seconds;
 
       BEGIN_KV_SERIALIZE_MAP()
         KV_SERIALIZE(host)

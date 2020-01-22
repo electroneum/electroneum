@@ -1827,10 +1827,21 @@ namespace cryptonote
       {
         na = epee::net_utils::ipv4_network_address{i->ip, 0};
       }
-      if (i->ban)
-        m_p2p.block_host(na, i->seconds);
-      else
-        m_p2p.unblock_host(na);
+      if (i->ban) {
+          if (i->seconds < -1) {
+              error_resp.code = CORE_RPC_ERROR_CODE_WRONG_PARAM;
+              error_resp.message = "Please pick a value for seconds >= -1";
+              return false;
+          } else if (i->seconds == -1) {
+              m_p2p.block_host(na, uint32_t(std::numeric_limits<time_t>::max()));
+          } else {
+              m_p2p.block_host(na, uint32_t(i->seconds));
+          }
+      }
+      else{
+          m_p2p.unblock_host(na);
+      }
+
     }
 
     res.status = CORE_RPC_STATUS_OK;

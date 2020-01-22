@@ -239,7 +239,7 @@ t_command_server::t_command_server(
       "ban"
     , std::bind(&t_command_parser_executor::ban, &m_parser, p::_1)
     , "ban <IP> [<seconds>]"
-    , "Ban a given <IP> for a given amount of <seconds>."
+    , "Ban a given <IP> for a given amount of <seconds>. Seconds = (-1) will result in a perm ban"
     );
     m_command_lookup.set_handler(
       "unban"

@@ -576,7 +576,12 @@ bool t_command_parser_executor::ban(const std::vector<std::string>& args)
   {
     try
     {
-      seconds = std::stoi(args[1]);
+      if(args[1] == "-1"){
+          seconds = std::numeric_limits<time_t>::max();
+      }
+      else{
+          seconds = std::stoi(args[1]);
+      }
     }
     catch (const std::exception &e)
     {

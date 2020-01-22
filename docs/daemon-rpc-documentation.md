@@ -744,7 +744,7 @@ Inputs:
   * *host*  - string; Host to ban (IP in A.B.C.D form - will support I2P address in the future).
   * *ip*  - unsigned int; IP address to ban, in Int format.
   * *ban*  - boolean; Set  `true`  to ban.
-  * *seconds*  - unsigned int; Number of seconds to ban node.
+  * *seconds*  - unsigned int; Number of seconds to ban node. Use -1 to ban permenantly.
 
 Outputs:
 
