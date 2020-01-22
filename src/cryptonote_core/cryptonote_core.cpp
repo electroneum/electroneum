@@ -1273,8 +1273,8 @@ namespace cryptonote
   //-----------------------------------------------------------------------------------------------
   bool core::add_new_tx(transaction& tx, const crypto::hash& tx_hash, const cryptonote::blobdata &blob, size_t tx_weight, tx_verification_context& tvc, bool keeped_by_block, bool relayed, bool do_not_relay)
   {
-    if (keeped_by_block)
-      get_blockchain_storage().on_new_tx_from_block(tx);
+    //if (keeped_by_block)
+    //  get_blockchain_storage().on_new_tx_from_block(tx);
 
     if(m_mempool.have_tx(tx_hash))
     {
