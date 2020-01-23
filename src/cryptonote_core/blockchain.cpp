@@ -876,26 +876,18 @@ difficulty_type Blockchain::get_difficulty_for_next_block()
   ++height; // top block height to blockchain height
 
   uint64_t v6height = 0, v7height = 0, v8height = 0;
-
-  switch (m_nettype)
-  {
-    case STAGENET:
-      v6height = stagenet_hard_forks[5].height; break;
-      v7height = stagenet_hard_forks[5].height; break;
-      v8height = stagenet_hard_forks[5].height; break;
-    case TESTNET:
-      v6height = testnet_hard_forks[1].height; break;
-      v7height = testnet_hard_forks[2].height; break;
-      v8height = testnet_hard_forks[3].height; break;
-    case MAINNET:
-      v6height = mainnet_hard_forks[1].height; break;
-      v7height = mainnet_hard_forks[2].height; break;
-      v8height = mainnet_hard_forks[3].height; break;
-    case FAKECHAIN:
-      break;
-    case UNDEFINED:
-      MERROR(std::string("Something went wrong defining the network type."));
-      break;
+  if(m_nettype == MAINNET) {
+    v6height = mainnet_hard_forks[1].height;
+    v7height = mainnet_hard_forks[2].height;
+    v8height = mainnet_hard_forks[3].height;
+  } else if(m_nettype == TESTNET) {
+    v6height = testnet_hard_forks[1].height;
+    v7height = testnet_hard_forks[2].height;
+    v8height = testnet_hard_forks[3].height;
+  } else if(m_nettype == STAGENET) {
+    v6height = stagenet_hard_forks[5].height;
+    v7height = stagenet_hard_forks[5].height;
+    v8height = stagenet_hard_forks[5].height;
   }
 
   uint32_t difficultyBlocksCount = (height >= v6height && height < v7height) ? DIFFICULTY_BLOCKS_COUNT_V6 : DIFFICULTY_BLOCKS_COUNT;
@@ -1190,25 +1182,18 @@ difficulty_type Blockchain::get_next_difficulty_for_alternative_chain(const std:
 
   uint64_t v6height = 0, v7height = 0, v8height = 0;
 
-  switch (m_nettype)
-  {
-    case STAGENET:
-      v6height = stagenet_hard_forks[5].height; break;
-      v7height = stagenet_hard_forks[5].height; break;
-      v8height = stagenet_hard_forks[5].height; break;
-    case TESTNET:
-      v6height = testnet_hard_forks[1].height; break;
-      v7height = testnet_hard_forks[2].height; break;
-      v8height = testnet_hard_forks[3].height; break;
-    case MAINNET:
-      v6height = mainnet_hard_forks[1].height; break;
-      v7height = mainnet_hard_forks[2].height; break;
-      v8height = mainnet_hard_forks[3].height; break;
-    case FAKECHAIN:
-      break;
-    case UNDEFINED:
-      MERROR(std::string("Something went wrong defining the network type."));
-      break;
+  if(m_nettype == MAINNET) {
+    v6height = mainnet_hard_forks[1].height;
+    v7height = mainnet_hard_forks[2].height;
+    v8height = mainnet_hard_forks[3].height;
+  } else if(m_nettype == TESTNET) {
+    v6height = testnet_hard_forks[1].height;
+    v7height = testnet_hard_forks[2].height;
+    v8height = testnet_hard_forks[3].height;
+  } else if(m_nettype == STAGENET) {
+    v6height = stagenet_hard_forks[5].height;
+    v7height = stagenet_hard_forks[5].height;
+    v8height = stagenet_hard_forks[5].height;
   }
 
   uint32_t difficultyBlocksCount = (bei.height >= v6height && bei.height < v7height) ? DIFFICULTY_BLOCKS_COUNT_V6 : DIFFICULTY_BLOCKS_COUNT;
