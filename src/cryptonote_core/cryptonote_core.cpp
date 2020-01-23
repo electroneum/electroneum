@@ -1488,10 +1488,6 @@ namespace cryptonote
   {
     TRY_ENTRY();
 
-    // load json & DNS checkpoints every 10min/hour respectively,
-    // and verify them with respect to what blocks we already have
-    CHECK_AND_ASSERT_MES(update_checkpoints(), false, "One or more checkpoints loaded from json or dns conflicted with existing checkpoints.");
-
     bvc = boost::value_initialized<block_verification_context>();
 
     if (!check_incoming_block_size(block_blob))
