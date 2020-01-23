@@ -888,9 +888,12 @@ difficulty_type Blockchain::get_difficulty_for_next_block()
     v6height = stagenet_hard_forks[5].height;
     v7height = stagenet_hard_forks[5].height;
     v8height = stagenet_hard_forks[5].height;
+  } else if(m_nettype == UNDEFINED){
+    MERROR(std::string("Something went wrong defining the network type."));
   }
 
-  uint32_t difficultyBlocksCount = (height >= v6height && height < v7height) ? DIFFICULTY_BLOCKS_COUNT_V6 : DIFFICULTY_BLOCKS_COUNT;
+
+    uint32_t difficultyBlocksCount = (height >= v6height && height < v7height) ? DIFFICULTY_BLOCKS_COUNT_V6 : DIFFICULTY_BLOCKS_COUNT;
 
   // After v8 allow the difficulty window to grow linearly (from zero) back to DIFFICULTY_BLOCKS_COUNT.
   if((height >= v8height) && (height < v8height + 720))
@@ -1194,6 +1197,8 @@ difficulty_type Blockchain::get_next_difficulty_for_alternative_chain(const std:
     v6height = stagenet_hard_forks[5].height;
     v7height = stagenet_hard_forks[5].height;
     v8height = stagenet_hard_forks[5].height;
+  } else if(m_nettype == UNDEFINED){
+    MERROR(std::string("Something went wrong defining the network type."));
   }
 
   uint32_t difficultyBlocksCount = (bei.height >= v6height && bei.height < v7height) ? DIFFICULTY_BLOCKS_COUNT_V6 : DIFFICULTY_BLOCKS_COUNT;
