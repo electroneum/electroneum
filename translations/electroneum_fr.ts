@@ -2513,8 +2513,8 @@ Sorties par * : </translation>
     </message>
     <message>
         <location filename="../src/wallet/wallet2.cpp" line="110"/>
-        <source>Use daemon instance at port &lt;arg&gt; instead of 18081</source>
-        <translation>Utiliser l&apos;instance de démon située au port &lt;arg&gt; au lieu de 18081</translation>
+        <source>Use daemon instance at port &lt;arg&gt; instead of 26968</source>
+        <translation>Utiliser l&apos;instance de démon située au port &lt;arg&gt; au lieu de 26968</translation>
     </message>
     <message>
         <location filename="../src/wallet/wallet2.cpp" line="112"/>
@@ -2558,7 +2558,7 @@ Sorties par * : </translation>
     </message>
     <message>
         <location filename="../src/wallet/wallet2.cpp" line="108"/>
-        <source>Wallet password (escape/quote as needed)</source>
+        <source>Wallet password (escape/quote as needed - *For a wallet without a password use "")</source>
         <translation>Mot de passe du portefeuille (échapper/citer si nécessaire)</translation>
     </message>
     <message>

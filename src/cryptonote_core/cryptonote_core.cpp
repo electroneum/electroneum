@@ -1273,8 +1273,6 @@ namespace cryptonote
   //-----------------------------------------------------------------------------------------------
   bool core::add_new_tx(transaction& tx, const crypto::hash& tx_hash, const cryptonote::blobdata &blob, size_t tx_weight, tx_verification_context& tvc, bool keeped_by_block, bool relayed, bool do_not_relay)
   {
-    if (keeped_by_block)
-      get_blockchain_storage().on_new_tx_from_block(tx);
 
     if(m_mempool.have_tx(tx_hash))
     {
@@ -1489,10 +1487,6 @@ namespace cryptonote
   bool core::handle_incoming_block(const blobdata& block_blob, const block *b, block_verification_context& bvc, bool update_miner_blocktemplate)
   {
     TRY_ENTRY();
-
-    // load json & DNS checkpoints every 10min/hour respectively,
-    // and verify them with respect to what blocks we already have
-    CHECK_AND_ASSERT_MES(update_checkpoints(), false, "One or more checkpoints loaded from json or dns conflicted with existing checkpoints.");
 
     bvc = boost::value_initialized<block_verification_context>();
 

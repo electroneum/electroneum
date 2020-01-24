@@ -202,11 +202,11 @@ VOLUME /home/electroneum/.electroneum
 # electroneum-wallet-cli
 VOLUME /wallet
 
-EXPOSE 18080
-EXPOSE 18081
+EXPOSE 26967
+EXPOSE 26968
 
 # switch to user electroneum
 USER electroneum
 
-ENTRYPOINT ["electroneumd", "--p2p-bind-ip=0.0.0.0", "--p2p-bind-port=18080", "--rpc-bind-ip=0.0.0.0", "--rpc-bind-port=18081", "--non-interactive", "--confirm-external-bind"]
+ENTRYPOINT ["electroneumd", "--p2p-bind-ip=0.0.0.0", "--p2p-bind-port=26967", "--rpc-bind-ip=0.0.0.0", "--rpc-bind-port=26968", "--non-interactive", "--confirm-external-bind"]
 

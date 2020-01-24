@@ -44,11 +44,11 @@ FreeBSD one liner for required to build dependencies
 
 Clone recursively to pull-in needed submodule(s):
 
-`$ git clone --recursive https://github.com/monero-project/monero`
+`$ git clone --recursive https://github.com/electroneum/electroneum`
 
 If you already have a repo cloned, initialize and update:
 
-`$ cd monero && git submodule init && git submodule update`
+`$ cd electroneum && git submodule init && git submodule update`
 
 On OSX:
 Homebrew installs OpenSSL but doesn’t link it to /usr/local/include, where the compiler looks into during #include<…> Thus, you must manually link it instead:
@@ -168,7 +168,7 @@ application.
 * To git clone, run:
 
     ```bash
-    git clone --recursive https://github.com/monero-project/monero.git
+    git clone --recursive https://github.com/electroneum/electroneum.git
     ```
 
 **Building**
@@ -176,13 +176,13 @@ application.
 * Change to the cloned directory, run:
 
     ```bash
-    cd monero
+    cd electroneum
     ```
 
-* If you would like a specific [version/tag](https://github.com/monero-project/monero/tags), do a git checkout for that version. eg. 'v0.14.1.2'. If you don't care about the version and just want binaries from master, skip this step:
+* If you would like a specific [version/tag](https://github.com/electroneum/electroneum/tags), do a git checkout for that version. eg. 'v3.1.0.0'. If you don't care about the version and just want binaries from master, skip this step:
 	
     ```bash
-    git checkout v0.14.1.2
+    git checkout v3.1.0.0
     ```
 
 * If you are on a 64-bit system, run:
