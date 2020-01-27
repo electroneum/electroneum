@@ -151,6 +151,8 @@ A secure mobile wallet for digital payments. **[Know more about Electroneum Mobi
 
 ## Hardware Wallet Support
 
+(Coming soon)
+
 A hardware wallet is a cryptocurrency wallet which stores the user's private keys (critical piece of information used to authorise outgoing transactions on the blockchain network) in a secure hardware device. The main principle behind hardware wallets is to provide full isolation between the private keys and your easy-to-hack computer or smartphone.
 
 Electroneum currently supports Ledger hardware wallet.
