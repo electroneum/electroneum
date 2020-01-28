@@ -170,7 +170,7 @@ string path_str = converter.to_bytes(in_path.native());
       std::tm tmp;
 
       epee::misc_utils::get_gmt_time(*t, tmp);
-      
+
       size_t len;
 
       len = std::strftime(str_buff, TIME_LENGTH, format, &tmp);
