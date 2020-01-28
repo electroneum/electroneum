@@ -168,8 +168,9 @@ string path_str = converter.to_bytes(in_path.native());
       char str_buff[TIME_LENGTH];
 
       std::tm tmp;
-      gmtime_r(t, &tmp);
 
+      epee::misc_utils::get_gmt_time(*t, tmp);
+      
       size_t len;
 
       len = std::strftime(str_buff, TIME_LENGTH, format, &tmp);
@@ -1242,7 +1243,7 @@ string path_str = converter.to_bytes(in_path.native());
 
       struct tm tm;
 
-      gmtime_r(&tt, &tm);
+      epee::misc_utils::get_gmt_time(tt, tm);
 
       strftime(buffer, sizeof(buffer), "%Y-%m-%d %I:%M:%S", &tm);
 
