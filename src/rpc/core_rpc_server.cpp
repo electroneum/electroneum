@@ -961,7 +961,7 @@ namespace cryptonote
     res.active = lMiner.is_mining();
     res.is_background_mining_enabled = lMiner.get_is_background_mining_enabled();
     store_difficulty(m_core.get_blockchain_storage().get_difficulty_for_next_block(), res.difficulty, res.wide_difficulty, res.difficulty_top64);
-    
+
     res.block_target = m_core.get_blockchain_storage().get_current_hard_fork_version() < 6 ? DIFFICULTY_TARGET : DIFFICULTY_TARGET_V6;
     if ( lMiner.is_mining() ) {
       res.speed = lMiner.get_speed();
@@ -1359,13 +1359,13 @@ namespace cryptonote
     PERF_TIMER(on_generateblocks);
 
     CHECK_CORE_READY();
-    
+
     res.status = CORE_RPC_STATUS_OK;
 
     if(m_core.get_nettype() != FAKECHAIN)
     {
       error_resp.code = CORE_RPC_ERROR_CODE_REGTEST_REQUIRED;
-      error_resp.message = "Regtest required when generating blocks";      
+      error_resp.message = "Regtest required when generating blocks";
       return false;
     }
 
@@ -1385,7 +1385,7 @@ namespace cryptonote
       bool r = on_getblocktemplate(template_req, template_res, error_resp, ctx);
       res.status = template_res.status;
       template_req.prev_block.clear();
-      
+
       if (!r) return false;
 
       blobdata blockblob;

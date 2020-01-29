@@ -304,3 +304,14 @@ namespace cryptonote
     }
   };
 }
+namespace cryptonote
+{
+  enum network_type : uint8_t
+  {
+    MAINNET = 0,
+    TESTNET,
+    STAGENET,
+    FAKECHAIN,
+    UNDEFINED = 255
+  };
+}
