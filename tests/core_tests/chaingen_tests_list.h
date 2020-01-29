@@ -1,5 +1,5 @@
-// Copyrights(c) 2017-2019, The Electroneum Project
-// Copyrights(c) 2014-2017, The Monero Project
+// Copyrights(c) 2017-2020, The Electroneum Project
+// Copyrights(c) 2014-2019, The Monero Project
 // 
 // All rights reserved.
 // 
@@ -42,6 +42,8 @@
 #include "tx_validation.h"
 #include "v2_tests.h"
 #include "rct.h"
+#include "multisig.h"
+#include "bulletproofs.h"
 /************************************************************************/
 /*                                                                      */
 /************************************************************************/

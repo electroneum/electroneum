@@ -1,5 +1,5 @@
-// Copyright (c) 2017-2019, The Electroneum Project
-// Copyright (c) 2017, The Monero Project
+// Copyright (c) 2017-2020, The Electroneum Project
+// Copyright (c) 2017-2019, The Monero Project
 // 
 // All rights reserved.
 // 

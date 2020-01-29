@@ -1,5 +1,5 @@
-// Copyrights(c) 2017-2019, The Electroneum Project
-// Copyrights(c) 2014-2017, The Monero Project
+// Copyrights(c) 2017-2020, The Electroneum Project
+// Copyrights(c) 2014-2019, The Monero Project
 // 
 // All rights reserved.
 // 
@@ -37,14 +37,14 @@
 
 #include "multi_tx_test_base.h"
 
-template<size_t a_in_count, size_t a_out_count, bool a_rct>
+template<size_t a_in_count, size_t a_out_count, bool a_rct, rct::RangeProofType range_proof_type = rct::RangeProofBorromean, int bp_version = 2>
 class test_construct_tx : private multi_tx_test_base<a_in_count>
 {
   static_assert(0 < a_in_count, "in_count must be greater than 0");
   static_assert(0 < a_out_count, "out_count must be greater than 0");
 
 public:
-  static const size_t loop_count = (a_in_count + a_out_count < 100) ? 100 : 10;
+  static const size_t loop_count = (a_in_count + a_out_count < 10) ? (a_rct ? 10 : 200) : (a_in_count + a_out_count) < 100 ? (a_rct ? 5 : 25) : 5;
   static const size_t in_count  = a_in_count;
   static const size_t out_count = a_out_count;
   static const bool rct = a_rct;
@@ -62,7 +62,7 @@ public:
 
     for (size_t i = 0; i < out_count; ++i)
     {
-      m_destinations.push_back(tx_destination_entry(this->m_source_amount / out_count, m_alice.get_keys().m_account_address));
+      m_destinations.push_back(tx_destination_entry(this->m_source_amount / out_count, m_alice.get_keys().m_account_address, false));
     }
 
     return true;
@@ -71,7 +71,11 @@ public:
   bool test()
   {
     crypto::secret_key tx_key;
-    return cryptonote::construct_tx_and_get_tx_key(this->m_miners[this->real_source_idx].get_keys(), this->m_sources, m_destinations, std::vector<uint8_t>(), m_tx, 0, tx_key, rct);
+    std::vector<crypto::secret_key> additional_tx_keys;
+    std::unordered_map<crypto::public_key, cryptonote::subaddress_index> subaddresses;
+    subaddresses[this->m_miners[this->real_source_idx].get_keys().m_account_address.m_spend_public_key] = {0,0};
+    rct::RCTConfig rct_config{range_proof_type, bp_version};
+    return cryptonote::construct_tx_and_get_tx_key(this->m_miners[this->real_source_idx].get_keys(), subaddresses, this->m_sources, m_destinations, cryptonote::account_public_address{}, std::vector<uint8_t>(), m_tx, 0, tx_key, additional_tx_keys, rct, rct_config);
   }
 
 private:

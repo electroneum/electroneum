@@ -1,5 +1,5 @@
-// Copyrights(c) 2017-2019, The Electroneum Project
-// Copyrights(c) 2014-2017, The Monero Project
+// Copyrights(c) 2017-2020, The Electroneum Project
+// Copyrights(c) 2014-2019, The Monero Project
 // 
 // All rights reserved.
 // 
@@ -36,6 +36,7 @@
 #include <vector>
 
 #include "warnings.h"
+#include "misc_log_ex.h"
 #include "crypto/crypto.h"
 #include "crypto/hash.h"
 #include "crypto-tests.h"
@@ -53,10 +54,6 @@ bool operator !=(const ec_point &a, const ec_point &b) {
   return 0 != memcmp(&a, &b, sizeof(ec_point));
 }
 
-bool operator !=(const secret_key &a, const secret_key &b) {
-  return 0 != memcmp(&a, &b, sizeof(secret_key));
-}
-
 bool operator !=(const key_derivation &a, const key_derivation &b) {
   return 0 != memcmp(&a, &b, sizeof(key_derivation));
 }
@@ -64,6 +61,7 @@ bool operator !=(const key_derivation &a, const key_derivation &b) {
 DISABLE_GCC_WARNING(maybe-uninitialized)
 
 int main(int argc, char *argv[]) {
+  TRY_ENTRY();
   fstream input;
   string cmd;
   size_t test = 0;
@@ -92,7 +90,7 @@ int main(int argc, char *argv[]) {
     } else if (cmd == "random_scalar") {
       ec_scalar expected, actual;
       get(input, expected);
-      random_scalar(actual);
+      crypto::random_scalar(actual);
       if (expected != actual) {
         goto error;
       }
@@ -100,7 +98,7 @@ int main(int argc, char *argv[]) {
       vector<char> data;
       ec_scalar expected, actual;
       get(input, data, expected);
-      hash_to_scalar(data.data(), data.size(), actual);
+      crypto::hash_to_scalar(data.data(), data.size(), actual);
       if (expected != actual) {
         goto error;
       }
@@ -271,4 +269,5 @@ error:
     error = true;
   }
   return error ? 1 : 0;
+  CATCH_ENTRY_L0("main", 1);
 }

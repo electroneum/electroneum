@@ -1,5 +1,5 @@
-# Copyright (c) 2017-2019, The Electroneum Project
-# Copyright (c) 2014-2017, The Monero Project
+# Copyright (c) 2017-2020, The Electroneum Project
+# Copyright (c) 2014-2019, The Monero Project
 #
 # All rights reserved.
 #
@@ -53,6 +53,10 @@ else()
     daemonizer.h
     posix_fork.h
   )
+endif()
+
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+  add_definitions(-DDEBUG_TMPDIR_LOG=1)
 endif()
 
 electroneum_private_headers(daemonizer

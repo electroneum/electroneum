@@ -1,5 +1,5 @@
-// Copyrights(c) 2017-2019, The Electroneum Project
-// Copyrights(c) 2014-2017, The Monero Project
+// Copyrights(c) 2017-2020, The Electroneum Project
+// Copyrights(c) 2014-2019, The Monero Project
 // 
 // All rights reserved.
 // 
@@ -66,7 +66,7 @@ public:
     {
       throw std::runtime_error("Failed to initialize p2p server.");
     }
-    MGINFO("P2p server initialized OK");
+    MGINFO("p2p server initialized OK");
   }
 
   t_node_server & get()

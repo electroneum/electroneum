@@ -1,5 +1,5 @@
-// Copyright (c) 2017-2019, The Electroneum Project
-// Copyright (c) 2017, The Monero Project
+// Copyright (c) 2017-2020, The Electroneum Project
+// Copyright (c) 2017-2019, The Monero Project
 // 
 // All rights reserved.
 // 
@@ -28,9 +28,8 @@
 // THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "include_base_utils.h"
-#include "common/command_line.h"
 #include "file_io_utils.h"
-#include "cryptonote_protocol/blobdatatype.h"
+#include "cryptonote_basic/blobdatatype.h"
 #include "cryptonote_basic/cryptonote_basic.h"
 #include "cryptonote_basic/cryptonote_format_utils.h"
 #include "wallet/wallet2.h"
@@ -39,7 +38,7 @@
 class SignatureFuzzer: public Fuzzer
 {
 public:
-  SignatureFuzzer(): Fuzzer(), wallet(true) {}
+  SignatureFuzzer(): Fuzzer(), wallet(cryptonote::TESTNET) {}
   virtual int init();
   virtual int run(const std::string &filename);
 
@@ -56,24 +55,17 @@ int SignatureFuzzer::init()
 
   try
   {
-    boost::filesystem::remove("/tmp/signature-test.keys");
-    boost::filesystem::remove("/tmp/signature-test.address.txt");
-    boost::filesystem::remove("/tmp/signature-test");
+    wallet.init("", boost::none, boost::asio::ip::tcp::endpoint{}, 0, true, epee::net_utils::ssl_support_t::e_ssl_support_disabled);
+    wallet.set_subaddress_lookahead(1, 1);
+    wallet.generate("", "", spendkey, true, false);
 
-    wallet.init("");
-    wallet.generate("/tmp/signature-test", "", spendkey, true, false);
-
-    boost::filesystem::remove("/tmp/signature-test.keys");
-    boost::filesystem::remove("/tmp/signature-test.address.txt");
-    boost::filesystem::remove("/tmp/signature-test");
-
-    bool has_payment_id;
-    crypto::hash8 new_payment_id;
-    if (!cryptonote::get_account_address_from_str_or_url(address, has_payment_id, new_payment_id, true, "9uVsvEryzpN8WH2t1WWhFFCG5tS8cBNdmJYNRuckLENFimfauV5pZKeS1P2CbxGkSDTUPHXWwiYE5ZGSXDAGbaZgDxobqDN"))
+    cryptonote::address_parse_info info;
+    if (!cryptonote::get_account_address_from_str_or_url(info, cryptonote::TESTNET, "9uVsvEryzpN8WH2t1WWhFFCG5tS8cBNdmJYNRuckLENFimfauV5pZKeS1P2CbxGkSDTUPHXWwiYE5ZGSXDAGbaZgDxobqDN"))
     {
       std::cerr << "failed to parse address" << std::endl;
       return 1;
     }
+    address = info.address;
   }
   catch (const std::exception &e)
   {
@@ -101,6 +93,8 @@ int SignatureFuzzer::run(const std::string &filename)
 
 int main(int argc, const char **argv)
 {
+  TRY_ENTRY();
   SignatureFuzzer fuzzer;
   return run_fuzzer(argc, argv, fuzzer);
+  CATCH_ENTRY_L0("main", 1);
 }

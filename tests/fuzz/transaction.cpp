@@ -1,5 +1,5 @@
-// Copyright (c) 2017-2019, The Electroneum Project
-// Copyright (c) 2017, The Monero Project
+// Copyright (c) 2017-2020, The Electroneum Project
+// Copyright (c) 2017-2019, The Monero Project
 // 
 // All rights reserved.
 // 
@@ -28,9 +28,8 @@
 // THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "include_base_utils.h"
-#include "common/command_line.h"
 #include "file_io_utils.h"
-#include "cryptonote_protocol/blobdatatype.h"
+#include "cryptonote_basic/blobdatatype.h"
 #include "cryptonote_basic/cryptonote_basic.h"
 #include "cryptonote_basic/cryptonote_format_utils.h"
 #include "fuzzer.h"
@@ -63,6 +62,8 @@ int TransactionFuzzer::run(const std::string &filename)
 
 int main(int argc, const char **argv)
 {
+  TRY_ENTRY();
   TransactionFuzzer fuzzer;
   return run_fuzzer(argc, argv, fuzzer);
+  CATCH_ENTRY_L0("main", 1);
 }

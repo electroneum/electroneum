@@ -1,12 +1,24 @@
-#ifndef ETN01_TOOLS_H
-#define ETN01_TOOLS_H
+#pragma once
 
 #define PATH_SEPARARTOR '/'
+
+#define ETN_AMOUNT(value) \
+    static_cast<double>(value) / 1e12
 
 #define REMOVE_HASH_BRAKETS(a_hash) \
     a_hash.substr(1, a_hash.size()-2)
 
+#include <boost/lexical_cast.hpp>
+#include <boost/filesystem.hpp>
+#include <boost/optional.hpp>
+#include <boost/algorithm/string.hpp>
 
+#include <string>
+#include <vector>
+#include <iterator>
+#include <algorithm>
+#include <type_traits>
+#include <regex>
 
 #include "electroneum_headers.h"
 
@@ -14,24 +26,13 @@
 #include "ext/fmt/format.h"
 #include "ext/json.hpp"
 
-#include <boost/lexical_cast.hpp>
-#include <boost/filesystem.hpp>
-#include <boost/optional.hpp>
-
-
-#include <string>
-#include <vector>
-#include <iterator>
-#include <algorithm>
-#include <type_traits>
-
 
 /**
  * Some helper functions used in the example.
  * Names are rather self-explanatory, so I think
  * there is no reason for any detailed explanations here
  */
-namespace etneg
+namespace electroneum
 {
 
     using namespace cryptonote;
@@ -55,8 +56,8 @@ namespace etneg
 
         bool handle_output(uint64_t unlock_time, const crypto::public_key &pubkey)
         {
-            m_output_keys.push_back(pubkey);
-            return true;
+          m_output_keys.push_back(pubkey);
+          return true;
         }
     };
 
@@ -64,6 +65,26 @@ namespace etneg
     template <typename T>
     bool
     parse_str_secret_key(const string& key_str, T& secret_key);
+
+    template <typename T>
+    bool
+    parse_str_secret_key(const string& key_str, std::vector<T>& secret_keys)
+    {
+      const size_t num_keys = key_str.size() / 64;
+
+      if (num_keys * 64 != key_str.size())
+        return false;
+
+      secret_keys.resize(num_keys);
+
+      for (size_t i = 0; i < num_keys; ++i)
+      {
+        if (!parse_str_secret_key(key_str.substr(64*i, 64), secret_keys[i]))
+          return false;
+      }
+
+      return true;
+    }
 
 
     bool
@@ -73,15 +94,15 @@ namespace etneg
 
     bool
     parse_str_address(const string& address_str,
-                      account_public_address& address,
-                      bool testnet = false);
+                      address_parse_info& address_info,
+                      cryptonote::network_type nettype = cryptonote::network_type::MAINNET);
 
     inline bool
     is_separator(char c);
 
     string
-    print_address(const account_public_address& address,
-                  bool testnet = false);
+    print_address(const address_parse_info& address,
+                  cryptonote::network_type nettype = cryptonote::network_type::MAINNET);
 
     string
     print_sig (const signature& sig);
@@ -96,11 +117,11 @@ namespace etneg
     timestamp_to_str_gm(time_t timestamp, const char* format = "%F %T");
 
     ostream&
-    operator<< (ostream& os, const account_public_address& addr);
+    operator<< (ostream& os, const address_parse_info& addr_info);
 
 
     string
-    get_default_lmdb_folder(bool testnet = false);
+    get_default_lmdb_folder(cryptonote::network_type nettype = cryptonote::network_type::MAINNET);
 
     bool
     generate_key_image(const crypto::key_derivation& derivation,
@@ -112,7 +133,7 @@ namespace etneg
     bool
     get_blockchain_path(const boost::optional<string>& bc_path,
                         bf::path& blockchain_path,
-                        bool testnet = false);
+                        cryptonote::network_type nettype = cryptonote::network_type::MAINNET);
 
     uint64_t
     sum_money_in_outputs(const transaction& tx);
@@ -130,7 +151,7 @@ namespace etneg
             vector<pair<txout_to_key, uint64_t>>& output_pub_keys,
             vector<txin_to_key>& input_key_imgs);
 
-    // this version for mempool txs from json
+// this version for mempool txs from json
     array<uint64_t, 6>
     summary_of_in_out_rct(const json& _json);
 
@@ -197,7 +218,7 @@ namespace etneg
     inline double
     get_xmr(uint64_t core_amount)
     {
-        return  static_cast<double>(core_amount) / 1e2;
+      return  static_cast<double>(core_amount) / 1e12;
     }
 
     array<size_t, 5>
@@ -216,6 +237,13 @@ namespace etneg
     decode_ringct(const rct::rctSig & rv,
                   const crypto::public_key pub,
                   const crypto::secret_key &sec,
+                  unsigned int i,
+                  rct::key & mask,
+                  uint64_t & amount);
+
+    bool
+    decode_ringct(const rct::rctSig & rv,
+                  const crypto::key_derivation &derivation,
                   unsigned int i,
                   rct::key & mask,
                   uint64_t & amount);
@@ -259,21 +287,33 @@ namespace etneg
                 iterator_traits<string::iterator>::difference_type k,
                 Func f)
     {
-        Iterator chunk_begin;
-        Iterator chunk_end;
-        chunk_end = chunk_begin = begin;
+      Iterator chunk_begin;
+      Iterator chunk_end;
+      chunk_end = chunk_begin = begin;
 
-        do
-        {
-            if(std::distance(chunk_end, end) < k)
-                chunk_end = end;
-            else
-                std::advance(chunk_end, k);
-            f(chunk_begin,chunk_end);
-            chunk_begin = chunk_end;
-        }
-        while(std::distance(chunk_begin,end) > 0);
+      do
+      {
+        if(std::distance(chunk_end, end) < k)
+          chunk_end = end;
+        else
+          std::advance(chunk_end, k);
+        f(chunk_begin,chunk_end);
+        chunk_begin = chunk_end;
+      }
+      while(std::distance(chunk_begin,end) > 0);
     }
+
+/*
+ * Remove all characters in in_str that match the given
+ * regular expression
+ */
+    template <typename T>
+    inline string
+    remove_bad_chars(T&& in_str, std::regex const& rgx = std::regex ("[^a-zA-Z0-9+/=]"))
+    {
+      return std::regex_replace(std::forward<T>(in_str), rgx, "");
+    }
+
 
     bool
     make_tx_from_json(const string& json_str, transaction& tx);
@@ -291,16 +331,23 @@ namespace etneg
     typename std::iterator_traits<It>::value_type
     calc_median(It it_begin, It it_end)
     {
-        using T = typename std::iterator_traits<It>::value_type;
-        std::vector<T> data(it_begin, it_end);
-        std::nth_element(data.begin(), data.begin() + data.size() / 2, data.end());
-        return data[data.size() / 2];
+      using T = typename std::iterator_traits<It>::value_type;
+      std::vector<T> data(it_begin, it_end);
+      std::nth_element(data.begin(), data.begin() + data.size() / 2, data.end());
+      return data[data.size() / 2];
     }
 
 
     void
     pause_execution(uint64_t no_seconds, const string& text = "now");
 
-}
+    string
+    tx_to_hex(transaction const& tx);
 
-#endif
+    void
+    get_metric_prefix(cryptonote::difficulty_type hr, double& hr_d, char& prefix);
+
+    cryptonote::difficulty_type
+    make_difficulty(uint64_t low, uint64_t high);
+
+}

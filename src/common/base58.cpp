@@ -1,5 +1,5 @@
-// Copyrights(c) 2017-2019, The Electroneum Project
-// Copyrights(c) 2014-2017, The Monero Project
+// Copyrights(c) 2017-2020, The Electroneum Project
+// Copyrights(c) 2014-2019, The Monero Project
 // 
 // All rights reserved.
 // 
@@ -37,7 +37,6 @@
 
 #include "crypto/hash.h"
 #include "int-util.h"
-#include "util.h"
 #include "varint.h"
 
 namespace tools
@@ -110,20 +109,8 @@ namespace tools
         assert(1 <= size && size <= sizeof(uint64_t));
 
         uint64_t res = 0;
-        switch (9 - size)
-        {
-        case 1:            res |= *data++;
-        case 2: res <<= 8; res |= *data++;
-        case 3: res <<= 8; res |= *data++;
-        case 4: res <<= 8; res |= *data++;
-        case 5: res <<= 8; res |= *data++;
-        case 6: res <<= 8; res |= *data++;
-        case 7: res <<= 8; res |= *data++;
-        case 8: res <<= 8; res |= *data; break;
-        default: assert(false);
-        }
-
-        return res;
+        memcpy(reinterpret_cast<uint8_t*>(&res) + sizeof(uint64_t) - size, data, size);
+        return SWAP64BE(res);
       }
 
       void uint_64_to_8be(uint64_t num, size_t size, uint8_t* data)
@@ -248,7 +235,7 @@ namespace tools
       return encode(buf);
     }
 
-    bool decode_addr(std::string addr, uint64_t& tag, std::string& data)
+    bool decode_addr(const std::string &addr, uint64_t& tag, std::string& data)
     {
       std::string addr_data;
       bool r = decode(addr, addr_data);

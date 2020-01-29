@@ -1,7 +1,7 @@
 // Word list created by Electroneum contributor sammy007
 // 
-// Copyrights(c) 2017-2019, The Electroneum Project
-// Copyrights(c) 2014-2017, The Monero Project
+// Copyrights(c) 2017-2020, The Electroneum Project
+// Copyrights(c) 2014-2019, The Monero Project
 // 
 // All rights reserved.
 // 
@@ -52,7 +52,10 @@ namespace Language
   class Russian: public Base
   {
   public:
-    Russian(): Base("русский язык", std::vector<std::string>({
+    Russian(): Base("русский язык", "Russian", {}, 4)
+    {
+      static constexpr const char * const words[NWORDS] =
+      {
         "абажур",
         "абзац",
         "абонент",
@@ -1679,8 +1682,8 @@ namespace Language
         "яхта",
         "ячейка",
         "ящик"
-      }), 4)
-    {
+      };
+      set_words(words);
       populate_maps();
     }
   };

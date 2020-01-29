@@ -54,6 +54,7 @@ namespace net_utils
 		struct http_server_config
 		{
 			std::string m_folder;
+			std::vector<std::string> m_access_control_origins;
 			boost::optional<login> m_user;
 			critical_section m_lock;
 		};
@@ -68,7 +69,7 @@ namespace net_utils
 			typedef t_connection_context connection_context;//t_connection_context net_utils::connection_context_base connection_context;
 			typedef http_server_config config_type;
 
-			simple_http_connection_handler(i_service_endpoint* psnd_hndlr, config_type& config);
+			simple_http_connection_handler(i_service_endpoint* psnd_hndlr, config_type& config, t_connection_context& conn_context);
 			virtual ~simple_http_connection_handler(){}
 
 			bool release_protocol()
@@ -140,8 +141,10 @@ namespace net_utils
 			size_t m_len_summary, m_len_remain;
 			config_type& m_config;
 			bool m_want_close;
+			size_t m_newlines;
 		protected:
 			i_service_endpoint* m_psnd_hndlr; 
+			t_connection_context& m_conn_context;
 		};
 
 		template<class t_connection_context>
@@ -159,6 +162,7 @@ namespace net_utils
 		struct custum_handler_config: public http_server_config
 		{
 			i_http_server_handler<t_connection_context>* m_phandler;
+			std::function<void(size_t, uint8_t*)> rng;
 		};
 
 		/************************************************************************/
@@ -172,10 +176,9 @@ namespace net_utils
 			typedef custum_handler_config<t_connection_context> config_type;
 			
 			http_custom_handler(i_service_endpoint* psnd_hndlr, config_type& config, t_connection_context& conn_context)
-				: simple_http_connection_handler<t_connection_context>(psnd_hndlr, config),
+				: simple_http_connection_handler<t_connection_context>(psnd_hndlr, config, conn_context),
 					m_config(config),
-					m_conn_context(conn_context),
-					m_auth(m_config.m_user ? http_server_auth{*m_config.m_user} : http_server_auth{})
+					m_auth(m_config.m_user ? http_server_auth{*m_config.m_user, config.rng} : http_server_auth{})
 			{}
 			inline bool handle_request(const http_request_info& query_info, http_response_info& response)
 			{
@@ -193,7 +196,8 @@ namespace net_utils
 				response.m_response_code = 200;
 				response.m_response_comment = "OK";
 				response.m_body.clear();
-				return m_config.m_phandler->handle_http_request(query_info, response, m_conn_context);
+
+				return m_config.m_phandler->handle_http_request(query_info, response, this->m_conn_context);
 			}
 
 			virtual bool thread_init()
@@ -215,7 +219,6 @@ namespace net_utils
 		private:
 			//simple_http_connection_handler::config_type m_stub_config;
 			config_type& m_config;
-			t_connection_context& m_conn_context;
 			http_server_auth m_auth;
 		};
 	}

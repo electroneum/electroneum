@@ -1,7 +1,7 @@
 // Word list originally created as part of the Electrum project, Copyright (C) 2014 Thomas Voegtlin
 // 
-// Copyrights(c) 2017-2019, The Electroneum Project
-// Copyrights(c) 2014-2017, The Monero Project
+// Copyrights(c) 2017-2020, The Electroneum Project
+// Copyrights(c) 2014-2019, The Monero Project
 // 
 // All rights reserved.
 // 
@@ -52,7 +52,10 @@ namespace Language
   class EnglishOld: public Base
   {
   public:
-    EnglishOld(): Base("EnglishOld", std::vector<std::string>({
+    EnglishOld(): Base("EnglishOld", "English (old)", {}, 4)
+    {
+      static constexpr const char * const words[NWORDS] =
+      {
         "like",
         "just",
         "love",
@@ -1679,8 +1682,8 @@ namespace Language
         "unseen",
         "weapon",
         "weary"
-      }), 4)
-    {
+      };
+      set_words(words);
       populate_maps(ALLOW_DUPLICATE_PREFIXES | ALLOW_SHORT_WORDS);
     }
   };

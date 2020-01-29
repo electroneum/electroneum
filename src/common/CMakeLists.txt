@@ -1,5 +1,5 @@
-# Copyright (c) 2017-2019, The Electroneum Project
-# Copyright (c) 2014-2017, The Monero Project
+# Copyright (c) 2017-2020, The Electroneum Project
+# Copyright (c) 2014-2019, The Monero Project
 #
 # All rights reserved.
 #
@@ -34,30 +34,45 @@ set(common_sources
   command_line.cpp
   dns_utils.cpp
   download.cpp
+  error.cpp
+  expect.cpp
   util.cpp
   i18n.cpp
+  notify.cpp
   password.cpp
   perf_timer.cpp
-  task_region.cpp
-  thread_group.cpp
-  updates.cpp)
+  pruning.cpp
+  spawn.cpp
+  threadpool.cpp
+  updates.cpp
+  aligned.c
+  timings.cc
+  combinator.cpp)
 
 if (STACK_TRACE)
   list(APPEND common_sources stack_trace.cpp)
 endif()
 
+if (BACKCOMPAT)
+  list(APPEND common_sources compat/glibc_compat.cpp)
+endif()
+
 set(common_headers)
 
 set(common_private_headers
+  apply_permutation.h
   base58.h
   boost_serialization_helper.h
   command_line.h
   common_fwd.h
   dns_utils.h
   download.h
+  error.h
+  expect.h
   http_connection.h
-  int-util.h
+  notify.h
   pod-class.h
+  pruning.h
   rpc_client.h
   scoped_message_writer.h
   unordered_containers_boost_serialization.h
@@ -66,20 +81,23 @@ set(common_private_headers
   i18n.h
   password.h
   perf_timer.h
+  spawn.h
   stack_trace.h
-  task_region.h
-  thread_group.h
-  updates.h)
+  threadpool.h
+  updates.h
+  aligned.h
+  timings.h
+  combinator.h)
 
 electroneum_private_headers(common
   ${common_private_headers})
 electroneum_add_library(common
   ${common_sources}
   ${common_headers}
-  ${common_private_headers})
+  ${common_private_headers}
+  DEPENDS generate_translations_header)
 target_link_libraries(common
   PUBLIC
-    epee
     cncrypto
     ${UNBOUND_LIBRARY}
     ${LIBUNWIND_LIBRARIES}
@@ -88,6 +106,7 @@ target_link_libraries(common
     ${Boost_SYSTEM_LIBRARY}
     ${Boost_THREAD_LIBRARY}
     ${Boost_REGEX_LIBRARY}
+    ${Boost_CHRONO_LIBRARY}
   PRIVATE
     ${OPENSSL_LIBRARIES}
     ${EXTRA_LIBRARIES})

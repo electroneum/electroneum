@@ -1,4 +1,4 @@
-# Copyright (c) 2016, The Monero Project
+# Copyright (c) 2016-2019, The Monero Project
 #
 # All rights reserved.
 #
@@ -26,18 +26,41 @@
 # STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
 # THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-set(ringct_sources
+set(ringct_basic_sources
   rctOps.cpp
-  rctSigs.cpp
   rctTypes.cpp
-  rctCryptoOps.c)
+  rctCryptoOps.c
+  multiexp.cc
+  bulletproofs.cc)
+
+set(ringct_basic_private_headers
+  rctOps.h
+  rctTypes.h
+  multiexp.h
+  bulletproofs.h)
+
+electroneum_private_headers(ringct_basic
+  ${crypto_private_headers})
+electroneum_add_library(ringct_basic
+  ${ringct_basic_sources}
+  ${ringct_basic_private_headers})
+target_link_libraries(ringct_basic
+  PUBLIC
+    common
+    cncrypto
+  PRIVATE
+    ${OPENSSL_LIBRARIES}
+    ${EXTRA_LIBRARIES})
+
+set(ringct_sources
+  rctSigs.cpp
+)
 
 set(ringct_headers)
 
 set(ringct_private_headers
-  rctOps.h
   rctSigs.h
-  rctTypes.h)
+)
 
 electroneum_private_headers(ringct
   ${crypto_private_headers})
@@ -50,5 +73,7 @@ target_link_libraries(ringct
     common
     cncrypto
     cryptonote_basic
+    device
   PRIVATE
+    ${OPENSSL_LIBRARIES}
     ${EXTRA_LIBRARIES})

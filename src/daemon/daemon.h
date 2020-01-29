@@ -1,5 +1,5 @@
-// Copyrights(c) 2017-2019, The Electroneum Project
-// Copyrights(c) 2014-2017, The Monero Project
+// Copyrights(c) 2017-2020, The Electroneum Project
+// Copyrights(c) 2014-2019, The Monero Project
 // 
 // All rights reserved.
 // 
@@ -44,9 +44,14 @@ private:
   void stop_p2p();
 private:
   std::unique_ptr<t_internals> mp_internals;
+  uint16_t public_rpc_port;
+  std::string zmq_rpc_bind_address;
+  std::string zmq_rpc_bind_port;
+  bool zmq_rpc_disabled;
 public:
   t_daemon(
-      boost::program_options::variables_map const & vm
+      boost::program_options::variables_map const & vm,
+      uint16_t public_rpc_port = 0
     );
   t_daemon(t_daemon && other);
   t_daemon & operator=(t_daemon && other);
