@@ -2123,7 +2123,7 @@ namespace hw {
         this->exchange();
       }
 
-      offset = set_command_header_noopt(INS_TX_PREFIX_OUTPUTS);
+      offset = set_command_header_noopt(INS_TX_PREFIX_EXTRA);
 
       //tx extra size
       size = tx.extra.size();
