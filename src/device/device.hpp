@@ -236,6 +236,7 @@ namespace hw {
                                      const crypto::secret_key &sec, std::size_t sec_index,
                                      crypto::signature *sig) = 0;
 
+        virtual bool hash_to_scalar(boost::shared_ptr<crypto::rs_comm> buf, size_t length, crypto::ec_scalar &res) = 0;
         virtual bool  has_ki_cold_sync(void) const { return false; }
         virtual bool  has_tx_cold_sign(void) const { return false; }
         virtual bool  has_ki_live_refresh(void) const { return true; }

@@ -404,6 +404,11 @@ namespace hw {
             return true;
         }
 
+        bool device_default::hash_to_scalar(boost::shared_ptr<crypto::rs_comm> buf, size_t length, crypto::ec_scalar &res) {
+          crypto::hash_to_scalar(buf.get(), length, res);
+          return true;
+        }
+
         bool device_default::get_transaction_prefix_hash(const cryptonote::transaction& tx, crypto::hash& tx_prefix_hash) {
           cryptonote::get_transaction_prefix_hash(tx, tx_prefix_hash);
           return true;

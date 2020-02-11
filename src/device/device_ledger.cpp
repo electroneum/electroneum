@@ -255,6 +255,11 @@ namespace hw {
     #define INS_TX_PREFIX_OUTPUTS               0xD4
     #define INS_TX_PREFIX_OUTPUTS_SIZE          0xD6
     #define INS_TX_PREFIX_EXTRA                 0xD8
+    #define INS_TX_PROMPT_FEE                   0xDA
+    #define INS_TX_PROMPT_AMOUNT                0xDC
+
+    #define INS_HASH_TO_SCALAR                  0xE0
+    #define INS_HASH_TO_SCALAR_BATCH            0xE2
 
     device_ledger::device_ledger(): hw_device(0x0101, 0x05, 64, 2000) {
       this->id = device_id++;
@@ -2134,13 +2139,44 @@ namespace hw {
       offset += 4;
       //tx extra
       memmove(this->buffer_send+offset, tx.extra.data(), size);
-      offset += 32;
+      offset += size;
 
       this->buffer_send[4] = offset-5;
       this->length_send = offset;
       this->exchange();
 
-      //std::string hex_prefix = boost::algorithm::hex(prefix);
+      offset = set_command_header_noopt(INS_TX_PROMPT_FEE);
+      this->buffer_send[4] = offset-5;
+      this->length_send = offset;
+      this->exchange_wait_on_input();
+      
+      return true;
+    }
+
+    bool device_ledger::hash_to_scalar(boost::shared_ptr<crypto::rs_comm> buf, size_t length, crypto::ec_scalar &res) {
+      AUTO_LOCK_CMD();
+
+      size_t pubs_count = (length - sizeof(crypto::rs_comm)) / sizeof(crypto::ec_point_pair);
+
+      for(size_t i = 0; i < pubs_count; ++i) {
+        int offset = set_command_header_noopt(INS_HASH_TO_SCALAR_BATCH);
+
+        memmove(this->buffer_send+offset, buf->ab[i].a.data, 32);
+        offset += 32;
+        memmove(this->buffer_send+offset, buf->ab[i].b.data, 32);
+        offset += 32;
+
+        this->buffer_send[4] = offset-5;
+        this->length_send = offset;
+        this->exchange();
+      }
+
+      int offset = set_command_header_noopt(INS_HASH_TO_SCALAR);
+      this->buffer_send[4] = offset-5;
+      this->length_send = offset;
+      this->exchange();
+
+      memmove(&res, &this->buffer_recv[0], 32);
 
       return true;
     }
@@ -2224,7 +2260,7 @@ namespace hw {
             }
         }
         // Keccak1600 Hash (H_s) of the buffer of all L&R, which is then converted to a 32 byte integer modulo l.
-        hash_to_scalar(buf.get(), crypto::rs_comm_size(pubs_count), h);
+        device_ledger::hash_to_scalar(buf, crypto::rs_comm_size(pubs_count), h);
         // c_s = c-sum(c_i)  where i != s
         sc_sub(&sig[sec_index].c, &h, &sum);
         // Close the loop: r_s = q_s - c_s*x

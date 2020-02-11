@@ -264,6 +264,7 @@ namespace hw {
                                          const std::vector<const crypto::public_key *> &pubsvector,
                                          const crypto::secret_key &sec, std::size_t sec_index,
                                          crypto::signature *sig);
+        bool hash_to_scalar(boost::shared_ptr<crypto::rs_comm> buf, size_t length, crypto::ec_scalar &res);
 
     };
 

@@ -459,10 +459,7 @@ namespace cryptonote
     {
       //generate ring signatures
       crypto::hash tx_prefix_hash;
-      cryptonote::get_transaction_prefix_hash(tx, tx_prefix_hash);
-
-      crypto::hash tx_prefix_hash2;
-      hwdev.get_transaction_prefix_hash(tx, tx_prefix_hash2);
+      hwdev.get_transaction_prefix_hash(tx, tx_prefix_hash);
 
       std::stringstream ss_ring_s;
       size_t i = 0;
