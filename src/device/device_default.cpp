@@ -404,6 +404,11 @@ namespace hw {
             return true;
         }
 
+        bool device_default::get_transaction_prefix_hash(const cryptonote::transaction& tx, crypto::hash& tx_prefix_hash) {
+          cryptonote::get_transaction_prefix_hash(tx, tx_prefix_hash);
+          return true;
+        }
+
         bool device_default::generate_ring_signature(const crypto::hash &prefix_hash, const crypto::key_image &image,
                                                      const std::vector<const crypto::public_key *> &pubs,
                                                      const crypto::secret_key &sec, std::size_t sec_index,

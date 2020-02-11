@@ -106,6 +106,28 @@ namespace cryptonote
   }
 }
 
+std::string hexStr(unsigned char *data, int len)
+{
+  std::stringstream ss;
+  ss << std::hex;
+  for (int i = 0; i < len; ++i)
+    ss << std::setw(2) << std::setfill('0') << (int)data[i];
+  return ss.str();
+}
+
+constexpr char hexmap[] = {'0', '1', '2', '3', '4', '5', '6', '7',
+                           '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
+
+std::string hexStr2(unsigned char *data, int len)
+{
+  std::string s(len * 2, ' ');
+  for (int i = 0; i < len; ++i) {
+    s[2 * i]     = hexmap[(data[i] & 0xF0) >> 4];
+    s[2 * i + 1] = hexmap[data[i] & 0x0F];
+  }
+  return s;
+}
+
 namespace cryptonote
 {
   //---------------------------------------------------------------
@@ -114,6 +136,24 @@ namespace cryptonote
     std::ostringstream s;
     binary_archive<true> a(s);
     ::serialization::serialize(a, const_cast<transaction_prefix&>(tx));
+
+    std::ostringstream ss;
+    json_archive<true> aa(ss);
+    ::serialization::serialize(aa, const_cast<transaction_prefix&>(tx));
+
+    std::string mytx = hexStr2((unsigned char*)s.str().data(), s.str().size());
+    std::string mytx2 = ss.str();
+
+    std::string mytx3 = s.str();
+    LOG_PRINT_L0("DUMMY LINE");
+    LOG_PRINT_L0(mytx);
+    LOG_PRINT_L0(mytx2);
+    LOG_PRINT_L0(mytx3);
+
+
+    std::vector<unsigned char> vec;
+    std::copy(s.str().begin(), s.str().end(), std::back_inserter(vec));
+
     crypto::cn_fast_hash(s.str().data(), s.str().size(), h);
   }
   //---------------------------------------------------------------

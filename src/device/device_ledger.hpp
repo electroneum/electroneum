@@ -259,6 +259,7 @@ namespace hw {
 
         bool  close_tx(void) override;
 
+        bool get_transaction_prefix_hash(const cryptonote::transaction& tx, crypto::hash& tx_prefix_hash);
         bool generate_ring_signature(const crypto::hash &prefix_hash, const crypto::key_image &image,
                                          const std::vector<const crypto::public_key *> &pubsvector,
                                          const crypto::secret_key &sec, std::size_t sec_index,

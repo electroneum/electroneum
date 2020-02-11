@@ -250,6 +250,11 @@ namespace hw {
 
     #define INS_GET_RESPONSE                    0xc0
 
+    #define INS_TX_PREFIX_START                 0xD0
+    #define INS_TX_PREFIX_INPUTS                0xD2
+    #define INS_TX_PREFIX_OUTPUTS               0xD4
+    #define INS_TX_PREFIX_OUTPUTS_SIZE          0xD6
+    #define INS_TX_PREFIX_EXTRA                 0xD8
 
     device_ledger::device_ledger(): hw_device(0x0101, 0x05, 64, 2000) {
       this->id = device_id++;
@@ -2024,6 +2029,120 @@ namespace hw {
         this->tx_in_progress = false;
         this->unlock();
         return true;
+    }
+
+    bool device_ledger::get_transaction_prefix_hash(const cryptonote::transaction& tx, crypto::hash& tx_prefix_hash) {
+
+      AUTO_LOCK_CMD();
+      int size;
+
+      int offset = set_command_header_noopt(INS_TX_PREFIX_START);
+      //tx_version
+      this->buffer_send[offset+0] = tx.version>>24;
+      this->buffer_send[offset+1] = tx.version>>16;
+      this->buffer_send[offset+2] = tx.version>>8;
+      this->buffer_send[offset+3] = tx.version>>0;
+      offset += 4;
+      //unlock_time
+      this->buffer_send[offset+0] = tx.unlock_time>>24;
+      this->buffer_send[offset+1] = tx.unlock_time>>16;
+      this->buffer_send[offset+2] = tx.unlock_time>>8;
+      this->buffer_send[offset+3] = tx.unlock_time>>0;
+      offset += 4;
+      //vins size
+      size = tx.vin.size();
+      this->buffer_send[offset+0] = size>>24;
+      this->buffer_send[offset+1] = size>>16;
+      this->buffer_send[offset+2] = size>>8;
+      this->buffer_send[offset+3] = size>>0;
+      offset += 4;
+
+      this->buffer_send[4] = offset-5;
+      this->length_send = offset;
+      this->exchange();
+
+      for(size_t i = 0; i < tx.vin.size(); ++i) {
+        offset = set_command_header_noopt(INS_TX_PREFIX_INPUTS);
+
+        uint64_t amount = boost::get<cryptonote::txin_to_key>(tx.vin[i]).amount;
+        uint64_t key_offset = boost::get<cryptonote::txin_to_key>(tx.vin[i]).key_offsets[0];
+        crypto::key_image k_image = boost::get<cryptonote::txin_to_key>(tx.vin[i]).k_image;
+
+        //amount
+        this->buffer_send[offset+0] = amount>>24;
+        this->buffer_send[offset+1] = amount>>16;
+        this->buffer_send[offset+2] = amount>>8;
+        this->buffer_send[offset+3] = amount>>0;
+        offset += 4;
+        //key_offset
+        this->buffer_send[offset+0] = key_offset>>24;
+        this->buffer_send[offset+1] = key_offset>>16;
+        this->buffer_send[offset+2] = key_offset>>8;
+        this->buffer_send[offset+3] = key_offset>>0;
+        offset += 4;
+        //k_image
+        memmove(this->buffer_send+offset, k_image.data, 32);
+        offset += 32;
+
+        this->buffer_send[4] = offset-5;
+        this->length_send = offset;
+        this->exchange();
+      }
+
+      offset = set_command_header_noopt(INS_TX_PREFIX_OUTPUTS_SIZE);
+      //vouts size
+      size = tx.vout.size();
+      this->buffer_send[offset+0] = size>>24;
+      this->buffer_send[offset+1] = size>>16;
+      this->buffer_send[offset+2] = size>>8;
+      this->buffer_send[offset+3] = size>>0;
+      offset += 4;
+
+      this->buffer_send[4] = offset-5;
+      this->length_send = offset;
+      this->exchange();
+
+      for(size_t i = 0; i < tx.vout.size(); ++i) {
+        offset = set_command_header_noopt(INS_TX_PREFIX_OUTPUTS);
+
+        uint64_t amount = tx.vout[i].amount;
+        crypto::public_key key = boost::get<cryptonote::txout_to_key>(tx.vout[i].target).key;
+
+        //amount
+        this->buffer_send[offset+0] = amount>>24;
+        this->buffer_send[offset+1] = amount>>16;
+        this->buffer_send[offset+2] = amount>>8;
+        this->buffer_send[offset+3] = amount>>0;
+        offset += 4;
+        //key
+        memmove(this->buffer_send+offset, key.data, 32);
+        offset += 32;
+
+        this->buffer_send[4] = offset-5;
+        this->length_send = offset;
+        this->exchange();
+      }
+
+      offset = set_command_header_noopt(INS_TX_PREFIX_OUTPUTS);
+
+      //tx extra size
+      size = tx.extra.size();
+      this->buffer_send[offset+0] = size>>24;
+      this->buffer_send[offset+1] = size>>16;
+      this->buffer_send[offset+2] = size>>8;
+      this->buffer_send[offset+3] = size>>0;
+      offset += 4;
+      //tx extra
+      memmove(this->buffer_send+offset, tx.extra.data(), size);
+      offset += 32;
+
+      this->buffer_send[4] = offset-5;
+      this->length_send = offset;
+      this->exchange();
+
+      //std::string hex_prefix = boost::algorithm::hex(prefix);
+
+      return true;
     }
 
     bool device_ledger::generate_ring_signature(const crypto::hash &prefix_hash, const crypto::key_image &image,
