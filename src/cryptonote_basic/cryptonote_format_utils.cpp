@@ -137,23 +137,6 @@ namespace cryptonote
     binary_archive<true> a(s);
     ::serialization::serialize(a, const_cast<transaction_prefix&>(tx));
 
-    std::ostringstream ss;
-    json_archive<true> aa(ss);
-    ::serialization::serialize(aa, const_cast<transaction_prefix&>(tx));
-
-    std::string mytx = hexStr2((unsigned char*)s.str().data(), s.str().size());
-    std::string mytx2 = ss.str();
-
-    std::string mytx3 = s.str();
-    LOG_PRINT_L0("DUMMY LINE");
-    LOG_PRINT_L0(mytx);
-    LOG_PRINT_L0(mytx2);
-    LOG_PRINT_L0(mytx3);
-
-
-    std::vector<unsigned char> vec;
-    std::copy(s.str().begin(), s.str().end(), std::back_inserter(vec));
-
     crypto::cn_fast_hash(s.str().data(), s.str().size(), h);
   }
   //---------------------------------------------------------------

@@ -260,6 +260,7 @@ namespace hw {
 
     #define INS_HASH_TO_SCALAR                  0xE0
     #define INS_HASH_TO_SCALAR_BATCH            0xE2
+    #define INS_HASH_TO_SCALAR_INIT             0xE4
 
     device_ledger::device_ledger(): hw_device(0x0101, 0x05, 64, 2000) {
       this->id = device_id++;
@@ -2041,6 +2042,10 @@ namespace hw {
       AUTO_LOCK_CMD();
       int size;
 
+#ifdef DEBUG_HWDEVICE
+      std::string hex_tx = "";
+#endif
+
       int offset = set_command_header_noopt(INS_TX_PREFIX_START);
       //tx_version
       this->buffer_send[offset+0] = tx.version>>24;
@@ -2065,6 +2070,10 @@ namespace hw {
       this->buffer_send[4] = offset-5;
       this->length_send = offset;
       this->exchange();
+
+#ifdef DEBUG_HWDEVICE
+      hex_tx += boost::algorithm::hex(std::string(reinterpret_cast<char const*>(this->buffer_recv), this->length_recv));
+#endif
 
       for(size_t i = 0; i < tx.vin.size(); ++i) {
         offset = set_command_header_noopt(INS_TX_PREFIX_INPUTS);
@@ -2092,6 +2101,10 @@ namespace hw {
         this->buffer_send[4] = offset-5;
         this->length_send = offset;
         this->exchange();
+
+#ifdef DEBUG_HWDEVICE
+        hex_tx += boost::algorithm::hex(std::string(reinterpret_cast<char const*>(this->buffer_recv), this->length_recv));
+#endif
       }
 
       offset = set_command_header_noopt(INS_TX_PREFIX_OUTPUTS_SIZE);
@@ -2106,6 +2119,10 @@ namespace hw {
       this->buffer_send[4] = offset-5;
       this->length_send = offset;
       this->exchange();
+
+#ifdef DEBUG_HWDEVICE
+      hex_tx += boost::algorithm::hex(std::string(reinterpret_cast<char const*>(this->buffer_recv), this->length_recv));
+#endif
 
       for(size_t i = 0; i < tx.vout.size(); ++i) {
         offset = set_command_header_noopt(INS_TX_PREFIX_OUTPUTS);
@@ -2126,6 +2143,10 @@ namespace hw {
         this->buffer_send[4] = offset-5;
         this->length_send = offset;
         this->exchange();
+
+#ifdef DEBUG_HWDEVICE
+        hex_tx += boost::algorithm::hex(std::string(reinterpret_cast<char const*>(this->buffer_recv), this->length_recv));
+#endif
       }
 
       offset = set_command_header_noopt(INS_TX_PREFIX_EXTRA);
@@ -2145,11 +2166,22 @@ namespace hw {
       this->length_send = offset;
       this->exchange();
 
+      memmove(&tx_prefix_hash, &this->buffer_recv[0], 32);
+
+#ifdef DEBUG_HWDEVICE
+      hex_tx += boost::algorithm::hex(std::string(reinterpret_cast<char const*>(this->buffer_recv), this->length_recv));
+#endif
+
       offset = set_command_header_noopt(INS_TX_PROMPT_FEE);
       this->buffer_send[4] = offset-5;
       this->length_send = offset;
-      this->exchange_wait_on_input();
-      
+      CHECK_AND_ASSERT_THROW_MES(this->exchange_wait_on_input() == 0, "Fee denied on device.");
+
+      offset = set_command_header_noopt(INS_TX_PROMPT_AMOUNT);
+      this->buffer_send[4] = offset-5;
+      this->length_send = offset;
+      CHECK_AND_ASSERT_THROW_MES(this->exchange_wait_on_input() == 0, "Transaction denied on device.");
+
       return true;
     }
 
@@ -2158,8 +2190,14 @@ namespace hw {
 
       size_t pubs_count = (length - sizeof(crypto::rs_comm)) / sizeof(crypto::ec_point_pair);
 
+
+      int offset = set_command_header_noopt(INS_HASH_TO_SCALAR_INIT);
+      this->buffer_send[4] = offset-5;
+      this->length_send = offset;
+      this->exchange();
+
       for(size_t i = 0; i < pubs_count; ++i) {
-        int offset = set_command_header_noopt(INS_HASH_TO_SCALAR_BATCH);
+        offset = set_command_header_noopt(INS_HASH_TO_SCALAR_BATCH);
 
         memmove(this->buffer_send+offset, buf->ab[i].a.data, 32);
         offset += 32;
@@ -2171,7 +2209,7 @@ namespace hw {
         this->exchange();
       }
 
-      int offset = set_command_header_noopt(INS_HASH_TO_SCALAR);
+      offset = set_command_header_noopt(INS_HASH_TO_SCALAR);
       this->buffer_send[4] = offset-5;
       this->length_send = offset;
       this->exchange();
@@ -2191,7 +2229,7 @@ namespace hw {
         size_t i;
         ge_p3 image_unp;
         ge_dsmp image_pre;
-        crypto::ec_scalar sum, h;
+        crypto::ec_scalar sum, h, h2;
         crypto::secret_key q_s;
         boost::shared_ptr<crypto::rs_comm> buf(reinterpret_cast<crypto::rs_comm *>(malloc(crypto::rs_comm_size(pubs_count))), free);
         if (!buf)
@@ -2260,7 +2298,7 @@ namespace hw {
             }
         }
         // Keccak1600 Hash (H_s) of the buffer of all L&R, which is then converted to a 32 byte integer modulo l.
-        device_ledger::hash_to_scalar(buf, crypto::rs_comm_size(pubs_count), h);
+        hash_to_scalar(buf, crypto::rs_comm_size(pubs_count), h);
         // c_s = c-sum(c_i)  where i != s
         sc_sub(&sig[sec_index].c, &h, &sum);
         // Close the loop: r_s = q_s - c_s*x
