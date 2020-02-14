@@ -286,22 +286,7 @@ endif()
 # elseif(CMAKE_SYSTEM_NAME MATCHES ".*BSDI.*")
 #   set(BSDI TRUE)
 
-include_directories(external/rapidjson/include external/easylogging++ src contrib/epee/include external)
-
-add_library (ed25519-donna STATIC
-        external/ed25519-donna/ed25519.c)
-target_include_directories (ed25519-donna
-        PUBLIC
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/external>
-        $<INSTALL_INTERFACE:include>
-        PRIVATE
-        ${CMAKE_CURRENT_SOURCE_DIR}/external/ed25519-donna)
-target_link_libraries (ed25519-donna PUBLIC OpenSSL::SSL)
-add_library (NIH::ed25519-donna ALIAS ed25519-donna)
-install (
-        FILES
-        external/ed25519-donna/ed25519.h
-        DESTINATION contrib/epee/include)
+include_directories(external/rapidjson/include external/easylogging++ external/ed25519-donna src contrib/epee/include external)
 
 if(APPLE)
   include_directories(SYSTEM /usr/include/malloc)
@@ -524,6 +509,9 @@ link_directories(${UNBOUND_LIBRARY_DIRS})
 # Final setup for easylogging++
 include_directories(${EASYLOGGING_INCLUDE})
 link_directories(${EASYLOGGING_LIBRARY_DIRS})
+
+include_directories(${ED25519-DONNA_INCLUDE})
+link_directories(${ED25519-DONNA_LIBRARY_DIRS})
 
 # Final setup for liblmdb
 include_directories(${LMDB_INCLUDE})
