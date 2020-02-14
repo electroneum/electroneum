@@ -4245,7 +4245,7 @@ boost::optional<tools::password_container> simple_wallet::get_and_verify_passwor
 boost::optional<epee::wipeable_string> simple_wallet::new_wallet(const boost::program_options::variables_map& vm,
   const crypto::secret_key& recovery_key, bool recover, bool two_random, const std::string &old_language)
 {
-  auto rc = tools::wallet2::make_new(vm, false, password_prompter, nullptr, nullptr); //
+  auto rc = tools::wallet2::make_new(vm, false, password_prompter);
   m_wallet = std::move(rc.first);
   if (!m_wallet)
   {
