@@ -2082,12 +2082,16 @@ namespace hw {
         uint64_t key_offset = boost::get<cryptonote::txin_to_key>(tx.vin[i]).key_offsets[0];
         crypto::key_image k_image = boost::get<cryptonote::txin_to_key>(tx.vin[i]).k_image;
 
-        //amount
-        this->buffer_send[offset+0] = amount>>24;
-        this->buffer_send[offset+1] = amount>>16;
-        this->buffer_send[offset+2] = amount>>8;
-        this->buffer_send[offset+3] = amount>>0;
-        offset += 4;
+        this->buffer_send[offset+0] = amount>>56;
+        this->buffer_send[offset+1] = amount>>48;
+        this->buffer_send[offset+2] = amount>>40;
+        this->buffer_send[offset+3] = amount>>32;
+        this->buffer_send[offset+4] = amount>>24;
+        this->buffer_send[offset+5] = amount>>16;
+        this->buffer_send[offset+6] = amount>>8;
+        this->buffer_send[offset+7] = amount>>0;
+
+        offset += 8;
         //key_offset
         this->buffer_send[offset+0] = key_offset>>24;
         this->buffer_send[offset+1] = key_offset>>16;
@@ -2131,11 +2135,15 @@ namespace hw {
         crypto::public_key key = boost::get<cryptonote::txout_to_key>(tx.vout[i].target).key;
 
         //amount
-        this->buffer_send[offset+0] = amount>>24;
-        this->buffer_send[offset+1] = amount>>16;
-        this->buffer_send[offset+2] = amount>>8;
-        this->buffer_send[offset+3] = amount>>0;
-        offset += 4;
+        this->buffer_send[offset+0] = amount>>56;
+        this->buffer_send[offset+1] = amount>>48;
+        this->buffer_send[offset+2] = amount>>40;
+        this->buffer_send[offset+3] = amount>>32;
+        this->buffer_send[offset+4] = amount>>24;
+        this->buffer_send[offset+5] = amount>>16;
+        this->buffer_send[offset+6] = amount>>8;
+        this->buffer_send[offset+7] = amount>>0;
+        offset += 8;
         //key
         memmove(this->buffer_send+offset, key.data, 32);
         offset += 32;
