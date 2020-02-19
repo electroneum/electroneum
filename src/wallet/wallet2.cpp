@@ -9216,8 +9216,26 @@ std::vector<wallet2::pending_tx> wallet2::create_transactions_2(std::vector<cryp
   };
   std::vector<TX> txes;
   bool adding_fee; // true if new outputs go towards fee, rather than destinations
+
   uint64_t needed_fee, available_for_fee = 0;
-  uint64_t upper_transaction_weight_limit = get_upper_transaction_weight_limit();
+  uint64_t upper_transaction_weight_limit;
+  uint64_t extra_bytes = extra.size();
+  switch(hwdev.get_type()){
+
+      // Normal Software Limit
+      case 0 : upper_transaction_weight_limit = get_upper_transaction_weight_limit(); break;
+
+      // Ledger NanoS: ~3.3kB of RAM for app variables. Give a bit of buffer (300) for other variables on device
+      // and subtract the size of the extra.
+      // because in the Ledger app this still lives on the stack at the same time the entire prefix does.
+      // This is a rough rule of thumb estimate... The logic can be updated at a later stage.
+      // Right now we just need to make we don't fail to build any tx (and split the tx to avoid this happening)
+      case 1 : upper_transaction_weight_limit = 3000 - extra_bytes; break;
+
+      //Trezor limit set at the same as Ledger for the time being.
+      case 2 : upper_transaction_weight_limit = 3000 - extra_bytes; break;
+      //Future hw devices
+  }
   const bool use_per_byte_fee = use_fork_rules(HF_VERSION_PER_BYTE_FEE, 0);
   const bool use_rct = use_fork_rules(HF_VERSION_ENABLE_RCT, 0);
   const bool bulletproof = use_fork_rules(get_bulletproof_fork(), 0);

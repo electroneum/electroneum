@@ -6000,15 +6000,17 @@ bool simple_wallet::transfer_main(int transfer_type, const std::vector<std::stri
           prompt << tr("WARNING: this is a non default ring size, which may harm your privacy. Default is recommended.");
         }
         prompt << ENDL << tr("Is this okay?");
-        
-        std::string accepted = input_line(prompt.str(), true);
-        if (std::cin.eof())
-          return false;
-        if (!command_line::is_yes(accepted))
-        {
-          fail_msg_writer() << tr("transaction cancelled.");
 
-          return false;
+        if(m_wallet->get_device_type() != hw::device::LEDGER) {
+          std::string accepted = input_line(prompt.str(), true);
+          if (std::cin.eof())
+            return false;
+          if (!command_line::is_yes(accepted))
+          {
+            fail_msg_writer() << tr("transaction cancelled.");
+
+            return false;
+          }
         }
     }
 

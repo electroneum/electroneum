@@ -250,6 +250,17 @@ namespace hw {
 
     #define INS_GET_RESPONSE                    0xc0
 
+    #define INS_TX_PREFIX_START                 0xD0
+    #define INS_TX_PREFIX_INPUTS                0xD2
+    #define INS_TX_PREFIX_OUTPUTS               0xD4
+    #define INS_TX_PREFIX_OUTPUTS_SIZE          0xD6
+    #define INS_TX_PREFIX_EXTRA                 0xD8
+    #define INS_TX_PROMPT_FEE                   0xDA
+    #define INS_TX_PROMPT_AMOUNT                0xDC
+
+    #define INS_HASH_TO_SCALAR                  0xE0
+    #define INS_HASH_TO_SCALAR_BATCH            0xE2
+    #define INS_HASH_TO_SCALAR_INIT             0xE4
 
     device_ledger::device_ledger(): hw_device(0x0101, 0x05, 64, 2000) {
       this->id = device_id++;
@@ -2026,6 +2037,196 @@ namespace hw {
         return true;
     }
 
+    bool device_ledger::get_transaction_prefix_hash(const cryptonote::transaction& tx, crypto::hash& tx_prefix_hash) {
+
+      AUTO_LOCK_CMD();
+      int size;
+
+#ifdef DEBUG_HWDEVICE
+      std::string hex_tx = "";
+#endif
+
+      int offset = set_command_header_noopt(INS_TX_PREFIX_START);
+      //tx_version
+      this->buffer_send[offset+0] = tx.version>>24;
+      this->buffer_send[offset+1] = tx.version>>16;
+      this->buffer_send[offset+2] = tx.version>>8;
+      this->buffer_send[offset+3] = tx.version>>0;
+      offset += 4;
+      //unlock_time
+      this->buffer_send[offset+0] = tx.unlock_time>>24;
+      this->buffer_send[offset+1] = tx.unlock_time>>16;
+      this->buffer_send[offset+2] = tx.unlock_time>>8;
+      this->buffer_send[offset+3] = tx.unlock_time>>0;
+      offset += 4;
+      //vins size
+      size = tx.vin.size();
+      this->buffer_send[offset+0] = size>>24;
+      this->buffer_send[offset+1] = size>>16;
+      this->buffer_send[offset+2] = size>>8;
+      this->buffer_send[offset+3] = size>>0;
+      offset += 4;
+
+      this->buffer_send[4] = offset-5;
+      this->length_send = offset;
+      this->exchange();
+
+#ifdef DEBUG_HWDEVICE
+      hex_tx += boost::algorithm::hex(std::string(reinterpret_cast<char const*>(this->buffer_recv), this->length_recv));
+#endif
+
+      for(size_t i = 0; i < tx.vin.size(); ++i) {
+        offset = set_command_header_noopt(INS_TX_PREFIX_INPUTS);
+
+        uint64_t amount = boost::get<cryptonote::txin_to_key>(tx.vin[i]).amount;
+        uint64_t key_offset = boost::get<cryptonote::txin_to_key>(tx.vin[i]).key_offsets[0];
+        crypto::key_image k_image = boost::get<cryptonote::txin_to_key>(tx.vin[i]).k_image;
+
+        this->buffer_send[offset+0] = amount>>56;
+        this->buffer_send[offset+1] = amount>>48;
+        this->buffer_send[offset+2] = amount>>40;
+        this->buffer_send[offset+3] = amount>>32;
+        this->buffer_send[offset+4] = amount>>24;
+        this->buffer_send[offset+5] = amount>>16;
+        this->buffer_send[offset+6] = amount>>8;
+        this->buffer_send[offset+7] = amount>>0;
+
+        offset += 8;
+        //key_offset
+        this->buffer_send[offset+0] = key_offset>>24;
+        this->buffer_send[offset+1] = key_offset>>16;
+        this->buffer_send[offset+2] = key_offset>>8;
+        this->buffer_send[offset+3] = key_offset>>0;
+        offset += 4;
+        //k_image
+        memmove(this->buffer_send+offset, k_image.data, 32);
+        offset += 32;
+
+        this->buffer_send[4] = offset-5;
+        this->length_send = offset;
+        this->exchange();
+
+#ifdef DEBUG_HWDEVICE
+        hex_tx += boost::algorithm::hex(std::string(reinterpret_cast<char const*>(this->buffer_recv), this->length_recv));
+#endif
+      }
+
+      offset = set_command_header_noopt(INS_TX_PREFIX_OUTPUTS_SIZE);
+      //vouts size
+      size = tx.vout.size();
+      this->buffer_send[offset+0] = size>>24;
+      this->buffer_send[offset+1] = size>>16;
+      this->buffer_send[offset+2] = size>>8;
+      this->buffer_send[offset+3] = size>>0;
+      offset += 4;
+
+      this->buffer_send[4] = offset-5;
+      this->length_send = offset;
+      this->exchange();
+
+#ifdef DEBUG_HWDEVICE
+      hex_tx += boost::algorithm::hex(std::string(reinterpret_cast<char const*>(this->buffer_recv), this->length_recv));
+#endif
+
+      for(size_t i = 0; i < tx.vout.size(); ++i) {
+        offset = set_command_header_noopt(INS_TX_PREFIX_OUTPUTS);
+
+        uint64_t amount = tx.vout[i].amount;
+        crypto::public_key key = boost::get<cryptonote::txout_to_key>(tx.vout[i].target).key;
+
+        //amount
+        this->buffer_send[offset+0] = amount>>56;
+        this->buffer_send[offset+1] = amount>>48;
+        this->buffer_send[offset+2] = amount>>40;
+        this->buffer_send[offset+3] = amount>>32;
+        this->buffer_send[offset+4] = amount>>24;
+        this->buffer_send[offset+5] = amount>>16;
+        this->buffer_send[offset+6] = amount>>8;
+        this->buffer_send[offset+7] = amount>>0;
+        offset += 8;
+        //key
+        memmove(this->buffer_send+offset, key.data, 32);
+        offset += 32;
+
+        this->buffer_send[4] = offset-5;
+        this->length_send = offset;
+        this->exchange();
+
+#ifdef DEBUG_HWDEVICE
+        hex_tx += boost::algorithm::hex(std::string(reinterpret_cast<char const*>(this->buffer_recv), this->length_recv));
+#endif
+      }
+
+      offset = set_command_header_noopt(INS_TX_PREFIX_EXTRA);
+
+      //tx extra size
+      size = tx.extra.size();
+      this->buffer_send[offset+0] = size>>24;
+      this->buffer_send[offset+1] = size>>16;
+      this->buffer_send[offset+2] = size>>8;
+      this->buffer_send[offset+3] = size>>0;
+      offset += 4;
+      //tx extra
+      memmove(this->buffer_send+offset, tx.extra.data(), size);
+      offset += size;
+
+      this->buffer_send[4] = offset-5;
+      this->length_send = offset;
+      this->exchange();
+
+      memmove(&tx_prefix_hash, &this->buffer_recv[0], 32);
+
+#ifdef DEBUG_HWDEVICE
+      hex_tx += boost::algorithm::hex(std::string(reinterpret_cast<char const*>(this->buffer_recv), this->length_recv));
+#endif
+
+      offset = set_command_header_noopt(INS_TX_PROMPT_FEE);
+      this->buffer_send[4] = offset-5;
+      this->length_send = offset;
+      CHECK_AND_ASSERT_THROW_MES(this->exchange_wait_on_input() == 0, "Fee denied on device.");
+
+      offset = set_command_header_noopt(INS_TX_PROMPT_AMOUNT);
+      this->buffer_send[4] = offset-5;
+      this->length_send = offset;
+      CHECK_AND_ASSERT_THROW_MES(this->exchange_wait_on_input() == 0, "Transaction denied on device.");
+
+      return true;
+    }
+
+    bool device_ledger::hash_to_scalar(boost::shared_ptr<crypto::rs_comm> buf, size_t length, crypto::ec_scalar &res) {
+      AUTO_LOCK_CMD();
+
+      size_t pubs_count = (length - sizeof(crypto::rs_comm)) / sizeof(crypto::ec_point_pair);
+
+
+      int offset = set_command_header_noopt(INS_HASH_TO_SCALAR_INIT);
+      this->buffer_send[4] = offset-5;
+      this->length_send = offset;
+      this->exchange();
+
+      for(size_t i = 0; i < pubs_count; ++i) {
+        offset = set_command_header_noopt(INS_HASH_TO_SCALAR_BATCH);
+
+        memmove(this->buffer_send+offset, buf->ab[i].a.data, 32);
+        offset += 32;
+        memmove(this->buffer_send+offset, buf->ab[i].b.data, 32);
+        offset += 32;
+
+        this->buffer_send[4] = offset-5;
+        this->length_send = offset;
+        this->exchange();
+      }
+
+      offset = set_command_header_noopt(INS_HASH_TO_SCALAR);
+      this->buffer_send[4] = offset-5;
+      this->length_send = offset;
+      this->exchange();
+
+      memmove(&res, &this->buffer_recv[0], 32);
+
+      return true;
+    }
+
     bool device_ledger::generate_ring_signature(const crypto::hash &prefix_hash, const crypto::key_image &image,
                                                      const std::vector<const crypto::public_key *> &pubsvector,
                                                      const crypto::secret_key &sec, std::size_t sec_index,
@@ -2036,7 +2237,7 @@ namespace hw {
         size_t i;
         ge_p3 image_unp;
         ge_dsmp image_pre;
-        crypto::ec_scalar sum, h;
+        crypto::ec_scalar sum, h, h2;
         crypto::secret_key q_s;
         boost::shared_ptr<crypto::rs_comm> buf(reinterpret_cast<crypto::rs_comm *>(malloc(crypto::rs_comm_size(pubs_count))), free);
         if (!buf)
@@ -2105,7 +2306,7 @@ namespace hw {
             }
         }
         // Keccak1600 Hash (H_s) of the buffer of all L&R, which is then converted to a 32 byte integer modulo l.
-        hash_to_scalar(buf.get(), crypto::rs_comm_size(pubs_count), h);
+        hash_to_scalar(buf, crypto::rs_comm_size(pubs_count), h);
         // c_s = c-sum(c_i)  where i != s
         sc_sub(&sig[sec_index].c, &h, &sum);
         // Close the loop: r_s = q_s - c_s*x

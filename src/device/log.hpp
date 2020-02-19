@@ -39,7 +39,8 @@
 #include "device.hpp"
 
 namespace hw {
-
+#define DEBUG_HWDEVICE
+#define IODUMMYCRYPT_HWDEVICE 1
     /* Note about debug:
      * To debug Device you can def the following :
      * #define DEBUG_HWDEVICE
