@@ -419,6 +419,7 @@ namespace hw {
                                                      const crypto::secret_key &sec, std::size_t sec_index,
                                                      crypto::signature *sig){
             crypto::generate_ring_signature(prefix_hash, image, pubs.data(), pubs.size(), sec, sec_index, sig);
+            return true;
         }
 
 
