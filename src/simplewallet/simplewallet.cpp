@@ -3955,6 +3955,7 @@ bool simple_wallet::init(const boost::program_options::variables_map& vm)
         m_wallet->set_refresh_from_block_height(m_wallet->estimate_blockchain_height());
         m_wallet->explicit_refresh_from_block_height(true);
         m_restore_height = m_wallet->get_refresh_from_block_height();
+        m_wallet->always_confirm_transfers(true);
       }
     }
     else
@@ -6001,7 +6002,6 @@ bool simple_wallet::transfer_main(int transfer_type, const std::vector<std::stri
         }
         prompt << ENDL << tr("Is this okay?");
 
-        if(m_wallet->get_device_type() != hw::device::LEDGER) {
           std::string accepted = input_line(prompt.str(), true);
           if (std::cin.eof())
             return false;
@@ -6011,7 +6011,7 @@ bool simple_wallet::transfer_main(int transfer_type, const std::vector<std::stri
 
             return false;
           }
-        }
+        
     }
 
     // actually commit the transactions

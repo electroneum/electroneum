@@ -3794,7 +3794,7 @@ bool wallet2::load_keys(const std::string& keys_file_name, const epee::wipeable_
     m_multisig_signers.clear();
     m_multisig_rounds_passed = 0;
     m_multisig_derivations.clear();
-    m_always_confirm_transfers = false;
+    m_always_confirm_transfers = true;
     m_print_ring_members = false;
     m_store_tx_info = true;
     m_default_mixin = 0;
