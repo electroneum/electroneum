@@ -2127,9 +2127,10 @@ namespace hw {
 #ifdef DEBUG_HWDEVICE
       hex_tx += boost::algorithm::hex(std::string(reinterpret_cast<char const*>(this->buffer_recv), this->length_recv));
 #endif
-  // count from #inputs + 1. Used for computing P=H(rA)G+B on device.
-  // The output index is hashed in H so that we get unique stealth addresses when sending multiple outputs to the same person (same r,A,B)
-      uint8_t output_index = tx.vin.size() + 1;
+
+      // count from #inputs + 1. Used for computing P=H(rA)G+B on device.
+      // The output index is hashed in H so that we get unique stealth addresses when sending multiple outputs to the same person (same r,A,B)
+      size_t output_index = tx.vin.size() + 1;
       for(size_t i = 0; i < tx.vout.size(); ++i) {
         offset = set_command_header_noopt(INS_TX_PREFIX_OUTPUTS);
 
@@ -2150,8 +2151,14 @@ namespace hw {
         memmove(this->buffer_send+offset, key.data, 32);
         offset += 32;
 
-        this->buffer_send[offset+0] = output_index>>0;
-        offset += 1;
+        //output_index
+        this->buffer_send[offset+0] = output_index>>24;
+        this->buffer_send[offset+1] = output_index>>16;
+        this->buffer_send[offset+2] = output_index>>8;
+        this->buffer_send[offset+3] = output_index>>0;
+        offset += 4;
+
+        ++output_index;
 
         this->buffer_send[4] = offset-5;
         this->length_send = offset;
@@ -2160,7 +2167,7 @@ namespace hw {
 #ifdef DEBUG_HWDEVICE
         hex_tx += boost::algorithm::hex(std::string(reinterpret_cast<char const*>(this->buffer_recv), this->length_recv));
 #endif
-        ++output_index;
+
       }
 
       offset = set_command_header_noopt(INS_TX_PREFIX_EXTRA);
