@@ -1,0 +1,157 @@
+When serialising using a portable binary archive, we are serialising using the rules outlined in https://tukaani.org/xz/xz-file-format.txt.
+
+The encoding method with examples can be seen here: (https://developers.google.com/protocol-buffers/docs/encoding#varints).
+
+Here is an example:
+
+Fist convert the decimal value of your integer to  regular binary
+16684 = 01000001 00101100
+
+Split in 7bit blocks: 0000001 0000010 0101100
+
+Inverting them(Little endian): 0101100 0000010 0000001
+
+Add 1 to msb of 1st and 2nd block to indicate that there is more to come
+
+10101100 10000010 00000001
+
+Result should be AC8201
+
+Debugging the serialisation of a transaction prefix is achievable through adding a few extra lines to
+the get_transaction_prefix_hash function and setting breakpoints & log printing.
+
+We tested the encoder and decoder at the same time (n=500000) and you will recognise this below:
+
+  void get_transaction_prefix_hash(const transaction_prefix& tx, crypto::hash& h)
+  {
+    std::ostringstream s;
+    binary_archive<true> a(s);
+    ::serialization::serialize(a, const_cast<transaction_prefix&>(tx));
+
+    std::ostringstream ss;
+    json_archive<true> aa(ss);
+    ::serialization::serialize(aa, const_cast<transaction_prefix&>(tx));
+
+    std::string mytx = hexStr2((unsigned char*)s.str().data(), s.str().size());
+    std::string mytx2 = ss.str();
+
+    std::string mytx3 = s.str();
+    LOG_PRINT_L0("DUMMY LINE");
+    LOG_PRINT_L0(mytx);
+    LOG_PRINT_L0(mytx2);
+    LOG_PRINT_L0(mytx3);
+
+
+      uint8_t buf[9];
+      uint64_t num = 500000;
+
+          size_t i = 0;
+
+          while (num >= 0x80) {
+              buf[i++] = (uint8_t)(num) | 0x80;
+              num >>= 7;
+          }
+
+          buf[i++] = (uint8_t)(num);
+
+          LOG_PRINT_L0(i);
+
+          //
+
+
+      size_t size_max =9;
+      uint64_t *numnew;
+
+      *numnew = buf[0] & 0x7F;
+      size_t j = 0;
+
+      while (buf[j++] & 0x80) {
+          if (j >= size_max || buf[j] == 0x00)
+              LOG_PRINT_L0(0);
+
+          *numnew |= (uint64_t)(buf[j] & 0x7F) << (j * 7);
+      }
+
+      uint64_t finalanswer = *numnew;
+      std::vector<unsigned char> vec;
+    std::copy(s.str().begin(), s.str().end(), std::back_inserter(vec));
+
+    crypto::cn_fast_hash(s.str().data(), s.str().size(), h);
+  }
+
+By checking the relevant bytes inside buf after the encoding step (= first i bytes), you can compare this to the hex in 'mytx'
+to check that everything matches to verify the encoding function.
+
+If you inspect num against numnew, you can also check that decoding function works correctly too.
+
+
+Here is an example of a transaction prefix being serialised. Please note that we're serialising the prefix structure and not the JSON string.
+
+JSON STRING SHOWING CONTENTS:
+", \"version\": 1, \"unlock_time\": 0,
+ \"vin\":
+ [ {\"key\": {\"amount\": 1000, \"key_offsets\": [ 16682708], \"k_image\": \"6441ccca525cd0edc6d3fee4d74de43c93d821e81f7f364b81123688c317a52d\"}},
+   {\"key\": {\"amount\": 300, \"key_offsets\": [ 2414044], \"k_image\": \"e7b745f705e79d6695743b49548f48b07e5463f9e7caacfefb685575907d2309\"}},
+   {\"key\": {\"amount\": 10000, \"key_offsets\": [ 5237355], \"k_image\": \"8fbff8663f4ca690e4c5e101329b446cab09d7880fbc570f2a711b8c549e315b\"}}
+ ],
+ \"vout\":
+ [ {\"amount\": 1000, \"target\": {\"key\": \"bb965c18600629fc5de5cd3d1c3765fc22b028aa710149b6b18ba12e9e345196\"}},
+   {\"amount\": 10000, \"target\": {\"key\": \"3e310d538b2ee5ce0f67d0f70779279a6d48ccd29b247e3084ec4fb1f723a4f2\"}},
+   {\"amount\": 200, \"target\": {\"key\": \"80c629bea355374eddd7515ccb09eb2209a8007b9d1a9f16d4c39b168aa03a3c\"}},
+   {\"amount\": 90, \"target\": {\"key\": \"288f48243f6e16975e9c7e5157bd2ad7f4fcb8a11d837d953f90a613a62cf0db\"}}],
+   \"extra\": [ 2, 33, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 24, 99, 83,
+    149, 22, 1, 31, 99, 122, 89, 17, 225, 164, 242, 245, 72, 73, 78, 1, 126, 65, 3, 105, 175, 149, 250, 63, 136, 13, 17,
+    74, 159, 109, 163, 56, 216, 216, 164]"
+
+HEX EQUIVALENT OF SERIALISED STRING:
+"01000302e80701d49dfa076441ccca525cd0edc6d3fee4d74de43c93d821e81f7f364b81123688c317a52d02ac0201dcab9301e7b745f705e79d6695743b49548f48b07e5463f9e7caacfefb685575907d230902904e01ebd4bf028fbff8663f4ca690e4c5e101329b446cab09d7880fbc570f2a711b8c549e315b04e80702bb965c18600629fc5de5cd3d1c3765fc22b028aa710149b6b18ba12e9e345196904e023e310d538b2ee5ce0f67d0f70779279a6d48ccd29b247e3084ec4fb1f723a4f2c8010280c629bea355374eddd7515ccb09eb2209a8007b9d1a9f16d4c39b168aa03a3c5a02288f48243f6e16975e9c7e5157bd2ad7f4fcb8a11d837d953f90a613a62cf0db440221000000000000000000000000000000000000000000000000000000001863539516011f637a5911e1a4f2f548494e017e410369af95fa3f880d114a9f6da338d8d8a4"
+
+-----------------------------------------------BREAKDOWN OF CONTENTS----------------------------------------------------
+VERSION AND UNLOCK TIME
+01                                                                  (version)
+00                                                                  (unlock)
+BEGINNING OF VINS
+03                                                                  (total #vins)
+------------------------------------------------------------------------------------------------------------------------
+02                                                                  (txin varint tag)
+e807                                                                (amount 1000)
+01                                                                  (number of offsets)
+d49dfa07                                                            (key offsets (only ever one of these as no mixin))
+6441ccca525cd0edc6d3fee4d74de43c93d821e81f7f364b81123688c317a52d    (key image 1)
+------------------------------------------------------------------------------------------------------------------------
+02                                                                  (txvarint tag)
+ac02                                                                (amount)
+01                                                                  (number of offsets)
+dcab9301                                                            (offsets)
+e7b745f705e79d6695743b49548f48b07e5463f9e7caacfefb685575907d2309    (key image 2)
+------------------------------------------------------------------------------------------------------------------------
+02                                                                  (txin varint tag)
+904e                                                                (amount 10000)
+01                                                                  (num offsets)
+ebd4bf02                                                            (offsets)
+8fbff8663f4ca690e4c5e101329b446cab09d7880fbc570f2a711b8c549e315b    (key image 3)
+------------------------------------------------------------------------------------------------------------------------
+BEGINNING OF VOUTS
+04                                                                  (total #vouts)
+------------------------------------------------------------------------------------------------------------------------
+e807                                                                (amount 1000)
+02                                                                  (txout varint tag)
+bb965c18600629fc5de5cd3d1c3765fc22b028aa710149b6b18ba12e9e345196    (stealth 1)
+------------------------------------------------------------------------------------------------------------------------
+904e                                                                (amount 10000)
+02                                                                  (txout varint tag)
+3e310d538b2ee5ce0f67d0f70779279a6d48ccd29b247e3084ec4fb1f723a4f2    (stealth 2)
+------------------------------------------------------------------------------------------------------------------------
+c801                                                                (amount 200)
+02                                                                  (txout varint tag)
+80c629bea355374eddd7515ccb09eb2209a8007b9d1a9f16d4c39b168aa03a3c    (stealth 3)
+------------------------------------------------------------------------------------------------------------------------
+5a                                                                  (amount 90)
+02                                                                  (txout varint tag)
+288f48243f6e16975e9c7e5157bd2ad7f4fcb8a11d837d953f90a613a62cf0db    (stealth 4)
+------------------------------------------------------------------------------------------------------------------------
+BEGINNING OF TX EXTRA
+44                                                                  (#extra bytes)
+0221000000000000000000000000000000000000000000000000000000001863539516011f637a5911e1a4f2f548494e017e410369af95fa3f880d114a9f6da338d8d8a4
+(extra bytes above - NB these values are at most 255 => two hex characters per entry every time)
+-----------------------------------------------END OF CONTENTS----------------------------------------------------------

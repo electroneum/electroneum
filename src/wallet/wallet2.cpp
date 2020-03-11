@@ -134,6 +134,8 @@ using namespace cryptonote;
 #define DEFAULT_MIN_OUTPUT_COUNT 5
 #define DEFAULT_MIN_OUTPUT_VALUE (2*COIN)
 
+#define OUTPUT_EXPORT_FILE_MAGIC "Electroneum output export\003"
+
 static const std::string MULTISIG_SIGNATURE_MAGIC = "SigMultisigPkV1";
 static const std::string MULTISIG_EXTRA_INFO_MAGIC = "MultisigxV1";
 
@@ -315,7 +317,7 @@ std::string get_weight_string(const cryptonote::transaction &tx, size_t blob_siz
   return get_weight_string(get_transaction_weight(tx, blob_size));
 }
 
-std::unique_ptr<tools::wallet2> make_basic(const boost::program_options::variables_map& vm, bool unattended, const options& opts, const std::function<boost::optional<tools::password_container>(const char *, bool)> &password_prompter, electroneum::MicroCore* core, cryptonote::Blockchain* blockchain_storage)
+std::unique_ptr<tools::wallet2> make_basic(const boost::program_options::variables_map& vm, bool unattended, const options& opts, const std::function<boost::optional<tools::password_container>(const char *, bool)> &password_prompter)
 {
   namespace ip = boost::asio::ip;
 
@@ -465,7 +467,6 @@ std::unique_ptr<tools::wallet2> make_basic(const boost::program_options::variabl
   }
 
   std::unique_ptr<tools::wallet2> wallet(new tools::wallet2(nettype, kdf_rounds, unattended));
-  wallet->set_blockchain_storage(core, blockchain_storage);
   wallet->init(std::move(daemon_address), std::move(login), std::move(proxy), 0, *trusted_daemon, std::move(ssl_options), std::move(data_dir));
   boost::filesystem::path ringdb_path = command_line::get_arg(vm, opts.shared_ringdb_dir);
   wallet->set_ring_database(ringdb_path.string());
@@ -521,7 +522,7 @@ boost::optional<tools::password_container> get_password(const boost::program_opt
   return password_prompter(verify ? tools::wallet2::tr("Enter a new password for the wallet") : tools::wallet2::tr("Wallet password"), verify);
 }
 
-std::pair<std::unique_ptr<tools::wallet2>, tools::password_container> generate_from_json(const std::string& json_file, const boost::program_options::variables_map& vm, bool unattended, const options& opts, const std::function<boost::optional<tools::password_container>(const char *, bool)> &password_prompter, electroneum::MicroCore* core, cryptonote::Blockchain* blockchain_storage)
+std::pair<std::unique_ptr<tools::wallet2>, tools::password_container> generate_from_json(const std::string& json_file, const boost::program_options::variables_map& vm, bool unattended, const options& opts, const std::function<boost::optional<tools::password_container>(const char *, bool)> &password_prompter)
 {
   const bool testnet = command_line::get_arg(vm, opts.testnet);
   const bool stagenet = command_line::get_arg(vm, opts.stagenet);
@@ -660,7 +661,7 @@ std::pair<std::unique_ptr<tools::wallet2>, tools::password_container> generate_f
     THROW_WALLET_EXCEPTION_IF(deprecated_wallet, tools::error::wallet_internal_error,
       tools::wallet2::tr("Cannot generate deprecated wallets from JSON"));
 
-    wallet.reset(make_basic(vm, unattended, opts, password_prompter, core, blockchain_storage).release());
+    wallet.reset(make_basic(vm, unattended, opts, password_prompter).release());
     wallet->set_refresh_from_block_height(field_scan_from_height);
     wallet->explicit_refresh_from_block_height(field_scan_from_height_found);
     if (!old_language.empty())
@@ -1153,16 +1154,6 @@ wallet2::~wallet2()
 {
 }
 
-void wallet2::set_blockchain_storage(electroneum::MicroCore* core, cryptonote::Blockchain* blockchain_storage) {
-
-  if(core != nullptr && blockchain_storage != nullptr) {
-    m_core = core;
-    m_blockchain_storage = blockchain_storage;
-    is_connected_to_db = true;
-    m_physical_refresh = true;
-  }
-}
-
 bool wallet2::has_testnet_option(const boost::program_options::variables_map& vm)
 {
   return command_line::get_arg(vm, options().testnet);
@@ -1215,14 +1206,14 @@ void wallet2::init_options(boost::program_options::options_description& desc_par
   command_line::add_arg(desc_params, opts.data_dir);
 }
 
-std::pair<std::unique_ptr<wallet2>, tools::password_container> wallet2::make_from_json(const boost::program_options::variables_map& vm, bool unattended, const std::string& json_file, const std::function<boost::optional<tools::password_container>(const char *, bool)> &password_prompter, electroneum::MicroCore* core, cryptonote::Blockchain* blockchain_storage)
+std::pair<std::unique_ptr<wallet2>, tools::password_container> wallet2::make_from_json(const boost::program_options::variables_map& vm, bool unattended, const std::string& json_file, const std::function<boost::optional<tools::password_container>(const char *, bool)> &password_prompter)
 {
   const options opts{};
-  return generate_from_json(json_file, vm, unattended, opts, password_prompter, core, blockchain_storage);
+  return generate_from_json(json_file, vm, unattended, opts, password_prompter);
 }
 
 std::pair<std::unique_ptr<wallet2>, password_container> wallet2::make_from_file(
-  const boost::program_options::variables_map& vm, bool unattended, const std::string& wallet_file, const std::function<boost::optional<tools::password_container>(const char *, bool)> &password_prompter, electroneum::MicroCore* core, cryptonote::Blockchain* blockchain_storage)
+  const boost::program_options::variables_map& vm, bool unattended, const std::string& wallet_file, const std::function<boost::optional<tools::password_container>(const char *, bool)> &password_prompter)
 {
   const options opts{};
   auto pwd = get_password(vm, opts, password_prompter, false);
@@ -1230,7 +1221,7 @@ std::pair<std::unique_ptr<wallet2>, password_container> wallet2::make_from_file(
   {
     return {nullptr, password_container{}};
   }
-  auto wallet = make_basic(vm, unattended, opts, password_prompter, core, blockchain_storage);
+  auto wallet = make_basic(vm, unattended, opts, password_prompter);
   if (wallet && !wallet_file.empty())
   {
     wallet->load(wallet_file, pwd->password());
@@ -1238,7 +1229,7 @@ std::pair<std::unique_ptr<wallet2>, password_container> wallet2::make_from_file(
   return {std::move(wallet), std::move(*pwd)};
 }
 
-std::pair<std::unique_ptr<wallet2>, password_container> wallet2::make_new(const boost::program_options::variables_map& vm, bool unattended, const std::function<boost::optional<password_container>(const char *, bool)> &password_prompter, electroneum::MicroCore* core, cryptonote::Blockchain* blockchain_storage)
+std::pair<std::unique_ptr<wallet2>, password_container> wallet2::make_new(const boost::program_options::variables_map& vm, bool unattended, const std::function<boost::optional<password_container>(const char *, bool)> &password_prompter)
 {
   const options opts{};
   auto pwd = get_password(vm, opts, password_prompter, true);
@@ -1246,13 +1237,13 @@ std::pair<std::unique_ptr<wallet2>, password_container> wallet2::make_new(const 
   {
     return {nullptr, password_container{}};
   }
-  return {make_basic(vm, unattended, opts, password_prompter, core, blockchain_storage), std::move(*pwd)};
+  return {make_basic(vm, unattended, opts, password_prompter), std::move(*pwd)};
 }
 
-std::unique_ptr<wallet2> wallet2::make_dummy(const boost::program_options::variables_map& vm, bool unattended, const std::function<boost::optional<tools::password_container>(const char *, bool)> &password_prompter, electroneum::MicroCore* core, cryptonote::Blockchain* blockchain_storage)
+std::unique_ptr<wallet2> wallet2::make_dummy(const boost::program_options::variables_map& vm, bool unattended, const std::function<boost::optional<tools::password_container>(const char *, bool)> &password_prompter)
 {
   const options opts{};
-  return make_basic(vm, unattended, opts, password_prompter, core, blockchain_storage);
+  return make_basic(vm, unattended, opts, password_prompter);
 }
 
 //----------------------------------------------------------------------------------------------------
@@ -1275,8 +1266,6 @@ bool wallet2::init(std::string daemon_address, boost::optional<epee::net_utils::
   m_checkpoints.init_default_checkpoints(m_nettype);
   m_is_initialized = true;
   m_upper_transaction_weight_limit = upper_transaction_weight_limit;
-
-  load_database(blockchain_db_path);
 
   if (proxy != boost::asio::ip::tcp::endpoint{})
     m_http_client.set_connector(net::socks::connector{std::move(proxy)});
@@ -2472,12 +2461,7 @@ void wallet2::pull_blocks(uint64_t start_height, uint64_t &blocks_start_height, 
   req.no_miner_tx = m_refresh_type == RefreshNoCoinbase;
   m_daemon_rpc_mutex.lock();
 
-  bool r;
-  if(m_physical_refresh) {
-    r = tools::wallet2::get_blocks_from_db(req, res);
-  } else {
-    r = invoke_http_bin("/getblocks.bin", req, res, rpc_timeout); //
-  }
+  bool r = invoke_http_bin("/getblocks.bin", req, res, rpc_timeout);
 
   m_daemon_rpc_mutex.unlock();
   THROW_WALLET_EXCEPTION_IF(!r, error::no_connection_to_daemon, "getblocks.bin");
@@ -2490,68 +2474,6 @@ void wallet2::pull_blocks(uint64_t start_height, uint64_t &blocks_start_height, 
   blocks_start_height = res.start_height;
   blocks = std::move(res.blocks);
   o_indices = std::move(res.output_indices);
-}
-
-bool wallet2::get_blocks_from_db(const cryptonote::COMMAND_RPC_GET_BLOCKS_FAST::request &req, cryptonote::COMMAND_RPC_GET_BLOCKS_FAST::response &res) {
-
-  //TODO: MERGE-FIX
-  /*std::list<std::pair<cryptonote::blobdata, std::list<cryptonote::blobdata> > > bs;
-
-  if(!m_blockchain_storage->find_blockchain_supplement(req.start_height, req.block_ids, bs, res.current_height, res.start_height, COMMAND_RPC_GET_BLOCKS_FAST_MAX_COUNT))
-  {
-    res.status = "Failed";
-    return false;
-  }
-
-  size_t pruned_size = 0, unpruned_size = 0, ntxes = 0;
-  for(auto& bd: bs)
-  {
-    res.blocks.resize(res.blocks.size()+1);
-    res.blocks.back().block = bd.first;
-    pruned_size += bd.first.size();
-    unpruned_size += bd.first.size();
-    res.output_indices.push_back(COMMAND_RPC_GET_BLOCKS_FAST::block_output_indices());
-    res.output_indices.back().indices.push_back(COMMAND_RPC_GET_BLOCKS_FAST::tx_output_indices());
-    block b;
-    if (!parse_and_validate_block_from_blob(bd.first, b))
-    {
-      res.status = "Invalid block";
-      return false;
-    }
-    bool r = m_blockchain_storage->get_tx_outputs_gindexs(get_transaction_hash(b.miner_tx), res.output_indices.back().indices.back().indices);
-    if (!r)
-    {
-      res.status = "Failed";
-      return false;
-    }
-    size_t txidx = 0;
-    ntxes += bd.second.size();
-    for (std::list<cryptonote::blobdata>::iterator i = bd.second.begin(); i != bd.second.end(); ++i)
-    {
-      unpruned_size += i->size();
-      if (req.prune)
-        res.blocks.back().txs.push_back(get_pruned_tx_blob(std::move(*i)));
-      else
-        res.blocks.back().txs.push_back(std::move(*i));
-      i->clear();
-      i->shrink_to_fit();
-      pruned_size += res.blocks.back().txs.back().size();
-
-      res.output_indices.back().indices.push_back(COMMAND_RPC_GET_BLOCKS_FAST::tx_output_indices());
-      bool r = m_blockchain_storage->get_tx_outputs_gindexs(b.tx_hashes[txidx++], res.output_indices.back().indices.back().indices);
-      if (!r)
-      {
-        res.status = "Failed";
-        return false;
-      }
-    }
-  }
-
-  MDEBUG("on_get_blocks: " << bs.size() << " blocks, " << ntxes << " txes, pruned size " << pruned_size << ", unpruned size " << unpruned_size);
-  res.status = CORE_RPC_STATUS_OK;
-
-   */
-  return true;
 }
 
 //------------------------------------------------------------------------------------------------------------------------------
@@ -2581,12 +2503,7 @@ void wallet2::pull_hashes(uint64_t start_height, uint64_t &blocks_start_height, 
   req.start_height = start_height;
   m_daemon_rpc_mutex.lock();
 
-  bool r;
-  if(m_physical_refresh) {
-    r = tools::wallet2::get_hashes_from_db(req, res);
-  } else {
-    r = invoke_http_bin("/gethashes.bin", req, res, rpc_timeout);
-  }
+  bool r = invoke_http_bin("/gethashes.bin", req, res, rpc_timeout);
 
   m_daemon_rpc_mutex.unlock();
   THROW_WALLET_EXCEPTION_IF(!r, error::no_connection_to_daemon, "gethashes.bin");
@@ -2595,23 +2512,6 @@ void wallet2::pull_hashes(uint64_t start_height, uint64_t &blocks_start_height, 
 
   blocks_start_height = res.start_height;
   hashes = std::move(res.m_block_ids);
-}
-
-bool wallet2::get_hashes_from_db(const cryptonote::COMMAND_RPC_GET_HASHES_FAST::request &req, cryptonote::COMMAND_RPC_GET_HASHES_FAST::response &res) {
-  NOTIFY_RESPONSE_CHAIN_ENTRY::request resp;
-
-  resp.start_height = req.start_height;
-  if(!m_blockchain_storage->find_blockchain_supplement(req.block_ids, resp))
-  {
-    res.status = "Failed";
-    return false;
-  }
-  res.current_height = resp.total_height;
-  res.start_height = resp.start_height;
-  res.m_block_ids = std::move(resp.m_block_ids);
-
-  res.status = CORE_RPC_STATUS_OK;
-  return true;
 }
 
 //----------------------------------------------------------------------------------------------------
@@ -3085,27 +2985,6 @@ void wallet2::update_pool_state(bool refreshed)
     }
   }
   MTRACE("update_pool_state end");
-}
-
-void wallet2::load_database(std::string blockchain_db_path) {
-  if(!blockchain_db_path.empty() && blockchain_db_path != "" && !is_connected_to_db) {
-    m_core = new electroneum::MicroCore();
-    m_physical_refresh = true;
-    if (electroneum::init_blockchain(blockchain_db_path, m_core, m_blockchain_storage, m_nettype)) {
-      is_connected_to_db = true;
-      return;
-
-    } else {
-      cerr << "Error accessing blockchain database file. Disabling physical refresh feature." << endl;
-      m_physical_refresh = false;
-    }
-  }
-
-  // Make sure m_core and m_blockchain_storage pointers are clean if not connected to db
-  if(!is_connected_to_db) {
-    m_core = nullptr;
-    m_blockchain_storage = nullptr;
-  }
 }
 
 //----------------------------------------------------------------------------------------------------
@@ -3915,7 +3794,7 @@ bool wallet2::load_keys(const std::string& keys_file_name, const epee::wipeable_
     m_multisig_signers.clear();
     m_multisig_rounds_passed = 0;
     m_multisig_derivations.clear();
-    m_always_confirm_transfers = false;
+    m_always_confirm_transfers = true;
     m_print_ring_members = false;
     m_store_tx_info = true;
     m_default_mixin = 0;
@@ -9337,8 +9216,26 @@ std::vector<wallet2::pending_tx> wallet2::create_transactions_2(std::vector<cryp
   };
   std::vector<TX> txes;
   bool adding_fee; // true if new outputs go towards fee, rather than destinations
+
   uint64_t needed_fee, available_for_fee = 0;
-  uint64_t upper_transaction_weight_limit = get_upper_transaction_weight_limit();
+  uint64_t upper_transaction_weight_limit;
+  uint64_t extra_bytes = extra.size();
+  switch(hwdev.get_type()){
+
+      // Normal Software Limit
+      case 0 : upper_transaction_weight_limit = get_upper_transaction_weight_limit(); break;
+
+      // Ledger NanoS: ~3.3kB of RAM for app variables. Give a bit of buffer (300) for other variables on device
+      // and subtract the size of the extra.
+      // because in the Ledger app this still lives on the stack at the same time the entire prefix does.
+      // This is a rough rule of thumb estimate... The logic can be updated at a later stage.
+      // Right now we just need to make we don't fail to build any tx (and split the tx to avoid this happening)
+      case 1 : upper_transaction_weight_limit = 3000 - extra_bytes; break;
+
+      //Trezor limit set at the same as Ledger for the time being.
+      case 2 : upper_transaction_weight_limit = 3000 - extra_bytes; break;
+      //Future hw devices
+  }
   const bool use_per_byte_fee = use_fork_rules(HF_VERSION_PER_BYTE_FEE, 0);
   const bool use_rct = use_fork_rules(HF_VERSION_ENABLE_RCT, 0);
   const bool bulletproof = use_fork_rules(get_bulletproof_fork(), 0);
@@ -11514,9 +11411,9 @@ uint64_t wallet2::get_daemon_blockchain_target_height(string &err)
 uint64_t wallet2::get_approximate_blockchain_height() const
 {
   // time of v2 fork
-  const time_t fork_time = m_nettype == TESTNET ? 1448285909 : m_nettype == STAGENET ? 1520937818 : 1458748658;
+  const time_t fork_time = m_nettype == TESTNET ? 1341378000 : m_nettype == STAGENET ? 1521000000 : 1538815057;
   // v2 fork block
-  const uint64_t fork_block = m_nettype == TESTNET ? 624634 : m_nettype == STAGENET ? 32000 : 1009827;
+  const uint64_t fork_block = m_nettype == TESTNET ? 190060 : m_nettype == STAGENET ? 32000 : 307500;
   // avg seconds per block
   const int seconds_per_block = DIFFICULTY_TARGET_V6;
   // Calculated blockchain height
@@ -11525,6 +11422,10 @@ uint64_t wallet2::get_approximate_blockchain_height() const
   static const uint64_t approximate_testnet_rolled_back_blocks = 303967;
   if (m_nettype == TESTNET && approx_blockchain_height > approximate_testnet_rolled_back_blocks)
     approx_blockchain_height -= approximate_testnet_rolled_back_blocks;
+  // estiamte blocks from v6
+  if(m_nettype == MAINNET) {
+    approx_blockchain_height += 82000;
+  }
   LOG_PRINT_L2("Calculated blockchain height: " << approx_blockchain_height);
   return approx_blockchain_height;
 }

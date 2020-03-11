@@ -82,9 +82,9 @@ const char * TESTNET_WALLET_PASS = "";
 std::string CURRENT_SRC_WALLET;
 std::string CURRENT_DST_WALLET;
 
-const uint64_t AMOUNT_10XMR =  10000000000000L;
-const uint64_t AMOUNT_5XMR  =  5000000000000L;
-const uint64_t AMOUNT_1XMR  =  1000000000000L;
+const uint64_t AMOUNT_10ETN =  10000000000000L;
+const uint64_t AMOUNT_5ETN  =  5000000000000L;
+const uint64_t AMOUNT_1ETN  =  1000000000000L;
 
 const std::string PAYMENT_ID_EMPTY = "";
 
@@ -553,12 +553,12 @@ TEST_F(WalletTest1, WalletRefresh)
 
 TEST_F(WalletTest1, WalletConvertsToString)
 {
-    std::string strAmount = Electroneum::Wallet::displayAmount(AMOUNT_5XMR);
-    ASSERT_TRUE(AMOUNT_5XMR == Electroneum::Wallet::amountFromString(strAmount));
+    std::string strAmount = Electroneum::Wallet::displayAmount(AMOUNT_5ETN);
+    ASSERT_TRUE(AMOUNT_5ETN == Electroneum::Wallet::amountFromString(strAmount));
 
-    ASSERT_TRUE(AMOUNT_5XMR == Electroneum::Wallet::amountFromDouble(5.0));
-    ASSERT_TRUE(AMOUNT_10XMR == Electroneum::Wallet::amountFromDouble(10.0));
-    ASSERT_TRUE(AMOUNT_1XMR == Electroneum::Wallet::amountFromDouble(1.0));
+    ASSERT_TRUE(AMOUNT_5ETN == Electroneum::Wallet::amountFromDouble(5.0));
+    ASSERT_TRUE(AMOUNT_10ETN == Electroneum::Wallet::amountFromDouble(10.0));
+    ASSERT_TRUE(AMOUNT_1ETN == Electroneum::Wallet::amountFromDouble(1.0));
 
 }
 
@@ -580,7 +580,7 @@ TEST_F(WalletTest1, WalletTransaction)
 
     Electroneum::PendingTransaction * transaction = wallet1->createTransaction(recepient_address,
                                                                              PAYMENT_ID_EMPTY,
-                                                                             AMOUNT_10XMR,
+                                                                             AMOUNT_10ETN,
                                                                              MIXIN_COUNT,
                                                                              Electroneum::PendingTransaction::Priority_Medium,
                                                                              0,
@@ -589,7 +589,7 @@ TEST_F(WalletTest1, WalletTransaction)
     wallet1->refresh();
 
     ASSERT_TRUE(wallet1->balance(0) == balance);
-    ASSERT_TRUE(transaction->amount() == AMOUNT_10XMR);
+    ASSERT_TRUE(transaction->amount() == AMOUNT_10ETN);
     ASSERT_TRUE(transaction->commit());
     ASSERT_FALSE(wallet1->balance(0) == balance);
     ASSERT_TRUE(wmgr->closeWallet(wallet1));
@@ -623,7 +623,7 @@ TEST_F(WalletTest1, WalletTransactionWithMixin)
         std::cerr << "Transaction mixin count: " << mixin << std::endl;
 	
         Electroneum::PendingTransaction * transaction = wallet1->createTransaction(
-                    recepient_address, payment_id, AMOUNT_5XMR, mixin, Electroneum::PendingTransaction::Priority_Medium, 0, std::set<uint32_t>{});
+                    recepient_address, payment_id, AMOUNT_5ETN, mixin, Electroneum::PendingTransaction::Priority_Medium, 0, std::set<uint32_t>{});
 
         std::cerr << "Transaction status: " << transaction->status() << std::endl;
         std::cerr << "Transaction fee: " << Electroneum::Wallet::displayAmount(transaction->fee()) << std::endl;
@@ -665,7 +665,7 @@ TEST_F(WalletTest1, WalletTransactionWithPriority)
         std::cerr << "Transaction priority: " << *it << std::endl;
 	
         Electroneum::PendingTransaction * transaction = wallet1->createTransaction(
-                    recepient_address, payment_id, AMOUNT_5XMR, mixin, *it, 0, std::set<uint32_t>{});
+                    recepient_address, payment_id, AMOUNT_5ETN, mixin, *it, 0, std::set<uint32_t>{});
         std::cerr << "Transaction status: " << transaction->status() << std::endl;
         std::cerr << "Transaction fee: " << Electroneum::Wallet::displayAmount(transaction->fee()) << std::endl;
         std::cerr << "Transaction error: " << transaction->errorString() << std::endl;
@@ -721,7 +721,7 @@ TEST_F(WalletTest1, WalletTransactionAndHistory)
 
     Electroneum::PendingTransaction * tx = wallet_src->createTransaction(wallet4_addr,
                                                                        PAYMENT_ID_EMPTY,
-                                                                       AMOUNT_10XMR * 5, 1, Electroneum::PendingTransaction::Priority_Medium, 0, std::set<uint32_t>{});
+                                                                       AMOUNT_10ETN * 5, 1, Electroneum::PendingTransaction::Priority_Medium, 0, std::set<uint32_t>{});
 
     ASSERT_TRUE(tx->status() == Electroneum::PendingTransaction::Status_Ok);
     ASSERT_TRUE(tx->commit());
@@ -763,7 +763,7 @@ TEST_F(WalletTest1, WalletTransactionWithPaymentId)
 
     Electroneum::PendingTransaction * tx = wallet_src->createTransaction(wallet4_addr,
                                                                        payment_id,
-                                                                       AMOUNT_1XMR, 1, Electroneum::PendingTransaction::Priority_Medium, 0, std::set<uint32_t>{});
+                                                                       AMOUNT_1ETN, 1, Electroneum::PendingTransaction::Priority_Medium, 0, std::set<uint32_t>{});
 
     ASSERT_TRUE(tx->status() == Electroneum::PendingTransaction::Status_Ok);
     ASSERT_TRUE(tx->commit());
@@ -930,7 +930,7 @@ TEST_F(WalletTest2, WalletCallbackSent)
     std::cout << "** Balance: " << wallet_src->displayAmount(wallet_src->balance(0)) <<  std::endl;
     Electroneum::Wallet * wallet_dst = wmgr->openWallet(CURRENT_DST_WALLET, TESTNET_WALLET_PASS, Electroneum::NetworkType::TESTNET);
 
-    uint64_t amount = AMOUNT_1XMR * 5;
+    uint64_t amount = AMOUNT_1ETN * 5;
     std::cout << "** Sending " << Electroneum::Wallet::displayAmount(amount) << " to " << wallet_dst->mainAddress();
 
 
@@ -973,7 +973,7 @@ TEST_F(WalletTest2, WalletCallbackReceived)
     std::cout << "** Balance dst1: " << wallet_dst->displayAmount(wallet_dst->balance(0)) <<  std::endl;
     std::unique_ptr<MyWalletListener> wallet_dst_listener (new MyWalletListener(wallet_dst));
 
-    uint64_t amount = AMOUNT_1XMR * 5;
+    uint64_t amount = AMOUNT_1ETN * 5;
     std::cout << "** Sending " << Electroneum::Wallet::displayAmount(amount) << " to " << wallet_dst->mainAddress();
     Electroneum::PendingTransaction * tx = wallet_src->createTransaction(wallet_dst->mainAddress(),
                                                                        PAYMENT_ID_EMPTY,

@@ -3955,6 +3955,7 @@ bool simple_wallet::init(const boost::program_options::variables_map& vm)
         m_wallet->set_refresh_from_block_height(m_wallet->estimate_blockchain_height());
         m_wallet->explicit_refresh_from_block_height(true);
         m_restore_height = m_wallet->get_refresh_from_block_height();
+        m_wallet->always_confirm_transfers(true);
       }
     }
     else
@@ -4245,7 +4246,7 @@ boost::optional<tools::password_container> simple_wallet::get_and_verify_passwor
 boost::optional<epee::wipeable_string> simple_wallet::new_wallet(const boost::program_options::variables_map& vm,
   const crypto::secret_key& recovery_key, bool recover, bool two_random, const std::string &old_language)
 {
-  auto rc = tools::wallet2::make_new(vm, false, password_prompter, nullptr, nullptr); //
+  auto rc = tools::wallet2::make_new(vm, false, password_prompter);
   m_wallet = std::move(rc.first);
   if (!m_wallet)
   {
@@ -6000,16 +6001,17 @@ bool simple_wallet::transfer_main(int transfer_type, const std::vector<std::stri
           prompt << tr("WARNING: this is a non default ring size, which may harm your privacy. Default is recommended.");
         }
         prompt << ENDL << tr("Is this okay?");
-        
-        std::string accepted = input_line(prompt.str(), true);
-        if (std::cin.eof())
-          return false;
-        if (!command_line::is_yes(accepted))
-        {
-          fail_msg_writer() << tr("transaction cancelled.");
 
-          return false;
-        }
+          std::string accepted = input_line(prompt.str(), true);
+          if (std::cin.eof())
+            return false;
+          if (!command_line::is_yes(accepted))
+          {
+            fail_msg_writer() << tr("transaction cancelled.");
+
+            return false;
+          }
+        
     }
 
     // actually commit the transactions

@@ -56,6 +56,7 @@ namespace cryptonote
     struct subaddress_index;
     struct tx_destination_entry;
     struct keypair;
+    struct transaction;
 }
 
 namespace hw {
@@ -229,11 +230,13 @@ namespace hw {
         virtual bool  mlsag_sign(const rct::key &c, const rct::keyV &xx, const rct::keyV &alpha, const size_t rows, const size_t dsRows, rct::keyV &ss) = 0;
 
         virtual bool  close_tx(void) = 0;
+        virtual bool get_transaction_prefix_hash(const cryptonote::transaction& tx, crypto::hash& tx_prefix_hash) = 0;
         virtual bool generate_ring_signature(const crypto::hash &prefix_hash, const crypto::key_image &image,
                                      const std::vector<const crypto::public_key *> &pubs,
                                      const crypto::secret_key &sec, std::size_t sec_index,
                                      crypto::signature *sig) = 0;
 
+        virtual bool hash_to_scalar(boost::shared_ptr<crypto::rs_comm> buf, size_t length, crypto::ec_scalar &res) = 0;
         virtual bool  has_ki_cold_sync(void) const { return false; }
         virtual bool  has_tx_cold_sign(void) const { return false; }
         virtual bool  has_ki_live_refresh(void) const { return true; }
