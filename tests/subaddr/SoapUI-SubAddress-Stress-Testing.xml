@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<con:soapui-project id="af833f2d-fd30-4d8e-966e-c1334a55056e" activeEnvironment="Default" name="ETN Wallet RPC" soapui-version="5.5.0" abortOnError="false" runType="SEQUENTIAL" resourceRoot="" xmlns:con="http://eviware.com/soapui/config"><con:settings/><con:interface xsi:type="con:RestService" id="4ae2281f-d95f-4792-8deb-4fbd6b6e30f0" wadlVersion="http://wadl.dev.java.net/2009/02" name="http://localhost:18083" type="rest" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><con:settings/><con:definitionCache type="TEXT" rootPart=""/><con:endpoints><con:endpoint>http://localhost:18083</con:endpoint></con:endpoints><con:resource name="" path="/json_rpc" id="c0a439c8-0bcc-4895-8d71-4f7b6be8bf97"><con:settings/><con:parameters/><con:method name="Create Wallet" id="a6f68168-2554-44e5-bdba-456ec38245ca" method="POST"><con:settings/><con:parameters/><con:representation type="FAULT"><con:mediaType>text/plain</con:mediaType><con:status>404</con:status><con:params/><con:element>data</con:element></con:representation><con:representation type="REQUEST"><con:mediaType>application/json</con:mediaType><con:params/></con:representation><con:representation type="RESPONSE"><con:mediaType>application/json</con:mediaType><con:status>200</con:status><con:params/><con:element xmlns:loc="http://localhost/">loc:Response</con:element></con:representation><con:representation type="RESPONSE"><con:mediaType>text/plain</con:mediaType><con:status>200</con:status><con:params/><con:element>data</con:element></con:representation><con:request name="Request 1" id="c8c95be2-a06a-45c0-aa46-0a3513c77f62" mediaType="application/json" postQueryString="false"><con:settings><con:setting id="com.eviware.soapui.impl.wsdl.WsdlRequest@request-headers">&lt;xml-fragment/></con:setting></con:settings><con:endpoint>http://localhost:18083</con:endpoint><con:request>{
+    "jsonrpc": "2.0",
+    "id": "0",
+    "method": "create_wallet",
+    "params": {
+        "filename": "${#TestSuite#wallet}",
+        "password": "${#TestSuite#password}",
+        "language": "English"
+    }
+}</con:request><con:originalUri>http://localhost/</con:originalUri><con:credentials><con:authType>No Authorization</con:authType></con:credentials><con:jmsConfig JMSDeliveryMode="PERSISTENT"/><con:jmsPropertyConfig/><con:parameters/></con:request></con:method><con:method name="Get Height" id="c0bb8820-eeff-4e5e-99f3-be697cb5b422" method="POST"><con:settings/><con:parameters/><con:representation type="REQUEST"><con:mediaType>application/json</con:mediaType><con:params/></con:representation><con:representation type="RESPONSE"><con:mediaType>application/json</con:mediaType><con:status>200</con:status><con:params/><con:element xmlns:json="http://localhost/json_rpc">json:Response</con:element></con:representation><con:request name="Request 1" id="837ee5e8-0f0c-4db0-9f2e-58487717e5ce" mediaType="application/json" postQueryString="false"><con:settings><con:setting id="com.eviware.soapui.impl.wsdl.WsdlRequest@request-headers">&lt;xml-fragment/></con:setting></con:settings><con:endpoint>http://localhost:18083</con:endpoint><con:request>{
+    "jsonrpc": "2.0",
+    "id": "0",
+    "method": "getheight"
+}</con:request><con:originalUri>http://localhost/json_rpc</con:originalUri><con:credentials><con:authType>No Authorization</con:authType></con:credentials><con:jmsConfig JMSDeliveryMode="PERSISTENT"/><con:jmsPropertyConfig/><con:parameters/></con:request></con:method><con:method name="Open Wallet" id="c55242a9-6741-41d7-b1c0-7709b1dcb974" method="POST"><con:settings/><con:parameters/><con:representation type="RESPONSE"><con:mediaType>application/json</con:mediaType><con:status>200</con:status><con:params/><con:element xmlns:json="http://localhost/json_rpc">json:Response</con:element></con:representation><con:representation type="REQUEST"><con:mediaType>application/json</con:mediaType><con:params/></con:representation><con:representation type="RESPONSE"><con:mediaType>text/plain</con:mediaType><con:status>200</con:status><con:params/><con:element>data</con:element></con:representation><con:request name="Request 1" id="932c0921-39a0-4bc2-aeba-1218980df577" mediaType="application/json" postQueryString="false"><con:settings><con:setting id="com.eviware.soapui.impl.wsdl.WsdlRequest@request-headers">&lt;xml-fragment/></con:setting></con:settings><con:endpoint>http://localhost:18083</con:endpoint><con:request>{
+    "jsonrpc": "2.0",
+    "id": "0",
+    "method": "open_wallet",
+    "params": {
+        "filename": "${#TestSuite#wallet}",
+        "password": "${#TestSuite#password}"
+    }
+}</con:request><con:originalUri>http://localhost/json_rpc</con:originalUri><con:credentials><con:authType>No Authorization</con:authType></con:credentials><con:jmsConfig JMSDeliveryMode="PERSISTENT"/><con:jmsPropertyConfig/><con:parameters/></con:request></con:method><con:method name="Create SubAddr" id="f5cf7faa-486e-4739-a971-850c34bed98f" method="POST"><con:settings/><con:parameters/><con:representation type="REQUEST"><con:mediaType>application/json</con:mediaType><con:params/></con:representation><con:representation type="RESPONSE"><con:mediaType>application/json</con:mediaType><con:status>200</con:status><con:params/><con:element xmlns:json="http://localhost/json_rpc">json:Response</con:element></con:representation><con:representation type="RESPONSE"><con:mediaType>text/plain</con:mediaType><con:status>200</con:status><con:params/><con:element>data</con:element></con:representation><con:request name="Request 1" id="e81caf30-0766-45ba-8e81-02db4fec4979" mediaType="application/json" postQueryString="false"><con:settings><con:setting id="com.eviware.soapui.impl.wsdl.WsdlRequest@request-headers">&lt;xml-fragment/></con:setting></con:settings><con:endpoint>http://localhost:18083</con:endpoint><con:request>{
+    "jsonrpc": "2.0",
+    "id": "0",
+    "method": "create_address",
+    "params": {
+        "account_index": 0,
+        "label": "new-sub-1"
+    }
+}</con:request><con:credentials><con:authType>No Authorization</con:authType></con:credentials><con:jmsConfig JMSDeliveryMode="PERSISTENT"/><con:jmsPropertyConfig/><con:parameters/></con:request></con:method><con:method name="Create Account" id="939418f4-ef09-4373-8d17-265226d15ecd" method="POST"><con:settings/><con:parameters/><con:representation type="REQUEST"><con:mediaType>application/json</con:mediaType><con:params/></con:representation><con:representation type="RESPONSE"><con:mediaType>text/plain</con:mediaType><con:status>200</con:status><con:params/><con:element>data</con:element></con:representation><con:representation type="RESPONSE"><con:mediaType>application/json</con:mediaType><con:status>200</con:status><con:params/><con:element xmlns:json="http://localhost/json_rpc">json:Response</con:element></con:representation><con:request name="Request 1" id="52878d63-97f6-4a83-9e79-2cde7c927586" mediaType="application/json" postQueryString="false"><con:settings><con:setting id="com.eviware.soapui.impl.wsdl.WsdlRequest@request-headers">&lt;xml-fragment/></con:setting></con:settings><con:endpoint>http://localhost:18083</con:endpoint><con:request>{
+    "jsonrpc": "2.0",
+    "id": "0",
+    "method": "create_account",
+    "params": {
+        "label": "Account"
+    }
+}</con:request><con:credentials><con:authType>No Authorization</con:authType></con:credentials><con:jmsConfig JMSDeliveryMode="PERSISTENT"/><con:jmsPropertyConfig/><con:parameters/></con:request></con:method><con:method name="Tag Accounts" id="5c432077-7f2c-4dc5-9a90-4c61c5fcfea0" method="POST"><con:settings/><con:parameters/><con:representation type="REQUEST"><con:mediaType>application/json</con:mediaType><con:params/></con:representation><con:representation type="RESPONSE"><con:mediaType>application/json</con:mediaType><con:status>200</con:status><con:params/><con:element xmlns:json="http://localhost/json_rpc">json:Response</con:element></con:representation><con:request name="Request 1" id="f09a7040-5e13-4534-af18-602a20d6a916" mediaType="application/json" postQueryString="false"><con:settings><con:setting id="com.eviware.soapui.impl.wsdl.WsdlRequest@request-headers">&lt;xml-fragment/></con:setting></con:settings><con:endpoint>http://localhost:18083</con:endpoint><con:request>{
+    "jsonrpc": "2.0",
+    "id": "0",
+    "method": "tag_accounts",
+    "params": {
+        "tag":"${#TestSuite#acount_index}",
+        "accounts":[${#TestSuite#acount_index}]
+    }
+}</con:request><con:credentials><con:authType>No Authorization</con:authType></con:credentials><con:jmsConfig JMSDeliveryMode="PERSISTENT"/><con:jmsPropertyConfig/><con:parameters/></con:request></con:method><con:method name="Label Accounts" id="686494b7-b94c-43a3-b9eb-1cdb16b2e19b" method="POST"><con:settings/><con:parameters/><con:request name="Request 1" id="0c0b7fc0-9803-4f50-b2cb-5b49a646df28" mediaType="application/json" postQueryString="false"><con:settings><con:setting id="com.eviware.soapui.impl.wsdl.WsdlRequest@request-headers">&lt;xml-fragment/></con:setting></con:settings><con:endpoint>http://localhost:18083</con:endpoint><con:request>{
+    "jsonrpc": "2.0",
+    "id": "0",
+    "method": "label_account",
+    "params": {
+    	"account_index":${#TestSuite#acount_index},
+    	"label":"Account #${#TestSuite#acount_index}"
+    }
+}</con:request><con:credentials><con:authType>No Authorization</con:authType></con:credentials><con:jmsConfig JMSDeliveryMode="PERSISTENT"/><con:jmsPropertyConfig/><con:parameters/></con:request></con:method></con:resource></con:interface><con:testSuite id="180b24e5-587a-4318-a816-fe32bff3c6fe" name="Setup Wallet"><con:settings/><con:runType>SEQUENTIAL</con:runType><con:testCase id="b54d277e-731f-4e55-b402-71417de84e3f" failOnError="true" failTestCaseOnErrors="true" keepSession="false" maxResults="0" name="TestCase 1" searchProperties="true"><con:settings/><con:testStep type="restrequest" name="Create Wallet" id="51372903-a645-4ebc-be2d-5fe3c06a47d3"><con:settings/><con:config service="http://localhost:18083" resourcePath="/json_rpc" methodName="Create Wallet" xsi:type="con:RestRequestStep" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><con:restRequest name="Create Wallet" id="c8c95be2-a06a-45c0-aa46-0a3513c77f62" mediaType="application/json" postQueryString="false"><con:settings><con:setting id="com.eviware.soapui.impl.wsdl.WsdlRequest@request-headers">&lt;xml-fragment/></con:setting></con:settings><con:endpoint>http://localhost:18083</con:endpoint><con:request>{
+    "jsonrpc": "2.0",
+    "id": "0",
+    "method": "create_wallet",
+    "params": {
+        "filename": "${#Project#wallet}",
+        "password": "${#Project#password}",
+        "language": "English"
+    }
+}
+
+</con:request><con:originalUri>http://localhost/</con:originalUri><con:credentials><con:authType>No Authorization</con:authType></con:credentials><con:jmsConfig JMSDeliveryMode="PERSISTENT"/><con:jmsPropertyConfig/><con:parameters/></con:restRequest></con:config></con:testStep><con:testStep type="restrequest" name="Open Wallet" id="5a21be15-2d50-4235-9c82-e779e25dd936"><con:settings/><con:config service="http://localhost:18083" resourcePath="/json_rpc" methodName="Open Wallet" xsi:type="con:RestRequestStep" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><con:restRequest name="Open Wallet" id="932c0921-39a0-4bc2-aeba-1218980df577" mediaType="application/json" postQueryString="false"><con:settings><con:setting id="com.eviware.soapui.impl.wsdl.WsdlRequest@request-headers">&lt;xml-fragment/></con:setting></con:settings><con:endpoint>http://localhost:18083</con:endpoint><con:request>{
+    "jsonrpc": "2.0",
+    "id": "0",
+    "method": "open_wallet",
+    "params": {
+        "filename": "${#Project#wallet}",
+        "password": "${#Project#password}"
+    }
+}</con:request><con:originalUri>http://localhost/json_rpc</con:originalUri><con:credentials><con:authType>No Authorization</con:authType></con:credentials><con:jmsConfig JMSDeliveryMode="PERSISTENT"/><con:jmsPropertyConfig/><con:parameters/></con:restRequest></con:config></con:testStep><con:properties/></con:testCase><con:properties/></con:testSuite><con:testSuite id="bab1d804-ccb1-402e-92c2-040086adfd0f" name="Stress Testing"><con:settings/><con:runType>SEQUENTIAL</con:runType><con:testCase id="c5be0709-0c23-4e0a-8846-6136f194bb7b" failOnError="true" failTestCaseOnErrors="true" keepSession="false" maxResults="0" name="Create Account" searchProperties="true"><con:settings/><con:testStep type="restrequest" name="Create Account" id="813db64f-55cb-41f0-9431-93de672aad81"><con:settings/><con:config service="http://localhost:18083" resourcePath="/json_rpc" methodName="Create Account" xsi:type="con:RestRequestStep" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><con:restRequest name="Create Account" id="52878d63-97f6-4a83-9e79-2cde7c927586" mediaType="application/json" postQueryString="false"><con:settings><con:setting id="com.eviware.soapui.impl.wsdl.WsdlRequest@request-headers">&lt;xml-fragment/></con:setting></con:settings><con:endpoint>http://localhost:18083</con:endpoint><con:request>{
+    "jsonrpc": "2.0",
+    "id": "0",
+    "method": "create_account",
+    "params": {
+        "label": "Account ${#Project#wallet_acc_count}"  
+    }
+}</con:request><con:originalUri>http://localhost/json_rpc</con:originalUri><con:credentials><con:authType>No Authorization</con:authType></con:credentials><con:jmsConfig JMSDeliveryMode="PERSISTENT"/><con:jmsPropertyConfig/><con:parameters/></con:restRequest></con:config></con:testStep><con:loadTest id="052804d5-652d-452c-9e6a-aff6a27f09be" name="LoadTest 1"><con:settings><con:setting id="HttpSettings@close-connections">false</con:setting></con:settings><con:threadCount>30</con:threadCount><con:startDelay>0</con:startDelay><con:sampleInterval>250</con:sampleInterval><con:calculateTPSOnTimePassed>true</con:calculateTPSOnTimePassed><con:resetStatisticsOnThreadCountChange>true</con:resetStatisticsOnThreadCountChange><con:historyLimit>-1</con:historyLimit><con:testLimit>12000</con:testLimit><con:limitType>TIME</con:limitType><con:loadStrategy><con:type>Simple</con:type><con:config><testDelay>100</testDelay><randomFactor>0.0</randomFactor></con:config></con:loadStrategy><con:maxAssertionErrors>100</con:maxAssertionErrors><con:cancelExcessiveThreads>true</con:cancelExcessiveThreads><con:strategyInterval>500</con:strategyInterval></con:loadTest><con:properties/></con:testCase><con:testCase id="4f735555-4707-4e1f-9341-8696949fbdd7" failOnError="true" failTestCaseOnErrors="true" keepSession="false" maxResults="0" name="Set Accounts Tag" searchProperties="true" disabled="true"><con:settings/><con:testStep type="groovy" name="Init account_index" id="e85b5aa8-b447-471d-96d3-22a6c0d34a28"><con:settings/><con:config><script>def index_int = 0
+//testRunner.testCase.testSuite.project.setPropertyValue("account_index", index_int.toString())
+</script></con:config></con:testStep><con:testStep type="restrequest" name="Set Account Tag" id="bbf763ac-5543-4c33-a395-08ead2381f6f"><con:settings/><con:config service="http://localhost:18083" resourcePath="/json_rpc" methodName="Tag Accounts" xsi:type="con:RestRequestStep" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><con:restRequest name="Set Account Tag" id="f09a7040-5e13-4534-af18-602a20d6a916" mediaType="application/json" postQueryString="false"><con:settings><con:setting id="com.eviware.soapui.impl.wsdl.WsdlRequest@request-headers">&lt;xml-fragment/></con:setting></con:settings><con:endpoint>http://localhost:18083</con:endpoint><con:request>{
+    "jsonrpc": "2.0",
+    "id": "0",
+    "method": "tag_accounts",
+    "params": {
+        "tag":"${#Project#account_index}",
+        "accounts":[${#Project#account_index}]
+    }
+}</con:request><con:originalUri>http://localhost/json_rpc</con:originalUri><con:credentials><con:authType>No Authorization</con:authType></con:credentials><con:jmsConfig JMSDeliveryMode="PERSISTENT"/><con:jmsPropertyConfig/><con:parameters/></con:restRequest></con:config></con:testStep><con:testStep type="groovy" name="Increase &amp; Repeat" id="8167b2d6-660f-4178-a5a3-cc9915855513"><con:settings/><con:config><script>def index = testRunner.testCase.testSuite.project.getPropertyValue("account_index")
+
+def indexInt = index.toInteger() + 1
+
+testRunner.testCase.testSuite.project.setPropertyValue("account_index", indexInt.toString())
+
+if(indexInt &lt; 100415) //100415
+   testRunner.gotoStepByName("Set Account Tag")
+</script></con:config></con:testStep><con:properties/></con:testCase><con:properties/></con:testSuite><con:properties><con:property><con:name>wallet</con:name><con:value>wallet_subaddr_performance_test</con:value></con:property><con:property><con:name>password</con:name><con:value>1234</con:value></con:property><con:property><con:name>account_index</con:name><con:value>38666</con:value></con:property></con:properties><con:wssContainer/><con:oAuth2ProfileContainer/><con:oAuth1ProfileContainer/><con:sensitiveInformation/></con:soapui-project>
