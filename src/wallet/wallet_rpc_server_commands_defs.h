@@ -230,9 +230,11 @@ namespace wallet_rpc
   {
     struct request_t
     {
+      std::string account_index;
       std::string tag;      // all accounts if empty, otherwise those accounts with this tag
 
       BEGIN_KV_SERIALIZE_MAP()
+        KV_SERIALIZE(account_index)
         KV_SERIALIZE(tag)
       END_KV_SERIALIZE_MAP()
     };

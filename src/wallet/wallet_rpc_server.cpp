@@ -583,6 +583,24 @@ namespace tools
       res.total_balance = 0;
       res.total_unlocked_balance = 0;
       cryptonote::subaddress_index subaddr_index = {0,0};
+
+      // Filter by Account Index for performance
+      if(!req.account_index.empty()) {
+        subaddr_index.major = static_cast<uint32_t>(std::stoul(req.account_index));
+
+        wallet_rpc::COMMAND_RPC_GET_ACCOUNTS::subaddress_account_info info;
+        info.account_index = subaddr_index.major;
+        info.base_address = m_wallet->get_subaddress_as_str(subaddr_index);
+        info.balance = m_wallet->balance(subaddr_index.major);
+        info.unlocked_balance = m_wallet->unlocked_balance(subaddr_index.major);
+        info.label = m_wallet->get_subaddress_label(subaddr_index);
+        res.subaddress_accounts.push_back(info);
+        res.total_balance += info.balance;
+        res.total_unlocked_balance += info.unlocked_balance;
+
+        return true;
+      }
+
       const std::pair<std::map<std::string, std::string>, std::vector<std::string>> account_tags = m_wallet->get_account_tags();
       if (!req.tag.empty() && account_tags.first.count(req.tag) == 0)
       {
