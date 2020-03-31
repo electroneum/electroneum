@@ -778,6 +778,9 @@ private:
     void set_subaddress_label(const cryptonote::subaddress_index &index, const std::string &label);
     void set_subaddress_lookahead(size_t major, size_t minor);
     std::pair<size_t, size_t> get_subaddress_lookahead() const { return {m_subaddress_lookahead_major, m_subaddress_lookahead_minor}; }
+
+    void account_major_offset(uint32_t offset) {m_account_major_offset = offset;}
+    uint32_t account_major_offset() const {return m_account_major_offset;}
     /*!
      * \brief Tells if the wallet file is deprecated.
      */
@@ -1571,6 +1574,8 @@ private:
     std::unique_ptr<wallet_device_callback> m_device_callback;
     
     bool m_display_progress_indicator;
+
+    uint32_t m_account_major_offset;
   };
 }
 BOOST_CLASS_VERSION(tools::wallet2, 28)

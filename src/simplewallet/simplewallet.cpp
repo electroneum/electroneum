@@ -157,6 +157,8 @@ namespace
 
   const command_line::arg_descriptor< std::vector<std::string> > arg_command = {"command", ""};
 
+  const command_line::arg_descriptor<uint32_t> arg_account_major_offset = {"account-major-offset", sw::tr("Account Index Offset"), 0};
+
   const char* USAGE_START_MINING("start_mining [<number_of_threads>] [bg_mining] [ignore_battery]");
   const char* USAGE_SET_DAEMON("set_daemon <host>[:<port>] [trusted|untrusted]");
   const char* USAGE_SHOW_BALANCE("balance [detail]");
@@ -2557,6 +2559,23 @@ bool simple_wallet::set_refresh_from_block_height(const std::vector<std::string>
   return true;
 }
 
+bool simple_wallet::set_account_major_offset(const std::vector<std::string> &args/* = std::vector<std::string>()*/)
+{
+  const auto pwd_container = get_and_verify_password();
+  if (pwd_container)
+  {
+    uint64_t offset;
+    if (!epee::string_tools::get_xtype_from_string(offset, args[1]))
+    {
+      fail_msg_writer() << tr("Invalid offset");
+      return true;
+    }
+    m_wallet->account_major_offset(offset);
+    m_wallet->rewrite(m_wallet_file, pwd_container->password());
+  }
+  return true;
+}
+
 bool simple_wallet::set_auto_low_priority(const std::vector<std::string> &args/* = std::vector<std::string>()*/)
 {
   const auto pwd_container = get_and_verify_password();
@@ -3263,6 +3282,7 @@ bool simple_wallet::set_variable(const std::vector<std::string> &args)
     success_msg_writer() << "track-uses = " << m_wallet->track_uses();
     //success_msg_writer() << "setup-background-mining = " << setup_background_mining_string + tr(" (set this to support the network and to get a chance to receive new Electroneum)");
     success_msg_writer() << "device_name = " << m_wallet->device_name();
+    success_msg_writer() << "account-major-offset = " << m_wallet->account_major_offset();
     return true;
   }
   else
@@ -3321,6 +3341,7 @@ bool simple_wallet::set_variable(const std::vector<std::string> &args)
     CHECK_SIMPLE_VARIABLE("track-uses", set_track_uses, tr("0 or 1"));
     CHECK_SIMPLE_VARIABLE("setup-background-mining", set_setup_background_mining, tr("1/yes or 0/no"));
     CHECK_SIMPLE_VARIABLE("device-name", set_device_name, tr("<device_name[:device_spec]>"));
+    CHECK_SIMPLE_VARIABLE("account-major-offset", set_account_major_offset, tr("offset"));
   }
   fail_msg_writer() << tr("set: unrecognized argument(s)");
   return true;
@@ -4150,6 +4171,7 @@ bool simple_wallet::handle_command_line(const boost::program_options::variables_
                                     !m_generate_from_device.empty() ||
                                     m_restore_deterministic_wallet ||
                                     m_restore_multisig_wallet;
+  m_account_major_offset           = command_line::get_arg(vm, arg_account_major_offset);
 
   if (!command_line::is_arg_defaulted(vm, arg_restore_date))
   {
@@ -4358,6 +4380,9 @@ boost::optional<epee::wipeable_string> simple_wallet::new_wallet(const boost::pr
 
   if (m_restore_height)
     m_wallet->set_refresh_from_block_height(m_restore_height);
+
+  if (m_account_major_offset)
+    m_wallet->account_major_offset(m_account_major_offset);
 
   bool create_address_file = command_line::get_arg(vm, arg_create_address_file);
 
@@ -9413,6 +9438,7 @@ int main(int argc, char* argv[])
   command_line::add_arg(desc_params, arg_subaddress_lookahead);
   command_line::add_arg(desc_params, arg_use_english_language_names);
   command_line::add_arg(desc_params, arg_long_payment_id_support);
+  command_line::add_arg(desc_params, arg_account_major_offset);
 
   po::positional_options_description positional_options;
   positional_options.add(arg_command.name, -1);
