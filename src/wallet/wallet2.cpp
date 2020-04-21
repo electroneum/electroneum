@@ -256,6 +256,8 @@ struct options {
   const command_line::arg_descriptor<bool> daemon_ssl_allow_chained = {"daemon-ssl-allow-chained", tools::wallet2::tr("Allow user (via --daemon-ssl-ca-certificates) chain certificates"), false};
   const command_line::arg_descriptor<bool> testnet = {"testnet", tools::wallet2::tr("For testnet. Daemon must also be launched with --testnet flag"), false};
   const command_line::arg_descriptor<bool> stagenet = {"stagenet", tools::wallet2::tr("For stagenet. Daemon must also be launched with --stagenet flag"), false};
+  const command_line::arg_descriptor<uint64_t> fallback_to_pow_checkpoint_height = {"fallback-to-pow-checkpoint-height", tools::wallet2::tr("Warning: This is to set the height for a custom checkpoint in the event of PoW fallback. Do not use in normal circumstances. See docs for details "), 0, false};
+  const command_line::arg_descriptor<std::string> fallback_to_pow_checkpoint_hash = {"fallback-to-pow-checkpoint-hash", tools::wallet2::tr("Warning: This is to set the hash for a custom checkpoint in the event of PoW fallback. Do not use in normal circumstances. See docs for details "), "", false};
   const command_line::arg_descriptor<std::string, false, true, 2> shared_ringdb_dir = {
     "shared-ringdb-dir", tools::wallet2::tr("Set shared ring database path"),
     get_default_ringdb_path(),
@@ -339,7 +341,9 @@ std::unique_ptr<tools::wallet2> make_basic(const boost::program_options::variabl
   auto daemon_ssl_allowed_fingerprints = command_line::get_arg(vm, opts.daemon_ssl_allowed_fingerprints);
   auto daemon_ssl_allow_any_cert = command_line::get_arg(vm, opts.daemon_ssl_allow_any_cert);
   auto daemon_ssl = command_line::get_arg(vm, opts.daemon_ssl);
-
+  auto fallback_to_pow_checkpoint_height = command_line::get_arg(vm, opts.fallback_to_pow_checkpoint_height);
+  auto fallback_to_pow_checkpoint_hash = command_line::get_arg(vm, opts.fallback_to_pow_checkpoint_hash);
+  
   // user specified CA file or fingeprints implies enabled SSL by default
   epee::net_utils::ssl_options_t ssl_options = epee::net_utils::ssl_support_t::e_ssl_support_enabled;
   if (command_line::get_arg(vm, opts.daemon_ssl_allow_any_cert))
@@ -468,6 +472,10 @@ std::unique_ptr<tools::wallet2> make_basic(const boost::program_options::variabl
 
   std::unique_ptr<tools::wallet2> wallet(new tools::wallet2(nettype, kdf_rounds, unattended));
   wallet->init(std::move(daemon_address), std::move(login), std::move(proxy), 0, *trusted_daemon, std::move(ssl_options), std::move(data_dir));
+  // Add the pow-fallback checkpoint if necessary
+  if(fallback_to_pow_checkpoint_hash != "" && fallback_to_pow_checkpoint_height != 0) {
+      wallet->add_checkpoint(fallback_to_pow_checkpoint_height, fallback_to_pow_checkpoint_hash);
+  }
   boost::filesystem::path ringdb_path = command_line::get_arg(vm, opts.shared_ringdb_dir);
   wallet->set_ring_database(ringdb_path.string());
   wallet->get_message_store().set_options(vm);
@@ -1204,6 +1212,8 @@ void wallet2::init_options(boost::program_options::options_description& desc_par
   command_line::add_arg(desc_params, opts.no_dns);
   command_line::add_arg(desc_params, opts.offline);
   command_line::add_arg(desc_params, opts.data_dir);
+  command_line::add_arg(desc_params, opts.fallback_to_pow_checkpoint_height);
+  command_line::add_arg(desc_params, opts.fallback_to_pow_checkpoint_hash);
 }
 
 std::pair<std::unique_ptr<wallet2>, tools::password_container> wallet2::make_from_json(const boost::program_options::variables_map& vm, bool unattended, const std::string& json_file, const std::function<boost::optional<tools::password_container>(const char *, bool)> &password_prompter)
@@ -13196,5 +13206,9 @@ uint64_t wallet2::get_bytes_sent() const
 uint64_t wallet2::get_bytes_received() const
 {
   return m_http_client.get_bytes_received();
+}
+
+void wallet2::add_checkpoint(uint64_t height, std::string hash){
+    m_checkpoints.add_checkpoint(height, hash);
 }
 }

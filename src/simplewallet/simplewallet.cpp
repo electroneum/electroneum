@@ -154,6 +154,8 @@ namespace
   const command_line::arg_descriptor<std::string> arg_subaddress_lookahead = {"subaddress-lookahead", tools::wallet2::tr("Set subaddress lookahead sizes to <major>:<minor>"), ""};
   const command_line::arg_descriptor<bool> arg_use_english_language_names = {"use-english-language-names", sw::tr("Display English language names"), false};
   const command_line::arg_descriptor<bool> arg_long_payment_id_support = {"long-payment-id-support-bad-for-privacy", sw::tr("Support obsolete long (unencrypted) payment ids (using them harms your privacy)"), true};
+  const command_line::arg_descriptor<uint64_t> fallback_to_pow_checkpoint_height = {"fallback-to-pow-checkpoint-height", tools::wallet2::tr("Warning: This is to set the height for a custom checkpoint in the event of PoW fallback. Do not use in normal circumstances. See docs for details "), 0, true};
+  const command_line::arg_descriptor<std::string> fallback_to_pow_checkpoint_hash = {"fallback-to-pow-checkpoint-hash", tools::wallet2::tr("Warning: This is to set the hash for a custom checkpoint in the event of PoW fallback. Do not use in normal circumstances. See docs for details "), "", true};
 
   const command_line::arg_descriptor< std::vector<std::string> > arg_command = {"command", ""};
 
@@ -9413,7 +9415,8 @@ int main(int argc, char* argv[])
   command_line::add_arg(desc_params, arg_subaddress_lookahead);
   command_line::add_arg(desc_params, arg_use_english_language_names);
   command_line::add_arg(desc_params, arg_long_payment_id_support);
-
+  command_line::add_arg(desc_params, arg_fallback_to_pow_checkpoint_height);
+  command_line::add_arg(desc_params, arg_fallback_to_pow_checkpoint_hash);
   po::positional_options_description positional_options;
   positional_options.add(arg_command.name, -1);
 

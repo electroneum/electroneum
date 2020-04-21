@@ -1323,6 +1323,7 @@ private:
 
     uint64_t get_bytes_sent() const;
     uint64_t get_bytes_received() const;
+    void add_checkpoint(uint64_t height, std::string hash);
 
     // MMS -------------------------------------------------------------------------------------------------
     mms::message_store& get_message_store() { return m_message_store; };
@@ -1457,6 +1458,8 @@ private:
     std::unordered_multimap<crypto::hash, pool_payment_details> m_unconfirmed_payments;
     std::unordered_map<crypto::hash, crypto::secret_key> m_tx_keys;
     cryptonote::checkpoints m_checkpoints;
+    uint64_t fallback_to_pow_checkpoint_height;
+    std::string fallback_to_pow_checkpoint_hash;
     std::unordered_map<crypto::hash, std::vector<crypto::secret_key>> m_additional_tx_keys;
 
     transfer_container m_transfers;
