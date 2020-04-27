@@ -42,6 +42,8 @@ add_library(ed25519-donna
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}")
 include_directories("${CMAKE_CURRENT_BINARY_DIR}")
 target_link_libraries(ed25519-donna
+  PUBLIC
+    ${OPENSSL_LIBRARIES}
   PRIVATE
     ${CMAKE_THREAD_LIBS_INIT}
     ${Backtrace_LIBRARIES})

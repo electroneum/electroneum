@@ -409,8 +409,14 @@ namespace hw {
           return true;
         }
 
-        bool device_default::get_transaction_prefix_hash(const cryptonote::transaction& tx, crypto::hash& tx_prefix_hash) {
-          cryptonote::get_transaction_prefix_hash(tx, tx_prefix_hash);
+        bool device_default::get_transaction_prefix_hash(const cryptonote::transaction_prefix& tx, crypto::hash& tx_prefix_hash) {
+
+          std::ostringstream s;
+          binary_archive<true> a(s);
+          ::serialization::serialize(a, const_cast<cryptonote::transaction_prefix&>(tx));
+
+          crypto::cn_fast_hash(s.str().data(), s.str().size(), tx_prefix_hash);
+
           return true;
         }
 

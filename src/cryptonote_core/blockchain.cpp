@@ -1290,7 +1290,7 @@ bool Blockchain::prevalidate_miner_transaction(const block& b, uint64_t height)
   }
   MDEBUG("Miner tx hash: " << get_transaction_hash(b.miner_tx));
   uint8_t hf_version = get_current_hard_fork_version();
-  CHECK_AND_ASSERT_MES(b.miner_tx.unlock_time == height + (hf_version > 7 ? ETN_MINED_MONEY_UNLOCK_WINDOW_V8 : CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW), false, "coinbase transaction transaction has the wrong unlock time=" << b.miner_tx.unlock_time << ", expected " << height + hf_version > 7 ? ETN_MINED_MONEY_UNLOCK_WINDOW_V8 : CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW);
+  CHECK_AND_ASSERT_MES(b.miner_tx.unlock_time == height + (hf_version > 7 ? ETN_MINED_MONEY_UNLOCK_WINDOW_V8 : CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW), false, "coinbase transaction transaction has the wrong unlock time=" << b.miner_tx.unlock_time << ", expected " << height + (hf_version > 7 ? ETN_MINED_MONEY_UNLOCK_WINDOW_V8 : CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW));
 
   //check outs overflow
   //NOTE: not entirely sure this is necessary, given that this function is
