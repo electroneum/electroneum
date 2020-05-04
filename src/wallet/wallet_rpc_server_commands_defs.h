@@ -264,11 +264,13 @@ namespace wallet_rpc
       uint64_t total_balance;
       uint64_t total_unlocked_balance;
       std::vector<subaddress_account_info> subaddress_accounts;
+      uint64_t account_major_offset;
 
       BEGIN_KV_SERIALIZE_MAP()
         KV_SERIALIZE(total_balance)
         KV_SERIALIZE(total_unlocked_balance)
         KV_SERIALIZE(subaddress_accounts)
+        KV_SERIALIZE(account_major_offset)
       END_KV_SERIALIZE_MAP()
     };
     typedef epee::misc_utils::struct_init<response_t> response;

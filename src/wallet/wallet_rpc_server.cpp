@@ -584,6 +584,8 @@ namespace tools
       res.total_unlocked_balance = 0;
       cryptonote::subaddress_index subaddr_index = {0,0};
 
+      uint64_t acc_major_offset = m_wallet->account_major_offset();
+
       // Filter by Account Index for performance
       if(!req.account_index.empty()) {
         subaddr_index.major = static_cast<uint32_t>(std::stoul(req.account_index));
@@ -597,6 +599,7 @@ namespace tools
         res.subaddress_accounts.push_back(info);
         res.total_balance += info.balance;
         res.total_unlocked_balance += info.unlocked_balance;
+        res.account_major_offset = acc_major_offset;
 
         return true;
       }
@@ -622,6 +625,7 @@ namespace tools
         res.subaddress_accounts.push_back(info);
         res.total_balance += info.balance;
         res.total_unlocked_balance += info.unlocked_balance;
+        res.account_major_offset = acc_major_offset;
       }
     }
     catch (const std::exception& e)
