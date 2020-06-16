@@ -20,7 +20,9 @@ jobs:
     - uses: actions/checkout@v1
       with:
         submodules: recursive
-    - uses: numworks/setup-msys2@v1
+    - uses: eine/setup-msys2@v0
+      with:
+        update: true
     - name: update pacman
       run: msys2do pacman -Syu --noconfirm
     - name: install electroneum dependencies
