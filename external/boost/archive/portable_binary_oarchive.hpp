@@ -171,7 +171,7 @@ protected:
 
     void init(unsigned int flags);
 public:
-    portable_binary_oarchive(std::ostream & os, unsigned flags = 0) :
+    portable_binary_oarchive(std::ostream & os, unsigned flags = endian_little) :
         primitive_base_t(
             * os.rdbuf(),
             0 != (flags & boost::archive::no_codecvt)
@@ -221,7 +221,7 @@ public:
 //  See http://www.boost.org for updates, documentation, and revision history.
 
 #include <ostream>
-#include <boost/detail/endian.hpp>
+#include <boost/predef/other/endian.h>
 
 namespace boost { namespace archive {
 
@@ -258,14 +258,14 @@ portable_binary_oarchive::save_impl(
     else
         ll = l;
     char * cptr = reinterpret_cast<char *>(& ll);
-    #ifdef BOOST_BIG_ENDIAN
-        cptr += (sizeof(boost::intmax_t) - size);
+#if BOOST_ENDIAN_BIG_BYTE
+          cptr += (sizeof(boost::intmax_t) - size);
         if(m_flags & endian_little)
             reverse_bytes(size, cptr);
-    #else
-        if(m_flags & endian_big)
-            reverse_bytes(size, cptr);
-    #endif
+#else
+    if(m_flags & endian_big)
+        reverse_bytes(size, cptr);
+#endif
     this->primitive_base_t::save_binary(cptr, size);
 }
 
