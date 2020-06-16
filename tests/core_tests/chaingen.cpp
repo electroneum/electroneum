@@ -105,7 +105,7 @@ void test_generator::add_block(const cryptonote::block& blk, size_t txs_weight, 
 {
   const size_t block_weight = txs_weight + get_transaction_weight(blk.miner_tx);
   uint64_t block_reward;
-  get_block_reward(misc_utils::median(block_weights), block_weight, already_generated_coins, block_reward, hf_version, get_block_height(get_block_hash(blk)));
+  get_block_reward(misc_utils::median(block_weights), block_weight, already_generated_coins, block_reward, hf_version, get_block_height(blk));
   m_blocks_info[get_block_hash(blk)] = block_info(blk.prev_id, already_generated_coins + block_reward, block_weight);
 }
 
