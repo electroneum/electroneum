@@ -58,7 +58,7 @@
 #define EMISSION_SPEED_FACTOR_PER_MINUTE                (20)
 #define EMISSION_SPEED_FACTOR_PER_MINUTE_V8             (22) // +=2 => Reduce emission by ~75%.
 
-#define FINAL_SUBSIDY_PER_MINUTE                        ((uint64_t)30) // 3 * pow(10, 1)
+#define FINAL_SUBSIDY_PER_MINUTE                        ((uint64_t) 25 * COIN) // 25etn tail emission after reaching max supply
 
 #define CRYPTONOTE_REWARD_BLOCKS_WINDOW                 100
 #define CRYPTONOTE_BLOCK_GRANTED_FULL_REWARD_ZONE_V2    60000 //size of block (bytes) after which reward for block calculated using block size

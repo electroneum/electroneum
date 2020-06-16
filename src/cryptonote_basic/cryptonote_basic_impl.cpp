@@ -86,7 +86,7 @@ namespace cryptonote {
     return CRYPTONOTE_MAX_TX_SIZE;
   }
   //-----------------------------------------------------------------------------------------------
-  bool get_block_reward(size_t median_weight, size_t current_block_weight, uint64_t already_generated_coins, uint64_t &reward, uint8_t version) {
+  bool get_block_reward(size_t median_weight, size_t current_block_weight, uint64_t already_generated_coins, uint64_t &reward, uint8_t version, uint64_t current_block_height, network_type nettype) {
     static_assert(DIFFICULTY_TARGET%60==0,"difficulty target must be a multiple of 60");
     static_assert(DIFFICULTY_TARGET_V6%60==0,"difficulty target V6 must be a multiple of 60");
 
@@ -99,6 +99,43 @@ namespace cryptonote {
     const uint64_t premine = 1260000000000U;
     if (median_weight > 0 && already_generated_coins < premine && !(current_block_weight >= 2 * full_reward_zone)) {
       reward = premine;
+      return true;
+    }
+
+    // After v9 the reward drops by ~75%, fixed reward curve that halves every 4 years (up to 2 halvings)
+    if(version >= 9) {
+
+      uint64_t V9_BLOCK_HEIGHT = 0;
+      switch(nettype) {
+        case MAINNET:
+          V9_BLOCK_HEIGHT = 862866;
+          break;
+        case TESTNET:
+          V9_BLOCK_HEIGHT = 690908;
+          break;
+        case STAGENET:
+          V9_BLOCK_HEIGHT = 39000;
+          break;
+      }
+
+      uint64_t base_reward = 400 * COIN;
+      uint8_t halvings = (current_block_height - V9_BLOCK_HEIGHT) / 1051200; // Every 4 years
+
+      // Tail emission after 2nd halving
+      if (halvings > 2) {
+
+        reward = FINAL_SUBSIDY_PER_MINUTE;
+
+        //Force 2x tail emission after 2nd halving if circulating supply < max supply
+        if(MONEY_SUPPLY - already_generated_coins >= 0) {
+          reward = reward * 2;
+        }
+
+        return true;
+      }
+
+      base_reward >>= halvings;
+      reward = base_reward;
       return true;
     }
 

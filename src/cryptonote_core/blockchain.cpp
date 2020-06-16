@@ -97,6 +97,7 @@ static const struct {
   { 6, 307500, 0, 1538815057 }, //1538815057
   { 7, 324500, 0, 1538985600 }, // Estimated July 5th, 8:30AM UTC
   { 8, 589169, 0, 1562547600 },
+  { 9, 862866, 0, 1595615809 }, // Estimated July 22th, 2020
 };
 static const uint64_t mainnet_hard_fork_version_1_till = 307499;
 
@@ -110,7 +111,8 @@ static const struct {
   { 1, 1, 0, 1341378000 },
   { 6, 190060, 0, 1523263057 },
   { 7, 215000, 0, 1530615600 },
-  { 8, 446674, 0, 1562889600 }
+  { 8, 446674, 0, 1562889600 },
+  { 9, 690908, 0, 1595615809 }
 };
 static const uint64_t testnet_hard_fork_version_1_till = 190059;
 
@@ -123,14 +125,15 @@ static const struct {
   // version 1 from the start of the blockchain
   { 1, 1, 0, 1341378000 },
 
-  // versions 2-7 in rapid succession from March 13th, 2018
+  // versions 2-9 in rapid succession from March 13th, 2018
   { 2, 32000, 0, 1521000000 },
   { 3, 33000, 0, 1521120000 },
   { 4, 34000, 0, 1521240000 },
   { 5, 35000, 0, 1521360000 },
   { 6, 36000, 0, 1521480000 },
   { 7, 37000, 0, 1521600000 },
-  { 8, 38000, 0, 1537821770 },
+  { 8, 38000, 0, 1521800000 },
+  { 9, 39000, 0, 1522000000 },
 };
 
 //------------------------------------------------------------------
@@ -1326,7 +1329,7 @@ bool Blockchain::validate_miner_transaction(const block& b, size_t cumulative_bl
 
   std::vector<uint64_t> last_blocks_weights;
   get_last_n_blocks_weights(last_blocks_weights, CRYPTONOTE_REWARD_BLOCKS_WINDOW);
-  if (!get_block_reward(epee::misc_utils::median(last_blocks_weights), cumulative_block_weight, already_generated_coins, base_reward, version))
+  if (!get_block_reward(epee::misc_utils::median(last_blocks_weights), cumulative_block_weight, already_generated_coins, base_reward, version, get_current_blockchain_height(), get_nettype()))
   {
     MERROR_VER("block weight " << cumulative_block_weight << " is bigger than allowed for this blockchain");
     return false;
@@ -1616,7 +1619,7 @@ bool Blockchain::create_block_template(block& b, const crypto::hash *from_block,
   //make blocks coin-base tx looks close to real coinbase tx to get truthful blob weight
   uint8_t hf_version = b.major_version;
   size_t max_outs = hf_version >= 4 ? 1 : 11;
-  bool r = construct_miner_tx(height, median_weight, already_generated_coins, txs_weight, fee, miner_address, b.miner_tx, ex_nonce, max_outs, hf_version);
+  bool r = construct_miner_tx(height, median_weight, already_generated_coins, txs_weight, fee, miner_address, b.miner_tx, ex_nonce, max_outs, hf_version, m_nettype);
   CHECK_AND_ASSERT_MES(r, false, "Failed to construct miner tx, first chance");
   size_t cumulative_weight = txs_weight + get_transaction_weight(b.miner_tx);
 #if defined(DEBUG_CREATE_BLOCK_TEMPLATE)
@@ -1625,7 +1628,7 @@ bool Blockchain::create_block_template(block& b, const crypto::hash *from_block,
 #endif
   for (size_t try_count = 0; try_count != 10; ++try_count)
   {
-    r = construct_miner_tx(height, median_weight, already_generated_coins, cumulative_weight, fee, miner_address, b.miner_tx, ex_nonce, max_outs, hf_version);
+    r = construct_miner_tx(height, median_weight, already_generated_coins, cumulative_weight, fee, miner_address, b.miner_tx, ex_nonce, max_outs, hf_version, m_nettype);
 
     CHECK_AND_ASSERT_MES(r, false, "Failed to construct miner tx, second chance");
     size_t coinbase_weight = get_transaction_weight(b.miner_tx);
@@ -3423,7 +3426,7 @@ bool Blockchain::check_fee(size_t tx_weight, uint64_t fee) const
     median = m_current_block_cumul_weight_limit / 2;
     const uint64_t blockchain_height = m_db->height();
     already_generated_coins = blockchain_height ? m_db->get_block_already_generated_coins(blockchain_height - 1) : 0;
-    if (!get_block_reward(median, 1, already_generated_coins, base_reward, version))
+    if (!get_block_reward(median, 1, already_generated_coins, base_reward, version, blockchain_height, get_nettype()))
       return false;
   }
 
@@ -3493,7 +3496,7 @@ uint64_t Blockchain::get_dynamic_base_fee_estimate(uint64_t grace_blocks) const
 
   uint64_t already_generated_coins = db_height ? m_db->get_block_already_generated_coins(db_height - 1) : 0;
   uint64_t base_reward;
-  if (!get_block_reward(median, 1, already_generated_coins, base_reward, version))
+  if (!get_block_reward(median, 1, already_generated_coins, base_reward, version, get_current_blockchain_height(), get_nettype()))
   {
     MERROR("Failed to determine block reward, using placeholder " << print_money(BLOCK_REWARD_OVERESTIMATE) << " as a high bound");
     base_reward = BLOCK_REWARD_OVERESTIMATE;
