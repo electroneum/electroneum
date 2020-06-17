@@ -41,11 +41,13 @@ namespace electroneum {
                 std::string validation_public_key;
                 uint64_t valid_from_height;
                 uint64_t valid_to_height;
+                std::string name;
 
                 BEGIN_KV_SERIALIZE_MAP()
                 KV_SERIALIZE(validation_public_key)
                 KV_SERIALIZE(valid_from_height)
                 KV_SERIALIZE(valid_to_height)
+                KV_SERIALIZE(name)
                 END_KV_SERIALIZE_MAP()
             };
 

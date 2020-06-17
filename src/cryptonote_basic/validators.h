@@ -74,10 +74,11 @@ namespace electroneum {
         string publicKey;
         uint64_t startHeight;
         uint64_t endHeight;
+        string name;
     public:
 
         Validator();
-        Validator(const string &publicKey, uint64_t startHeight, uint64_t endHeight);
+        Validator(const string &publicKey, uint64_t startHeight, uint64_t endHeight, string name = "");
 
         inline const string getPublicKey() {
           return this->publicKey;
@@ -98,6 +99,14 @@ namespace electroneum {
         inline bool isWithinRange(uint64_t height) {
           return height >= this->startHeight && (height <= this->endHeight || this->endHeight == 0);
         }
+
+        inline void setName(string name) {
+          this->name = name;
+        }
+
+        inline string getName() {
+          return this->name;
+        }
     };
 
     class Validators {
@@ -115,16 +124,15 @@ namespace electroneum {
         time_t last_updated;
         uint32_t timeout = 60*60*12; //12 hours
         uint32_t timeout_grace_period = this->timeout * 0.1; //10% of timeout
-        bool isInitial = true;
         once_a_time_seconds<60, true> m_load_validators_interval;
         cryptonote::BlockchainDB &m_db;
         bool testnet = false;
 
         cryptonote::i_cryptonote_protocol* m_p2p;
 
-        void add(const string &key, uint64_t startHeight, uint64_t endHeight);
-        void addOrUpdate(const string &key, uint64_t startHeight, uint64_t endHeight);
-        void update(const string &key, uint64_t endHeight);
+        void add(const string &key, uint64_t startHeight, uint64_t endHeight, string name = "");
+        void addOrUpdate(const string &key, uint64_t startHeight, uint64_t endHeight, string name = "");
+        void update(const string &key, uint64_t endHeight, string name = "");
         std::unique_ptr<Validator> find(const string &key);
         bool exists(const string &key);
         list_update_outcome validate_and_update(v_list_struct res, bool saveToDB, bool isEmergencyUpdate = false);
@@ -165,14 +173,14 @@ namespace electroneum {
             list_update_outcome isJsonValid = validate_and_update(res, true);
 
             if(isJsonValid == list_update_outcome::Success || isJsonValid == list_update_outcome::Same_List) {
-              MGINFO_MAGENTA("Validators list successfully refreshed from JSON endpoint! Timeout = 12 hours");
+              MGINFO("Validators list loaded from JSON endpoint! Refresh in 12 hours");
               return true;
             }
 
             //If the list was old, invalid, or had an invalid public key, try getting list of validators from peers
               if(m_p2p->request_validators_list_to_all() && this->status == ValidatorsState::Valid) {
                 this->timeout = 60*60*1;
-                MGINFO_MAGENTA("Validators list successfully refreshed from peers! Timeout = 1 hour");
+                MGINFO("Validators list loaded from peers! Refresh in 1 hour");
                 return true;
               }
 
@@ -189,7 +197,7 @@ namespace electroneum {
                 this->timeout = 60*60*1;
                 list_update_outcome isDBListValid = setValidatorsList(v, true);
                 if(isDBListValid == electroneum::basic::list_update_outcome::Success || isDBListValid == list_update_outcome::Same_List) {
-                  MGINFO_MAGENTA("Validators list successfully refreshed from database! Timeout = 1 hour");
+                  MGINFO("Validators list loaded from database! Refresh in 1 hour");
                   return true;
                 }
               }

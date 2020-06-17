@@ -34,13 +34,14 @@
 
 namespace electroneum {
     namespace basic {
-        Validator::Validator(const std::string &publicKey, uint64_t startHeight, uint64_t endHeight)
-                : publicKey(publicKey), startHeight(startHeight), endHeight(endHeight) {}
+        Validator::Validator(const std::string &publicKey, uint64_t startHeight, uint64_t endHeight, string name)
+                : publicKey(publicKey), startHeight(startHeight), endHeight(endHeight), name(name) {}
 
         Validator::Validator() = default;
 
         list_update_outcome Validators::validate_and_update(electroneum::basic::v_list_struct res, bool saveToDB, bool isEmergencyUpdate) {
 
+          MGINFO("Loading Validator List...");
           LOG_PRINT_L2("Validator List Struct received: " << store_t_to_json(res));
 
           std::vector<std::string> testnet_vl_publicKeys = {"443ED0A8172A8A79E606771679F06BD5A9AAFC65F01C8BB94A1A01257393A96E",
@@ -83,7 +84,7 @@ namespace electroneum {
           LOG_PRINT_L2("BEFORE");
           int v_counter = 0;
           all_of(this->list.begin(), this->list.end(), [&v_counter](std::unique_ptr<Validator> &v) {
-              LOG_PRINT_L2("Validator " << v_counter << " :: PublicKey=" << v->getPublicKey() << ",\n FromHeight=" << v->getStartHeight() << ", ToHeight=" << v->getEndHeight());
+              LOG_PRINT_L2("Validator " << v_counter << " (" << v->getName() << ") :: PublicKey=" << v->getPublicKey() << ",\n FromHeight=" << v->getStartHeight() << ", ToHeight=" << v->getEndHeight());
               v_counter++;
               return true;
           });
@@ -115,14 +116,23 @@ namespace electroneum {
             else return list_update_outcome::Same_List;
           }
 
+          uint8_t anon_v_count = 0;
+          MGINFO_MAGENTA("Public Validators:");
           for (const auto &v : obj.validators) {
-            this->addOrUpdate(v.validation_public_key, v.valid_from_height, v.valid_to_height);
+            this->addOrUpdate(v.validation_public_key, v.valid_from_height, v.valid_to_height, v.name);
+
+            if(!v.name.empty()) {
+              MGINFO(v.name << " | Public Key: " << v.validation_public_key);
+            } else {
+              anon_v_count++;
+            }
           }
+          MGINFO_MAGENTA("Anon Validators: " << to_string(anon_v_count));
 
           LOG_PRINT_L2("AFTER");
           v_counter = 0;
           all_of(this->list.begin(), this->list.end(), [&v_counter](std::unique_ptr<Validator> &v) {
-            LOG_PRINT_L2("Validator " << v_counter << " :: PublicKey=" << v->getPublicKey() << ",\n FromHeight=" << v->getStartHeight() << ", ToHeight=" << v->getEndHeight());
+            LOG_PRINT_L2("Validator " << v_counter << " (" << v->getName() << ") :: PublicKey=" << v->getPublicKey() << ",\n FromHeight=" << v->getStartHeight() << ", ToHeight=" << v->getEndHeight());
             v_counter++;
             return true;
           });
@@ -132,20 +142,6 @@ namespace electroneum {
           this->last_updated = time(nullptr);
           this->current_list_timestamp = obj.list_timestamp;
           this->status = ValidatorsState::Valid;
-
-          if(this->isInitial) {
-            MGINFO_MAGENTA(ENDL << "**********************************************************************" << ENDL
-                                << "List of validator nodes was updated successfully." << ENDL
-                                << ENDL
-                                << "The daemon will start receiving/sending blocks accordingly." << ENDL
-                                << ENDL
-                                << "From Electroneum V8, only Validators have the right to mine blocks but every node still" << ENDL
-                                << "contributes to the network by verifying mined blocks according to latest consensus rules." << ENDL
-                                << ENDL
-                                << "This list will be refreshed in " << (this->timeout/(60*60)) << " hours." << ENDL
-                                << "**********************************************************************" << ENDL);
-            this->isInitial = false;
-          }
 
           if(saveToDB) {
             m_db.set_validator_list(this->serialized_v_list, this->last_updated + this->timeout);
@@ -160,13 +156,13 @@ namespace electroneum {
           return list_update_outcome::Success;
         }
 
-        void Validators::add(const string &key, uint64_t startHeight, uint64_t endHeight) {
-          if (!this->exists(key)) this->list.emplace_back(std::unique_ptr<Validator>(new Validator(key, startHeight, endHeight)));
+        void Validators::add(const string &key, uint64_t startHeight, uint64_t endHeight, string name) {
+          if (!this->exists(key)) this->list.emplace_back(std::unique_ptr<Validator>(new Validator(key, startHeight, endHeight, name)));
         }
 
-        void Validators::addOrUpdate(const string &key, uint64_t startHeight, uint64_t endHeight) {
-          this->exists(key) ? this->update(key, endHeight) : this->list.emplace_back(
-                  std::unique_ptr<Validator>(new Validator(key, startHeight, endHeight)));
+        void Validators::addOrUpdate(const string &key, uint64_t startHeight, uint64_t endHeight, string name) {
+          this->exists(key) ? this->update(key, endHeight, name) : this->list.emplace_back(
+                  std::unique_ptr<Validator>(new Validator(key, startHeight, endHeight, name)));
         }
 
         std::unique_ptr<Validator> Validators::find(const string &key) {
@@ -188,10 +184,11 @@ namespace electroneum {
           return found;
         }
 
-        void Validators::update(const string &key, uint64_t endHeight) {
-          find_if(this->list.begin(), this->list.end(), [&key, &endHeight](std::unique_ptr<Validator> &v) {
+        void Validators::update(const string &key, uint64_t endHeight, string name) {
+          find_if(this->list.begin(), this->list.end(), [&key, &endHeight, &name](std::unique_ptr<Validator> &v) {
               if (v->getPublicKey() == key) {
                 v->setEndHeight(endHeight);
+                v->setName(name);
                 return true;
               }
               return false;
