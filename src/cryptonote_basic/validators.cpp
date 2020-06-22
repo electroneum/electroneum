@@ -34,8 +34,8 @@
 
 namespace electroneum {
     namespace basic {
-        Validator::Validator(const std::string &publicKey, uint64_t startHeight, uint64_t endHeight, string name)
-                : publicKey(publicKey), startHeight(startHeight), endHeight(endHeight), name(name) {}
+        Validator::Validator(const std::string &publicKey, uint64_t startHeight, uint64_t endHeight, string name, string domain, string page_link)
+                : publicKey(publicKey), startHeight(startHeight), endHeight(endHeight), name(name), domain(domain), page_link(page_link) {}
 
         Validator::Validator() = default;
 
@@ -54,7 +54,7 @@ namespace electroneum {
 
           std::vector<std::string> vl_publicKeys = this->testnet ? testnet_vl_publicKeys : mainnet_vl_publicKeys;
 
-           //Check against our hardcoded public-keys to make sure it's a valid message
+          //Check against our hardcoded public-keys to make sure it's a valid message
           if (res.pubkeys.size() != vl_publicKeys.size()) {
             LOG_PRINT_L1("Validator list has too few public keys.");
             return list_update_outcome::Invalid_Etn_Pubkey;
@@ -119,7 +119,7 @@ namespace electroneum {
           uint8_t anon_v_count = 0;
           MGINFO_MAGENTA("Public Validators:");
           for (const auto &v : obj.validators) {
-            this->addOrUpdate(v.validation_public_key, v.valid_from_height, v.valid_to_height, v.name);
+            this->addOrUpdate(v.validation_public_key, v.valid_from_height, v.valid_to_height, v.name, v.domain, v.page_link);
 
             if(!v.name.empty()) {
               MGINFO(v.name << " | Public Key: " << v.validation_public_key);
@@ -156,13 +156,13 @@ namespace electroneum {
           return list_update_outcome::Success;
         }
 
-        void Validators::add(const string &key, uint64_t startHeight, uint64_t endHeight, string name) {
-          if (!this->exists(key)) this->list.emplace_back(std::unique_ptr<Validator>(new Validator(key, startHeight, endHeight, name)));
+        void Validators::add(const string &key, uint64_t startHeight, uint64_t endHeight, string name, string domain, string page_link) {
+          if (!this->exists(key)) this->list.emplace_back(std::unique_ptr<Validator>(new Validator(key, startHeight, endHeight, name, domain, page_link)));
         }
 
-        void Validators::addOrUpdate(const string &key, uint64_t startHeight, uint64_t endHeight, string name) {
-          this->exists(key) ? this->update(key, endHeight, name) : this->list.emplace_back(
-                  std::unique_ptr<Validator>(new Validator(key, startHeight, endHeight, name)));
+        void Validators::addOrUpdate(const string &key, uint64_t startHeight, uint64_t endHeight, string name, string domain, string page_link) {
+          this->exists(key) ? this->update(key, endHeight, name, domain, page_link) : this->list.emplace_back(
+                  std::unique_ptr<Validator>(new Validator(key, startHeight, endHeight, name, domain, page_link)));
         }
 
         std::unique_ptr<Validator> Validators::find(const string &key) {
@@ -184,11 +184,13 @@ namespace electroneum {
           return found;
         }
 
-        void Validators::update(const string &key, uint64_t endHeight, string name) {
-          find_if(this->list.begin(), this->list.end(), [&key, &endHeight, &name](std::unique_ptr<Validator> &v) {
+        void Validators::update(const string &key, uint64_t endHeight, string name, string domain, string page_link) {
+          find_if(this->list.begin(), this->list.end(), [&key, &endHeight, &name, &domain, &page_link](std::unique_ptr<Validator> &v) {
               if (v->getPublicKey() == key) {
                 v->setEndHeight(endHeight);
                 v->setName(name);
+                v->setDomain(domain);
+                v->setPageLink(page_link);
                 return true;
               }
               return false;

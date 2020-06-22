@@ -75,10 +75,12 @@ namespace electroneum {
         uint64_t startHeight;
         uint64_t endHeight;
         string name;
+        string domain;
+        string page_link;
     public:
 
         Validator();
-        Validator(const string &publicKey, uint64_t startHeight, uint64_t endHeight, string name = "");
+        Validator(const string &publicKey, uint64_t startHeight, uint64_t endHeight, string name = "", string domain = "", string page_link = "");
 
         inline const string getPublicKey() {
           return this->publicKey;
@@ -107,6 +109,31 @@ namespace electroneum {
         inline string getName() {
           return this->name;
         }
+
+        inline void setDomain(string domain) {
+          this->domain = domain;
+        }
+
+        inline string getdomain() {
+          return this->domain;
+        }
+
+        inline void setPageLink(string page_link) {
+          this->page_link = page_link;
+        }
+
+        inline string getPageLink() {
+          return this->page_link;
+        }
+
+        inline Validator getValidatorInfo() {
+          Validator v;
+          v.name = this->name;
+          v.domain = this->domain;
+          v.page_link = this->page_link;
+
+          return v;
+        }
     };
 
     class Validators {
@@ -130,9 +157,9 @@ namespace electroneum {
 
         cryptonote::i_cryptonote_protocol* m_p2p;
 
-        void add(const string &key, uint64_t startHeight, uint64_t endHeight, string name = "");
-        void addOrUpdate(const string &key, uint64_t startHeight, uint64_t endHeight, string name = "");
-        void update(const string &key, uint64_t endHeight, string name = "");
+        void add(const string &key, uint64_t startHeight, uint64_t endHeight, string name = "", string domain ="", string page_link = "");
+        void addOrUpdate(const string &key, uint64_t startHeight, uint64_t endHeight, string name = "", string domain ="", string page_link = "");
+        void update(const string &key, uint64_t endHeight, string name = "", string domain ="", string page_link = "");
         std::unique_ptr<Validator> find(const string &key);
         bool exists(const string &key);
         list_update_outcome validate_and_update(v_list_struct res, bool saveToDB, bool isEmergencyUpdate = false);
@@ -156,6 +183,17 @@ namespace electroneum {
               return true;
           });
           return keys;
+        }
+
+        inline Validator getValidatorByKey(string key) {
+          Validator result;
+          all_of(this->list.begin(), this->list.end(), [&key, &result](std::unique_ptr<Validator> &v) {
+              if (v->getPublicKey() == key) {
+                result = v->getValidatorInfo();
+              }
+              return true;
+          });
+          return result;
         }
 
         inline bool loadValidatorsList() {
