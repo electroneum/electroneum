@@ -5091,6 +5091,16 @@ void Blockchain::cache_block_template(const block &b, const cryptonote::account_
   m_btc_valid = true;
 }
 
+electroneum::basic::Validator Blockchain::get_validator_by_height(uint64_t height) {
+
+  block blk;
+  get_block_by_hash(get_block_id_by_height(height), blk);
+
+  std::string signatory = std::string(blk.signatory.begin(), blk.signatory.end());
+  return m_validators->getValidatorByKey(boost::algorithm::hex(signatory));
+
+}
+
 namespace cryptonote {
 template bool Blockchain::get_transactions(const std::vector<crypto::hash>&, std::vector<transaction>&, std::vector<crypto::hash>&) const;
 template bool Blockchain::get_transactions_blobs(const std::vector<crypto::hash>&, std::vector<cryptonote::blobdata>&, std::vector<crypto::hash>&, bool) const;

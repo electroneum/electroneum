@@ -1026,10 +1026,13 @@ namespace cryptonote
 
     void set_validators_list_instance(std::unique_ptr<electroneum::basic::Validators> &v) { m_validators = v.get(); }
 
+    electroneum::basic::Validator get_validator_by_height(uint64_t height);
+
     /**
      * @brief get blockchain nettype
      */
     network_type get_nettype() const { return m_nettype; };
+    
 
 #ifndef IN_UNIT_TESTS
   private:
