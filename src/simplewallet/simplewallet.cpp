@@ -8367,6 +8367,40 @@ bool simple_wallet::account(const std::vector<std::string> &args/* = std::vector
     LOCK_IDLE_SCOPE();
     print_accounts();
   }
+  else if(command == "generate" && local_args.size() == 1)
+  {
+    uint64_t count;
+    if (!epee::string_tools::get_xtype_from_string(count, local_args[0]))
+    {
+      fail_msg_writer() << tr("failed to parse count: ") << local_args[0];
+      return true;
+    }
+    if(count <= 0) {
+      fail_msg_writer() << tr("specify a count higher than 0");
+      return true;
+    }
+
+    try
+    {
+      uint64_t startAccountsCount = m_wallet->get_num_subaddress_accounts();
+      // create N accounts
+      for(uint64_t i = 0; i < count-1; i++) {
+        m_wallet->add_subaddress_account("(Untitled account " + std::to_string(startAccountsCount + i+1) + " )", false);
+
+        if(i % 1000 == 0) {
+          success_msg_writer() << "Generating Accounts... (" << startAccountsCount + i+1 << "/" << startAccountsCount+count << ")";
+        }
+      }
+      m_wallet->add_subaddress_account("(Untitled account " + std::to_string(startAccountsCount + count) + " )", true);
+      success_msg_writer() << "Generating Accounts... (" << startAccountsCount + count << "/" << startAccountsCount+count <<  ")";
+      m_current_subaddress_account = m_wallet->get_num_subaddress_accounts() - 1;
+    }
+    catch (const std::exception& e)
+    {
+      fail_msg_writer() << e.what();
+    }
+
+  }
   else if (command == "switch" && local_args.size() == 1)
   {
     // switch to the specified account

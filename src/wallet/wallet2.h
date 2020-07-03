@@ -769,11 +769,11 @@ private:
     std::string get_subaddress_as_str(const cryptonote::subaddress_index& index) const;
     std::string get_address_as_str() const { return get_subaddress_as_str({0, 0}); }
     std::string get_integrated_address_as_str(const crypto::hash8& payment_id) const;
-    void add_subaddress_account(const std::string& label);
+    void add_subaddress_account(const std::string& label, const bool update_account_tags = true);
     size_t get_num_subaddress_accounts() const { return m_subaddress_labels.size(); }
     size_t get_num_subaddresses(uint32_t index_major) const { return index_major < m_subaddress_labels.size() ? m_subaddress_labels[index_major].size() : 0; }
     void add_subaddress(uint32_t index_major, const std::string& label); // throws when index is out of bound
-    void expand_subaddresses(const cryptonote::subaddress_index& index);
+    void expand_subaddresses(const cryptonote::subaddress_index& index, const bool udpate_account_tags = true);
     std::string get_subaddress_label(const cryptonote::subaddress_index& index) const;
     void set_subaddress_label(const cryptonote::subaddress_index &index, const std::string &label);
     void set_subaddress_lookahead(size_t major, size_t minor);

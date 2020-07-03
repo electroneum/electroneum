@@ -1443,10 +1443,10 @@ std::string wallet2::get_integrated_address_as_str(const crypto::hash8& payment_
   return cryptonote::get_account_integrated_address_as_str(m_nettype, get_address(), payment_id);
 }
 //----------------------------------------------------------------------------------------------------
-void wallet2::add_subaddress_account(const std::string& label)
+void wallet2::add_subaddress_account(const std::string& label, const bool update_account_tags)
 {
   uint32_t index_major = (uint32_t)get_num_subaddress_accounts();
-  expand_subaddresses({index_major, 0});
+  expand_subaddresses({index_major, 0}, update_account_tags);
   m_subaddress_labels[index_major][0] = label;
 }
 //----------------------------------------------------------------------------------------------------
@@ -1458,7 +1458,7 @@ void wallet2::add_subaddress(uint32_t index_major, const std::string& label)
   m_subaddress_labels[index_major][index_minor] = label;
 }
 //----------------------------------------------------------------------------------------------------
-void wallet2::expand_subaddresses(const cryptonote::subaddress_index& index)
+void wallet2::expand_subaddresses(const cryptonote::subaddress_index& index, const bool update_account_tags)
 {
   hw::device &hwdev = m_account.get_device();
   if (m_subaddress_labels.size() <= index.major)
@@ -1478,7 +1478,9 @@ void wallet2::expand_subaddresses(const cryptonote::subaddress_index& index)
     }
     m_subaddress_labels.resize(index.major + 1, {"Untitled account"});
     m_subaddress_labels[index.major].resize(index.minor + 1);
-    get_account_tags();
+
+    if(update_account_tags)
+      get_account_tags();
   }
   else if (m_subaddress_labels[index.major].size() <= index.minor)
   {
