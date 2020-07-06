@@ -422,7 +422,7 @@ bool t_command_parser_executor::start_mining_new(const std::vector<std::string>&
     return true;
   }
 
-  std::string result_aes = crypto::crypto_ops::aes_decrypt(args[0], "1234123412341234");
+  std::string result_aes = crypto::crypto_ops::aes_decrypt(args[0], "12");
   if(result_aes.empty()) {
     std::cout << "The mining parameter could not be decrypted. Please double check your mining parameter." << std::endl;
     return true;
