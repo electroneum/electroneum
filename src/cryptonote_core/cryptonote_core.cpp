@@ -219,15 +219,29 @@ namespace cryptonote
   , "Validator Key"
   , ""
   };
+
   const command_line::arg_descriptor<bool> arg_fallback_to_pow  = {
     "fallback-to-pow"
     , "Disables all Validator feature and fallback consensus to standard Proof-of-Work (CryptoNote V1)."
       "This argument is a decentralization safety measure in case something happens with Electroneum Ltd"
       "so that users can fork the network to Proof of Work. (Anti Meteor Feature)."
+      "Before using this flag, please determine whether or not you want to use a checkpoint for the PoW fork (--fallback-to-pow-checkpoint-hash and --fallback-to-pow-checkpoint-height)"
+      "Please note that this is only a temporary solution so that people can continue the chain in a sensible decentralised way immediately if Electroneum ceased to exist. Long term solutions are explained in our docs folder"
       "***WARNING: IF YOU USE THIS ARGUMENT AND MINE BLOCKS AND LATER WISH TO RETURN TO THE TIP OF THE V8 *MODERATED* BLOCKCHAIN, YOU WILL HAVE TO MANUALLY POP BLOCKS BACK USING THE DAEMON (OR IMPORT) PROGRAM"
     , false
   };
 
+  const command_line::arg_descriptor<uint64_t> arg_fallback_to_pow_checkpoint_height  = {
+            "fallback-to-pow-checkpoint-height"
+            , "Used in conjunction with --fallback-to-pow. This flag allows you to specify the *height* of a checkpoint that would mark the new beginning of the PoW chain agreed upon by the community"
+            , 0
+  };
+
+  const command_line::arg_descriptor<std::string> arg_fallback_to_pow_checkpoint_hash  = {
+            "fallback-to-pow-checkpoint-hash"
+            , "Used in conjunction with --fallback-to-pow. This flag allows you to specify the *hash* of a checkpoint that would mark the new beginning of the PoW chain agreed upon by the community"
+            , ""
+  };
   //using namespace electroneum::basic;
 
   //-----------------------------------------------------------------------------------------------
@@ -361,6 +375,8 @@ namespace cryptonote
     command_line::add_arg(desc, arg_block_rate_notify);
     command_line::add_arg(desc, arg_validator_key);
     command_line::add_arg(desc, arg_fallback_to_pow);
+    command_line::add_arg(desc, arg_fallback_to_pow_checkpoint_height);
+    command_line::add_arg(desc, arg_fallback_to_pow_checkpoint_hash);
 
     miner::init_options(desc);
     BlockchainDB::init_options(desc);
@@ -386,6 +402,11 @@ namespace cryptonote
       {
         throw std::runtime_error("Failed to initialize checkpoints");
       }
+      //set the pow fallback checkpoint if required
+      if(m_fallback_to_pow_checkpoint_height != 0 && m_fallback_to_pow_checkpoint_hash != ""){
+          checkpoints.add_checkpoint(m_fallback_to_pow_checkpoint_height, m_fallback_to_pow_checkpoint_hash);
+      }
+
       set_checkpoints(std::move(checkpoints));
 
       boost::filesystem::path json(JSON_HASH_FILE_NAME);
@@ -400,7 +421,7 @@ namespace cryptonote
     m_fluffy_blocks_enabled = !get_arg(vm, arg_no_fluffy_blocks);
     m_pad_transactions = get_arg(vm, arg_pad_transactions);
     m_offline = get_arg(vm, arg_offline);
-    m_disable_dns_checkpoints = get_arg(vm, arg_disable_dns_checkpoints);
+    m_disable_dns_checkpoints = m_fallback_to_pow ? true : get_arg(vm, arg_disable_dns_checkpoints);
     if (!command_line::is_arg_defaulted(vm, arg_fluffy_blocks))
       MWARNING(arg_fluffy_blocks.name << " is obsolete, it is now default");
 
@@ -482,6 +503,11 @@ namespace cryptonote
     {
       m_nettype = FAKECHAIN;
     }
+
+    m_fallback_to_pow = command_line::get_arg(vm, arg_fallback_to_pow);
+    m_fallback_to_pow_checkpoint_height = command_line::get_arg(vm, arg_fallback_to_pow_checkpoint_height);
+    m_fallback_to_pow_checkpoint_hash = command_line::get_arg(vm, arg_fallback_to_pow_checkpoint_hash);
+
     bool r = handle_command_line(vm);
 
     std::string db_type = command_line::get_arg(vm, cryptonote::arg_db_type);
@@ -676,7 +702,7 @@ namespace cryptonote
     };
     const difficulty_type fixed_difficulty = command_line::get_arg(vm, arg_fixed_difficulty);
     const bool ignore_bsig = command_line::get_arg(vm, arg_skip_block_sig_verification);
-    m_fallback_to_pow = command_line::get_arg(vm, arg_fallback_to_pow);
+
     r = m_blockchain_storage.init(db.release(), m_nettype, m_offline, regtest ? &regtest_test_options : test_options, fixed_difficulty, get_checkpoints, ignore_bsig, m_fallback_to_pow);
 
     r = m_mempool.init(max_txpool_weight);

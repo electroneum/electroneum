@@ -156,13 +156,6 @@ namespace tools
       delete m_wallet;
       m_wallet = NULL;
     }
-
-    if(m_core && m_blockchain_storage) {
-      delete m_core;
-      delete m_blockchain_storage;
-      m_core = NULL;
-      m_blockchain_storage = NULL;
-    }
   }
   //------------------------------------------------------------------------------------------------------------------------------
   bool wallet_rpc_server::init(const boost::program_options::variables_map *vm)
@@ -175,8 +168,6 @@ namespace tools
 
     auto data_dir = command_line::get_arg(*m_vm, arg_data_dir);
     m_testnet = command_line::get_arg(*m_vm, arg_testnet);
-
-    load_database(data_dir);
 
     boost::optional<epee::net_utils::http::login> http_login{};
     std::string bind_port = command_line::get_arg(*m_vm, arg_rpc_bind_port);
@@ -319,32 +310,6 @@ namespace tools
     }
 
     //MINFO("Background mining enabled. The daemon will mine when idle and not on batttery.");
-  }
-  //------------------------------------------------------------------------------------------------------------------------------
-  void wallet_rpc_server::load_database(std::string blockchain_db_path) {
-    if(!blockchain_db_path.empty() && blockchain_db_path != "" && !is_connected_to_db) {
-      m_core = new electroneum::MicroCore();
-      m_physical_refresh = true;
-      if (electroneum::init_blockchain(blockchain_db_path, m_core, m_blockchain_storage, m_wallet->nettype())) {
-        is_connected_to_db = true;
-        return;
-
-      } else {
-        MERROR("Error accessing blockchain database file. Disabling physical refresh feature.");
-        m_physical_refresh = false;
-      }
-    }
-
-    // Make sure m_core and m_blockchain_storage pointers are clean if not connected to db
-    if(!is_connected_to_db) {
-      m_core = nullptr;
-      m_blockchain_storage = nullptr;
-    }
-  }
-  //------------------------------------------------------------------------------------------------------------------------------
-  void wallet_rpc_server::set_blockchain_storage(electroneum::MicroCore* core, cryptonote::Blockchain* blockchain_storage) {
-    m_core = core;
-    m_blockchain_storage = blockchain_storage;
   }
   //------------------------------------------------------------------------------------------------------------------------------
   bool wallet_rpc_server::not_open(epee::json_rpc::error& er)

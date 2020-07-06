@@ -61,7 +61,6 @@ namespace tools
     bool run();
     void stop();
     void set_wallet(wallet2 *cr);
-    void set_blockchain_storage(electroneum::MicroCore* core = nullptr, cryptonote::Blockchain* blockchain_storage = nullptr);
 
   private:
 
@@ -259,8 +258,6 @@ namespace tools
 
       void check_background_mining();
 
-      void load_database(std::string blockchain_db_path);
-
       wallet2 *m_wallet;
       std::string m_wallet_dir;
       tools::private_file rpc_login_file;
@@ -271,9 +268,5 @@ namespace tools
       boost::posix_time::ptime m_last_auto_refresh_time;
 
       bool m_testnet;
-      bool m_physical_refresh;
-      electroneum::MicroCore* m_core;
-      cryptonote::Blockchain* m_blockchain_storage;
-      bool is_connected_to_db = false;
   };
 }

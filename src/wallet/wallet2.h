@@ -41,7 +41,6 @@
 #include <boost/thread/lock_guard.hpp>
 #include <atomic>
 #include <random>
-#include <wallet/micro_core/MicroCore.h>
 
 #include "include_base_utils.h"
 #include "cryptonote_basic/account.h"
@@ -238,17 +237,17 @@ private:
     static void init_options(boost::program_options::options_description& desc_params);
 
     //! Uses stdin and stdout. Returns a wallet2 if no errors.
-    static std::pair<std::unique_ptr<wallet2>, password_container> make_from_json(const boost::program_options::variables_map& vm, bool unattended, const std::string& json_file, const std::function<boost::optional<password_container>(const char *, bool)> &password_prompter, electroneum::MicroCore* core = nullptr, cryptonote::Blockchain* blockchain_storage = nullptr);
+    static std::pair<std::unique_ptr<wallet2>, password_container> make_from_json(const boost::program_options::variables_map& vm, bool unattended, const std::string& json_file, const std::function<boost::optional<password_container>(const char *, bool)> &password_prompter);
 
     //! Uses stdin and stdout. Returns a wallet2 and password for `wallet_file` if no errors.
     static std::pair<std::unique_ptr<wallet2>, password_container>
-      make_from_file(const boost::program_options::variables_map& vm, bool unattended, const std::string& wallet_file, const std::function<boost::optional<password_container>(const char *, bool)> &password_prompter, electroneum::MicroCore* core = nullptr, cryptonote::Blockchain* blockchain_storage = nullptr);
+      make_from_file(const boost::program_options::variables_map& vm, bool unattended, const std::string& wallet_file, const std::function<boost::optional<password_container>(const char *, bool)> &password_prompter);
 
     //! Uses stdin and stdout. Returns a wallet2 and password for wallet with no file if no errors.
-    static std::pair<std::unique_ptr<wallet2>, password_container> make_new(const boost::program_options::variables_map& vm, bool unattended, const std::function<boost::optional<password_container>(const char *, bool)> &password_prompter, electroneum::MicroCore* core = nullptr, cryptonote::Blockchain* blockchain_storage = nullptr);
+    static std::pair<std::unique_ptr<wallet2>, password_container> make_new(const boost::program_options::variables_map& vm, bool unattended, const std::function<boost::optional<password_container>(const char *, bool)> &password_prompter);
 
     //! Just parses variables.
-    static std::unique_ptr<wallet2> make_dummy(const boost::program_options::variables_map& vm, bool unattended, const std::function<boost::optional<password_container>(const char *, bool)> &password_prompter, electroneum::MicroCore* core = nullptr, cryptonote::Blockchain* blockchain_storage = nullptr);
+    static std::unique_ptr<wallet2> make_dummy(const boost::program_options::variables_map& vm, bool unattended, const std::function<boost::optional<password_container>(const char *, bool)> &password_prompter);
 
     static bool verify_password(const std::string& keys_file_name, const epee::wipeable_string& password, bool no_spend_key, hw::device &hwdev, uint64_t kdf_rounds);
     static bool query_device(hw::device::device_type& device_type, const std::string& keys_file_name, const epee::wipeable_string& password, uint64_t kdf_rounds = 1);
@@ -1324,6 +1323,7 @@ private:
 
     uint64_t get_bytes_sent() const;
     uint64_t get_bytes_received() const;
+    void add_checkpoint(uint64_t height, std::string hash);
 
     // MMS -------------------------------------------------------------------------------------------------
     mms::message_store& get_message_store() { return m_message_store; };
@@ -1344,11 +1344,6 @@ private:
     void finish_rescan_bc_keep_key_images(uint64_t transfer_height, const crypto::hash &hash);
     void enable_dns(bool enable) { m_use_dns = enable; }
     void set_offline(bool offline = true);
-
-    void set_blockchain_storage(electroneum::MicroCore* core = nullptr, cryptonote::Blockchain* blockchain_storage = nullptr);
-
-    electroneum::MicroCore* get_core() const { return m_core; }
-    cryptonote::Blockchain* get_storage() const { return m_blockchain_storage; }
 
   private:
     /*!
@@ -1447,9 +1442,6 @@ private:
     std::string get_rpc_status(const std::string &s) const;
     void throw_on_rpc_response_error(const boost::optional<std::string> &status, const char *method) const;
 
-    bool get_blocks_from_db(const cryptonote::COMMAND_RPC_GET_BLOCKS_FAST::request &req, cryptonote::COMMAND_RPC_GET_BLOCKS_FAST::response &res);
-    bool get_hashes_from_db(const cryptonote::COMMAND_RPC_GET_HASHES_FAST::request &req, cryptonote::COMMAND_RPC_GET_HASHES_FAST::response &res);
-    void load_database(const std::string blockchain_db_path);
     cryptonote::blobdata get_pruned_tx_blob(const cryptonote::blobdata &blobdata);
 
 
@@ -1466,6 +1458,8 @@ private:
     std::unordered_multimap<crypto::hash, pool_payment_details> m_unconfirmed_payments;
     std::unordered_map<crypto::hash, crypto::secret_key> m_tx_keys;
     cryptonote::checkpoints m_checkpoints;
+    uint64_t fallback_to_pow_checkpoint_height;
+    std::string fallback_to_pow_checkpoint_hash;
     std::unordered_map<crypto::hash, std::vector<crypto::secret_key>> m_additional_tx_keys;
 
     transfer_container m_transfers;
@@ -1580,10 +1574,6 @@ private:
     std::unique_ptr<wallet_device_callback> m_device_callback;
     
     bool m_display_progress_indicator;
-    bool m_physical_refresh;
-    electroneum::MicroCore* m_core;
-    cryptonote::Blockchain* m_blockchain_storage;
-    bool is_connected_to_db = false;
   };
 }
 BOOST_CLASS_VERSION(tools::wallet2, 28)

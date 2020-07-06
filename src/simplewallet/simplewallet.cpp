@@ -34,6 +34,11 @@
  * 
  * \brief Source file that defines simple_wallet class.
  */
+
+// use boost bind placeholders for now
+#define BOOST_BIND_GLOBAL_PLACEHOLDERS 1
+#include <boost/bind.hpp>
+
 #include <thread>
 #include <iostream>
 #include <sstream>
@@ -154,6 +159,8 @@ namespace
   const command_line::arg_descriptor<std::string> arg_subaddress_lookahead = {"subaddress-lookahead", tools::wallet2::tr("Set subaddress lookahead sizes to <major>:<minor>"), ""};
   const command_line::arg_descriptor<bool> arg_use_english_language_names = {"use-english-language-names", sw::tr("Display English language names"), false};
   const command_line::arg_descriptor<bool> arg_long_payment_id_support = {"long-payment-id-support-bad-for-privacy", sw::tr("Support obsolete long (unencrypted) payment ids (using them harms your privacy)"), true};
+  const command_line::arg_descriptor<uint64_t> fallback_to_pow_checkpoint_height = {"fallback-to-pow-checkpoint-height", tools::wallet2::tr("Warning: This is to set the height for a custom checkpoint in the event of PoW fallback. Do not use in normal circumstances. See docs for details "), 0, true};
+  const command_line::arg_descriptor<std::string> fallback_to_pow_checkpoint_hash = {"fallback-to-pow-checkpoint-hash", tools::wallet2::tr("Warning: This is to set the hash for a custom checkpoint in the event of PoW fallback. Do not use in normal circumstances. See docs for details "), "", true};
 
   const command_line::arg_descriptor< std::vector<std::string> > arg_command = {"command", ""};
 
@@ -3955,6 +3962,7 @@ bool simple_wallet::init(const boost::program_options::variables_map& vm)
         m_wallet->set_refresh_from_block_height(m_wallet->estimate_blockchain_height());
         m_wallet->explicit_refresh_from_block_height(true);
         m_restore_height = m_wallet->get_refresh_from_block_height();
+        m_wallet->always_confirm_transfers(true);
       }
     }
     else
@@ -4245,7 +4253,7 @@ boost::optional<tools::password_container> simple_wallet::get_and_verify_passwor
 boost::optional<epee::wipeable_string> simple_wallet::new_wallet(const boost::program_options::variables_map& vm,
   const crypto::secret_key& recovery_key, bool recover, bool two_random, const std::string &old_language)
 {
-  auto rc = tools::wallet2::make_new(vm, false, password_prompter, nullptr, nullptr); //
+  auto rc = tools::wallet2::make_new(vm, false, password_prompter);
   m_wallet = std::move(rc.first);
   if (!m_wallet)
   {
@@ -6000,16 +6008,17 @@ bool simple_wallet::transfer_main(int transfer_type, const std::vector<std::stri
           prompt << tr("WARNING: this is a non default ring size, which may harm your privacy. Default is recommended.");
         }
         prompt << ENDL << tr("Is this okay?");
-        
-        std::string accepted = input_line(prompt.str(), true);
-        if (std::cin.eof())
-          return false;
-        if (!command_line::is_yes(accepted))
-        {
-          fail_msg_writer() << tr("transaction cancelled.");
 
-          return false;
-        }
+          std::string accepted = input_line(prompt.str(), true);
+          if (std::cin.eof())
+            return false;
+          if (!command_line::is_yes(accepted))
+          {
+            fail_msg_writer() << tr("transaction cancelled.");
+
+            return false;
+          }
+        
     }
 
     // actually commit the transactions
@@ -9411,7 +9420,8 @@ int main(int argc, char* argv[])
   command_line::add_arg(desc_params, arg_subaddress_lookahead);
   command_line::add_arg(desc_params, arg_use_english_language_names);
   command_line::add_arg(desc_params, arg_long_payment_id_support);
-
+  command_line::add_arg(desc_params, arg_fallback_to_pow_checkpoint_height);
+  command_line::add_arg(desc_params, arg_fallback_to_pow_checkpoint_hash);
   po::positional_options_description positional_options;
   positional_options.add(arg_command.name, -1);
 

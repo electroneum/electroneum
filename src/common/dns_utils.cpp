@@ -48,11 +48,11 @@ using namespace epee;
 
 static const char *DEFAULT_DNS_PUBLIC_ADDR[] =
 {
-  "194.150.168.168",    // CCC (Germany)
-  "81.3.27.54",         // Lightning Wire Labs (Germany)
-  "31.3.135.232",       // OpenNIC (Switzerland)
-  "80.67.169.40",       // FDN (France)
-  "209.58.179.186",     // Cyberghost (Singapore)
+    "194.150.168.168",    // CCC (Germany)
+    "80.67.169.40",       // FDN (France)
+    "89.233.43.71",       // http://censurfridns.dk (Denmark)
+    "109.69.8.51",        // punCAT (Spain)
+    "193.58.251.251"      // SkyDNS (Russia)
 };
 
 static boost::mutex instance_lock;
@@ -440,7 +440,7 @@ std::string address_from_txt_record(const std::string& s)
  *
  * gets the electroneum address from the TXT record of the DNS entry associated
  * with <url>.  If this lookup fails, or the TXT record does not contain an
- * XMR address in the correct format, returns an empty string.  <dnssec_valid>
+ * ETN address in the correct format, returns an empty string.  <dnssec_valid>
  * will be set true or false according to whether or not the DNS query passes
  * DNSSEC validation.
  *

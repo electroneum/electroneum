@@ -294,12 +294,12 @@ namespace rct {
     }
 
     //generates C =aG + bH from b, a is given..
-    void genC(key & C, const key & a, xmr_amount amount) {
+    void genC(key & C, const key & a, etn_amount amount) {
         addKeys2(C, a, d2h(amount), rct::H);
     }
 
     //generates a <secret , public> / Pedersen commitment to the amount
-    tuple<ctkey, ctkey> ctskpkGen(xmr_amount amount) {
+    tuple<ctkey, ctkey> ctskpkGen(etn_amount amount) {
         ctkey sk, pk;
         skpkGen(sk.dest, pk.dest);
         skpkGen(sk.mask, pk.mask);
@@ -319,7 +319,7 @@ namespace rct {
         return make_tuple(sk, pk);
     }
     
-    key zeroCommit(xmr_amount amount) {
+    key zeroCommit(etn_amount amount) {
         const zero_commitment *begin = zero_commitments;
         const zero_commitment *end = zero_commitments + sizeof(zero_commitments) / sizeof(zero_commitments[0]);
         const zero_commitment value{amount, rct::zero()};
@@ -333,14 +333,14 @@ namespace rct {
         return addKeys(G, bH);
     }
 
-    key commit(xmr_amount amount, const key &mask) {
+    key commit(etn_amount amount, const key &mask) {
         key c;
         genC(c, mask, amount);
         return c;
     }
 
     //generates a random uint long long (for testing)
-    xmr_amount randXmrAmount(xmr_amount upperlimit) {
+    etn_amount randEtnAmount(etn_amount upperlimit) {
         return h2d(skGen()) % (upperlimit);
     }
 

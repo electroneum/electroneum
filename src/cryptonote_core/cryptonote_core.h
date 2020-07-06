@@ -68,6 +68,8 @@ namespace cryptonote
   extern const command_line::arg_descriptor<bool> arg_offline;
   extern const command_line::arg_descriptor<size_t> arg_block_download_max_size;
   extern const command_line::arg_descriptor<bool> arg_fallback_to_pow;
+  extern const command_line::arg_descriptor<uint64_t> arg_fallback_to_pow_checkpoint_height;
+  extern const command_line::arg_descriptor<std::string> arg_fallback_to_pow_checkpoint_hash;
 
   /************************************************************************/
   /*                                                                      */
@@ -1112,6 +1114,8 @@ namespace cryptonote
      std::shared_ptr<tools::Notify> m_block_rate_notify;
 
      bool m_fallback_to_pow;
+     std::string m_fallback_to_pow_checkpoint_hash;
+     uint64_t m_fallback_to_pow_checkpoint_height;
    };
 }
 

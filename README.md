@@ -151,11 +151,9 @@ A secure mobile wallet for digital payments. **[Know more about Electroneum Mobi
 
 ## Hardware Wallet Support
 
-(Coming soon)
-
 A hardware wallet is a cryptocurrency wallet which stores the user's private keys (critical piece of information used to authorise outgoing transactions on the blockchain network) in a secure hardware device. The main principle behind hardware wallets is to provide full isolation between the private keys and your easy-to-hack computer or smartphone.
 
-Electroneum currently supports Ledger hardware wallet.
+Electroneum currently supports the Ledger Nano S hardware wallet.
 
 
 <p align="center">
@@ -197,14 +195,15 @@ As with many development projects, the repository on Github is considered to be 
 
 See [Build & Run Documentation](docs/build-and-run.md).
 
-##Software Releases and Pre-compiled Downloads
+## Software Releases and Pre-compiled Downloads
 
 | Hard Fork upgrade height | Date       | Fork version | Minimum Electroneum version | Recommended Electroneum version | Details                                                                            |
 | ------------------------------ | -----------| ----------------- | ---------------------- | -------------------------- | ---------------------------------------------------------------------------------- |
 | 307500                         | 2018-05-30 | v6                | v2.0.0.0              | v2.0.0.0                  | Disable Mixin, Disable RingCT, Base Fee to 0.10 from 0.01, 120s Block Time, Anti-Asic Resistance         |
 | 324500                         | 2018-07-05 | v7                | v2.1.0.0              | v2.1.0.0                  | Enable ASIC         |
 | 589169                         | 2019-07-08 | v8                | v3.0.0.0              | v3.0.0.0                  | Migration to our next generation moderated blockchain with Proof of Responsbility. 300kB Blocks : Increased TPS. Improved Unlock Time (5 Blocks), Many Security Improvements, HackerOne Fixes, Reduced Block Reward By 75% (A Double Halvening)|
-| X                              | X          | v9                | v4.0.0.0              | v4.0.0.0                  | X                                                                                                                                                                                                                                               |             
+| 862866                         | 2020-07-22 | v9                | v3.3.0.0              | v3.3.0.0                  | Block Reward reduction and future halving scheduling (halving every 4 years, minimum 50etn until max supply. 25etn emission per block after reaching max supply).
+| XXXXXX                         | XXXX-XX-XX | vX                | vX.X.X.X              | vX.X.X.X                  | X                                                                                                                                                                                                                                               |             
 
 X's indicate that these details have not been determined as of commit date.
 

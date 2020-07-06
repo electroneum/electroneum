@@ -404,11 +404,28 @@ namespace hw {
             return true;
         }
 
+        bool device_default::hash_to_scalar(boost::shared_ptr<crypto::rs_comm> buf, size_t length, crypto::ec_scalar &res) {
+          crypto::hash_to_scalar(buf.get(), length, res);
+          return true;
+        }
+
+        bool device_default::get_transaction_prefix_hash(const cryptonote::transaction_prefix& tx, crypto::hash& tx_prefix_hash) {
+
+          std::ostringstream s;
+          binary_archive<true> a(s);
+          ::serialization::serialize(a, const_cast<cryptonote::transaction_prefix&>(tx));
+
+          crypto::cn_fast_hash(s.str().data(), s.str().size(), tx_prefix_hash);
+
+          return true;
+        }
+
         bool device_default::generate_ring_signature(const crypto::hash &prefix_hash, const crypto::key_image &image,
                                                      const std::vector<const crypto::public_key *> &pubs,
                                                      const crypto::secret_key &sec, std::size_t sec_index,
                                                      crypto::signature *sig){
             crypto::generate_ring_signature(prefix_hash, image, pubs.data(), pubs.size(), sec, sec_index, sig);
+            return true;
         }
 
 

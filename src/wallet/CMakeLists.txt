@@ -59,7 +59,6 @@ electroneum_add_library(wallet
   ${wallet_private_headers})
 target_link_libraries(wallet
   PUBLIC
-    microcore
     multisig
     common
     cryptonote_core
@@ -94,7 +93,6 @@ electroneum_add_executable(wallet_rpc_server
 target_link_libraries(wallet_rpc_server
   PRIVATE
     wallet
-    microcore
     rpc_base
     cryptonote_core
     cncrypto
@@ -120,7 +118,6 @@ if (BUILD_GUI_DEPS)
             wallet_api
             wallet
             multisig
-            microcore
             cryptonote_core
             cryptonote_basic
             mnemonics
@@ -154,4 +151,3 @@ if (BUILD_GUI_DEPS)
 endif()
 
 add_subdirectory(api)
-add_subdirectory(micro_core)

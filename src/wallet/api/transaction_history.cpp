@@ -116,7 +116,7 @@ void TransactionHistoryImpl::refresh()
     // - payment_details              - input transfers
 
     // payments are "input transactions";
-    // one input transaction contains only one transfer. e.g. <transaction_id> - <100XMR>
+    // one input transaction contains only one transfer. e.g. <transaction_id> - <100ETN>
 
     std::list<std::pair<crypto::hash, tools::wallet2::payment_details>> in_payments;
     m_wallet->m_wallet->get_payments(in_payments, min_height, max_height);
@@ -144,8 +144,8 @@ void TransactionHistoryImpl::refresh()
     // confirmed output transactions
     // one output transaction may contain more than one money transfer, e.g.
     // <transaction_id>:
-    //    transfer1: 100XMR to <address_1>
-    //    transfer2: 50XMR  to <address_2>
+    //    transfer1: 100ETN to <address_1>
+    //    transfer2: 50ETN  to <address_2>
     //    fee: fee charged per transaction
     //
 

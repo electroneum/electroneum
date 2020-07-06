@@ -111,7 +111,7 @@ TEST(bulletproofs, multi_splitting)
     //add output
     for (size_t i = 0; i < n_outputs; ++i)
     {
-      amount = rct::randXmrAmount(available);
+      amount = rct::randEtnAmount(available);
       outamounts.push_back(amount);
       amount_keys.push_back(rct::hash_to_scalar(rct::zero()));
       rct::skpkGen(Sk, Pk);

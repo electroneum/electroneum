@@ -22,34 +22,34 @@
 #endif
 
 #include <boost/archive/basic_archive.hpp>
-#include <boost/detail/endian.hpp>
+#include <boost/predef/other/endian.h>
 
 #include <boost/archive/impl/archive_serializer_map.ipp>
 
 namespace boost { namespace archive {
 
-enum portable_binary_archive_flags {
-    endian_big        = 0x4000,
-    endian_little     = 0x8000
-};
+        enum portable_binary_archive_flags {
+            endian_big        = 0x4000,
+            endian_little     = 0x8000
+        };
 
 //#if ( endian_big <= boost::archive::flags_last )
 //#error archive flags conflict
 //#endif
 
-inline void
-reverse_bytes(signed char size, char *address){
-    if (size <= 0)
-        throw archive_exception(archive_exception::other_exception);
-    char * first = address;
-    char * last = first + size - 1;
-    for(;first < last;++first, --last){
-        char x = *last;
-        *last = *first;
-        *first = x;
-    }
-}
+        inline void
+        reverse_bytes(signed char size, char *address){
+          if (size <= 0)
+            throw archive_exception(archive_exception::other_exception);
+          char * first = address;
+          char * last = first + size - 1;
+          for(;first < last;++first, --last){
+            char x = *last;
+            *last = *first;
+            *first = x;
+          }
+        }
 
-} }
+    } }
 
 #endif // PORTABLE_BINARY_ARCHIVE_HPP

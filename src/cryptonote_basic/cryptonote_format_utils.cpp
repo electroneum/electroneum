@@ -114,6 +114,7 @@ namespace cryptonote
     std::ostringstream s;
     binary_archive<true> a(s);
     ::serialization::serialize(a, const_cast<transaction_prefix&>(tx));
+
     crypto::cn_fast_hash(s.str().data(), s.str().size(), h);
   }
   //---------------------------------------------------------------
