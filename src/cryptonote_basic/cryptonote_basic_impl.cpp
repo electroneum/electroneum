@@ -113,7 +113,7 @@ namespace cryptonote {
           V9_BLOCK_HEIGHT = 862866;
           break;
         case TESTNET:
-          V9_BLOCK_HEIGHT = 690908;
+          V9_BLOCK_HEIGHT = 707121;
           break;
         case STAGENET:
           V9_BLOCK_HEIGHT = 39000;
