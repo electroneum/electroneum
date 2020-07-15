@@ -105,7 +105,7 @@ void test_generator::add_block(const cryptonote::block& blk, size_t txs_weight, 
 {
   const size_t block_weight = txs_weight + get_transaction_weight(blk.miner_tx);
   uint64_t block_reward;
-  get_block_reward(misc_utils::median(block_weights), block_weight, already_generated_coins, block_reward, hf_version);
+  get_block_reward(misc_utils::median(block_weights), block_weight, already_generated_coins, block_reward, hf_version, get_block_height(blk));
   m_blocks_info[get_block_hash(blk)] = block_info(blk.prev_id, already_generated_coins + block_reward, block_weight);
 }
 
@@ -846,7 +846,7 @@ bool construct_miner_tx_manually(size_t height, uint64_t already_generated_coins
   uint64_t block_reward;
   //Deal with premine implementation. 
   if (height == 1){block_reward = 1260000000000;}
-  else if (!get_block_reward(0, 0, already_generated_coins, block_reward, 1))
+  else if (!get_block_reward(0, 0, already_generated_coins, block_reward, 1, height))
   {
     LOG_PRINT_L0("Block is too big");
     return false;
