@@ -821,6 +821,13 @@ else()
 
   endif(ARM)
 
+  #Build UNIX with position independent code
+  if(UNIX)
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
+  endif()
+
   if(ANDROID AND NOT BUILD_GUI_DEPS STREQUAL "ON" OR IOS)
     #From Android 5: "only position independent executables (PIE) are supported" 
     message(STATUS "Enabling PIE executable")
