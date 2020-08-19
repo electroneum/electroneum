@@ -250,7 +250,7 @@ namespace cryptonote
     return is_v1_tx(blobdata_ref{tx_blob.data(), tx_blob.size()});
   }
   //---------------------------------------------------------------
-  bool generate_key_image_helper(const account_keys& ack, const std::unordered_map<crypto::public_key, subaddress_index>& subaddresses, const crypto::public_key& out_key, const crypto::public_key& tx_public_key, const std::vector<crypto::public_key>& additional_tx_public_keys, size_t real_output_index, keypair& in_ephemeral, crypto::key_image& ki, hw::device &hwdev)
+  bool generate_key_image_helper(const account_keys& ack, const std::unordered_map<crypto::public_key, subaddress_index>& subaddresses, const crypto::public_key& out_key, const crypto::public_key& tx_public_key, const std::vector<crypto::public_key>& additional_tx_public_keys, size_t real_output_index, keypair& in_ephemeral, crypto::key_image& ki, hw::device &hwdev, const uint32_t account_major_offset)
   {
     crypto::key_derivation recv_derivation = AUTO_VAL_INIT(recv_derivation);
     bool r = hwdev.generate_key_derivation(tx_public_key, ack.m_view_secret_key, recv_derivation);
@@ -278,12 +278,15 @@ namespace cryptonote
     boost::optional<subaddress_receive_info> subaddr_recv_info = is_out_to_acc_precomp(subaddresses, out_key, recv_derivation, additional_recv_derivations, real_output_index,hwdev);
     CHECK_AND_ASSERT_MES(subaddr_recv_info, false, "key image helper: given output pubkey doesn't seem to belong to this address");
 
-    return generate_key_image_helper_precomp(ack, out_key, subaddr_recv_info->derivation, real_output_index, subaddr_recv_info->index, in_ephemeral, ki, hwdev);
+    return generate_key_image_helper_precomp(ack, out_key, subaddr_recv_info->derivation, real_output_index, subaddr_recv_info->index, in_ephemeral, ki, hwdev, account_major_offset);
   }
   //---------------------------------------------------------------
-  bool generate_key_image_helper_precomp(const account_keys& ack, const crypto::public_key& out_key, const crypto::key_derivation& recv_derivation, size_t real_output_index, const subaddress_index& received_index, keypair& in_ephemeral, crypto::key_image& ki, hw::device &hwdev)
+  bool generate_key_image_helper_precomp(const account_keys& ack, const crypto::public_key& out_key, const crypto::key_derivation& recv_derivation, size_t real_output_index, const subaddress_index& received_index, keypair& in_ephemeral, crypto::key_image& ki, hw::device &hwdev, const uint32_t account_major_offset)
   {
-    if (hwdev.compute_key_image(ack, out_key, recv_derivation, real_output_index, received_index, in_ephemeral, ki))
+    uint32_t major_index_offset_based = received_index.major + (received_index.major != 0 ? account_major_offset : 0);
+    cryptonote::subaddress_index recv_index = {major_index_offset_based, received_index.minor};
+
+    if (hwdev.compute_key_image(ack, out_key, recv_derivation, real_output_index, recv_index, in_ephemeral, ki))
     {
       return true;
     }
@@ -303,13 +306,13 @@ namespace cryptonote
       // step 2: add Hs(a || index_major || index_minor)
       crypto::secret_key subaddr_sk;
       crypto::secret_key scalar_step2;
-      if (received_index.is_zero())
+      if (recv_index.is_zero())
       {
         scalar_step2 = scalar_step1;    // treat index=(0,0) as a special case representing the main address
       }
       else
       {
-        subaddr_sk = hwdev.get_subaddress_secret_key(ack.m_view_secret_key, received_index);
+        subaddr_sk = hwdev.get_subaddress_secret_key(ack.m_view_secret_key, recv_index);
         hwdev.sc_secret_add(scalar_step2, scalar_step1,subaddr_sk);
       }
 
@@ -325,7 +328,7 @@ namespace cryptonote
         // when in multisig, we only know the partial spend secret key. but we do know the full spend public key, so the output pubkey can be obtained by using the standard CN key derivation
         CHECK_AND_ASSERT_MES(hwdev.derive_public_key(recv_derivation, real_output_index, ack.m_account_address.m_spend_public_key, in_ephemeral.pub), false, "Failed to derive public key");
         // and don't forget to add the contribution from the subaddress part
-        if (!received_index.is_zero())
+        if (!recv_index.is_zero())
         {
           crypto::public_key subaddr_pk;
           CHECK_AND_ASSERT_MES(hwdev.secret_key_to_public_key(subaddr_sk, subaddr_pk), false, "Failed to derive public key");
