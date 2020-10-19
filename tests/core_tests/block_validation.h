@@ -156,12 +156,12 @@ struct gen_block_miner_tx_has_2_tx_gen_in : public gen_block_verification_base<1
   bool generate(std::vector<test_event_entry>& events) const;
 };
 
-struct gen_block_miner_tx_has_2_in : public gen_block_verification_base<CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW + 1>
+struct gen_block_miner_tx_has_2_in : public gen_block_verification_base<CRYPTONOTE_MINED_ETN_UNLOCK_WINDOW + 1>
 {
   bool generate(std::vector<test_event_entry>& events) const;
 };
 
-struct gen_block_miner_tx_with_txin_to_key : public gen_block_verification_base<CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW + 2>
+struct gen_block_miner_tx_with_txin_to_key : public gen_block_verification_base<CRYPTONOTE_MINED_ETN_UNLOCK_WINDOW + 2>
 {
   bool generate(std::vector<test_event_entry>& events) const;
 };

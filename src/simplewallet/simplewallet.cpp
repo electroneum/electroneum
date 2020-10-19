@@ -529,29 +529,29 @@ namespace
     {
       fail_msg_writer() << sw::tr("failed to get random outputs to mix: ") << e.what();
     }
-    catch (const tools::error::not_enough_unlocked_money& e)
+    catch (const tools::error::not_enough_unlocked_etn& e)
     {
       LOG_PRINT_L0(boost::format("not enough ETN to transfer, available only %s, sent amount %s") %
-        print_money(e.available()) %
-        print_money(e.tx_amount()));
+        print_etn(e.available()) %
+        print_etn(e.tx_amount()));
       fail_msg_writer() << sw::tr("Not enough ETN in unlocked balance");
       warn_of_possible_attack = false;
     }
-    catch (const tools::error::not_enough_money& e)
+    catch (const tools::error::not_enough_etn& e)
     {
       LOG_PRINT_L0(boost::format("not enough ETN to transfer, available only %s, sent amount %s") %
-        print_money(e.available()) %
-        print_money(e.tx_amount()));
+        print_etn(e.available()) %
+        print_etn(e.tx_amount()));
       fail_msg_writer() << sw::tr("Not enough ETN in unlocked balance");
       warn_of_possible_attack = false;
     }
     catch (const tools::error::tx_not_possible& e)
     {
       LOG_PRINT_L0(boost::format("not enough ETN to transfer, available only %s, transaction amount %s = %s + %s (fee)") %
-        print_money(e.available()) %
-        print_money(e.tx_amount() + e.fee())  %
-        print_money(e.tx_amount()) %
-        print_money(e.fee()));
+        print_etn(e.available()) %
+        print_etn(e.tx_amount() + e.fee())  %
+        print_etn(e.tx_amount()) %
+        print_etn(e.fee()));
       fail_msg_writer() << sw::tr("Failed to find a way to create transactions. This is usually due to dust which is so small it cannot pay for itself in fees, or trying to send more ETN than the unlocked balance, or not leaving enough for fees");
       warn_of_possible_attack = false;
     }
@@ -561,7 +561,7 @@ namespace
       writer << sw::tr("not enough outputs for specified ring size") << " = " << (e.mixin_count() + 1) << ":";
       for (std::pair<uint64_t, uint64_t> outs_for_amount : e.scanty_outs())
       {
-        writer << "\n" << sw::tr("output amount") << " = " << print_money(outs_for_amount.first) << ", " << sw::tr("found outputs to use") << " = " << outs_for_amount.second;
+        writer << "\n" << sw::tr("output amount") << " = " << print_etn(outs_for_amount.first) << ", " << sw::tr("found outputs to use") << " = " << outs_for_amount.second;
       }
       writer << sw::tr("Please use sweep_unmixable.");
     }
@@ -914,7 +914,7 @@ bool simple_wallet::print_fee_info(const std::vector<std::string> &args/* = std:
   const char *base = per_byte ? "byte" : "kB";
   const uint64_t typical_size = per_byte ? 2500 : 13;
   const uint64_t size_granularity = per_byte ? 1 : 1024;
-  message_writer() << (boost::format(tr("Current fee is %s %s per %s")) % print_money(base_fee) % cryptonote::get_unit(cryptonote::get_default_decimal_point()) % base).str();
+  message_writer() << (boost::format(tr("Current fee is %s %s per %s")) % print_etn(base_fee) % cryptonote::get_unit(cryptonote::get_default_decimal_point()) % base).str();
 
   std::vector<uint64_t> fees;
   for (uint32_t priority = 1; priority <= 4; ++priority)
@@ -2125,7 +2125,7 @@ bool simple_wallet::frozen(const std::vector<std::string> &args)
       if (!m_wallet->frozen(i))
         continue;
       const tools::wallet2::transfer_details &td = m_wallet->get_transfer_details(i);
-      message_writer() << tr("Frozen: ") << td.m_key_image << " " << cryptonote::print_money(td.amount());
+      message_writer() << tr("Frozen: ") << td.m_key_image << " " << cryptonote::print_etn(td.amount());
     }
   }
   else
@@ -3273,7 +3273,7 @@ bool simple_wallet::set_variable(const std::vector<std::string> &args)
     success_msg_writer() << "ask-password = " << m_wallet->ask_password() << " (" << ask_password_string << ")";
     success_msg_writer() << "unit = " << cryptonote::get_unit(cryptonote::get_default_decimal_point());
     success_msg_writer() << "min-outputs-count = " << m_wallet->get_min_output_count();
-    success_msg_writer() << "min-outputs-value = " << cryptonote::print_money(m_wallet->get_min_output_value());
+    success_msg_writer() << "min-outputs-value = " << cryptonote::print_etn(m_wallet->get_min_output_value());
     success_msg_writer() << "merge-destinations = " << m_wallet->merge_destinations();
     success_msg_writer() << "confirm-backlog = " << m_wallet->confirm_backlog();
     success_msg_writer() << "confirm-backlog-threshold = " << m_wallet->get_confirm_backlog_threshold();
@@ -4980,12 +4980,12 @@ void simple_wallet::on_new_block(uint64_t height, const cryptonote::block& block
     m_refresh_progress_reporter.update(height, false);
 }
 //----------------------------------------------------------------------------------------------------
-void simple_wallet::on_money_received(uint64_t height, const crypto::hash &txid, const cryptonote::transaction& tx, uint64_t amount, const cryptonote::subaddress_index& subaddr_index, uint64_t unlock_time)
+void simple_wallet::on_etn_received(uint64_t height, const crypto::hash &txid, const cryptonote::transaction& tx, uint64_t amount, const cryptonote::subaddress_index& subaddr_index, uint64_t unlock_time)
 {
   message_writer(console_color_green, false) << "\r" <<
     tr("Height ") << height << ", " <<
     tr("txid ") << txid << ", " <<
-    print_money(amount) << ", " <<
+    print_etn(amount) << ", " <<
     tr("idx ") << subaddr_index;
 
   const uint64_t warn_height = m_wallet->nettype() == TESTNET ? 1000000 : m_wallet->nettype() == STAGENET ? 50000 : 1650000;
@@ -5010,17 +5010,17 @@ void simple_wallet::on_money_received(uint64_t height, const crypto::hash &txid,
     m_refresh_progress_reporter.update(height, true);
 }
 //----------------------------------------------------------------------------------------------------
-void simple_wallet::on_unconfirmed_money_received(uint64_t height, const crypto::hash &txid, const cryptonote::transaction& tx, uint64_t amount, const cryptonote::subaddress_index& subaddr_index)
+void simple_wallet::on_unconfirmed_etn_received(uint64_t height, const crypto::hash &txid, const cryptonote::transaction& tx, uint64_t amount, const cryptonote::subaddress_index& subaddr_index)
 {
   // Not implemented in CLI wallet
 }
 //----------------------------------------------------------------------------------------------------
-void simple_wallet::on_money_spent(uint64_t height, const crypto::hash &txid, const cryptonote::transaction& in_tx, uint64_t amount, const cryptonote::transaction& spend_tx, const cryptonote::subaddress_index& subaddr_index)
+void simple_wallet::on_etn_spent(uint64_t height, const crypto::hash &txid, const cryptonote::transaction& in_tx, uint64_t amount, const cryptonote::transaction& spend_tx, const cryptonote::subaddress_index& subaddr_index)
 {
   message_writer(console_color_magenta, false) << "\r" <<
     tr("Height ") << height << ", " <<
     tr("txid ") << txid << ", " <<
-    tr("spent ") << print_money(amount) << ", " <<
+    tr("spent ") << print_etn(amount) << ", " <<
     tr("idx ") << subaddr_index;
   if (m_auto_refresh_refreshing)
     m_cmd_binder.print_prompt();
@@ -5090,18 +5090,18 @@ boost::optional<epee::wipeable_string> simple_wallet::on_device_passphrase_reque
   return pwd_container->password();
 }
 //----------------------------------------------------------------------------------------------------
-void simple_wallet::on_refresh_finished(uint64_t start_height, uint64_t fetched_blocks, bool is_init, bool received_money)
+void simple_wallet::on_refresh_finished(uint64_t start_height, uint64_t fetched_blocks, bool is_init, bool received_etn)
 {
   // Key image sync after the first refresh
   if (!m_wallet->get_account().get_device().has_tx_cold_sign() || m_wallet->get_account().get_device().has_ki_live_refresh()) {
     return;
   }
 
-  if (!received_money || m_wallet->get_device_last_key_image_sync() != 0) {
+  if (!received_etn || m_wallet->get_device_last_key_image_sync() != 0) {
     return;
   }
 
-  // Finished first refresh for HW device and money received -> KI sync
+  // Finished first refresh for HW device and etn received -> KI sync
   message_writer() << "\n" << tr("The first refresh has finished for the HW-based wallet with received ETN. hw_key_images_sync is needed. ");
 
   std::string accepted = input_line(tr("Do you want to do it now? (Y/Yes/N/No): "));
@@ -5137,14 +5137,14 @@ bool simple_wallet::refresh_main(uint64_t start_height, enum ResetType reset, bo
   message_writer() << tr("Starting refresh...");
 
   uint64_t fetched_blocks = 0;
-  bool received_money = false;
+  bool received_etn = false;
   bool ok = false;
   std::ostringstream ss;
   try
   {
     m_in_manual_refresh.store(true, std::memory_order_relaxed);
     epee::misc_utils::auto_scope_leave_caller scope_exit_handler = epee::misc_utils::create_scope_leave_handler([&](){m_in_manual_refresh.store(false, std::memory_order_relaxed);});
-    m_wallet->refresh(m_wallet->is_trusted_daemon(), start_height, fetched_blocks, received_money);
+    m_wallet->refresh(m_wallet->is_trusted_daemon(), start_height, fetched_blocks, received_etn);
 
     if (reset == ResetSoftKeepKI)
     {
@@ -5164,7 +5164,7 @@ bool simple_wallet::refresh_main(uint64_t start_height, enum ResetType reset, bo
     if (is_init)
       print_accounts();
     show_balance_unlocked();
-    on_refresh_finished(start_height, fetched_blocks, is_init, received_money);
+    on_refresh_finished(start_height, fetched_blocks, is_init, received_etn);
   }
   catch (const tools::error::daemon_busy&)
   {
@@ -5239,8 +5239,8 @@ bool simple_wallet::show_balance_unlocked(bool detailed)
   std::string unlock_time_message;
   if (blocks_to_unlock > 0)
     unlock_time_message = (boost::format(" (%lu block(s) to unlock)") % blocks_to_unlock).str();
-  success_msg_writer() << tr("Balance: ") << print_money(m_wallet->balance(m_current_subaddress_account)) << ", "
-    << tr("unlocked balance: ") << print_money(unlocked_balance) << unlock_time_message << extra;
+  success_msg_writer() << tr("Balance: ") << print_etn(m_wallet->balance(m_current_subaddress_account)) << ", "
+    << tr("unlocked balance: ") << print_etn(unlocked_balance) << unlock_time_message << extra;
   std::map<uint32_t, uint64_t> balance_per_subaddress = m_wallet->balance_per_subaddress(m_current_subaddress_account);
   std::map<uint32_t, std::pair<uint64_t, uint64_t>> unlocked_balance_per_subaddress = m_wallet->unlocked_balance_per_subaddress(m_current_subaddress_account);
   if (!detailed || balance_per_subaddress.empty())
@@ -5254,7 +5254,7 @@ bool simple_wallet::show_balance_unlocked(bool detailed)
     cryptonote::subaddress_index subaddr_index = {m_current_subaddress_account, i.first};
     std::string address_str = m_wallet->get_subaddress_as_str(subaddr_index).substr(0, 6);
     uint64_t num_unspent_outputs = std::count_if(transfers.begin(), transfers.end(), [&subaddr_index](const tools::wallet2::transfer_details& td) { return !td.m_spent && td.m_subaddr_index == subaddr_index; });
-    success_msg_writer() << boost::format(tr("%8u %6s %21s %21s %7u %21s")) % i.first % address_str % print_money(i.second) % print_money(unlocked_balance_per_subaddress[i.first].first) % num_unspent_outputs % m_wallet->get_subaddress_label(subaddr_index);
+    success_msg_writer() << boost::format(tr("%8u %6s %21s %21s %7u %21s")) % i.first % address_str % print_etn(i.second) % print_etn(unlocked_balance_per_subaddress[i.first].first) % num_unspent_outputs % m_wallet->get_subaddress_label(subaddr_index);
   }
   return true;
 }
@@ -5361,7 +5361,7 @@ bool simple_wallet::show_incoming_transfers(const std::vector<std::string>& args
       }
       message_writer(td.m_spent ? console_color_magenta : console_color_green, false) <<
         boost::format("%21s%8s%12s%8s%16u%68s%16u%s") %
-        print_money(td.amount()) %
+        print_etn(td.amount()) %
         (td.m_spent ? tr("T") : tr("F")) %
         (m_wallet->frozen(td) ? tr("[frozen]") : m_wallet->is_transfer_unlocked(td) ? tr("unlocked") : tr("locked")) %
         (td.is_rct() ? tr("RingCT") : tr("-")) %
@@ -5436,7 +5436,7 @@ bool simple_wallet::show_payments(const std::vector<std::string> &args)
           payment_id %
           pd.m_tx_hash %
           pd.m_block_height %
-          print_money(pd.m_amount) %
+          print_etn(pd.m_amount) %
           pd.m_unlock_time %
           pd.m_subaddr_index.minor;
       }
@@ -5588,7 +5588,7 @@ bool simple_wallet::print_ring_members(const std::vector<tools::wallet2::pending
       }
       const cryptonote::tx_source_entry& source = *sptr;
 
-      ostr << boost::format(tr("\nInput %llu/%llu (%s): amount=%s")) % (i + 1) % tx.vin.size() % epee::string_tools::pod_to_hex(in_key.k_image) % print_money(source.amount);
+      ostr << boost::format(tr("\nInput %llu/%llu (%s): amount=%s")) % (i + 1) % tx.vin.size() % epee::string_tools::pod_to_hex(in_key.k_image) % print_etn(source.amount);
       // convert relative offsets of ring member keys into absolute offsets (indices) associated with the amount
       std::vector<uint64_t> absolute_offsets = cryptonote::relative_output_offsets_to_absolute(in_key.key_offsets);
       // get block heights from which those ring member keys originated
@@ -5799,7 +5799,7 @@ bool simple_wallet::transfer_main(int transfer_type, const std::vector<std::stri
       if(!ok || 0 == de.amount)
       {
         fail_msg_writer() << tr("amount is wrong: ") << local_args[i] << ' ' << local_args[i + 1] <<
-          ", " << tr("expected number from 0 to ") << print_money(std::numeric_limits<uint64_t>::max());
+          ", " << tr("expected number from 0 to ") << print_etn(std::numeric_limits<uint64_t>::max());
         return false;
       }
       de.original = local_args[i];
@@ -5990,25 +5990,25 @@ bool simple_wallet::transfer_main(int transfer_type, const std::vector<std::stri
           if (subaddr_indices.size() > 1)
             prompt << tr("WARNING: Outputs of multiple addresses are being used together, which might potentially compromise your privacy.\n");
         }
-        prompt << boost::format(tr("Sending %s.  ")) % print_money(total_sent);
+        prompt << boost::format(tr("Sending %s.  ")) % print_etn(total_sent);
         if (ptx_vector.size() > 1)
         {
           prompt << boost::format(tr("Your transaction needs to be split into %llu transactions.  "
             "This will result in a transaction fee being applied to each transaction, for a total fee of %s")) %
-            ((unsigned long long)ptx_vector.size()) % print_money(total_fee);
+            ((unsigned long long)ptx_vector.size()) % print_etn(total_fee);
         }
         else
         {
           prompt << boost::format(tr("The transaction fee is %s")) %
-            print_money(total_fee);
+            print_etn(total_fee);
         }
-        if (dust_in_fee != 0) prompt << boost::format(tr(", of which %s is dust from change")) % print_money(dust_in_fee);
+        if (dust_in_fee != 0) prompt << boost::format(tr(", of which %s is dust from change")) % print_etn(dust_in_fee);
         if (dust_not_in_fee != 0)  prompt << tr(".") << ENDL << boost::format(tr("A total of %s from dust change will be sent to dust address")) 
-                                                   % print_money(dust_not_in_fee);
+                                                   % print_etn(dust_not_in_fee);
         if (transfer_type == TransferLocked)
         {
           float days = locked_blocks / 720.0f;
-          prompt << boost::format(tr(".\nThis transaction (including %s change) will unlock on block %llu, in approximately %s days (assuming 2 minutes per block)")) % cryptonote::print_money(change) % ((unsigned long long)unlock_block) % days;
+          prompt << boost::format(tr(".\nThis transaction (including %s change) will unlock on block %llu, in approximately %s days (assuming 2 minutes per block)")) % cryptonote::print_etn(change) % ((unsigned long long)unlock_block) % days;
         }
         if (m_wallet->print_ring_members())
         {
@@ -6171,17 +6171,17 @@ bool simple_wallet::sweep_unmixable(const std::vector<std::string> &args_)
         total_unmixable += m_wallet->get_transfer_details(i).amount();
     }
 
-    std::string prompt_str = tr("Sweeping ") + print_money(total_unmixable);
+    std::string prompt_str = tr("Sweeping ") + print_etn(total_unmixable);
     if (ptx_vector.size() > 1) {
       prompt_str = (boost::format(tr("Sweeping %s in %llu transactions for a total fee of %s.  Is this okay?")) %
-        print_money(total_unmixable) %
+        print_etn(total_unmixable) %
         ((unsigned long long)ptx_vector.size()) %
-        print_money(total_fee)).str();
+        print_etn(total_fee)).str();
     }
     else {
       prompt_str = (boost::format(tr("Sweeping %s for a total fee of %s.  Is this okay?")) %
-        print_money(total_unmixable) %
-        print_money(total_fee)).str();
+        print_etn(total_unmixable) %
+        print_etn(total_fee)).str();
     }
     std::string accepted = input_line(prompt_str, true);
     if (std::cin.eof())
@@ -6223,10 +6223,10 @@ bool simple_wallet::sweep_unmixable(const std::vector<std::string> &args_)
       commit_or_save(ptx_vector, m_do_not_relay);
     }
   }
-  catch (const tools::error::not_enough_unlocked_money& e)
+  catch (const tools::error::not_enough_unlocked_etn& e)
   {
     fail_msg_writer() << tr("Not enough ETN in unlocked balance");
-    std::string accepted = input_line((boost::format(tr("Discarding %s of unmixable outputs that cannot be spent, which can be undone by \"rescan_spent\".  Is this okay?")) % print_money(e.available())).str(), true);
+    std::string accepted = input_line((boost::format(tr("Discarding %s of unmixable outputs that cannot be spent, which can be undone by \"rescan_spent\".  Is this okay?")) % print_etn(e.available())).str(), true);
     if (std::cin.eof())
       return true;
     if (command_line::is_yes(accepted))
@@ -6486,14 +6486,14 @@ bool simple_wallet::sweep_main(uint64_t below, bool locked, const std::vector<st
       return true;
     if (ptx_vector.size() > 1) {
       prompt << boost::format(tr("Sweeping %s in %llu transactions for a total fee of %s.  Is this okay?")) %
-        print_money(total_sent) %
+        print_etn(total_sent) %
         ((unsigned long long)ptx_vector.size()) %
-        print_money(total_fee);
+        print_etn(total_fee);
     }
     else {
       prompt << boost::format(tr("Sweeping %s for a total fee of %s.  Is this okay?")) %
-        print_money(total_sent) %
-        print_money(total_fee);
+        print_etn(total_sent) %
+        print_etn(total_fee);
     }
     std::string accepted = input_line(prompt.str(), true);
     if (std::cin.eof())
@@ -6750,8 +6750,8 @@ bool simple_wallet::sweep_single(const std::vector<std::string> &args_)
     if (!print_ring_members(ptx_vector, prompt))
       return true;
     prompt << boost::format(tr("Sweeping %s for a total fee of %s.  Is this okay?")) %
-      print_money(total_sent) %
-      print_money(total_fee);
+      print_etn(total_sent) %
+      print_etn(total_fee);
     std::string accepted = input_line(prompt.str(), true);
     if (std::cin.eof())
       return true;
@@ -6856,7 +6856,7 @@ bool simple_wallet::donate(const std::vector<std::string> &args_)
   }
   else
   { 
-    fail_msg_writer() << tr("amount is wrong: ") << local_args.back() << ", " << tr("expected number from 0 to ") << print_money(std::numeric_limits<uint64_t>::max());
+    fail_msg_writer() << tr("amount is wrong: ") << local_args.back() << ", " << tr("expected number from 0 to ") << print_etn(std::numeric_limits<uint64_t>::max());
     return true;
   }
   // push back address, amount, payment id
@@ -7006,7 +7006,7 @@ bool simple_wallet::accept_loaded_tx(const std::function<size_t()> get_num_txes,
     {
       if (!dest_string.empty())
         dest_string += ", ";
-      dest_string += (boost::format(tr("sending %s to %s")) % print_money(i->second.second) % i->second.first).str();
+      dest_string += (boost::format(tr("sending %s to %s")) % print_etn(i->second.second) % i->second.first).str();
     }
     else
       ++n_dummy_outputs;
@@ -7025,13 +7025,13 @@ bool simple_wallet::accept_loaded_tx(const std::function<size_t()> get_num_txes,
   if (change > 0)
   {
     std::string address = get_account_address_as_str(m_wallet->nettype(), get_tx(0).subaddr_account > 0, get_tx(0).change_dts.addr);
-    change_string += (boost::format(tr("%s change to %s")) % print_money(change) % address).str();
+    change_string += (boost::format(tr("%s change to %s")) % print_etn(change) % address).str();
   }
   else
     change_string += tr("no change");
 
   uint64_t fee = amount - amount_to_dests;
-  std::string prompt_str = (boost::format(tr("Loaded %lu transactions, for %s, fee %s, %s, %s, with min ring size %lu, %s. %sIs this okay?")) % (unsigned long)get_num_txes() % print_money(amount) % print_money(fee) % dest_string % change_string % (unsigned long)min_ring_size % payment_id_string % extra_message).str();
+  std::string prompt_str = (boost::format(tr("Loaded %lu transactions, for %s, fee %s, %s, %s, with min ring size %lu, %s. %sIs this okay?")) % (unsigned long)get_num_txes() % print_etn(amount) % print_etn(fee) % dest_string % change_string % (unsigned long)min_ring_size % payment_id_string % extra_message).str();
   return command_line::is_yes(input_line(prompt_str, true));
 }
 //----------------------------------------------------------------------------------------------------
@@ -7350,7 +7350,7 @@ bool simple_wallet::check_tx_key(const std::vector<std::string> &args_)
 
     if (received > 0)
     {
-      success_msg_writer() << get_account_address_as_str(m_wallet->nettype(), info.is_subaddress, info.address) << " " << tr("received") << " " << print_money(received) << " " << tr("in txid") << " " << txid;
+      success_msg_writer() << get_account_address_as_str(m_wallet->nettype(), info.is_subaddress, info.address) << " " << tr("received") << " " << print_etn(received) << " " << tr("in txid") << " " << txid;
       if (in_pool)
       {
         success_msg_writer() << tr("WARNING: this transaction is not yet included in the blockchain!");
@@ -7423,7 +7423,7 @@ bool simple_wallet::check_tx_proof(const std::vector<std::string> &args)
       success_msg_writer() << tr("Good signature");
       if (received > 0)
       {
-        success_msg_writer() << get_account_address_as_str(m_wallet->nettype(), info.is_subaddress, info.address) << " " << tr("received") << " " << print_money(received) << " " << tr("in txid") << " " << txid;
+        success_msg_writer() << get_account_address_as_str(m_wallet->nettype(), info.is_subaddress, info.address) << " " << tr("received") << " " << print_etn(received) << " " << tr("in txid") << " " << txid;
         if (in_pool)
         {
           success_msg_writer() << tr("WARNING: this transaction is not yet included in the blockchain!");
@@ -7628,7 +7628,7 @@ bool simple_wallet::check_reserve_proof(const std::vector<std::string> &args)
     uint64_t total, spent;
     if (m_wallet->check_reserve_proof(info.address, args.size() == 3 ? args[2] : "", sig_str, total, spent))
     {
-      success_msg_writer() << boost::format(tr("Good signature -- total: %s, spent: %s, unspent: %s")) % print_money(total) % print_money(spent) % print_money(total - spent);
+      success_msg_writer() << boost::format(tr("Good signature -- total: %s, spent: %s, unspent: %s")) % print_etn(total) % print_etn(spent) % print_etn(total - spent);
     }
     else
     {
@@ -7941,7 +7941,7 @@ bool simple_wallet::show_transfers(const std::vector<std::string> &args_)
       {
         if (!destinations.empty())
           destinations += ", ";
-        destinations += (transfer.direction == "in" ? output.first.substr(0, 6) : output.first) + ":" + print_money(output.second);
+        destinations += (transfer.direction == "in" ? output.first.substr(0, 6) : output.first) + ":" + print_etn(output.second);
       }
     }
 
@@ -7952,10 +7952,10 @@ bool simple_wallet::show_transfers(const std::vector<std::string> &args_)
       % transfer.direction
       % transfer.unlocked
       % tools::get_human_readable_timestamp(transfer.timestamp)
-      % print_money(transfer.amount)
+      % print_etn(transfer.amount)
       % string_tools::pod_to_hex(transfer.hash)
       % transfer.payment_id
-      % print_money(transfer.fee)
+      % print_etn(transfer.fee)
       % destinations
       % boost::algorithm::join(transfer.index | boost::adaptors::transformed([](uint32_t i) { return std::to_string(i); }), ", ")
       % transfer.note;
@@ -8016,13 +8016,13 @@ bool simple_wallet::export_transfers(const std::vector<std::string>& args_)
       % transfer.direction
       % transfer.unlocked
       % tools::get_human_readable_timestamp(transfer.timestamp)
-      % print_money(transfer.amount)
-      % print_money(running_balance)
+      % print_etn(transfer.amount)
+      % print_etn(running_balance)
       % string_tools::pod_to_hex(transfer.hash)
       % transfer.payment_id
-      % print_money(transfer.fee)
+      % print_etn(transfer.fee)
       % (transfer.outputs.size() ? transfer.outputs[0].first : "-")
-      % (transfer.outputs.size() ? print_money(transfer.outputs[0].second) : "")
+      % (transfer.outputs.size() ? print_etn(transfer.outputs[0].second) : "")
       % boost::algorithm::join(transfer.index | boost::adaptors::transformed([](uint32_t i) { return std::to_string(i); }), ", ")
       % transfer.note
       << std::endl;
@@ -8040,7 +8040,7 @@ bool simple_wallet::export_transfers(const std::vector<std::string>& args_)
         % ""
         % ""
         % transfer.outputs[i].first
-        % print_money(transfer.outputs[i].second)
+        % print_etn(transfer.outputs[i].second)
         % ""
         % ""
         << std::endl;
@@ -8123,7 +8123,7 @@ bool simple_wallet::unspent_outputs(const std::vector<std::string> &args_)
   for (const auto& amount_tds : amount_to_tds)
   {
     auto& tds = amount_tds.second;
-    success_msg_writer() << tr("\nAmount: ") << print_money(amount_tds.first) << tr(", number of keys: ") << tds.size();
+    success_msg_writer() << tr("\nAmount: ") << print_etn(amount_tds.first) << tr(", number of keys: ") << tds.size();
     for (size_t i = 0; i < tds.size(); )
     {
       std::ostringstream oss;
@@ -8135,8 +8135,8 @@ bool simple_wallet::unspent_outputs(const std::vector<std::string> &args_)
   success_msg_writer()
     << tr("\nMin block height: ") << min_height
     << tr("\nMax block height: ") << max_height
-    << tr("\nMin amount found: ") << print_money(found_min_amount)
-    << tr("\nMax amount found: ") << print_money(found_max_amount)
+    << tr("\nMin amount found: ") << print_etn(found_min_amount)
+    << tr("\nMax amount found: ") << print_etn(found_max_amount)
     << tr("\nTotal count: ") << count;
   const size_t histogram_height = 10;
   const size_t histogram_width  = 50;
@@ -8287,9 +8287,9 @@ void simple_wallet::wallet_idle_thread()
       try
       {
         uint64_t fetched_blocks;
-        bool received_money;
+        bool received_etn;
         if (try_connect_to_daemon(true))
-          m_wallet->refresh(m_wallet->is_trusted_daemon(), 0, fetched_blocks, received_money, false); // don't check the pool in background mode
+          m_wallet->refresh(m_wallet->is_trusted_daemon(), 0, fetched_blocks, received_etn, false); // don't check the pool in background mode
       }
       catch(...) {}
       m_auto_refresh_refreshing = false;
@@ -8537,7 +8537,7 @@ void simple_wallet::print_accounts()
     print_accounts("");
 
   if (num_untagged_accounts < m_wallet->get_num_subaddress_accounts())
-    success_msg_writer() << tr("\nGrand total:\n  Balance: ") << print_money(m_wallet->balance_all()) << tr(", unlocked balance: ") << print_money(m_wallet->unlocked_balance_all());
+    success_msg_writer() << tr("\nGrand total:\n  Balance: ") << print_etn(m_wallet->balance_all()) << tr(", unlocked balance: ") << print_etn(m_wallet->unlocked_balance_all());
 }
 //----------------------------------------------------------------------------------------------------
 void simple_wallet::print_accounts(const std::string& tag)
@@ -8567,14 +8567,14 @@ void simple_wallet::print_accounts(const std::string& tag)
       % (m_current_subaddress_account == account_index ? '*' : ' ')
       % account_index
       % m_wallet->get_subaddress_as_str({account_index, 0}).substr(0, 6)
-      % print_money(m_wallet->balance(account_index))
-      % print_money(m_wallet->unlocked_balance(account_index))
+      % print_etn(m_wallet->balance(account_index))
+      % print_etn(m_wallet->unlocked_balance(account_index))
       % m_wallet->get_subaddress_label({account_index, 0});
     total_balance += m_wallet->balance(account_index);
     total_unlocked_balance += m_wallet->unlocked_balance(account_index);
   }
   success_msg_writer() << tr("----------------------------------------------------------------------------------");
-  success_msg_writer() << boost::format(tr("%15s %21s %21s")) % "Total" % print_money(total_balance) % print_money(total_unlocked_balance);
+  success_msg_writer() << boost::format(tr("%15s %21s %21s")) % "Total" % print_etn(total_balance) % print_etn(total_unlocked_balance);
 }
 //----------------------------------------------------------------------------------------------------
 bool simple_wallet::print_address(const std::vector<std::string> &args/* = std::vector<std::string>()*/)
@@ -9090,7 +9090,7 @@ bool simple_wallet::import_key_images(const std::vector<std::string> &args)
     uint64_t spent = 0, unspent = 0;
     uint64_t height = m_wallet->import_key_images(filename, spent, unspent);
     success_msg_writer() << "Signed key images imported to height " << height << ", "
-        << print_money(spent) << " spent, " << print_money(unspent) << " unspent"; 
+        << print_etn(spent) << " spent, " << print_etn(unspent) << " unspent"; 
   }
   catch (const std::exception &e)
   {
@@ -9134,7 +9134,7 @@ void simple_wallet::key_images_sync_intern(){
         message_writer() << tr("Running untrusted daemon, cannot determine which transaction output is spent. Use a trusted daemon with --trusted-daemon and run rescan_spent");
       } else
       {
-        success_msg_writer() << print_money(spent) << tr(" spent, ") << print_money(unspent) << tr(" unspent");
+        success_msg_writer() << print_etn(spent) << tr(" spent, ") << print_etn(unspent) << tr(" unspent");
       }
     }
     else {
@@ -9279,7 +9279,7 @@ bool simple_wallet::show_transfer(const std::vector<std::string> &args)
       success_msg_writer() << "txid: " << txid;
       success_msg_writer() << "Height: " << pd.m_block_height;
       success_msg_writer() << "Timestamp: " << tools::get_human_readable_timestamp(pd.m_timestamp);
-      success_msg_writer() << "Amount: " << print_money(pd.m_amount);
+      success_msg_writer() << "Amount: " << print_etn(pd.m_amount);
       success_msg_writer() << "Payment ID: " << payment_id;
       if (pd.m_unlock_time < CRYPTONOTE_MAX_BLOCK_NUMBER)
       {
@@ -9320,7 +9320,7 @@ bool simple_wallet::show_transfer(const std::vector<std::string> &args)
       for (const auto &d: pd.m_dests) {
         if (!dests.empty())
           dests += ", ";
-        dests +=  get_account_address_as_str(m_wallet->nettype(), d.is_subaddress, d.addr) + ": " + print_money(d.amount);
+        dests +=  get_account_address_as_str(m_wallet->nettype(), d.is_subaddress, d.addr) + ": " + print_etn(d.amount);
       }
       std::string payment_id = string_tools::pod_to_hex(i->second.m_payment_id);
       if (payment_id.substr(16).find_first_not_of('0') == std::string::npos)
@@ -9329,10 +9329,10 @@ bool simple_wallet::show_transfer(const std::vector<std::string> &args)
       success_msg_writer() << "txid: " << txid;
       success_msg_writer() << "Height: " << pd.m_block_height;
       success_msg_writer() << "Timestamp: " << tools::get_human_readable_timestamp(pd.m_timestamp);
-      success_msg_writer() << "Amount: " << print_money(pd.m_amount_in - change - fee);
+      success_msg_writer() << "Amount: " << print_etn(pd.m_amount_in - change - fee);
       success_msg_writer() << "Payment ID: " << payment_id;
-      success_msg_writer() << "Change: " << print_money(change);
-      success_msg_writer() << "Fee: " << print_money(fee);
+      success_msg_writer() << "Change: " << print_etn(change);
+      success_msg_writer() << "Fee: " << print_etn(fee);
       success_msg_writer() << "Destinations: " << dests;
       success_msg_writer() << "Note: " << m_wallet->get_tx_note(txid);
       return true;
@@ -9354,7 +9354,7 @@ bool simple_wallet::show_transfer(const std::vector<std::string> &args)
         success_msg_writer() << "Unconfirmed incoming transaction found in the txpool";
         success_msg_writer() << "txid: " << txid;
         success_msg_writer() << "Timestamp: " << tools::get_human_readable_timestamp(pd.m_timestamp);
-        success_msg_writer() << "Amount: " << print_money(pd.m_amount);
+        success_msg_writer() << "Amount: " << print_etn(pd.m_amount);
         success_msg_writer() << "Payment ID: " << payment_id;
         success_msg_writer() << "Address index: " << pd.m_subaddr_index.minor;
         success_msg_writer() << "Note: " << m_wallet->get_tx_note(txid);
@@ -9385,10 +9385,10 @@ bool simple_wallet::show_transfer(const std::vector<std::string> &args)
       success_msg_writer() << (is_failed ? "Failed" : "Pending") << " outgoing transaction found";
       success_msg_writer() << "txid: " << txid;
       success_msg_writer() << "Timestamp: " << tools::get_human_readable_timestamp(pd.m_timestamp);
-      success_msg_writer() << "Amount: " << print_money(amount - pd.m_change - fee);
+      success_msg_writer() << "Amount: " << print_etn(amount - pd.m_change - fee);
       success_msg_writer() << "Payment ID: " << payment_id;
-      success_msg_writer() << "Change: " << print_money(pd.m_change);
-      success_msg_writer() << "Fee: " << print_money(fee);
+      success_msg_writer() << "Change: " << print_etn(pd.m_change);
+      success_msg_writer() << "Fee: " << print_etn(fee);
       success_msg_writer() << "Note: " << m_wallet->get_tx_note(txid);
       return true;
     }

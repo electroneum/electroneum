@@ -2179,7 +2179,7 @@ Inputs:
 Outputs:
 
 * *blocks_fetched*  - unsigned int; Number of new blocks scanned.
-* *received_money*  - boolean; States if transactions to the wallet have been found in the blocks.
+* *received_etn*  - boolean; States if transactions to the wallet have been found in the blocks.
 
 Example:
 
@@ -2190,7 +2190,7 @@ $ curl -X POST http://localhost:40000/json_rpc -d '{"jsonrpc":"2.0","id":"0","me
   "jsonrpc": "2.0",
   "result": {
     "blocks_fetched": 24,
-    "received_money": true
+    "received_etn": true
   }
 }
 ```

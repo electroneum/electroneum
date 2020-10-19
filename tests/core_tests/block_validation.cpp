@@ -265,7 +265,7 @@ bool gen_block_unlock_time_is_timestamp_in_future::generate(std::vector<test_eve
   BLOCK_VALIDATION_INIT_GENERATE();
 
   MAKE_MINER_TX_MANUALLY(miner_tx, blk_0);
-  miner_tx.unlock_time = blk_0.timestamp + 3 * CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW * DIFFICULTY_BLOCKS_ESTIMATE_TIMESPAN_V6;
+  miner_tx.unlock_time = blk_0.timestamp + 3 * CRYPTONOTE_MINED_ETN_UNLOCK_WINDOW * DIFFICULTY_BLOCKS_ESTIMATE_TIMESPAN_V6;
 
   block blk_1;
   generator.construct_block_manually(blk_1, blk_0, miner_account, test_generator::bf_miner_tx, 0, 0, 0, crypto::hash(), 0, miner_tx);
@@ -509,7 +509,7 @@ bool gen_block_is_too_big::generate(std::vector<test_event_entry>& events) const
   // Creating a huge miner_tx, it will have a lot of outs
   MAKE_MINER_TX_MANUALLY(miner_tx, blk_0);
   static const size_t tx_out_count = CRYPTONOTE_BLOCK_GRANTED_FULL_REWARD_ZONE_V1 / 2;
-  uint64_t amount = get_outs_money_amount(miner_tx);
+  uint64_t amount = get_outs_etn_amount(miner_tx);
   uint64_t portion = amount / tx_out_count;
   uint64_t remainder = amount % tx_out_count;
   txout_target_v target = miner_tx.vout[0].target;
@@ -559,8 +559,8 @@ bool gen_block_invalid_binary_format::generate(std::vector<test_event_entry>& ev
 
   // Unlock blk_0 outputs
   block blk_last = blk_0;
-  assert(CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW < DIFFICULTY_WINDOW);
-  for (size_t i = 0; i < CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW; ++i)
+  assert(CRYPTONOTE_MINED_ETN_UNLOCK_WINDOW < DIFFICULTY_WINDOW);
+  for (size_t i = 0; i < CRYPTONOTE_MINED_ETN_UNLOCK_WINDOW; ++i)
   {
     MAKE_NEXT_BLOCK(events, blk_curr, blk_last, miner_account);
     timestamps.push_back(blk_curr.timestamp);

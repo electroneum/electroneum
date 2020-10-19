@@ -76,8 +76,8 @@ namespace tools
     //       signature_check_failed
     //       transfer_error *
     //         get_outs_general_error
-    //         not_enough_unlocked_money
-    //         not_enough_money
+    //         not_enough_unlocked_etn
+    //         not_enough_etn
     //         tx_not_possible
     //         not_enough_outs_to_mix
     //         tx_not_constructed
@@ -447,9 +447,9 @@ namespace tools
     //----------------------------------------------------------------------------------------------------
     typedef failed_rpc_request<transfer_error, get_outs_error_message_index> get_outs_error;
     //----------------------------------------------------------------------------------------------------
-    struct not_enough_unlocked_money : public transfer_error
+    struct not_enough_unlocked_etn : public transfer_error
     {
-      explicit not_enough_unlocked_money(std::string&& loc, uint64_t available, uint64_t tx_amount, uint64_t fee)
+      explicit not_enough_unlocked_etn(std::string&& loc, uint64_t available, uint64_t tx_amount, uint64_t fee)
         : transfer_error(std::move(loc), "not enough unlocked ETN")
         , m_available(available)
         , m_tx_amount(tx_amount)
@@ -463,8 +463,8 @@ namespace tools
       {
         std::ostringstream ss;
         ss << transfer_error::to_string() <<
-          ", available = " << cryptonote::print_money(m_available) <<
-          ", tx_amount = " << cryptonote::print_money(m_tx_amount);
+          ", available = " << cryptonote::print_etn(m_available) <<
+          ", tx_amount = " << cryptonote::print_etn(m_tx_amount);
         return ss.str();
       }
 
@@ -473,9 +473,9 @@ namespace tools
       uint64_t m_tx_amount;
     };
     //----------------------------------------------------------------------------------------------------
-    struct not_enough_money : public transfer_error
+    struct not_enough_etn : public transfer_error
     {
-      explicit not_enough_money(std::string&& loc, uint64_t available, uint64_t tx_amount, uint64_t fee)
+      explicit not_enough_etn(std::string&& loc, uint64_t available, uint64_t tx_amount, uint64_t fee)
         : transfer_error(std::move(loc), "not enough ETN")
         , m_available(available)
         , m_tx_amount(tx_amount)
@@ -489,8 +489,8 @@ namespace tools
       {
         std::ostringstream ss;
         ss << transfer_error::to_string() <<
-          ", available = " << cryptonote::print_money(m_available) <<
-          ", tx_amount = " << cryptonote::print_money(m_tx_amount);
+          ", available = " << cryptonote::print_etn(m_available) <<
+          ", tx_amount = " << cryptonote::print_etn(m_tx_amount);
         return ss.str();
       }
 
@@ -517,9 +517,9 @@ namespace tools
       {
         std::ostringstream ss;
         ss << transfer_error::to_string() <<
-          ", available = " << cryptonote::print_money(m_available) <<
-          ", tx_amount = " << cryptonote::print_money(m_tx_amount) <<
-          ", fee = " << cryptonote::print_money(m_fee);
+          ", available = " << cryptonote::print_etn(m_available) <<
+          ", tx_amount = " << cryptonote::print_etn(m_tx_amount) <<
+          ", fee = " << cryptonote::print_etn(m_fee);
         return ss.str();
       }
 
@@ -549,7 +549,7 @@ namespace tools
         ss << transfer_error::to_string() << "scanty_outs:";
         for (const auto& out: m_scanty_outs)
         {
-          ss << '\n' << cryptonote::print_money(out.first) << " - " << out.second;
+          ss << '\n' << cryptonote::print_etn(out.first) << " - " << out.second;
         }
         return ss.str();
       }
@@ -592,7 +592,7 @@ namespace tools
         {
           const cryptonote::tx_source_entry& src = m_sources[i];
           ss << "\n  source " << i << ":";
-          ss << "\n    amount: " << cryptonote::print_money(src.amount);
+          ss << "\n    amount: " << cryptonote::print_etn(src.amount);
           // It's not good, if logs will contain such much data
           //ss << "\n    real_output: " << src.real_output;
           //ss << "\n    real_output_in_tx_index: " << src.real_output_in_tx_index;
@@ -610,7 +610,7 @@ namespace tools
         {
           const cryptonote::tx_destination_entry& dst = m_destinations[i];
           ss << "\n  " << i << ": " << cryptonote::get_account_address_as_str(m_nettype, dst.is_subaddress, dst.addr) << " " <<
-            cryptonote::print_money(dst.amount);
+            cryptonote::print_etn(dst.amount);
         }
 
         ss << "\nunlock_time: " << m_unlock_time;
@@ -666,7 +666,7 @@ namespace tools
         , uint64_t fee
         , cryptonote::network_type nettype
         )
-        : transfer_error(std::move(loc), "transaction sum + fee exceeds " + cryptonote::print_money(std::numeric_limits<uint64_t>::max()))
+        : transfer_error(std::move(loc), "transaction sum + fee exceeds " + cryptonote::print_etn(std::numeric_limits<uint64_t>::max()))
         , m_destinations(destinations)
         , m_fee(fee)
         , m_nettype(nettype)
@@ -680,11 +680,11 @@ namespace tools
       {
         std::ostringstream ss;
         ss << transfer_error::to_string() <<
-          ", fee = " << cryptonote::print_money(m_fee) <<
+          ", fee = " << cryptonote::print_etn(m_fee) <<
           ", destinations:";
         for (const auto& dst : m_destinations)
         {
-          ss << '\n' << cryptonote::print_money(dst.amount) << " -> " << cryptonote::get_account_address_as_str(m_nettype, dst.is_subaddress, dst.addr);
+          ss << '\n' << cryptonote::print_etn(dst.amount) << " -> " << cryptonote::get_account_address_as_str(m_nettype, dst.is_subaddress, dst.addr);
         }
         return ss.str();
       }

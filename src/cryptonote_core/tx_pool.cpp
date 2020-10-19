@@ -153,16 +153,16 @@ namespace cryptonote
     if (tx.version == 1)
     {
       uint64_t inputs_amount = 0;
-      if(!get_inputs_money_amount(tx, inputs_amount))
+      if(!get_inputs_etn_amount(tx, inputs_amount))
       {
         tvc.m_verifivation_failed = true;
         return false;
       }
 
-      uint64_t outputs_amount = get_outs_money_amount(tx);
+      uint64_t outputs_amount = get_outs_etn_amount(tx);
       if(outputs_amount > inputs_amount)
       {
-        LOG_PRINT_L1("transaction use more ETN than it has: use " << print_money(outputs_amount) << ", have " << print_money(inputs_amount));
+        LOG_PRINT_L1("transaction use more ETN than it has: use " << print_etn(outputs_amount) << ", have " << print_etn(inputs_amount));
         tvc.m_verifivation_failed = true;
         tvc.m_overspend = true;
         return false;
@@ -1154,7 +1154,7 @@ namespace cryptonote
       }
       ss << "blob_size: " << (short_format ? "-" : std::to_string(txblob->size())) << std::endl
         << "weight: " << meta.weight << std::endl
-        << "fee: " << print_money(meta.fee) << std::endl
+        << "fee: " << print_etn(meta.fee) << std::endl
         << "kept_by_block: " << (meta.kept_by_block ? 'T' : 'F') << std::endl
         << "double_spend_seen: " << (meta.double_spend_seen ? 'T' : 'F') << std::endl
         << "max_used_block_height: " << meta.max_used_block_height << std::endl
@@ -1199,7 +1199,7 @@ namespace cryptonote
         MERROR("  failed to find tx meta");
         continue;
       }
-      LOG_PRINT_L2("Considering " << sorted_it->second << ", weight " << meta.weight << ", current block weight " << total_weight << "/" << max_total_weight << ", current coinbase " << print_money(best_coinbase));
+      LOG_PRINT_L2("Considering " << sorted_it->second << ", weight " << meta.weight << ", current block weight " << total_weight << "/" << max_total_weight << ", current coinbase " << print_etn(best_coinbase));
 
       // Can not exceed maximum block weight
       if (max_total_weight < total_weight + meta.weight)
@@ -1222,7 +1222,7 @@ namespace cryptonote
         coinbase = block_reward + fee + meta.fee;
         if (coinbase < template_accept_threshold(best_coinbase))
         {
-          LOG_PRINT_L2("  would decrease coinbase to " << print_money(coinbase));
+          LOG_PRINT_L2("  would decrease coinbase to " << print_etn(coinbase));
           continue;
         }
       }
@@ -1282,14 +1282,14 @@ namespace cryptonote
       fee += meta.fee;
       best_coinbase = coinbase;
       append_key_images(k_images, tx);
-      LOG_PRINT_L2("  added, new block weight " << total_weight << "/" << max_total_weight << ", coinbase " << print_money(best_coinbase));
+      LOG_PRINT_L2("  added, new block weight " << total_weight << "/" << max_total_weight << ", coinbase " << print_etn(best_coinbase));
     }
     lock.commit();
 
     expected_reward = best_coinbase;
     LOG_PRINT_L2("Block template filled with " << bl.tx_hashes.size() << " txes, weight "
-        << total_weight << "/" << max_total_weight << ", coinbase " << print_money(best_coinbase)
-        << " (including " << print_money(fee) << " in fees)");
+        << total_weight << "/" << max_total_weight << ", coinbase " << print_etn(best_coinbase)
+        << " (including " << print_etn(fee) << " in fees)");
     return true;
   }
   //---------------------------------------------------------------------------------

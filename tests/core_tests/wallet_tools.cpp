@@ -109,7 +109,7 @@ bool wallet_tools::fill_tx_sources(tools::wallet2 * wallet, std::vector<cryptono
     auto & td = transfers[i];
     if (td.m_spent)
       continue;
-    if (td.m_block_height + CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW > cur_height)
+    if (td.m_block_height + CRYPTONOTE_MINED_ETN_UNLOCK_WINDOW > cur_height)
       continue;
     if (selected_idx.find((size_t)i) != selected_idx.end()){
       MERROR("Should not happen (selected_idx not found): " << i);

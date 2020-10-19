@@ -39,7 +39,7 @@ namespace
 {
   void split_miner_tx_outs(transaction& miner_tx, uint64_t amount_1)
   {
-    uint64_t total_amount = get_outs_money_amount(miner_tx);
+    uint64_t total_amount = get_outs_etn_amount(miner_tx);
     uint64_t amount_2 = total_amount - amount_1;
     txout_target_v target = miner_tx.vout[0].target;
 
@@ -109,7 +109,7 @@ bool gen_uint_overflow_1::generate(std::vector<test_event_entry>& events) const
 
   // Problem 1. Miner tx output overflow
   MAKE_MINER_TX_MANUALLY(miner_tx_0, blk_0);
-  split_miner_tx_outs(miner_tx_0, MONEY_SUPPLY);
+  split_miner_tx_outs(miner_tx_0, ETN_SUPPLY);
   block blk_1;
   if (!generator.construct_block_manually(blk_1, blk_0, miner_account, test_generator::bf_miner_tx, 0, 0, 0, crypto::hash(), 0, miner_tx_0))
     return false;
@@ -117,23 +117,23 @@ bool gen_uint_overflow_1::generate(std::vector<test_event_entry>& events) const
 
   // Problem 1. Miner tx outputs overflow
   MAKE_MINER_TX_MANUALLY(miner_tx_1, blk_1);
-  split_miner_tx_outs(miner_tx_1, MONEY_SUPPLY);
+  split_miner_tx_outs(miner_tx_1, ETN_SUPPLY);
   block blk_2;
   if (!generator.construct_block_manually(blk_2, blk_1, miner_account, test_generator::bf_miner_tx, 0, 0, 0, crypto::hash(), 0, miner_tx_1))
     return false;
   events.push_back(blk_2);
 
   REWIND_BLOCKS(events, blk_2r, blk_2, miner_account);
-  MAKE_TX_LIST_START(events, txs_0, miner_account, bob_account, MONEY_SUPPLY, blk_2);
-  MAKE_TX_LIST(events, txs_0, miner_account, bob_account, MONEY_SUPPLY, blk_2);
+  MAKE_TX_LIST_START(events, txs_0, miner_account, bob_account, ETN_SUPPLY, blk_2);
+  MAKE_TX_LIST(events, txs_0, miner_account, bob_account, ETN_SUPPLY, blk_2);
   MAKE_NEXT_BLOCK_TX_LIST(events, blk_3, blk_2r, miner_account, txs_0);
   REWIND_BLOCKS(events, blk_3r, blk_3, miner_account);
 
   // Problem 2. total_fee overflow, block_reward overflow
   std::list<cryptonote::transaction> txs_1;
   // Create txs with huge fee
-  txs_1.push_back(construct_tx_with_fee(events, blk_3, bob_account, alice_account, MK_COINS(1), MONEY_SUPPLY - MK_COINS(1)));
-  txs_1.push_back(construct_tx_with_fee(events, blk_3, bob_account, alice_account, MK_COINS(1), MONEY_SUPPLY - MK_COINS(1)));
+  txs_1.push_back(construct_tx_with_fee(events, blk_3, bob_account, alice_account, MK_COINS(1), ETN_SUPPLY - MK_COINS(1)));
+  txs_1.push_back(construct_tx_with_fee(events, blk_3, bob_account, alice_account, MK_COINS(1), ETN_SUPPLY - MK_COINS(1)));
   MAKE_NEXT_BLOCK_TX_LIST(events, blk_4, blk_3r, miner_account, txs_1);
 
   return true;
@@ -169,10 +169,10 @@ bool gen_uint_overflow_2::generate(std::vector<test_event_entry>& events) const
 
   std::vector<cryptonote::tx_destination_entry> destinations;
   const account_public_address& bob_addr = bob_account.get_keys().m_account_address;
-  destinations.push_back(tx_destination_entry(MONEY_SUPPLY, bob_addr, false));
-  destinations.push_back(tx_destination_entry(MONEY_SUPPLY - 1, bob_addr, false));
+  destinations.push_back(tx_destination_entry(ETN_SUPPLY, bob_addr, false));
+  destinations.push_back(tx_destination_entry(ETN_SUPPLY - 1, bob_addr, false));
   // sources.front().amount = destinations[0].amount + destinations[2].amount + destinations[3].amount + TESTS_DEFAULT_FEE
-  destinations.push_back(tx_destination_entry(sources.front().amount - MONEY_SUPPLY - MONEY_SUPPLY + 1 - TESTS_DEFAULT_FEE, bob_addr, false));
+  destinations.push_back(tx_destination_entry(sources.front().amount - ETN_SUPPLY - ETN_SUPPLY + 1 - TESTS_DEFAULT_FEE, bob_addr, false));
 
   cryptonote::transaction tx_1;
   if (!construct_tx(miner_account.get_keys(), sources, destinations, boost::none, std::vector<uint8_t>(), tx_1, 0))
@@ -187,7 +187,7 @@ bool gen_uint_overflow_2::generate(std::vector<test_event_entry>& events) const
   for (size_t i = 0; i < tx_1.vout.size(); ++i)
   {
     auto& tx_1_out = tx_1.vout[i];
-    if (tx_1_out.amount < MONEY_SUPPLY - 1)
+    if (tx_1_out.amount < ETN_SUPPLY - 1)
       continue;
 
     append_tx_source_entry(sources, tx_1, i);
@@ -196,7 +196,7 @@ bool gen_uint_overflow_2::generate(std::vector<test_event_entry>& events) const
   destinations.clear();
   cryptonote::tx_destination_entry de;
   de.addr = alice_account.get_keys().m_account_address;
-  de.amount = MONEY_SUPPLY - TESTS_DEFAULT_FEE;
+  de.amount = ETN_SUPPLY - TESTS_DEFAULT_FEE;
   destinations.push_back(de);
   destinations.push_back(de);
 

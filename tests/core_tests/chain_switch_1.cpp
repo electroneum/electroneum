@@ -132,8 +132,8 @@ bool gen_chain_switch_1::check_split_not_switched(cryptonote::core& c, size_t ev
   std::vector<block> blocks;
   bool r = c.get_blocks(0, 10000, blocks);
   CHECK_TEST_CONDITION(r);
-  CHECK_EQ(5 + 2 * CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW, blocks.size());
-  CHECK_TEST_CONDITION(blocks.back() == boost::get<block>(events[20 + 2 * CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW]));  // blk_4
+  CHECK_EQ(5 + 2 * CRYPTONOTE_MINED_ETN_UNLOCK_WINDOW, blocks.size());
+  CHECK_TEST_CONDITION(blocks.back() == boost::get<block>(events[20 + 2 * CRYPTONOTE_MINED_ETN_UNLOCK_WINDOW]));  // blk_4
 
   CHECK_EQ(2, c.get_alternative_blocks_count());
 
@@ -170,11 +170,11 @@ bool gen_chain_switch_1::check_split_switched(cryptonote::core& c, size_t ev_ind
   std::vector<block> blocks;
   bool r = c.get_blocks(0, 10000, blocks);
   CHECK_TEST_CONDITION(r);
-  CHECK_EQ(6 + 2 * CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW, blocks.size());
+  CHECK_EQ(6 + 2 * CRYPTONOTE_MINED_ETN_UNLOCK_WINDOW, blocks.size());
   auto it = blocks.end();
   --it; --it; --it;
   CHECK_TEST_CONDITION(std::equal(blocks.begin(), it, m_chain_1.begin()));
-  CHECK_TEST_CONDITION(blocks.back() == boost::get<block>(events[24 + 2 * CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW]));  // blk_7
+  CHECK_TEST_CONDITION(blocks.back() == boost::get<block>(events[24 + 2 * CRYPTONOTE_MINED_ETN_UNLOCK_WINDOW]));  // blk_7
 
   std::vector<block> alt_blocks;
   r = c.get_alternative_blocks(alt_blocks);

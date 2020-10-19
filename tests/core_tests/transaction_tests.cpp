@@ -121,15 +121,15 @@ bool test_transaction_generation_and_ring_signature()
   CHECK_AND_ASSERT_MES(r, false, "failed to check ring signature");
 
   std::vector<size_t> outs;
-  uint64_t money = 0;
+  uint64_t etn = 0;
 
-  r = lookup_acc_outs(rv_acc.get_keys(), tx_rc1, get_tx_pub_key_from_extra(tx_rc1), get_additional_tx_pub_keys_from_extra(tx_rc1), outs,  money);
+  r = lookup_acc_outs(rv_acc.get_keys(), tx_rc1, get_tx_pub_key_from_extra(tx_rc1), get_additional_tx_pub_keys_from_extra(tx_rc1), outs,  etn);
   CHECK_AND_ASSERT_MES(r, false, "failed to lookup_acc_outs");
-  CHECK_AND_ASSERT_MES(td.amount == money, false, "wrong ETN amount in new transaction");
-  money = 0;
-  r = lookup_acc_outs(rv_acc2.get_keys(), tx_rc1, get_tx_pub_key_from_extra(tx_rc1), get_additional_tx_pub_keys_from_extra(tx_rc1), outs,  money);
+  CHECK_AND_ASSERT_MES(td.amount == etn, false, "wrong ETN amount in new transaction");
+  etn = 0;
+  r = lookup_acc_outs(rv_acc2.get_keys(), tx_rc1, get_tx_pub_key_from_extra(tx_rc1), get_additional_tx_pub_keys_from_extra(tx_rc1), outs,  etn);
   CHECK_AND_ASSERT_MES(r, false, "failed to lookup_acc_outs");
-  CHECK_AND_ASSERT_MES(0 == money, false, "wrong ETN amount in new transaction");
+  CHECK_AND_ASSERT_MES(0 == etn, false, "wrong ETN amount in new transaction");
   return true;
 }
 
