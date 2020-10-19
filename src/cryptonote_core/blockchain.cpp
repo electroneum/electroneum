@@ -1301,7 +1301,7 @@ bool Blockchain::prevalidate_miner_transaction(const block& b, uint64_t height)
   //      does not overflow a uint64_t, and this transaction *is* a uint64_t...
   if(!check_outs_overflow(b.miner_tx))
   {
-    MERROR("miner transaction has money overflow in block " << get_block_hash(b));
+    MERROR("miner transaction has ETN overflow in block " << get_block_hash(b));
     return false;
   }
 
@@ -1336,7 +1336,7 @@ bool Blockchain::validate_miner_transaction(const block& b, size_t cumulative_bl
   }
   if(base_reward + fee < money_in_use && already_generated_coins > 0)
   {
-    MERROR_VER("coinbase transaction spend too much money (" << print_money(money_in_use) << "). Block reward is " << print_money(base_reward + fee) << "(" << print_money(base_reward) << "+" << print_money(fee) << ")");
+    MERROR_VER("coinbase transaction spend too much ETN (" << print_money(money_in_use) << "). Block reward is " << print_money(base_reward + fee) << "(" << print_money(base_reward) << "+" << print_money(fee) << ")");
     return false;
   }
   // From hard fork 2, we allow a miner to claim less block reward than is allowed, in case a miner wants less dust

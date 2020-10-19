@@ -163,7 +163,7 @@ struct Wallet2CallbackImpl : public tools::i_wallet2_callback
 
         std::string tx_hash =  epee::string_tools::pod_to_hex(txid);
 
-        LOG_PRINT_L3(__FUNCTION__ << ": money received. height:  " << height
+        LOG_PRINT_L3(__FUNCTION__ << ": ETN received. height:  " << height
                      << ", tx: " << tx_hash
                      << ", amount: " << print_money(amount)
                      << ", idx: " << subaddr_index);
@@ -179,7 +179,7 @@ struct Wallet2CallbackImpl : public tools::i_wallet2_callback
 
         std::string tx_hash =  epee::string_tools::pod_to_hex(txid);
 
-        LOG_PRINT_L3(__FUNCTION__ << ": unconfirmed money received. height:  " << height
+        LOG_PRINT_L3(__FUNCTION__ << ": unconfirmed ETN received. height:  " << height
                      << ", tx: " << tx_hash
                      << ", amount: " << print_money(amount)
                      << ", idx: " << subaddr_index);
@@ -195,7 +195,7 @@ struct Wallet2CallbackImpl : public tools::i_wallet2_callback
     {
         // TODO;
         std::string tx_hash = epee::string_tools::pod_to_hex(txid);
-        LOG_PRINT_L3(__FUNCTION__ << ": money spent. height:  " << height
+        LOG_PRINT_L3(__FUNCTION__ << ": ETN spent. height:  " << height
                      << ", tx: " << tx_hash
                      << ", amount: " << print_money(amount)
                      << ", idx: " << subaddr_index);
@@ -1518,21 +1518,21 @@ PendingTransaction *WalletImpl::createTransaction(const string &dst_addr, const 
         } catch (const tools::error::not_enough_unlocked_money& e) {
             std::ostringstream writer;
 
-            writer << boost::format(tr("not enough money to transfer, available only %s, sent amount %s")) %
+            writer << boost::format(tr("not enough ETN to transfer, available only %s, sent amount %s")) %
                       print_money(e.available()) %
                       print_money(e.tx_amount());
             setStatusError(writer.str());
         } catch (const tools::error::not_enough_money& e) {
             std::ostringstream writer;
 
-            writer << boost::format(tr("not enough money to transfer, overall balance only %s, sent amount %s")) %
+            writer << boost::format(tr("not enough ETN to transfer, overall balance only %s, sent amount %s")) %
                       print_money(e.available()) %
                       print_money(e.tx_amount());
             setStatusError(writer.str());
         } catch (const tools::error::tx_not_possible& e) {
             std::ostringstream writer;
 
-            writer << boost::format(tr("not enough money to transfer, available only %s, transaction amount %s = %s + %s (fee)")) %
+            writer << boost::format(tr("not enough ETN to transfer, available only %s, transaction amount %s = %s + %s (fee)")) %
                       print_money(e.available()) %
                       print_money(e.tx_amount() + e.fee())  %
                       print_money(e.tx_amount()) %
@@ -1601,7 +1601,7 @@ PendingTransaction *WalletImpl::createSweepUnmixableTransaction()
             setStatusError("");
             std::ostringstream writer;
 
-            writer << boost::format(tr("not enough money to transfer, available only %s, sent amount %s")) %
+            writer << boost::format(tr("not enough ETN to transfer, available only %s, sent amount %s")) %
                       print_money(e.available()) %
                       print_money(e.tx_amount());
             setStatusError(writer.str());
@@ -1609,7 +1609,7 @@ PendingTransaction *WalletImpl::createSweepUnmixableTransaction()
             setStatusError("");
             std::ostringstream writer;
 
-            writer << boost::format(tr("not enough money to transfer, overall balance only %s, sent amount %s")) %
+            writer << boost::format(tr("not enough ETN to transfer, overall balance only %s, sent amount %s")) %
                       print_money(e.available()) %
                       print_money(e.tx_amount());
             setStatusError(writer.str());
@@ -1617,7 +1617,7 @@ PendingTransaction *WalletImpl::createSweepUnmixableTransaction()
             setStatusError("");
             std::ostringstream writer;
 
-            writer << boost::format(tr("not enough money to transfer, available only %s, transaction amount %s = %s + %s (fee)")) %
+            writer << boost::format(tr("not enough ETN to transfer, available only %s, transaction amount %s = %s + %s (fee)")) %
                       print_money(e.available()) %
                       print_money(e.tx_amount() + e.fee())  %
                       print_money(e.tx_amount()) %

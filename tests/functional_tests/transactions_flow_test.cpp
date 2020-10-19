@@ -224,7 +224,7 @@ bool transactions_flow_test(std::string& working_folder,
     while(w1.unlocked_balance(0) < amount_to_tx + TEST_FEE)
     {
       misc_utils::sleep_no_w(1000);
-      LOG_PRINT_L0("not enough money, waiting for cashback or mining");
+      LOG_PRINT_L0("not enough ETN, waiting for cashback or mining");
       w1.refresh(true, blocks_fetched, received_money, ok);
     }
 
@@ -232,18 +232,18 @@ bool transactions_flow_test(std::string& working_folder,
     /*size_t n_attempts = 0;
     while (!do_send_money(w1, w2, mix_in_factor, amount_to_tx, tx)) {
         n_attempts++;
-        std::cout << "failed to transfer money, refresh and try again (attempts=" << n_attempts << ")" << std::endl;
+        std::cout << "failed to transfer ETN, refresh and try again (attempts=" << n_attempts << ")" << std::endl;
         w1.refresh();
     }*/
 
 
     if(!do_send_money(w1, w2, mix_in_factor, amount_to_tx, tx))
     {
-      LOG_PRINT_L0("failed to transfer money, tx: " << get_transaction_hash(tx) << ", refresh and try again" );
+      LOG_PRINT_L0("failed to transfer ETN, tx: " << get_transaction_hash(tx) << ", refresh and try again" );
       w1.refresh(true, blocks_fetched, received_money, ok);
       if(!do_send_money(w1, w2, mix_in_factor, amount_to_tx, tx))
       {
-        LOG_PRINT_L0( "failed to transfer money, second chance. tx: " << get_transaction_hash(tx) << ", exit" );
+        LOG_PRINT_L0( "failed to transfer ETN, second chance. tx: " << get_transaction_hash(tx) << ", exit" );
         LOCAL_ASSERT(false);
         return false;
       }
@@ -297,7 +297,7 @@ bool transactions_flow_test(std::string& working_folder,
     }
 
     MERROR("-----------------------FINISHING TRANSACTIONS FLOW TEST FAILED-----------------------" );
-    MERROR("income " << print_money(money_2) << " via " << i << " transactions, expected money = " << print_money(transfered_money) );
+    MERROR("income " << print_money(money_2) << " via " << i << " transactions, expected ETN = " << print_money(transfered_money) );
     LOCAL_ASSERT(false);
     return false;
   }

@@ -2040,7 +2040,7 @@ void wallet2::process_new_transaction(const crypto::hash &txid, const cryptonote
               if (m_multisig_rescan_info && m_multisig_rescan_info->front().size() >= m_transfers.size())
                 update_multisig_rescan_info(*m_multisig_rescan_k, *m_multisig_rescan_info, m_transfers.size() - 1);
             }
-	    LOG_PRINT_L0("Received money: " << print_money(td.amount()) << ", with tx: " << txid);
+	    LOG_PRINT_L0("Received ETN: " << print_money(td.amount()) << ", with tx: " << txid);
 	    if (0 != m_callback)
 	      m_callback->on_money_received(height, txid, tx, td.m_amount, td.m_subaddr_index, td.m_tx.unlock_time);
           }
@@ -2110,7 +2110,7 @@ void wallet2::process_new_transaction(const crypto::hash &txid, const cryptonote
             THROW_WALLET_EXCEPTION_IF(td.get_public_key() != tx_scan_info[o].in_ephemeral.pub, error::wallet_internal_error, "Inconsistent public keys");
 	    THROW_WALLET_EXCEPTION_IF(td.m_spent, error::wallet_internal_error, "Inconsistent spent status");
 
-	    LOG_PRINT_L1("Received money: " << print_money(td.amount()) << ", with tx: " << txid);
+	    LOG_PRINT_L1("Received ETN: " << print_money(td.amount()) << ", with tx: " << txid);
 	    if (0 != m_callback)
 	      m_callback->on_money_received(height, txid, tx, td.m_amount, td.m_subaddr_index, td.m_tx.unlock_time);
           }
@@ -2161,7 +2161,7 @@ void wallet2::process_new_transaction(const crypto::hash &txid, const cryptonote
       subaddr_indices.insert(td.m_subaddr_index.minor);
       if (!pool)
       {
-        LOG_PRINT_L1("Spent money: " << print_money(amount) << ", with tx: " << txid);
+        LOG_PRINT_L1("Spent ETN: " << print_money(amount) << ", with tx: " << txid);
         set_spent(it->second, height);
         if (0 != m_callback)
           m_callback->on_money_spent(height, txid, tx, amount, tx, td.m_subaddr_index);
@@ -12033,7 +12033,7 @@ uint64_t wallet2::import_key_images(const std::vector<std::pair<crypto::key_imag
           amount = td.amount();
           tx_money_spent_in_ins += amount;
 
-          LOG_PRINT_L0("Spent money: " << print_money(amount) << ", with tx: " << *spent_txid);
+          LOG_PRINT_L0("Spent ETN: " << print_money(amount) << ", with tx: " << *spent_txid);
           set_spent(it->second, e.block_height);
           if (m_callback)
             m_callback->on_money_spent(e.block_height, *spent_txid, spent_tx, amount, spent_tx, td.m_subaddr_index);

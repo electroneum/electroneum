@@ -442,7 +442,7 @@ namespace cryptonote
     //check money
     if(summary_outs_money > summary_inputs_money )
     {
-      LOG_ERROR("Transaction inputs money ("<< summary_inputs_money << ") less than outputs money (" << summary_outs_money << ")");
+      LOG_ERROR("Transaction inputs ETN ("<< summary_inputs_money << ") less than outputs ETN (" << summary_outs_money << ")");
       return false;
     }
 

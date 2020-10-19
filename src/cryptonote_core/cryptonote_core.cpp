@@ -1137,7 +1137,7 @@ namespace cryptonote
 
     if(!check_money_overflow(tx))
     {
-      MERROR_VER("tx has money overflow, rejected for tx id= " << get_transaction_hash(tx));
+      MERROR_VER("tx has ETN overflow, rejected for tx id= " << get_transaction_hash(tx));
       return false;
     }
 

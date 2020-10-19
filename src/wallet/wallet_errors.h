@@ -450,7 +450,7 @@ namespace tools
     struct not_enough_unlocked_money : public transfer_error
     {
       explicit not_enough_unlocked_money(std::string&& loc, uint64_t available, uint64_t tx_amount, uint64_t fee)
-        : transfer_error(std::move(loc), "not enough unlocked money")
+        : transfer_error(std::move(loc), "not enough unlocked ETN")
         , m_available(available)
         , m_tx_amount(tx_amount)
       {
@@ -476,7 +476,7 @@ namespace tools
     struct not_enough_money : public transfer_error
     {
       explicit not_enough_money(std::string&& loc, uint64_t available, uint64_t tx_amount, uint64_t fee)
-        : transfer_error(std::move(loc), "not enough money")
+        : transfer_error(std::move(loc), "not enough ETN")
         , m_available(available)
         , m_tx_amount(tx_amount)
       {

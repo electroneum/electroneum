@@ -531,28 +531,28 @@ namespace
     }
     catch (const tools::error::not_enough_unlocked_money& e)
     {
-      LOG_PRINT_L0(boost::format("not enough money to transfer, available only %s, sent amount %s") %
+      LOG_PRINT_L0(boost::format("not enough ETN to transfer, available only %s, sent amount %s") %
         print_money(e.available()) %
         print_money(e.tx_amount()));
-      fail_msg_writer() << sw::tr("Not enough money in unlocked balance");
+      fail_msg_writer() << sw::tr("Not enough ETN in unlocked balance");
       warn_of_possible_attack = false;
     }
     catch (const tools::error::not_enough_money& e)
     {
-      LOG_PRINT_L0(boost::format("not enough money to transfer, available only %s, sent amount %s") %
+      LOG_PRINT_L0(boost::format("not enough ETN to transfer, available only %s, sent amount %s") %
         print_money(e.available()) %
         print_money(e.tx_amount()));
-      fail_msg_writer() << sw::tr("Not enough money in unlocked balance");
+      fail_msg_writer() << sw::tr("Not enough ETN in unlocked balance");
       warn_of_possible_attack = false;
     }
     catch (const tools::error::tx_not_possible& e)
     {
-      LOG_PRINT_L0(boost::format("not enough money to transfer, available only %s, transaction amount %s = %s + %s (fee)") %
+      LOG_PRINT_L0(boost::format("not enough ETN to transfer, available only %s, transaction amount %s = %s + %s (fee)") %
         print_money(e.available()) %
         print_money(e.tx_amount() + e.fee())  %
         print_money(e.tx_amount()) %
         print_money(e.fee()));
-      fail_msg_writer() << sw::tr("Failed to find a way to create transactions. This is usually due to dust which is so small it cannot pay for itself in fees, or trying to send more money than the unlocked balance, or not leaving enough for fees");
+      fail_msg_writer() << sw::tr("Failed to find a way to create transactions. This is usually due to dust which is so small it cannot pay for itself in fees, or trying to send more ETN than the unlocked balance, or not leaving enough for fees");
       warn_of_possible_attack = false;
     }
     catch (const tools::error::not_enough_outs_to_mix& e)
@@ -2155,7 +2155,7 @@ bool simple_wallet::welcome(const std::vector<std::string> &args)
 {
   message_writer() << tr("Welcome to Electroneum, the cryptocurrency for the masses.");
   message_writer() << "";
-  message_writer() << tr("Electroneum, like Bitcoin, is a cryptocurrency. That is, it is digital money.");
+  message_writer() << tr("Electroneum, like Bitcoin, is a cryptocurrency. That is, it is digital token.");
   message_writer() << tr("Unlike Bitcoin, your Electroneum transactions and balance stay private, and not visible to the world by default.");
   message_writer() << tr("However, you have the option of making those available to select parties, if you choose to.");
   message_writer() << "";
@@ -5102,7 +5102,7 @@ void simple_wallet::on_refresh_finished(uint64_t start_height, uint64_t fetched_
   }
 
   // Finished first refresh for HW device and money received -> KI sync
-  message_writer() << "\n" << tr("The first refresh has finished for the HW-based wallet with received money. hw_key_images_sync is needed. ");
+  message_writer() << "\n" << tr("The first refresh has finished for the HW-based wallet with received ETN. hw_key_images_sync is needed. ");
 
   std::string accepted = input_line(tr("Do you want to do it now? (Y/Yes/N/No): "));
   if (std::cin.eof() || !command_line::is_yes(accepted)) {
@@ -6225,7 +6225,7 @@ bool simple_wallet::sweep_unmixable(const std::vector<std::string> &args_)
   }
   catch (const tools::error::not_enough_unlocked_money& e)
   {
-    fail_msg_writer() << tr("Not enough money in unlocked balance");
+    fail_msg_writer() << tr("Not enough ETN in unlocked balance");
     std::string accepted = input_line((boost::format(tr("Discarding %s of unmixable outputs that cannot be spent, which can be undone by \"rescan_spent\".  Is this okay?")) % print_money(e.available())).str(), true);
     if (std::cin.eof())
       return true;
@@ -6789,7 +6789,7 @@ bool simple_wallet::sweep_single(const std::vector<std::string> &args_)
     else
     {
       m_wallet->commit_tx(ptx_vector[0]);
-      success_msg_writer(true) << tr("Money successfully sent, transaction: ") << get_transaction_hash(ptx_vector[0].tx);
+      success_msg_writer(true) << tr("ETN successfully sent, transaction: ") << get_transaction_hash(ptx_vector[0].tx);
     }
 
   }

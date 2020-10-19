@@ -822,7 +822,7 @@ struct MyWalletListener : public Electroneum::WalletListener
 
     virtual void moneySpent(const string &txId, uint64_t amount)
     {
-        std::cerr << "wallet: " << wallet->mainAddress() << "**** just spent money ("
+        std::cerr << "wallet: " << wallet->mainAddress() << "**** just spent ETN ("
                   << txId  << ", " << wallet->displayAmount(amount) << ")" << std::endl;
         total_tx += amount;
         send_triggered = true;
@@ -831,7 +831,7 @@ struct MyWalletListener : public Electroneum::WalletListener
 
     virtual void moneyReceived(const string &txId, uint64_t amount)
     {
-        std::cout << "wallet: " << wallet->mainAddress() << "**** just received money ("
+        std::cout << "wallet: " << wallet->mainAddress() << "**** just received ETN ("
                   << txId  << ", " << wallet->displayAmount(amount) << ")" << std::endl;
         total_rx += amount;
         receive_triggered = true;
@@ -840,7 +840,7 @@ struct MyWalletListener : public Electroneum::WalletListener
 
     virtual void unconfirmedMoneyReceived(const string &txId, uint64_t amount)
     {
-        std::cout << "wallet: " << wallet->mainAddress() << "**** just received unconfirmed money ("
+        std::cout << "wallet: " << wallet->mainAddress() << "**** just received unconfirmed ETN ("
                   << txId  << ", " << wallet->displayAmount(amount) << ")" << std::endl;
         // Don't trigger receive until tx is mined
         // total_rx += amount;
