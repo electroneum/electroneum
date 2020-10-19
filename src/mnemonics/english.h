@@ -935,7 +935,7 @@ namespace Language
         "moisture",
         "molten",
         "moment",
-        "money",
+        "etn",
         "moon",
         "mops",
         "morsel",

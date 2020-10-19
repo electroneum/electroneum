@@ -107,7 +107,7 @@ int main(int argc, char* argv[])
     GENERATE_AND_PLAY(gen_chain_switch_1);
     GENERATE_AND_PLAY(gen_ring_signature_1);
     GENERATE_AND_PLAY(gen_ring_signature_2);
-    //GENERATE_AND_PLAY(gen_ring_signature_big); // Takes up to XXX hours (if CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW == 10)
+    //GENERATE_AND_PLAY(gen_ring_signature_big); // Takes up to XXX hours (if CRYPTONOTE_MINED_ETN_UNLOCK_WINDOW == 10)
 
     // Block verification tests
     GENERATE_AND_PLAY(gen_block_big_major_version);
@@ -133,7 +133,7 @@ int main(int argc, char* argv[])
     GENERATE_AND_PLAY(gen_block_miner_tx_has_out_to_alice);
     GENERATE_AND_PLAY(gen_block_has_invalid_tx);
     GENERATE_AND_PLAY(gen_block_is_too_big);
-    GENERATE_AND_PLAY(gen_block_invalid_binary_format); // Takes up to 3 hours, if CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW == 500, up to 30 minutes, if CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW == 10
+    GENERATE_AND_PLAY(gen_block_invalid_binary_format); // Takes up to 3 hours, if CRYPTONOTE_MINED_ETN_UNLOCK_WINDOW == 500, up to 30 minutes, if CRYPTONOTE_MINED_ETN_UNLOCK_WINDOW == 10
 
     // Transaction verification tests
     GENERATE_AND_PLAY(gen_tx_big_version);

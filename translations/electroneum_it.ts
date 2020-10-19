@@ -159,7 +159,7 @@
     <message>
         <location filename="../src/wallet/api/wallet.cpp" line="994"/>
         <location filename="../src/wallet/api/wallet.cpp" line="1088"/>
-        <source>not enough money to transfer, available only %s, sent amount %s</source>
+        <source>not enough ETN to transfer, available only %s, sent amount %s</source>
         <translation>non hai abbastanza soldi da trasferire, sono disponibili solo %s, ammontare inviato %s</translation>
     </message>
     <message>
@@ -240,7 +240,7 @@
     <message>
         <location filename="../src/wallet/api/wallet.cpp" line="1003"/>
         <location filename="../src/wallet/api/wallet.cpp" line="1097"/>
-        <source>not enough money to transfer, available only %s, transaction amount %s = %s + %s (fee)</source>
+        <source>not enough ETN to transfer, available only %s, transaction amount %s = %s + %s (fee)</source>
         <translation>Non hai abbastanza ssoldi da trasferire, disponibili solo %s, ammontare transazione %s = %s + %s (tassa)</translation>
     </message>
     <message>
@@ -814,7 +814,7 @@ This transaction will unlock on block %llu, in approximately %s days (assuming 2
         <location filename="../src/simplewallet/simplewallet.cpp" line="2583"/>
         <location filename="../src/simplewallet/simplewallet.cpp" line="2844"/>
         <location filename="../src/simplewallet/simplewallet.cpp" line="3157"/>
-        <source>Not enough money in unlocked balance</source>
+        <source>Not enough ETN in unlocked balance</source>
         <translation>Non hai abbastanza fondi nel bilancio sbloccato</translation>
     </message>
     <message>
@@ -822,7 +822,7 @@ This transaction will unlock on block %llu, in approximately %s days (assuming 2
         <location filename="../src/simplewallet/simplewallet.cpp" line="2592"/>
         <location filename="../src/simplewallet/simplewallet.cpp" line="2853"/>
         <location filename="../src/simplewallet/simplewallet.cpp" line="3166"/>
-        <source>Failed to find a way to create transactions. This is usually due to dust which is so small it cannot pay for itself in fees, or trying to send more money than the unlocked balance, or not leaving enough for fees</source>
+        <source>Failed to find a way to create transactions. This is usually due to dust which is so small it cannot pay for itself in fees, or trying to send more ETN than the unlocked balance, or not leaving enough for fees</source>
         <translation>Impossibile creare transazioni. Questo succede di solito perchè l&apos;ammontare di polvere è così piccolo da non poter pagare le proprie tasse, oppure stai provando a mandare più soldi di quelli che possiedi nel bilancio sbloccato, o non hai aggiunto abbastanza tasse</translation>
     </message>
     <message>
@@ -1983,7 +1983,7 @@ di nuovo il tuo portafoglio (le chiavi del tuo portafoglio NON sono a rischio in
     </message>
     <message>
         <location filename="../src/simplewallet/simplewallet.cpp" line="2378"/>
-        <source>Money successfully sent, transaction </source>
+        <source>ETN successfully sent, transaction </source>
         <translation>Fondi inviati con successo, transazione </translation>
     </message>
     <message>
@@ -2066,7 +2066,7 @@ di nuovo il tuo portafoglio (le chiavi del tuo portafoglio NON sono a rischio in
         <location filename="../src/simplewallet/simplewallet.cpp" line="2555"/>
         <location filename="../src/simplewallet/simplewallet.cpp" line="2816"/>
         <location filename="../src/simplewallet/simplewallet.cpp" line="3129"/>
-        <source>Money successfully sent, transaction: </source>
+        <source>ETN successfully sent, transaction: </source>
         <translation>Soldi inviati con successo, transazione: </translation>
     </message>
     <message>

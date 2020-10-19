@@ -158,50 +158,50 @@ struct Wallet2CallbackImpl : public tools::i_wallet2_callback
         }
     }
 
-    virtual void on_money_received(uint64_t height, const crypto::hash &txid, const cryptonote::transaction& tx, uint64_t amount, const cryptonote::subaddress_index& subaddr_index, uint64_t unlock_time)
+    virtual void on_etn_received(uint64_t height, const crypto::hash &txid, const cryptonote::transaction& tx, uint64_t amount, const cryptonote::subaddress_index& subaddr_index, uint64_t unlock_time)
     {
 
         std::string tx_hash =  epee::string_tools::pod_to_hex(txid);
 
-        LOG_PRINT_L3(__FUNCTION__ << ": money received. height:  " << height
+        LOG_PRINT_L3(__FUNCTION__ << ": ETN received. height:  " << height
                      << ", tx: " << tx_hash
-                     << ", amount: " << print_money(amount)
+                     << ", amount: " << print_etn(amount)
                      << ", idx: " << subaddr_index);
         // do not signal on received tx if wallet is not syncronized completely
         if (m_listener && m_wallet->synchronized()) {
-            m_listener->moneyReceived(tx_hash, amount);
+            m_listener->etnReceived(tx_hash, amount);
             m_listener->updated();
         }
     }
 
-    virtual void on_unconfirmed_money_received(uint64_t height, const crypto::hash &txid, const cryptonote::transaction& tx, uint64_t amount, const cryptonote::subaddress_index& subaddr_index)
+    virtual void on_unconfirmed_etn_received(uint64_t height, const crypto::hash &txid, const cryptonote::transaction& tx, uint64_t amount, const cryptonote::subaddress_index& subaddr_index)
     {
 
         std::string tx_hash =  epee::string_tools::pod_to_hex(txid);
 
-        LOG_PRINT_L3(__FUNCTION__ << ": unconfirmed money received. height:  " << height
+        LOG_PRINT_L3(__FUNCTION__ << ": unconfirmed ETN received. height:  " << height
                      << ", tx: " << tx_hash
-                     << ", amount: " << print_money(amount)
+                     << ", amount: " << print_etn(amount)
                      << ", idx: " << subaddr_index);
         // do not signal on received tx if wallet is not syncronized completely
         if (m_listener && m_wallet->synchronized()) {
-            m_listener->unconfirmedMoneyReceived(tx_hash, amount);
+            m_listener->unconfirmedETNReceived(tx_hash, amount);
             m_listener->updated();
         }
     }
 
-    virtual void on_money_spent(uint64_t height, const crypto::hash &txid, const cryptonote::transaction& in_tx,
+    virtual void on_etn_spent(uint64_t height, const crypto::hash &txid, const cryptonote::transaction& in_tx,
                                 uint64_t amount, const cryptonote::transaction& spend_tx, const cryptonote::subaddress_index& subaddr_index)
     {
         // TODO;
         std::string tx_hash = epee::string_tools::pod_to_hex(txid);
-        LOG_PRINT_L3(__FUNCTION__ << ": money spent. height:  " << height
+        LOG_PRINT_L3(__FUNCTION__ << ": ETN spent. height:  " << height
                      << ", tx: " << tx_hash
-                     << ", amount: " << print_money(amount)
+                     << ", amount: " << print_etn(amount)
                      << ", idx: " << subaddr_index);
         // do not signal on sent tx if wallet is not syncronized completely
         if (m_listener && m_wallet->synchronized()) {
-            m_listener->moneySpent(tx_hash, amount);
+            m_listener->etnSpent(tx_hash, amount);
             m_listener->updated();
         }
     }
@@ -219,27 +219,27 @@ struct Wallet2CallbackImpl : public tools::i_wallet2_callback
       }
     }
 
-    virtual void on_lw_money_received(uint64_t height, const crypto::hash &txid, uint64_t amount)
+    virtual void on_lw_etn_received(uint64_t height, const crypto::hash &txid, uint64_t amount)
     {
       if (m_listener) {
         std::string tx_hash =  epee::string_tools::pod_to_hex(txid);
-        m_listener->moneyReceived(tx_hash, amount);
+        m_listener->etnReceived(tx_hash, amount);
       }
     }
 
-    virtual void on_lw_unconfirmed_money_received(uint64_t height, const crypto::hash &txid, uint64_t amount)
+    virtual void on_lw_unconfirmed_etn_received(uint64_t height, const crypto::hash &txid, uint64_t amount)
     {
       if (m_listener) {
         std::string tx_hash =  epee::string_tools::pod_to_hex(txid);
-        m_listener->unconfirmedMoneyReceived(tx_hash, amount);
+        m_listener->unconfirmedETNReceived(tx_hash, amount);
       }
     }
 
-    virtual void on_lw_money_spent(uint64_t height, const crypto::hash &txid, uint64_t amount)
+    virtual void on_lw_etn_spent(uint64_t height, const crypto::hash &txid, uint64_t amount)
     {
       if (m_listener) {
         std::string tx_hash =  epee::string_tools::pod_to_hex(txid);
-        m_listener->moneySpent(tx_hash, amount);
+        m_listener->etnSpent(tx_hash, amount);
       }
     }
 
@@ -297,7 +297,7 @@ WalletListener::~WalletListener() {}
 
 string Wallet::displayAmount(uint64_t amount)
 {
-    return cryptonote::print_money(amount);
+    return cryptonote::print_etn(amount);
 }
 
 uint64_t Wallet::amountFromString(const string &amount)
@@ -1190,7 +1190,7 @@ bool WalletImpl::importKeyImages(const string &filename)
     uint64_t spent = 0, unspent = 0;
     uint64_t height = m_wallet->import_key_images(filename, spent, unspent);
     LOG_PRINT_L2("Signed key images imported to height " << height << ", "
-        << print_money(spent) << " spent, " << print_money(unspent) << " unspent");
+        << print_etn(spent) << " spent, " << print_etn(unspent) << " unspent");
   }
   catch (const std::exception &e)
   {
@@ -1515,34 +1515,34 @@ PendingTransaction *WalletImpl::createTransaction(const string &dst_addr, const 
             setStatusError(tr("RPC error: ") +  e.to_string());
         } catch (const tools::error::get_outs_error &e) {
             setStatusError((boost::format(tr("failed to get outputs to mix: %s")) % e.what()).str());
-        } catch (const tools::error::not_enough_unlocked_money& e) {
+        } catch (const tools::error::not_enough_unlocked_etn& e) {
             std::ostringstream writer;
 
-            writer << boost::format(tr("not enough money to transfer, available only %s, sent amount %s")) %
-                      print_money(e.available()) %
-                      print_money(e.tx_amount());
+            writer << boost::format(tr("not enough ETN to transfer, available only %s, sent amount %s")) %
+                      print_etn(e.available()) %
+                      print_etn(e.tx_amount());
             setStatusError(writer.str());
-        } catch (const tools::error::not_enough_money& e) {
+        } catch (const tools::error::not_enough_etn& e) {
             std::ostringstream writer;
 
-            writer << boost::format(tr("not enough money to transfer, overall balance only %s, sent amount %s")) %
-                      print_money(e.available()) %
-                      print_money(e.tx_amount());
+            writer << boost::format(tr("not enough ETN to transfer, overall balance only %s, sent amount %s")) %
+                      print_etn(e.available()) %
+                      print_etn(e.tx_amount());
             setStatusError(writer.str());
         } catch (const tools::error::tx_not_possible& e) {
             std::ostringstream writer;
 
-            writer << boost::format(tr("not enough money to transfer, available only %s, transaction amount %s = %s + %s (fee)")) %
-                      print_money(e.available()) %
-                      print_money(e.tx_amount() + e.fee())  %
-                      print_money(e.tx_amount()) %
-                      print_money(e.fee());
+            writer << boost::format(tr("not enough ETN to transfer, available only %s, transaction amount %s = %s + %s (fee)")) %
+                      print_etn(e.available()) %
+                      print_etn(e.tx_amount() + e.fee())  %
+                      print_etn(e.tx_amount()) %
+                      print_etn(e.fee());
             setStatusError(writer.str());
         } catch (const tools::error::not_enough_outs_to_mix& e) {
             std::ostringstream writer;
             writer << tr("not enough outputs.");
             for (const std::pair<uint64_t, uint64_t> outs_for_amount : e.scanty_outs()) {
-                writer << "\n" << tr("output amount") << " = " << print_money(outs_for_amount.first) << ", " << tr("found outputs to use") << " = " << outs_for_amount.second;
+                writer << "\n" << tr("output amount") << " = " << print_etn(outs_for_amount.first) << ", " << tr("found outputs to use") << " = " << outs_for_amount.second;
             }
             writer << "\n" << tr("Please sweep unmixable outputs.");
             setStatusError(writer.str());
@@ -1597,37 +1597,37 @@ PendingTransaction *WalletImpl::createSweepUnmixableTransaction()
             setStatusError(tr("RPC error: ") +  e.to_string());
         } catch (const tools::error::get_outs_error&) {
             setStatusError(tr("failed to get outputs to mix"));
-        } catch (const tools::error::not_enough_unlocked_money& e) {
+        } catch (const tools::error::not_enough_unlocked_etn& e) {
             setStatusError("");
             std::ostringstream writer;
 
-            writer << boost::format(tr("not enough money to transfer, available only %s, sent amount %s")) %
-                      print_money(e.available()) %
-                      print_money(e.tx_amount());
+            writer << boost::format(tr("not enough ETN to transfer, available only %s, sent amount %s")) %
+                      print_etn(e.available()) %
+                      print_etn(e.tx_amount());
             setStatusError(writer.str());
-        } catch (const tools::error::not_enough_money& e) {
+        } catch (const tools::error::not_enough_etn& e) {
             setStatusError("");
             std::ostringstream writer;
 
-            writer << boost::format(tr("not enough money to transfer, overall balance only %s, sent amount %s")) %
-                      print_money(e.available()) %
-                      print_money(e.tx_amount());
+            writer << boost::format(tr("not enough ETN to transfer, overall balance only %s, sent amount %s")) %
+                      print_etn(e.available()) %
+                      print_etn(e.tx_amount());
             setStatusError(writer.str());
         } catch (const tools::error::tx_not_possible& e) {
             setStatusError("");
             std::ostringstream writer;
 
-            writer << boost::format(tr("not enough money to transfer, available only %s, transaction amount %s = %s + %s (fee)")) %
-                      print_money(e.available()) %
-                      print_money(e.tx_amount() + e.fee())  %
-                      print_money(e.tx_amount()) %
-                      print_money(e.fee());
+            writer << boost::format(tr("not enough ETN to transfer, available only %s, transaction amount %s = %s + %s (fee)")) %
+                      print_etn(e.available()) %
+                      print_etn(e.tx_amount() + e.fee())  %
+                      print_etn(e.tx_amount()) %
+                      print_etn(e.fee());
             setStatusError(writer.str());
         } catch (const tools::error::not_enough_outs_to_mix& e) {
             std::ostringstream writer;
             writer << tr("not enough outputs.");
             for (const std::pair<uint64_t, uint64_t> outs_for_amount : e.scanty_outs()) {
-                writer << "\n" << tr("output amount") << " = " << print_money(outs_for_amount.first) << ", " << tr("found outputs to use") << " = " << outs_for_amount.second;
+                writer << "\n" << tr("output amount") << " = " << print_etn(outs_for_amount.first) << ", " << tr("found outputs to use") << " = " << outs_for_amount.second;
             }
             setStatusError(writer.str());
         } catch (const tools::error::tx_not_constructed&) {
@@ -2109,7 +2109,7 @@ void WalletImpl::doRefresh()
             }
             // assuming if we have empty history, it wasn't initialized yet
             // for further history changes client need to update history in
-            // "on_money_received" and "on_money_sent" callbacks
+            // "on_etn_received" and "on_etn_sent" callbacks
             if (m_history->count() == 0) {
                 m_history->refresh();
             }

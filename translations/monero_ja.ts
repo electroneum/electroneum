@@ -181,7 +181,7 @@
     <message>
         <location filename="../src/wallet/api/wallet.cpp" line="1520"/>
         <location filename="../src/wallet/api/wallet.cpp" line="1603"/>
-        <source>not enough money to transfer, available only %s, sent amount %s</source>
+        <source>not enough ETN to transfer, available only %s, sent amount %s</source>
         <translation>振替でElectroneumを受け取ることできません。利用可能な金額： %s,  取引の金額： %s</translation>
     </message>
     <message>
@@ -344,13 +344,13 @@
     <message>
         <location filename="../src/wallet/api/wallet.cpp" line="1527"/>
         <location filename="../src/wallet/api/wallet.cpp" line="1611"/>
-        <source>not enough money to transfer, overall balance only %s, sent amount %s</source>
+        <source>not enough ETN to transfer, overall balance only %s, sent amount %s</source>
         <translation>振替でElectroneumを受け取ることできません。利用可能な金額： %s,  取引の金額： %s</translation>
     </message>
     <message>
         <location filename="../src/wallet/api/wallet.cpp" line="1534"/>
         <location filename="../src/wallet/api/wallet.cpp" line="1619"/>
-        <source>not enough money to transfer, available only %s, transaction amount %s = %s + %s (fee)</source>
+        <source>not enough ETN to transfer, available only %s, transaction amount %s = %s + %s (fee)</source>
         <translation>取引は無理です。利用可能な金額 %s、 取引の金額 %s = %s + %s (手数料)</translation>
     </message>
     <message>
@@ -969,7 +969,7 @@ Transaction </source>
     </message>
     <message>
         <location filename="../src/simplewallet/simplewallet.cpp" line="6180"/>
-        <source>Not enough money in unlocked balance</source>
+        <source>Not enough ETN in unlocked balance</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -1490,7 +1490,7 @@ Transaction </source>
     </message>
     <message>
         <location filename="../src/simplewallet/simplewallet.cpp" line="2147"/>
-        <source>Electroneum, like Bitcoin, is a cryptocurrency. That is, it is digital money.</source>
+        <source>Electroneum, like Bitcoin, is a cryptocurrency. That is, it is digital token.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -3504,7 +3504,7 @@ Key Image, &quot;absolute&quot;, list of rings</source>
     </message>
     <message>
         <location filename="../src/simplewallet/simplewallet.cpp" line="5059"/>
-        <source>The first refresh has finished for the HW-based wallet with received money. hw_key_images_sync is needed. </source>
+        <source>The first refresh has finished for the HW-based wallet with received ETN. hw_key_images_sync is needed. </source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -4490,7 +4490,7 @@ Grand total:
     </message>
     <message>
         <location filename="../src/simplewallet/simplewallet.cpp" line="6742"/>
-        <source>Money successfully sent, transaction: </source>
+        <source>ETN successfully sent, transaction: </source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -5103,12 +5103,12 @@ Use &quot;mms note&quot; to display the waiting notes</source>
     <message>
         <location filename="../src/simplewallet/simplewallet.cpp" line="526"/>
         <location filename="../src/simplewallet/simplewallet.cpp" line="534"/>
-        <source>Not enough money in unlocked balance</source>
+        <source>Not enough ETN in unlocked balance</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../src/simplewallet/simplewallet.cpp" line="544"/>
-        <source>Failed to find a way to create transactions. This is usually due to dust which is so small it cannot pay for itself in fees, or trying to send more money than the unlocked balance, or not leaving enough for fees</source>
+        <source>Failed to find a way to create transactions. This is usually due to dust which is so small it cannot pay for itself in fees, or trying to send more ETN than the unlocked balance, or not leaving enough for fees</source>
         <translation type="unfinished"></translation>
     </message>
     <message>

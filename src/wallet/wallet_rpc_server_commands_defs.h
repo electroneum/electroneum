@@ -1934,11 +1934,11 @@ namespace wallet_rpc
     struct response_t
     {
       uint64_t blocks_fetched;
-      bool received_money;
+      bool received_etn;
 
       BEGIN_KV_SERIALIZE_MAP()
         KV_SERIALIZE(blocks_fetched);
-        KV_SERIALIZE(received_money);
+        KV_SERIALIZE(received_etn);
       END_KV_SERIALIZE_MAP()
     };
     typedef epee::misc_utils::struct_init<response_t> response;

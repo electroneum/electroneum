@@ -142,7 +142,7 @@ void TransactionHistoryImpl::refresh()
     }
 
     // confirmed output transactions
-    // one output transaction may contain more than one money transfer, e.g.
+    // one output transaction may contain more than one etn transfer, e.g.
     // <transaction_id>:
     //    transfer1: 100ETN to <address_1>
     //    transfer2: 50ETN  to <address_2>

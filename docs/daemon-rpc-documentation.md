@@ -1518,7 +1518,7 @@ Outputs:
 * *low_mixin*  - boolean; Mixin count is too low ( `true` ) or OK ( `false` ).
 * *not_rct*  - boolean; Transaction is a standard ring transaction ( `true` ) or a ring confidential transaction ( `false` ).
 * *not_relayed*  - boolean; Transaction was not relayed ( `true` ) or relayed ( `false` ).
-* *overspend*  - boolean; Transaction uses more money than available ( `true` ) or not ( `false` ).
+* *overspend*  - boolean; Transaction uses more ETN than available ( `true` ) or not ( `false` ).
 * *reason*  - string; Additional information. Currently empty or "Not relayed" if transaction was accepted but not relayed.
 * *status*  - string; General RPC error code. "OK" means everything looks good. Any other value means that something went wrong.
 * *too_big*  - boolean; Transaction size is too big ( `true` ) or OK ( `false` ).

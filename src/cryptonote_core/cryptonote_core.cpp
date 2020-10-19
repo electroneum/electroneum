@@ -1135,17 +1135,17 @@ namespace cryptonote
       }
     }
 
-    if(!check_money_overflow(tx))
+    if(!check_etn_overflow(tx))
     {
-      MERROR_VER("tx has money overflow, rejected for tx id= " << get_transaction_hash(tx));
+      MERROR_VER("tx has ETN overflow, rejected for tx id= " << get_transaction_hash(tx));
       return false;
     }
 
     if (tx.version == 1)
     {
       uint64_t amount_in = 0;
-      get_inputs_money_amount(tx, amount_in);
-      uint64_t amount_out = get_outs_money_amount(tx);
+      get_inputs_etn_amount(tx, amount_in);
+      uint64_t amount_out = get_outs_etn_amount(tx);
 
       if(amount_in <= amount_out)
       {
@@ -1226,7 +1226,7 @@ namespace cryptonote
         [this, &emission_amount, &total_fee_amount](uint64_t, const crypto::hash& hash, const block& b){
       std::vector<transaction> txs;
       std::vector<crypto::hash> missed_txs;
-      uint64_t coinbase_amount = get_outs_money_amount(b.miner_tx);
+      uint64_t coinbase_amount = get_outs_etn_amount(b.miner_tx);
       this->get_transactions(b.tx_hashes, txs, missed_txs);      
       uint64_t tx_fee_amount = 0;
       for(const auto& tx: txs)

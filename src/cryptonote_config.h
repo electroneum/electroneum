@@ -42,8 +42,8 @@
 #define CRYPTONOTE_MAX_TX_SIZE                          1000000
 #define CRYPTONOTE_MAX_TX_PER_BLOCK                     0x10000000
 #define CRYPTONOTE_PUBLIC_ADDRESS_TEXTBLOB_VER          0
-#define CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW            18
-#define ETN_MINED_MONEY_UNLOCK_WINDOW_V8                5
+#define CRYPTONOTE_MINED_ETN_UNLOCK_WINDOW            18
+#define ETN_MINED_ETN_UNLOCK_WINDOW_V8                5
 #define CURRENT_TRANSACTION_VERSION                     2
 #define CURRENT_BLOCK_MAJOR_VERSION                     1
 #define CURRENT_BLOCK_MINOR_VERSION                     0
@@ -53,8 +53,8 @@
 
 #define BLOCKCHAIN_TIMESTAMP_CHECK_WINDOW               60
 
-// MONEY_SUPPLY - total number coins to be generated
-#define MONEY_SUPPLY                                    ((uint64_t)(2100000000000))
+// ETN_SUPPLY - total number coins to be generated
+#define ETN_SUPPLY                                    ((uint64_t)(2100000000000))
 #define EMISSION_SPEED_FACTOR_PER_MINUTE                (20)
 #define EMISSION_SPEED_FACTOR_PER_MINUTE_V8             (22) // +=2 => Reduce emission by ~75%.
 

@@ -98,7 +98,7 @@ bool gen_double_spend_base<concrete_test>::check_double_spend(cryptonote::core& 
   CHECK_NOT_EQ(invalid_index_value, m_invalid_block_index);
 
   std::vector<cryptonote::block> block_list;
-  bool r = c.get_blocks(0, 100 + 2 * CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW, block_list);
+  bool r = c.get_blocks(0, 100 + 2 * CRYPTONOTE_MINED_ETN_UNLOCK_WINDOW, block_list);
   CHECK_TEST_CONDITION(r);
   CHECK_TEST_CONDITION(m_last_valid_block == block_list.back());
 

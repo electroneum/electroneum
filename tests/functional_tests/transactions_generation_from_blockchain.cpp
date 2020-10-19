@@ -119,13 +119,13 @@ bool make_tx(blockchain_storage& bch)
   }
 
 
-  if(found_money != needed_money)
+  if(found_etn != needed_etn)
   {
-    //lets make last output to odd money
+    //lets make last output to odd etn
     dsts.resize(dsts.size()+1);
     cryptonote::tx_destination_entry& destination = dsts.back();
-    CHECK_AND_ASSERT_MES(found_money > needed_money, false, "internal error found_money=" << found_money << " !> needed_money=" << needed_money);
-    destination.amount = found_money - needed_money;
+    CHECK_AND_ASSERT_MES(found_etn > needed_etn, false, "internal error found_etn=" << found_etn << " !> needed_etn=" << needed_etn);
+    destination.amount = found_etn - needed_etn;
   }
 
 

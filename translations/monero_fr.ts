@@ -181,7 +181,7 @@
     <message>
         <location filename="../src/wallet/api/wallet.cpp" line="1520"/>
         <location filename="../src/wallet/api/wallet.cpp" line="1603"/>
-        <source>not enough money to transfer, available only %s, sent amount %s</source>
+        <source>not enough ETN to transfer, available only %s, sent amount %s</source>
         <translation>pas assez de fonds pour le transfert, montant disponible %s, montant envoyé %s</translation>
     </message>
     <message>
@@ -344,13 +344,13 @@
     <message>
         <location filename="../src/wallet/api/wallet.cpp" line="1527"/>
         <location filename="../src/wallet/api/wallet.cpp" line="1611"/>
-        <source>not enough money to transfer, overall balance only %s, sent amount %s</source>
+        <source>not enough ETN to transfer, overall balance only %s, sent amount %s</source>
         <translation>pas assez de fonds pour le transfer, solde global disponible %s, montant envoyé %s</translation>
     </message>
     <message>
         <location filename="../src/wallet/api/wallet.cpp" line="1534"/>
         <location filename="../src/wallet/api/wallet.cpp" line="1619"/>
-        <source>not enough money to transfer, available only %s, transaction amount %s = %s + %s (fee)</source>
+        <source>not enough ETN to transfer, available only %s, transaction amount %s = %s + %s (fee)</source>
         <translation>pas assez de fonds pour le transfert, montant disponible %s, montant envoyé %s = %s + %s (frais)</translation>
     </message>
     <message>
@@ -1152,7 +1152,7 @@ By using &apos;sync&apos; processing of waiting messages with multisig sync info
     </message>
     <message>
         <location filename="../src/simplewallet/simplewallet.cpp" line="5059"/>
-        <source>The first refresh has finished for the HW-based wallet with received money. hw_key_images_sync is needed. </source>
+        <source>The first refresh has finished for the HW-based wallet with received ETN. hw_key_images_sync is needed. </source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -2270,7 +2270,7 @@ Transaction </translation>
     </message>
     <message>
         <location filename="../src/simplewallet/simplewallet.cpp" line="2147"/>
-        <source>Electroneum, like Bitcoin, is a cryptocurrency. That is, it is digital money.</source>
+        <source>Electroneum, like Bitcoin, is a cryptocurrency. That is, it is digital token.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -4078,7 +4078,7 @@ Input %llu/%llu (%s): amount=%s</source>
     </message>
     <message>
         <location filename="../src/simplewallet/simplewallet.cpp" line="6180"/>
-        <source>Not enough money in unlocked balance</source>
+        <source>Not enough ETN in unlocked balance</source>
         <translation>Pas assez de fonds dans le solde débloqué</translation>
     </message>
     <message>
@@ -4521,7 +4521,7 @@ Somme finale&#xa0;:
     </message>
     <message>
         <location filename="../src/simplewallet/simplewallet.cpp" line="6742"/>
-        <source>Money successfully sent, transaction: </source>
+        <source>ETN successfully sent, transaction: </source>
         <translation>Fonds envoyés avec succès, transaction&#xa0;: </translation>
     </message>
     <message>
@@ -5143,12 +5143,12 @@ Use &quot;mms note&quot; to display the waiting notes</source>
     <message>
         <location filename="../src/simplewallet/simplewallet.cpp" line="526"/>
         <location filename="../src/simplewallet/simplewallet.cpp" line="534"/>
-        <source>Not enough money in unlocked balance</source>
+        <source>Not enough ETN in unlocked balance</source>
         <translation>Pas assez de fonds dans le solde débloqué</translation>
     </message>
     <message>
         <location filename="../src/simplewallet/simplewallet.cpp" line="544"/>
-        <source>Failed to find a way to create transactions. This is usually due to dust which is so small it cannot pay for itself in fees, or trying to send more money than the unlocked balance, or not leaving enough for fees</source>
+        <source>Failed to find a way to create transactions. This is usually due to dust which is so small it cannot pay for itself in fees, or trying to send more ETN than the unlocked balance, or not leaving enough for fees</source>
         <translation>Impossible de trouver une façon de créer les transactions. Ceci est souvent dû à de la poussière si petite qu&apos;elle ne peut pas payer ses propres frais, ou à une tentative d&apos;envoi d&apos;un montant supérieur au solde débloqué, ou à un montant restant insuffisant pour payer les frais</translation>
     </message>
     <message>

@@ -127,7 +127,7 @@ namespace cryptonote {
       if (halvings > 2) {
 
         //Force 2x tail emission after 2nd halving if circulating supply < max supply
-        base_reward = (MONEY_SUPPLY - already_generated_coins >= 0) ? FINAL_SUBSIDY_PER_MINUTE * 2 : FINAL_SUBSIDY_PER_MINUTE;
+        base_reward = (ETN_SUPPLY - already_generated_coins >= 0) ? FINAL_SUBSIDY_PER_MINUTE * 2 : FINAL_SUBSIDY_PER_MINUTE;
 
       } else {
         base_reward >>= halvings;
@@ -136,7 +136,7 @@ namespace cryptonote {
       //After v8 the reward drops by ~75%
       double emission_speed_factor = (version == 8 ? EMISSION_SPEED_FACTOR_PER_MINUTE_V8 : EMISSION_SPEED_FACTOR_PER_MINUTE) - (target_minutes-1);
 
-      base_reward = (MONEY_SUPPLY - already_generated_coins) / pow(2, emission_speed_factor);
+      base_reward = (ETN_SUPPLY - already_generated_coins) / pow(2, emission_speed_factor);
 
       if (base_reward < FINAL_SUBSIDY_PER_MINUTE*target_minutes)
       {
