@@ -101,8 +101,8 @@ using namespace cryptonote;
 #define CHACHA8_KEY_TAIL 0x8c
 #define CACHE_KEY_TAIL 0x8d
 
-#define UNSIGNED_TX_PREFIX "Electroneum unsigned tx set\003"
-#define SIGNED_TX_PREFIX "Electroneum signed tx set\003"
+#define UNSIGNED_TX_PREFIX "Electroneum unsigned tx set"
+#define SIGNED_TX_PREFIX "Electroneum signed tx set"
 #define MULTISIG_UNSIGNED_TX_PREFIX "Electroneum multisig unsigned tx set\001"
 
 #define RECENT_OUTPUT_RATIO (0.5) // 50% of outputs are from the recent zone
@@ -6246,7 +6246,8 @@ std::string wallet2::dump_tx_to_str(const std::vector<pending_tx> &ptx_vector) c
   }
   LOG_PRINT_L2("Saving unsigned tx data: " << oss.str());
   std::string ciphertext = encrypt_with_view_secret_key(oss.str());
-  return std::string(UNSIGNED_TX_PREFIX) + ciphertext;
+  // Magic number 004 means this payload is encrypted.
+  return std::string(UNSIGNED_TX_PREFIX "\004") + ciphertext;
 }
 //----------------------------------------------------------------------------------------------------
 bool wallet2::load_unsigned_tx(const std::string &unsigned_filename, unsigned_tx_set &exported_txs) const
@@ -6271,7 +6272,7 @@ bool wallet2::load_unsigned_tx(const std::string &unsigned_filename, unsigned_tx
 bool wallet2::parse_unsigned_tx_from_str(const std::string &unsigned_tx_st, unsigned_tx_set &exported_txs) const
 {
   std::string s = unsigned_tx_st;
-  const size_t magiclen = strlen(UNSIGNED_TX_PREFIX) - 1;
+  const size_t magiclen = strlen(UNSIGNED_TX_PREFIX);
   if (strncmp(s.c_str(), UNSIGNED_TX_PREFIX, magiclen))
   {
     LOG_PRINT_L0("Bad magic from unsigned tx");
@@ -6288,9 +6289,9 @@ bool wallet2::parse_unsigned_tx_from_str(const std::string &unsigned_tx_st, unsi
       boost::archive::portable_binary_iarchive ar(iss);
       ar >> exported_txs;
     }
-    catch (...)
+    catch (const std::exception &e)
     {
-      LOG_PRINT_L0("Failed to parse data from unsigned tx");
+      LOG_PRINT_L0("Failed to parse data from unsigned tx: " << e.what());
       return false;
     }
   }
@@ -6305,9 +6306,9 @@ bool wallet2::parse_unsigned_tx_from_str(const std::string &unsigned_tx_st, unsi
         boost::archive::portable_binary_iarchive ar(iss);
         ar >> exported_txs;
       }
-      catch (...)
+      catch (const std::exception &e)
       {
-        LOG_PRINT_L0("Failed to parse data from unsigned tx");
+        LOG_PRINT_L0("Failed to parse decrypted data from unsigned tx: " << e.what());
         return false;
       }
     }
@@ -6525,7 +6526,8 @@ std::string wallet2::sign_tx_dump_to_str(unsigned_tx_set &exported_txs, std::vec
   }
   LOG_PRINT_L3("Saving signed tx data (with encryption): " << oss.str());
   std::string ciphertext = encrypt_with_view_secret_key(oss.str());
-  return std::string(SIGNED_TX_PREFIX) + ciphertext;
+  // Magic number 004 means this payload is encrypted.
+  return std::string(SIGNED_TX_PREFIX "\004") + ciphertext;
 }
 //----------------------------------------------------------------------------------------------------
 bool wallet2::load_tx(const std::string &signed_filename, std::vector<tools::wallet2::pending_tx> &ptx, std::function<bool(const signed_tx_set&)> accept_func)
@@ -6555,7 +6557,7 @@ bool wallet2::parse_tx_from_str(const std::string &signed_tx_st, std::vector<too
   boost::system::error_code errcode;
   signed_tx_set signed_txs;
 
-  const size_t magiclen = strlen(SIGNED_TX_PREFIX) - 1;
+  const size_t magiclen = strlen(SIGNED_TX_PREFIX);
   if (strncmp(s.c_str(), SIGNED_TX_PREFIX, magiclen))
   {
     LOG_PRINT_L0("Bad magic from signed transaction");
@@ -6572,9 +6574,9 @@ bool wallet2::parse_tx_from_str(const std::string &signed_tx_st, std::vector<too
       boost::archive::portable_binary_iarchive ar(iss);
       ar >> signed_txs;
     }
-    catch (...)
+    catch (const std::exception &e)
     {
-      LOG_PRINT_L0("Failed to parse data from signed transaction");
+      LOG_PRINT_L0("Failed to parse data from signed transaction: " << e.what());
       return false;
     }
   }
@@ -6589,9 +6591,9 @@ bool wallet2::parse_tx_from_str(const std::string &signed_tx_st, std::vector<too
         boost::archive::portable_binary_iarchive ar(iss);
         ar >> signed_txs;
       }
-      catch (...)
+      catch (const std::exception &e)
       {
-        LOG_PRINT_L0("Failed to parse decrypted data from signed transaction");
+        LOG_PRINT_L0("Failed to parse decrypted data from signed transaction: " << e.what());
         return false;
       }
     }
