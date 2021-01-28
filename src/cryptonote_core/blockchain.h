@@ -31,6 +31,9 @@
 
 #pragma once
 #include <boost/asio/io_service.hpp>
+#if BOOST_VERSION >= 107400
+  #include <boost/serialization/library_version_type.hpp>
+#endif
 #include <boost/serialization/serialization.hpp>
 #include <boost/serialization/version.hpp>
 #include <boost/serialization/list.hpp>
@@ -1025,6 +1028,14 @@ namespace cryptonote
     void set_validator_key(std::string key) { m_validator_key = boost::algorithm::unhex(key); }
 
     void set_validators_list_instance(std::unique_ptr<electroneum::basic::Validators> &v) { m_validators = v.get(); }
+
+    electroneum::basic::Validator get_validator_by_height(uint64_t height);
+
+    /**
+     * @brief get blockchain nettype
+     */
+    network_type get_nettype() const { return m_nettype; };
+    
 
 #ifndef IN_UNIT_TESTS
   private:

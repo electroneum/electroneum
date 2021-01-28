@@ -2037,7 +2037,7 @@ namespace hw {
         return true;
     }
 
-    bool device_ledger::get_transaction_prefix_hash(const cryptonote::transaction& tx, crypto::hash& tx_prefix_hash) {
+    bool device_ledger::get_transaction_prefix_hash(const cryptonote::transaction_prefix& tx, crypto::hash& tx_prefix_hash) {
 
       AUTO_LOCK_CMD();
       int size;

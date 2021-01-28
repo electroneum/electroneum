@@ -107,7 +107,7 @@ Source: [cryptonote.org](https://cryptonote.org/inside#unlinkable-transaction)
 
 **Double-Spending Proof**
 
-Nobody is able to spend the same money twice — even if all his signatures are anonymous. Every signature contains a key image — a kind of fingerprint of the secret key. It is based on a one-way cryptographic function; this implies that given only the key image it is impossible to restore the corresponding secret key. These key images are used to prevent double-spending.
+Nobody is able to spend the same ETN twice — even if all his signatures are anonymous. Every signature contains a key image — a kind of fingerprint of the secret key. It is based on a one-way cryptographic function; this implies that given only the key image it is impossible to restore the corresponding secret key. These key images are used to prevent double-spending.
 
 Source: [cryptonote.org](https://cryptonote.org/inside#double-spend-proof)
 
@@ -572,7 +572,7 @@ These are transfers that it matches up with OUTPUTS that it is generating. If th
 
 ### ETN Mobile App QR Code
 
-The ETN Mobile app can scan QR Codes to pre-populate fields for sending money. If you generate a QR code with the following information, it can be imported directly.
+The ETN Mobile app can scan QR Codes to pre-populate fields for sending ETN. If you generate a QR code with the following information, it can be imported directly.
 ```
 electroneum:WALLET_ADDRESS?tx_payment_id=YOUR_PAYMENT_ID
 ```

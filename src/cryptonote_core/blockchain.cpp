@@ -97,6 +97,7 @@ static const struct {
   { 6, 307500, 0, 1538815057 }, //1538815057
   { 7, 324500, 0, 1538985600 }, // Estimated July 5th, 8:30AM UTC
   { 8, 589169, 0, 1562547600 },
+  { 9, 862866, 0, 1595615809 }, // Estimated July 22th, 2020
 };
 static const uint64_t mainnet_hard_fork_version_1_till = 307499;
 
@@ -110,7 +111,8 @@ static const struct {
   { 1, 1, 0, 1341378000 },
   { 6, 190060, 0, 1523263057 },
   { 7, 215000, 0, 1530615600 },
-  { 8, 446674, 0, 1562889600 }
+  { 8, 446674, 0, 1562889600 },
+  { 9, 707121, 0, 1595615809 }
 };
 static const uint64_t testnet_hard_fork_version_1_till = 190059;
 
@@ -123,14 +125,15 @@ static const struct {
   // version 1 from the start of the blockchain
   { 1, 1, 0, 1341378000 },
 
-  // versions 2-7 in rapid succession from March 13th, 2018
+  // versions 2-9 in rapid succession from March 13th, 2018
   { 2, 32000, 0, 1521000000 },
   { 3, 33000, 0, 1521120000 },
   { 4, 34000, 0, 1521240000 },
   { 5, 35000, 0, 1521360000 },
   { 6, 36000, 0, 1521480000 },
   { 7, 37000, 0, 1521600000 },
-  { 8, 38000, 0, 1537821770 },
+  { 8, 38000, 0, 1521800000 },
+  { 9, 39000, 0, 1522000000 },
 };
 
 //------------------------------------------------------------------
@@ -1290,7 +1293,7 @@ bool Blockchain::prevalidate_miner_transaction(const block& b, uint64_t height)
   }
   MDEBUG("Miner tx hash: " << get_transaction_hash(b.miner_tx));
   uint8_t hf_version = get_current_hard_fork_version();
-  CHECK_AND_ASSERT_MES(b.miner_tx.unlock_time == height + (hf_version > 7 ? ETN_MINED_MONEY_UNLOCK_WINDOW_V8 : CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW), false, "coinbase transaction transaction has the wrong unlock time=" << b.miner_tx.unlock_time << ", expected " << height + hf_version > 7 ? ETN_MINED_MONEY_UNLOCK_WINDOW_V8 : CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW);
+  CHECK_AND_ASSERT_MES(b.miner_tx.unlock_time == height + (hf_version > 7 ? ETN_MINED_ETN_UNLOCK_WINDOW_V8 : CRYPTONOTE_MINED_ETN_UNLOCK_WINDOW), false, "coinbase transaction transaction has the wrong unlock time=" << b.miner_tx.unlock_time << ", expected " << height + (hf_version > 7 ? ETN_MINED_ETN_UNLOCK_WINDOW_V8 : CRYPTONOTE_MINED_ETN_UNLOCK_WINDOW));
 
   //check outs overflow
   //NOTE: not entirely sure this is necessary, given that this function is
@@ -1298,7 +1301,7 @@ bool Blockchain::prevalidate_miner_transaction(const block& b, uint64_t height)
   //      does not overflow a uint64_t, and this transaction *is* a uint64_t...
   if(!check_outs_overflow(b.miner_tx))
   {
-    MERROR("miner transaction has money overflow in block " << get_block_hash(b));
+    MERROR("miner transaction has ETN overflow in block " << get_block_hash(b));
     return false;
   }
 
@@ -1310,15 +1313,15 @@ bool Blockchain::validate_miner_transaction(const block& b, size_t cumulative_bl
 {
   LOG_PRINT_L3("Blockchain::" << __func__);
   //validate reward
-  uint64_t money_in_use = 0;
+  uint64_t etn_in_use = 0;
   for (auto& o: b.miner_tx.vout)
-    money_in_use += o.amount;
+    etn_in_use += o.amount;
   partial_block_reward = false;
 
   if (version == 3) {
     for (auto &o: b.miner_tx.vout) {
       if (!is_valid_decomposed_amount(o.amount)) {
-        MERROR_VER("miner tx output " << print_money(o.amount) << " is not a valid decomposed amount");
+        MERROR_VER("miner tx output " << print_etn(o.amount) << " is not a valid decomposed amount");
         return false;
       }
     }
@@ -1326,22 +1329,22 @@ bool Blockchain::validate_miner_transaction(const block& b, size_t cumulative_bl
 
   std::vector<uint64_t> last_blocks_weights;
   get_last_n_blocks_weights(last_blocks_weights, CRYPTONOTE_REWARD_BLOCKS_WINDOW);
-  if (!get_block_reward(epee::misc_utils::median(last_blocks_weights), cumulative_block_weight, already_generated_coins, base_reward, version))
+  if (!get_block_reward(epee::misc_utils::median(last_blocks_weights), cumulative_block_weight, already_generated_coins, base_reward, version, get_current_blockchain_height(), get_nettype()))
   {
     MERROR_VER("block weight " << cumulative_block_weight << " is bigger than allowed for this blockchain");
     return false;
   }
-  if(base_reward + fee < money_in_use && already_generated_coins > 0)
+  if(base_reward + fee < etn_in_use && already_generated_coins > 0)
   {
-    MERROR_VER("coinbase transaction spend too much money (" << print_money(money_in_use) << "). Block reward is " << print_money(base_reward + fee) << "(" << print_money(base_reward) << "+" << print_money(fee) << ")");
+    MERROR_VER("coinbase transaction spend too much ETN (" << print_etn(etn_in_use) << "). Block reward is " << print_etn(base_reward + fee) << "(" << print_etn(base_reward) << "+" << print_etn(fee) << ")");
     return false;
   }
   // From hard fork 2, we allow a miner to claim less block reward than is allowed, in case a miner wants less dust
   if (version < 2)
   {
-    if(base_reward + fee != money_in_use && already_generated_coins > 0)
+    if(base_reward + fee != etn_in_use && already_generated_coins > 0)
     {
-      MDEBUG("coinbase transaction doesn't use full amount of block reward:  spent: " << money_in_use << ",  block reward " << base_reward + fee << "(" << base_reward << "+" << fee << ")");
+      MDEBUG("coinbase transaction doesn't use full amount of block reward:  spent: " << etn_in_use << ",  block reward " << base_reward + fee << "(" << base_reward << "+" << fee << ")");
       return false;
     }
   }
@@ -1350,10 +1353,10 @@ bool Blockchain::validate_miner_transaction(const block& b, size_t cumulative_bl
     // from hard fork 2, since a miner can claim less than the full block reward, we update the base_reward
     // to show the amount of coins that were actually generated, the remainder will be pushed back for later
     // emission. This modifies the emission curve very slightly.
-    CHECK_AND_ASSERT_MES(money_in_use - fee <= base_reward, false, "base reward calculation bug");
-    if(base_reward + fee != money_in_use)
+    CHECK_AND_ASSERT_MES(etn_in_use - fee <= base_reward, false, "base reward calculation bug");
+    if(base_reward + fee != etn_in_use)
       partial_block_reward = true;
-    base_reward = money_in_use - fee;
+    base_reward = etn_in_use - fee;
   }
   return true;
 }
@@ -1577,11 +1580,11 @@ bool Blockchain::create_block_template(block& b, const crypto::hash *from_block,
     if (cur_tx.tx.version == 1)
     {
       uint64_t inputs_amount;
-      if (!get_inputs_money_amount(cur_tx.tx, inputs_amount))
+      if (!get_inputs_etn_amount(cur_tx.tx, inputs_amount))
       {
         LOG_ERROR("Creating block template: error: cannot get inputs amount");
       }
-      else if (cur_tx.fee != inputs_amount - get_outs_money_amount(cur_tx.tx))
+      else if (cur_tx.fee != inputs_amount - get_outs_etn_amount(cur_tx.tx))
       {
         LOG_ERROR("Creating block template: error: invalid fee");
       }
@@ -1611,12 +1614,12 @@ bool Blockchain::create_block_template(block& b, const crypto::hash *from_block,
 
   /*
    two-phase miner transaction generation: we don't know exact block weight until we prepare block, but we don't know reward until we know
-   block weight, so first miner transaction generated with fake amount of money, and with phase we know think we know expected block weight
+   block weight, so first miner transaction generated with fake amount of etn, and with phase we know think we know expected block weight
    */
   //make blocks coin-base tx looks close to real coinbase tx to get truthful blob weight
   uint8_t hf_version = b.major_version;
   size_t max_outs = hf_version >= 4 ? 1 : 11;
-  bool r = construct_miner_tx(height, median_weight, already_generated_coins, txs_weight, fee, miner_address, b.miner_tx, ex_nonce, max_outs, hf_version);
+  bool r = construct_miner_tx(height, median_weight, already_generated_coins, txs_weight, fee, miner_address, b.miner_tx, ex_nonce, max_outs, hf_version, m_nettype);
   CHECK_AND_ASSERT_MES(r, false, "Failed to construct miner tx, first chance");
   size_t cumulative_weight = txs_weight + get_transaction_weight(b.miner_tx);
 #if defined(DEBUG_CREATE_BLOCK_TEMPLATE)
@@ -1625,7 +1628,7 @@ bool Blockchain::create_block_template(block& b, const crypto::hash *from_block,
 #endif
   for (size_t try_count = 0; try_count != 10; ++try_count)
   {
-    r = construct_miner_tx(height, median_weight, already_generated_coins, cumulative_weight, fee, miner_address, b.miner_tx, ex_nonce, max_outs, hf_version);
+    r = construct_miner_tx(height, median_weight, already_generated_coins, cumulative_weight, fee, miner_address, b.miner_tx, ex_nonce, max_outs, hf_version, m_nettype);
 
     CHECK_AND_ASSERT_MES(r, false, "Failed to construct miner tx, second chance");
     size_t coinbase_weight = get_transaction_weight(b.miner_tx);
@@ -1858,7 +1861,7 @@ bool Blockchain::handle_alternative_block(const block& b, const crypto::hash& id
     bei.bl = b;
     const uint64_t prev_height = alt_chain.size() ? it_prev->second.height : m_db->get_block_height(b.prev_id);
     bei.height = prev_height + 1;
-    uint64_t block_reward = get_outs_money_amount(b.miner_tx);
+    uint64_t block_reward = get_outs_etn_amount(b.miner_tx);
     bei.already_generated_coins = block_reward + (alt_chain.size() ? it_prev->second.already_generated_coins : m_db->get_block_already_generated_coins(prev_height));
 
     if(!m_fallback_to_pow && b.major_version >= 8)
@@ -2990,7 +2993,7 @@ bool Blockchain::check_tx_inputs(transaction& tx, tx_verification_context &tvc, 
         else
         {
           uint64_t n_outputs = m_db->get_num_outputs(in_to_key.amount);
-          MDEBUG("output size " << print_money(in_to_key.amount) << ": " << n_outputs << " available");
+          MDEBUG("output size " << print_etn(in_to_key.amount) << ": " << n_outputs << " available");
           // n_outputs includes the output we're considering
           if (n_outputs <= min_mixin)
             ++n_unmixable;
@@ -3404,7 +3407,7 @@ uint64_t Blockchain::get_dynamic_base_fee(uint64_t block_reward, size_t median_b
   // quantize fee up to 8 decimals
   uint64_t mask = get_fee_quantization_mask();
   uint64_t qlo = (lo + mask - 1) / mask * mask;
-  MDEBUG("lo " << print_money(lo) << ", qlo " << print_money(qlo) << ", mask " << mask);
+  MDEBUG("lo " << print_etn(lo) << ", qlo " << print_etn(qlo) << ", mask " << mask);
 
   return qlo;
 }
@@ -3423,7 +3426,7 @@ bool Blockchain::check_fee(size_t tx_weight, uint64_t fee) const
     median = m_current_block_cumul_weight_limit / 2;
     const uint64_t blockchain_height = m_db->height();
     already_generated_coins = blockchain_height ? m_db->get_block_already_generated_coins(blockchain_height - 1) : 0;
-    if (!get_block_reward(median, 1, already_generated_coins, base_reward, version))
+    if (!get_block_reward(median, 1, already_generated_coins, base_reward, version, blockchain_height, get_nettype()))
       return false;
   }
 
@@ -3432,7 +3435,7 @@ bool Blockchain::check_fee(size_t tx_weight, uint64_t fee) const
   {
     const bool use_long_term_median_in_fee = version >= HF_VERSION_LONG_TERM_BLOCK_WEIGHT;
     uint64_t fee_per_byte = get_dynamic_base_fee(base_reward, use_long_term_median_in_fee ? m_long_term_effective_median_block_weight : median, version);
-    MDEBUG("Using " << print_money(fee_per_byte) << "/byte fee");
+    MDEBUG("Using " << print_etn(fee_per_byte) << "/byte fee");
     needed_fee = tx_weight * fee_per_byte;
     // quantize fee up to 8 decimals
     const uint64_t mask = get_fee_quantization_mask();
@@ -3449,7 +3452,7 @@ bool Blockchain::check_fee(size_t tx_weight, uint64_t fee) const
     {
       fee_per_kb = get_dynamic_base_fee(base_reward, median, version);
     }
-    MDEBUG("Using " << print_money(fee_per_kb) << "/kB fee");
+    MDEBUG("Using " << print_etn(fee_per_kb) << "/kB fee");
 
     needed_fee = tx_weight / 1024;
     needed_fee += (tx_weight % 1024) ? 1 : 0;
@@ -3458,7 +3461,7 @@ bool Blockchain::check_fee(size_t tx_weight, uint64_t fee) const
 
   if (fee < needed_fee - needed_fee / 50) // keep a little 2% buffer on acceptance - no integer overflow
   {
-    MERROR_VER("transaction fee is not enough: " << print_money(fee) << ", minimum fee: " << print_money(needed_fee));
+    MERROR_VER("transaction fee is not enough: " << print_etn(fee) << ", minimum fee: " << print_etn(needed_fee));
     return false;
   }
   return true;
@@ -3493,16 +3496,16 @@ uint64_t Blockchain::get_dynamic_base_fee_estimate(uint64_t grace_blocks) const
 
   uint64_t already_generated_coins = db_height ? m_db->get_block_already_generated_coins(db_height - 1) : 0;
   uint64_t base_reward;
-  if (!get_block_reward(median, 1, already_generated_coins, base_reward, version))
+  if (!get_block_reward(median, 1, already_generated_coins, base_reward, version, get_current_blockchain_height(), get_nettype()))
   {
-    MERROR("Failed to determine block reward, using placeholder " << print_money(BLOCK_REWARD_OVERESTIMATE) << " as a high bound");
+    MERROR("Failed to determine block reward, using placeholder " << print_etn(BLOCK_REWARD_OVERESTIMATE) << " as a high bound");
     base_reward = BLOCK_REWARD_OVERESTIMATE;
   }
 
   const bool use_long_term_median_in_fee = version >= HF_VERSION_LONG_TERM_BLOCK_WEIGHT;
   uint64_t fee = get_dynamic_base_fee(base_reward, use_long_term_median_in_fee ? m_long_term_effective_median_block_weight : median, version);
   const bool per_byte = version < HF_VERSION_PER_BYTE_FEE;
-  MDEBUG("Estimating " << grace_blocks << "-block fee at " << print_money(fee) << "/" << (per_byte ? "byte" : "kB"));
+  MDEBUG("Estimating " << grace_blocks << "-block fee at " << print_etn(fee) << "/" << (per_byte ? "byte" : "kB"));
   return fee;
 }
 
@@ -3577,7 +3580,7 @@ bool Blockchain::check_tx_input(size_t tx_version, const txin_to_key& txin, cons
   outputs_visitor vi(output_keys, *this);
   if (!scan_outputkeys_for_indexes(tx_version, txin, vi, tx_prefix_hash, pmax_related_block_height))
   {
-    MERROR_VER("Failed to get output keys for tx with amount = " << print_money(txin.amount) << " and count indexes " << txin.key_offsets.size());
+    MERROR_VER("Failed to get output keys for tx with amount = " << print_etn(txin.amount) << " and count indexes " << txin.key_offsets.size());
     return false;
   }
 
@@ -4009,10 +4012,10 @@ leave:
   block_weight = cumulative_block_weight;
   cumulative_difficulty = current_diffic;
   // In the "tail" state when the minimum subsidy (implemented in get_block_reward) is in effect, the number of
-  // coins will eventually exceed MONEY_SUPPLY and overflow a uint64. To prevent overflow, cap already_generated_coins
-  // at MONEY_SUPPLY. already_generated_coins is only used to compute the block subsidy and MONEY_SUPPLY yields a
+  // coins will eventually exceed ETN_SUPPLY and overflow a uint64. To prevent overflow, cap already_generated_coins
+  // at ETN_SUPPLY. already_generated_coins is only used to compute the block subsidy and ETN_SUPPLY yields a
   // subsidy of 0 under the base formula and therefore the minimum subsidy >0 in the tail state.
-  already_generated_coins = base_reward < (MONEY_SUPPLY-already_generated_coins) ? already_generated_coins + base_reward : MONEY_SUPPLY;
+  already_generated_coins = base_reward < (ETN_SUPPLY-already_generated_coins) ? already_generated_coins + base_reward : ETN_SUPPLY;
   if(blockchain_height)
     cumulative_difficulty += m_db->get_block_cumulative_difficulty(blockchain_height - 1);
 
@@ -4064,7 +4067,7 @@ leave:
     return false;
   }
 
-  MINFO("+++++ BLOCK SUCCESSFULLY ADDED" << std::endl << "id:\t" << id << std::endl << "PoW:\t" << proof_of_work << std::endl << "HEIGHT " << new_height-1 << ", difficulty:\t" << current_diffic << std::endl << "block reward: " << print_money(fee_summary + base_reward) << "(" << print_money(base_reward) << " + " << print_money(fee_summary) << "), coinbase_weight: " << coinbase_weight << ", cumulative weight: " << cumulative_block_weight << ", " << block_processing_time << "(" << target_calculating_time << "/" << longhash_calculating_time << ")ms");
+  MINFO("+++++ BLOCK SUCCESSFULLY ADDED" << std::endl << "id:\t" << id << std::endl << "PoW:\t" << proof_of_work << std::endl << "HEIGHT " << new_height-1 << ", difficulty:\t" << current_diffic << std::endl << "block reward: " << print_etn(fee_summary + base_reward) << "(" << print_etn(base_reward) << " + " << print_etn(fee_summary) << "), coinbase_weight: " << coinbase_weight << ", cumulative weight: " << cumulative_block_weight << ", " << block_processing_time << "(" << target_calculating_time << "/" << longhash_calculating_time << ")ms");
   if(m_show_time_stats)
   {
     MINFO("Height: " << new_height << " coinbase weight: " << coinbase_weight << " cumm: "
@@ -4942,7 +4945,7 @@ void Blockchain::cancel()
 }
 
 #if defined(PER_BLOCK_CHECKPOINT)
-static const char expected_block_hashes_hash[] = "16c66d8de21c874ac08de4559a0658b889b0339c5307616552802aa53f943cbd";
+static const char expected_block_hashes_hash[] = "ab3e5a632f0857773281d5059628a0758ec4ebf7b1dee5d1ab8b594a29ebb843";
 void Blockchain::load_compiled_in_block_hashes(const GetCheckpointsCallback& get_checkpoints)
 {
   if (get_checkpoints == nullptr || !m_fast_sync)
@@ -5086,6 +5089,16 @@ void Blockchain::cache_block_template(const block &b, const cryptonote::account_
   m_btc_expected_reward = expected_reward;
   m_btc_pool_cookie = pool_cookie;
   m_btc_valid = true;
+}
+
+electroneum::basic::Validator Blockchain::get_validator_by_height(uint64_t height) {
+
+  block blk;
+  get_block_by_hash(get_block_id_by_height(height), blk);
+
+  std::string signatory = std::string(blk.signatory.begin(), blk.signatory.end());
+  return m_validators->getValidatorByKey(boost::algorithm::hex(signatory));
+
 }
 
 namespace cryptonote {

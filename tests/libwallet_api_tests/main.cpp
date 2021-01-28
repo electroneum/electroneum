@@ -820,27 +820,27 @@ struct MyWalletListener : public Electroneum::WalletListener
         send_triggered = receive_triggered = newblock_triggered = update_triggered = refresh_triggered = false;
     }
 
-    virtual void moneySpent(const string &txId, uint64_t amount)
+    virtual void etnSpent(const string &txId, uint64_t amount)
     {
-        std::cerr << "wallet: " << wallet->mainAddress() << "**** just spent money ("
+        std::cerr << "wallet: " << wallet->mainAddress() << "**** just spent ETN ("
                   << txId  << ", " << wallet->displayAmount(amount) << ")" << std::endl;
         total_tx += amount;
         send_triggered = true;
         cv_send.notify_one();
     }
 
-    virtual void moneyReceived(const string &txId, uint64_t amount)
+    virtual void etnReceived(const string &txId, uint64_t amount)
     {
-        std::cout << "wallet: " << wallet->mainAddress() << "**** just received money ("
+        std::cout << "wallet: " << wallet->mainAddress() << "**** just received ETN ("
                   << txId  << ", " << wallet->displayAmount(amount) << ")" << std::endl;
         total_rx += amount;
         receive_triggered = true;
         cv_receive.notify_one();
     }
 
-    virtual void unconfirmedMoneyReceived(const string &txId, uint64_t amount)
+    virtual void unconfirmedETNReceived(const string &txId, uint64_t amount)
     {
-        std::cout << "wallet: " << wallet->mainAddress() << "**** just received unconfirmed money ("
+        std::cout << "wallet: " << wallet->mainAddress() << "**** just received unconfirmed ETN ("
                   << txId  << ", " << wallet->displayAmount(amount) << ")" << std::endl;
         // Don't trigger receive until tx is mined
         // total_rx += amount;

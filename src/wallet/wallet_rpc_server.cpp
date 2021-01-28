@@ -2875,7 +2875,7 @@ namespace tools
     }
     try
     {
-      m_wallet->refresh(m_wallet->is_trusted_daemon(), req.start_height, res.blocks_fetched, res.received_money);
+      m_wallet->refresh(m_wallet->is_trusted_daemon(), req.start_height, res.blocks_fetched, res.received_etn);
       return true;
     }
     catch (const std::exception& e)
@@ -3233,24 +3233,24 @@ namespace tools
       er.code = WALLET_RPC_ERROR_CODE_ZERO_DESTINATION;
       er.message = e.what();
     }
-    catch (const tools::error::not_enough_money& e)
+    catch (const tools::error::not_enough_etn& e)
     {
-      er.code = WALLET_RPC_ERROR_CODE_NOT_ENOUGH_MONEY;
+      er.code = WALLET_RPC_ERROR_CODE_NOT_ENOUGH_ETN;
       er.message = e.what();
     }
-    catch (const tools::error::not_enough_unlocked_money& e)
+    catch (const tools::error::not_enough_unlocked_etn& e)
     {
-      er.code = WALLET_RPC_ERROR_CODE_NOT_ENOUGH_UNLOCKED_MONEY;
+      er.code = WALLET_RPC_ERROR_CODE_NOT_ENOUGH_UNLOCKED_ETN;
       er.message = e.what();
     }
     catch (const tools::error::tx_not_possible& e)
     {
       er.code = WALLET_RPC_ERROR_CODE_TX_NOT_POSSIBLE;
       er.message = (boost::format(tr("Transaction not possible. Available only %s, transaction amount %s = %s + %s (fee)")) %
-        cryptonote::print_money(e.available()) %
-        cryptonote::print_money(e.tx_amount() + e.fee())  %
-        cryptonote::print_money(e.tx_amount()) %
-        cryptonote::print_money(e.fee())).str();
+        cryptonote::print_etn(e.available()) %
+        cryptonote::print_etn(e.tx_amount() + e.fee())  %
+        cryptonote::print_etn(e.tx_amount()) %
+        cryptonote::print_etn(e.fee())).str();
       er.message = e.what();
     }
     catch (const tools::error::not_enough_outs_to_mix& e)

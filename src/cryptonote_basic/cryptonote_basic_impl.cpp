@@ -86,7 +86,7 @@ namespace cryptonote {
     return CRYPTONOTE_MAX_TX_SIZE;
   }
   //-----------------------------------------------------------------------------------------------
-  bool get_block_reward(size_t median_weight, size_t current_block_weight, uint64_t already_generated_coins, uint64_t &reward, uint8_t version) {
+  bool get_block_reward(size_t median_weight, size_t current_block_weight, uint64_t already_generated_coins, uint64_t &reward, uint8_t version, uint64_t current_block_height, network_type nettype) {
     static_assert(DIFFICULTY_TARGET%60==0,"difficulty target must be a multiple of 60");
     static_assert(DIFFICULTY_TARGET_V6%60==0,"difficulty target V6 must be a multiple of 60");
 
@@ -102,14 +102,46 @@ namespace cryptonote {
       return true;
     }
 
-    //After v8 the reward drops by ~75%
-    double emission_speed_factor = (version == 8 ? EMISSION_SPEED_FACTOR_PER_MINUTE_V8 : EMISSION_SPEED_FACTOR_PER_MINUTE) - (target_minutes-1);
+    uint64_t base_reward;
 
-    uint64_t base_reward = (MONEY_SUPPLY - already_generated_coins) / pow(2, emission_speed_factor);
+    // After v9 the reward drops by ~75%, fixed reward curve that halves every 4 years (up to 2 halvings)
+    if(version >= 9) {
 
-    if (base_reward < FINAL_SUBSIDY_PER_MINUTE*target_minutes)
-    {
-      base_reward = FINAL_SUBSIDY_PER_MINUTE*target_minutes;
+      uint64_t V9_BLOCK_HEIGHT = 0;
+      switch(nettype) {
+        case MAINNET:
+          V9_BLOCK_HEIGHT = 862866;
+          break;
+        case TESTNET:
+          V9_BLOCK_HEIGHT = 707121;
+          break;
+        case STAGENET:
+          V9_BLOCK_HEIGHT = 39000;
+          break;
+      }
+
+      base_reward = 400 * COIN;
+      uint8_t halvings = (current_block_height - V9_BLOCK_HEIGHT) / 1051200; // Every 4 years
+
+      // Tail emission after 2nd halving
+      if (halvings > 2) {
+
+        //Force 2x tail emission after 2nd halving if circulating supply < max supply
+        base_reward = (ETN_SUPPLY - already_generated_coins >= 0) ? FINAL_SUBSIDY_PER_MINUTE * 2 : FINAL_SUBSIDY_PER_MINUTE;
+
+      } else {
+        base_reward >>= halvings;
+      }
+    } else {
+      //After v8 the reward drops by ~75%
+      double emission_speed_factor = (version == 8 ? EMISSION_SPEED_FACTOR_PER_MINUTE_V8 : EMISSION_SPEED_FACTOR_PER_MINUTE) - (target_minutes-1);
+
+      base_reward = (ETN_SUPPLY - already_generated_coins) / pow(2, emission_speed_factor);
+
+      if (base_reward < FINAL_SUBSIDY_PER_MINUTE*target_minutes)
+      {
+        base_reward = FINAL_SUBSIDY_PER_MINUTE*target_minutes;
+      }
     }
 
     //make it soft

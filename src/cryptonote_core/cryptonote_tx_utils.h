@@ -38,7 +38,7 @@
 namespace cryptonote
 {
   //---------------------------------------------------------------
-  bool construct_miner_tx(size_t height, size_t median_weight, uint64_t already_generated_coins, size_t current_block_weight, uint64_t fee, const account_public_address &miner_address, transaction& tx, const blobdata& extra_nonce = blobdata(), size_t max_outs = 999, uint8_t hard_fork_version = 1);
+  bool construct_miner_tx(size_t height, size_t median_weight, uint64_t already_generated_coins, size_t current_block_weight, uint64_t fee, const account_public_address &miner_address, transaction& tx, const blobdata& extra_nonce = blobdata(), size_t max_outs = 999, uint8_t hard_fork_version = 1, network_type nettype = MAINNET);
 
   struct tx_source_entry
   {
@@ -49,7 +49,7 @@ namespace cryptonote
     crypto::public_key real_out_tx_key; //incoming real tx public key
     std::vector<crypto::public_key> real_out_additional_tx_keys; //incoming real tx additional public keys
     size_t real_output_in_tx_index;     //index in transaction outputs vector
-    uint64_t amount;                    //money
+    uint64_t amount;                    //etn
     bool rct;                           //true if the output is rct
     rct::key mask;                      //ringct amount mask
     rct::multisig_kLRki multisig_kLRki; //multisig info
@@ -75,7 +75,7 @@ namespace cryptonote
   struct tx_destination_entry
   {
     std::string original;
-    uint64_t amount;                    //money
+    uint64_t amount;                    //etn
     account_public_address addr;        //destination address
     bool is_subaddress;
     bool is_integrated;

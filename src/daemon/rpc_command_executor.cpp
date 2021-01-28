@@ -83,7 +83,7 @@ namespace {
       << "block weight: " << header.block_weight << std::endl
       << "long term weight: " << header.long_term_weight << std::endl
       << "num txes: " << header.num_txes << std::endl
-      << "reward: " << cryptonote::print_money(header.reward);
+      << "reward: " << cryptonote::print_etn(header.reward);
   }
 
   std::string get_human_time_ago(time_t t, time_t now)
@@ -558,8 +558,8 @@ bool t_rpc_command_executor::mining_status() {
     uint64_t daily = 86400ull / mres.block_target * mres.block_reward * ratio;
     uint64_t monthly = 86400ull / mres.block_target * 30.5 * mres.block_reward * ratio;
     uint64_t yearly = 86400ull / mres.block_target * 356 * mres.block_reward * ratio;
-    tools::msg_writer() << "Expected: " << cryptonote::print_money(daily) << " etn daily, "
-        << cryptonote::print_money(monthly) << " etn monthly, " << cryptonote::print_money(yearly) << " yearly";
+    tools::msg_writer() << "Expected: " << cryptonote::print_etn(daily) << " etn daily, "
+        << cryptonote::print_etn(monthly) << " etn monthly, " << cryptonote::print_etn(yearly) << " yearly";
   }
 
   return true;
@@ -726,7 +726,7 @@ bool t_rpc_command_executor::print_blockchain_info(uint64_t start_block_index, u
       << ", size: " << header.block_size << ", weight: " << header.block_weight << " (long term " << header.long_term_weight << "), transactions: " << header.num_txes << std::endl
       << "major version: " << (unsigned)header.major_version << ", minor version: " << (unsigned)header.minor_version << std::endl
       << "block id: " << header.hash << ", previous block id: " << header.prev_hash << std::endl
-      << "difficulty: " << header.difficulty << ", nonce " << header.nonce << ", reward " << cryptonote::print_money(header.reward) << std::endl;
+      << "difficulty: " << header.difficulty << ", nonce " << header.nonce << ", reward " << cryptonote::print_etn(header.reward) << std::endl;
     first = false;
   }
 
@@ -1050,8 +1050,8 @@ bool t_rpc_command_executor::print_transaction_pool_long() {
                           << tx_info.tx_json << std::endl
                           << "blob_size: " << tx_info.blob_size << std::endl
                           << "weight: " << tx_info.weight << std::endl
-                          << "fee: " << cryptonote::print_money(tx_info.fee) << std::endl
-                          << "fee/byte: " << cryptonote::print_money(tx_info.fee / (double)tx_info.weight) << std::endl
+                          << "fee: " << cryptonote::print_etn(tx_info.fee) << std::endl
+                          << "fee/byte: " << cryptonote::print_etn(tx_info.fee / (double)tx_info.weight) << std::endl
                           << "receive_time: " << tx_info.receive_time << " (" << get_human_time_ago(tx_info.receive_time, now) << ")" << std::endl
                           << "relayed: " << [&](const cryptonote::tx_info &tx_info)->std::string { if (!tx_info.relayed) return "no"; return boost::lexical_cast<std::string>(tx_info.last_relayed_time) + " (" + get_human_time_ago(tx_info.last_relayed_time, now) + ")"; } (tx_info) << std::endl
                           << "do_not_relay: " << (tx_info.do_not_relay ? 'T' : 'F')  << std::endl
@@ -1134,8 +1134,8 @@ bool t_rpc_command_executor::print_transaction_pool_short() {
       tools::msg_writer() << "id: " << tx_info.id_hash << std::endl
                           << "blob_size: " << tx_info.blob_size << std::endl
                           << "weight: " << tx_info.weight << std::endl
-                          << "fee: " << cryptonote::print_money(tx_info.fee) << std::endl
-                          << "fee/byte: " << cryptonote::print_money(tx_info.fee / (double)tx_info.weight) << std::endl
+                          << "fee: " << cryptonote::print_etn(tx_info.fee) << std::endl
+                          << "fee/byte: " << cryptonote::print_etn(tx_info.fee / (double)tx_info.weight) << std::endl
                           << "receive_time: " << tx_info.receive_time << " (" << get_human_time_ago(tx_info.receive_time, now) << ")" << std::endl
                           << "relayed: " << [&](const cryptonote::tx_info &tx_info)->std::string { if (!tx_info.relayed) return "no"; return boost::lexical_cast<std::string>(tx_info.last_relayed_time) + " (" + get_human_time_ago(tx_info.last_relayed_time, now) + ")"; } (tx_info) << std::endl
                           << "do_not_relay: " << (tx_info.do_not_relay ? 'T' : 'F')  << std::endl
@@ -1202,7 +1202,7 @@ bool t_rpc_command_executor::print_transaction_pool_stats() {
   }
 
   tools::msg_writer() << n_transactions << " tx(es), " << res.pool_stats.bytes_total << " bytes total (min " << res.pool_stats.bytes_min << ", max " << res.pool_stats.bytes_max << ", avg " << avg_bytes << ", median " << res.pool_stats.bytes_med << ")" << std::endl
-      << "fees " << cryptonote::print_money(res.pool_stats.fee_total) << " (avg " << cryptonote::print_money(n_transactions ? res.pool_stats.fee_total / n_transactions : 0) << " per tx" << ", " << cryptonote::print_money(res.pool_stats.bytes_total ? res.pool_stats.fee_total / res.pool_stats.bytes_total : 0) << " per byte)" << std::endl
+      << "fees " << cryptonote::print_etn(res.pool_stats.fee_total) << " (avg " << cryptonote::print_etn(n_transactions ? res.pool_stats.fee_total / n_transactions : 0) << " per tx" << ", " << cryptonote::print_etn(res.pool_stats.bytes_total ? res.pool_stats.fee_total / res.pool_stats.bytes_total : 0) << " per byte)" << std::endl
       << res.pool_stats.num_double_spends << " double spends, " << res.pool_stats.num_not_relayed << " not relayed, " << res.pool_stats.num_failing << " failing, " << res.pool_stats.num_10m << " older than 10 minutes (oldest " << (res.pool_stats.oldest == 0 ? "-" : get_human_time_ago(res.pool_stats.oldest, now)) << "), " << backlog_message;
 
   if (n_transactions > 1 && res.pool_stats.histo.size())
@@ -1783,7 +1783,7 @@ bool t_rpc_command_executor::output_histogram(const std::vector<uint64_t> &amoun
         [](const cryptonote::COMMAND_RPC_GET_OUTPUT_HISTOGRAM::entry &e1, const cryptonote::COMMAND_RPC_GET_OUTPUT_HISTOGRAM::entry &e2)->bool { return e1.total_instances < e2.total_instances; });
     for (const auto &e: res.histogram)
     {
-        tools::msg_writer() << e.total_instances << "  " << cryptonote::print_money(e.amount);
+        tools::msg_writer() << e.total_instances << "  " << cryptonote::print_etn(e.amount);
     }
 
     return true;
@@ -1818,9 +1818,9 @@ bool t_rpc_command_executor::print_coinbase_tx_sum(uint64_t height, uint64_t cou
 
   tools::msg_writer() << "Sum of coinbase transactions between block heights ["
     << height << ", " << (height + count) << ") is "
-    << cryptonote::print_money(res.emission_amount + res.fee_amount) << " "
-    << "consisting of " << cryptonote::print_money(res.emission_amount) 
-    << " in emissions, and " << cryptonote::print_money(res.fee_amount) << " in fees";
+    << cryptonote::print_etn(res.emission_amount + res.fee_amount) << " "
+    << "consisting of " << cryptonote::print_etn(res.emission_amount) 
+    << " in emissions, and " << cryptonote::print_etn(res.fee_amount) << " in fees";
   return true;
 }
 
@@ -1940,7 +1940,7 @@ bool t_rpc_command_executor::print_blockchain_dynamic_stats(uint64_t nblocks)
   }
 
   tools::msg_writer() << "Height: " << ires.height << ", diff " << ires.difficulty << ", cum. diff " << ires.cumulative_difficulty
-      << ", target " << ires.target << " sec" << ", dyn fee " << cryptonote::print_money(feres.fee) << "/" << (hfres.enabled ? "byte" : "kB");
+      << ", target " << ires.target << " sec" << ", dyn fee " << cryptonote::print_etn(feres.fee) << "/" << (hfres.enabled ? "byte" : "kB");
 
   if (nblocks > 0)
   {
@@ -1991,7 +1991,7 @@ bool t_rpc_command_executor::print_blockchain_dynamic_stats(uint64_t nblocks)
     avgreward /= nblocks;
     uint64_t median_block_weight = epee::misc_utils::median(weights);
     tools::msg_writer() << "Last " << nblocks << ": avg. diff " << (uint64_t)avgdiff << ", " << (latest - earliest) / nblocks << " avg sec/block, avg num txes " << avgnumtxes
-        << ", avg. reward " << cryptonote::print_money(avgreward) << ", median block weight " << median_block_weight;
+        << ", avg. reward " << cryptonote::print_etn(avgreward) << ", median block weight " << median_block_weight;
 
     unsigned int max_major = 256, max_minor = 256;
     while (max_major > 0 && !major_versions[--max_major]);

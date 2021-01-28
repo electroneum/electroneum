@@ -67,7 +67,7 @@ enum NetworkType : uint8_t {
     };
 
 /**
- * @brief Transaction-like interface for sending money
+ * @brief Transaction-like interface for sending etn
  */
 struct PendingTransaction
 {
@@ -128,7 +128,7 @@ struct PendingTransaction
 };
 
 /**
- * @brief Transaction-like interface for sending money
+ * @brief Transaction-like interface for sending etn
  */
 struct UnsignedTransaction
 {
@@ -343,25 +343,25 @@ struct WalletListener
 {
     virtual ~WalletListener() = 0;
     /**
-     * @brief moneySpent - called when money spent
+     * @brief etnSpent - called when etn spent
      * @param txId       - transaction id
      * @param amount     - amount
      */
-    virtual void moneySpent(const std::string &txId, uint64_t amount) = 0;
+    virtual void etnSpent(const std::string &txId, uint64_t amount) = 0;
 
     /**
-     * @brief moneyReceived - called when money received
+     * @brief etnReceived - called when etn received
      * @param txId          - transaction id
      * @param amount        - amount
      */
-    virtual void moneyReceived(const std::string &txId, uint64_t amount) = 0;
+    virtual void etnReceived(const std::string &txId, uint64_t amount) = 0;
     
    /**
-    * @brief unconfirmedMoneyReceived - called when payment arrived in tx pool
+    * @brief unconfirmedETNReceived - called when payment arrived in tx pool
     * @param txId          - transaction id
     * @param amount        - amount
     */
-    virtual void unconfirmedMoneyReceived(const std::string &txId, uint64_t amount) = 0;
+    virtual void unconfirmedETNReceived(const std::string &txId, uint64_t amount) = 0;
 
     /**
      * @brief newBlock      - called when new block received

@@ -76,7 +76,7 @@ namespace cryptonote
     LOG_PRINT_L2("destinations include " << num_stdaddresses << " standard addresses and " << num_subaddresses << " subaddresses");
   }
   //---------------------------------------------------------------
-  bool construct_miner_tx(size_t height, size_t median_weight, uint64_t already_generated_coins, size_t current_block_weight, uint64_t fee, const account_public_address &miner_address, transaction& tx, const blobdata& extra_nonce, size_t max_outs, uint8_t hard_fork_version) {
+  bool construct_miner_tx(size_t height, size_t median_weight, uint64_t already_generated_coins, size_t current_block_weight, uint64_t fee, const account_public_address &miner_address, transaction& tx, const blobdata& extra_nonce, size_t max_outs, uint8_t hard_fork_version, network_type nettype) {
     tx.vin.clear();
     tx.vout.clear();
     tx.extra.clear();
@@ -93,7 +93,7 @@ namespace cryptonote
     in.height = height;
 
     uint64_t block_reward;
-    if(!get_block_reward(median_weight, current_block_weight, already_generated_coins, block_reward, hard_fork_version))
+    if(!get_block_reward(median_weight, current_block_weight, already_generated_coins, block_reward, hard_fork_version, height, nettype))
     {
       LOG_PRINT_L0("Block is too big");
       return false;
@@ -167,12 +167,12 @@ namespace cryptonote
       tx.version = 1;
 
     //lock
-    tx.unlock_time = height + (hard_fork_version > 7 ? ETN_MINED_MONEY_UNLOCK_WINDOW_V8 : CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW);
+    tx.unlock_time = height + (hard_fork_version > 7 ? ETN_MINED_ETN_UNLOCK_WINDOW_V8 : CRYPTONOTE_MINED_ETN_UNLOCK_WINDOW);
     tx.vin.push_back(in);
 
     tx.invalidate_hashes();
 
-    //LOG_PRINT("MINER_TX generated ok, block_reward=" << print_money(block_reward) << "("  << print_money(block_reward - fee) << "+" << print_money(fee)
+    //LOG_PRINT("MINER_TX generated ok, block_reward=" << print_etn(block_reward) << "("  << print_etn(block_reward - fee) << "+" << print_etn(fee)
     //  << "), current_block_size=" << current_block_size << ", already_generated_coins=" << already_generated_coins << ", tx_id=" << get_transaction_hash(tx), LOG_LEVEL_2);
     return true;
   }
@@ -305,7 +305,7 @@ namespace cryptonote
     };
     std::vector<input_generation_context_data> in_contexts;
 
-    uint64_t summary_inputs_money = 0;
+    uint64_t summary_inputs_etn = 0;
     //fill inputs
     int idx = -1;
     for(const tx_source_entry& src_entr:  sources)
@@ -316,7 +316,7 @@ namespace cryptonote
         LOG_ERROR("real_output index (" << src_entr.real_output << ")bigger than output_keys.size()=" << src_entr.outputs.size());
         return false;
       }
-      summary_inputs_money += src_entr.amount;
+      summary_inputs_etn += src_entr.amount;
 
       //key_derivation recv_derivation;
       in_contexts.push_back(input_generation_context_data());
@@ -401,7 +401,7 @@ namespace cryptonote
     if (need_additional_txkeys)
       CHECK_AND_ASSERT_MES(destinations.size() == additional_tx_keys.size(), false, "Wrong amount of additional tx keys");
 
-    uint64_t summary_outs_money = 0;
+    uint64_t summary_outs_etn = 0;
     //fill outputs
     size_t output_index = 0;
     for(const tx_destination_entry& dst_entr: destinations)
@@ -421,7 +421,7 @@ namespace cryptonote
       out.target = tk;
       tx.vout.push_back(out);
       output_index++;
-      summary_outs_money += dst_entr.amount;
+      summary_outs_etn += dst_entr.amount;
     }
     CHECK_AND_ASSERT_MES(additional_tx_public_keys.size() == additional_tx_keys.size(), false, "Internal error creating additional public keys");
 
@@ -439,10 +439,10 @@ namespace cryptonote
     if (!sort_tx_extra(tx.extra, tx.extra))
       return false;
 
-    //check money
-    if(summary_outs_money > summary_inputs_money )
+    //check etn
+    if(summary_outs_etn > summary_inputs_etn )
     {
-      LOG_ERROR("Transaction inputs money ("<< summary_inputs_money << ") less than outputs money (" << summary_outs_money << ")");
+      LOG_ERROR("Transaction inputs ETN ("<< summary_inputs_etn << ") less than outputs ETN (" << summary_outs_etn << ")");
       return false;
     }
 

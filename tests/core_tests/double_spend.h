@@ -128,7 +128,7 @@ class gen_double_spend_in_different_chains : public test_chain_unit_base
 {
 public:
   static const uint64_t send_amount = FIRST_BLOCK_REWARD - TESTS_DEFAULT_FEE;
-  static const size_t expected_blockchain_height = 4 + 2 * CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW;
+  static const size_t expected_blockchain_height = 4 + 2 * CRYPTONOTE_MINED_ETN_UNLOCK_WINDOW;
 
   gen_double_spend_in_different_chains();
 

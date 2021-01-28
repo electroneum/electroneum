@@ -58,7 +58,7 @@ inline uint64_t random(const uint64_t max_value) {
           (uint64_t(rand())<<48)) % max_value;
 }
 
-bool do_send_money(tools::wallet2& w1, tools::wallet2& w2, size_t mix_in_factor, uint64_t amount_to_transfer, transaction& tx, size_t parts=1)
+bool do_send_etn(tools::wallet2& w1, tools::wallet2& w2, size_t mix_in_factor, uint64_t amount_to_transfer, transaction& tx, size_t parts=1)
 {
   CHECK_AND_ASSERT_MES(parts > 0, false, "parts must be > 0");
 
@@ -97,7 +97,7 @@ bool do_send_money(tools::wallet2& w1, tools::wallet2& w2, size_t mix_in_factor,
   }
 }
 
-uint64_t get_money_in_first_transfers(const tools::wallet2::transfer_container& incoming_transfers, size_t n_transfers)
+uint64_t get_etn_in_first_transfers(const tools::wallet2::transfer_container& incoming_transfers, size_t n_transfers)
 {
   uint64_t summ = 0;
   size_t count = 0;
@@ -142,9 +142,9 @@ bool transactions_flow_test(std::string& working_folder,
   w1.init(daemon_addr_a);
 
   uint64_t blocks_fetched = 0;
-  bool received_money;
+  bool received_etn;
   bool ok;
-  if(!w1.refresh(true, blocks_fetched, received_money, ok))
+  if(!w1.refresh(true, blocks_fetched, received_etn, ok))
   {
     LOG_ERROR( "failed to refresh source wallet from " << daemon_addr_a );
     return false;
@@ -156,7 +156,7 @@ bool transactions_flow_test(std::string& working_folder,
     << "Source:  " << w1.get_account().get_public_address_str(MAINNET) << ENDL << "Path: " << working_folder + "/" + path_source_wallet << ENDL
     << "Target:  " << w2.get_account().get_public_address_str(MAINNET) << ENDL << "Path: " << working_folder + "/" + path_target_wallet);
 
-  //lets do some money
+  //lets do some etn
   epee::net_utils::http::http_simple_client http_client;
   COMMAND_RPC_STOP_MINING::request daemon1_req = AUTO_VAL_INIT(daemon1_req);
   COMMAND_RPC_STOP_MINING::response daemon1_rsp = AUTO_VAL_INIT(daemon1_rsp);
@@ -171,12 +171,12 @@ bool transactions_flow_test(std::string& working_folder,
   CHECK_AND_ASSERT_MES(r, false, "failed to start mining getrandom_outs");
   CHECK_AND_ASSERT_MES(daemon_rsp.status == CORE_RPC_STATUS_OK, false, "failed to start mining");
 
-  //wait for money, until balance will have enough money
-  w1.refresh(true, blocks_fetched, received_money, ok);
+  //wait for etn, until balance will have enough etn
+  w1.refresh(true, blocks_fetched, received_etn, ok);
   while(w1.unlocked_balance(0) < amount_to_transfer)
   {
     misc_utils::sleep_no_w(1000);
-    w1.refresh(true, blocks_fetched, received_money, ok);
+    w1.refresh(true, blocks_fetched, received_etn, ok);
   }
 
   //lets make a lot of small outs to ourselves
@@ -186,14 +186,14 @@ bool transactions_flow_test(std::string& working_folder,
   {
     tools::wallet2::transfer_container incoming_transfers;
     w1.get_transfers(incoming_transfers);
-    if(incoming_transfers.size() > FIRST_N_TRANSFERS && get_money_in_first_transfers(incoming_transfers, FIRST_N_TRANSFERS) < w1.unlocked_balance(0) )
+    if(incoming_transfers.size() > FIRST_N_TRANSFERS && get_etn_in_first_transfers(incoming_transfers, FIRST_N_TRANSFERS) < w1.unlocked_balance(0) )
     {
       //lets go!
       size_t count = 0;
       BOOST_FOREACH(tools::wallet2::transfer_details& td, incoming_transfers)
       {
         cryptonote::transaction tx_s;
-        bool r = do_send_money(w1, w1, 0, td.m_tx.vout[td.m_internal_output_index].amount - TEST_FEE, tx_s, 50);
+        bool r = do_send_etn(w1, w1, 0, td.m_tx.vout[td.m_internal_output_index].amount - TEST_FEE, tx_s, 50);
         CHECK_AND_ASSERT_MES(r, false, "Failed to send starter tx " << get_transaction_hash(tx_s));
         MGINFO_GREEN("Starter transaction sent " << get_transaction_hash(tx_s));
         if(++count >= FIRST_N_TRANSFERS)
@@ -203,11 +203,11 @@ bool transactions_flow_test(std::string& working_folder,
     }else
     {
       misc_utils::sleep_no_w(1000);
-      w1.refresh(true, blocks_fetched, received_money, ok);
+      w1.refresh(true, blocks_fetched, received_etn, ok);
     }
   }
   //do actual transfer
-  uint64_t transfered_money = 0;
+  uint64_t transfered_etn = 0;
   uint64_t transfer_size = amount_to_transfer/transactions_count;
   size_t i = 0;
   struct tx_test_entry
@@ -220,37 +220,37 @@ bool transactions_flow_test(std::string& working_folder,
   std::unordered_map<crypto::hash, tx_test_entry> txs;
   for(i = 0; i != transactions_count; i++)
   {
-    uint64_t amount_to_tx = (amount_to_transfer - transfered_money) > transfer_size ? transfer_size: (amount_to_transfer - transfered_money);
+    uint64_t amount_to_tx = (amount_to_transfer - transfered_etn) > transfer_size ? transfer_size: (amount_to_transfer - transfered_etn);
     while(w1.unlocked_balance(0) < amount_to_tx + TEST_FEE)
     {
       misc_utils::sleep_no_w(1000);
-      LOG_PRINT_L0("not enough money, waiting for cashback or mining");
-      w1.refresh(true, blocks_fetched, received_money, ok);
+      LOG_PRINT_L0("not enough ETN, waiting for cashback or mining");
+      w1.refresh(true, blocks_fetched, received_etn, ok);
     }
 
     transaction tx;
     /*size_t n_attempts = 0;
-    while (!do_send_money(w1, w2, mix_in_factor, amount_to_tx, tx)) {
+    while (!do_send_etn(w1, w2, mix_in_factor, amount_to_tx, tx)) {
         n_attempts++;
-        std::cout << "failed to transfer money, refresh and try again (attempts=" << n_attempts << ")" << std::endl;
+        std::cout << "failed to transfer ETN, refresh and try again (attempts=" << n_attempts << ")" << std::endl;
         w1.refresh();
     }*/
 
 
-    if(!do_send_money(w1, w2, mix_in_factor, amount_to_tx, tx))
+    if(!do_send_etn(w1, w2, mix_in_factor, amount_to_tx, tx))
     {
-      LOG_PRINT_L0("failed to transfer money, tx: " << get_transaction_hash(tx) << ", refresh and try again" );
-      w1.refresh(true, blocks_fetched, received_money, ok);
-      if(!do_send_money(w1, w2, mix_in_factor, amount_to_tx, tx))
+      LOG_PRINT_L0("failed to transfer ETN, tx: " << get_transaction_hash(tx) << ", refresh and try again" );
+      w1.refresh(true, blocks_fetched, received_etn, ok);
+      if(!do_send_etn(w1, w2, mix_in_factor, amount_to_tx, tx))
       {
-        LOG_PRINT_L0( "failed to transfer money, second chance. tx: " << get_transaction_hash(tx) << ", exit" );
+        LOG_PRINT_L0( "failed to transfer ETN, second chance. tx: " << get_transaction_hash(tx) << ", exit" );
         LOCAL_ASSERT(false);
         return false;
       }
     }
     lst_sent_ki = boost::get<txin_to_key>(tx.vin[0]).k_image;
 
-    transfered_money += amount_to_tx;
+    transfered_etn += amount_to_tx;
 
     LOG_PRINT_L0("transferred " << amount_to_tx << ", i=" << i );
     tx_test_entry& ent = txs[get_transaction_hash(tx)] = boost::value_initialized<tx_test_entry>();
@@ -264,17 +264,17 @@ bool transactions_flow_test(std::string& working_folder,
   LOG_PRINT_L0( "waiting some new blocks...");
   misc_utils::sleep_no_w(DIFFICULTY_BLOCKS_ESTIMATE_TIMESPAN*20*1000);//wait two blocks before sync on another wallet on another daemon
   LOG_PRINT_L0( "refreshing...");
-  bool recvd_money = false;
-  while(w2.refresh(true, blocks_fetched, recvd_money, ok) && ( (blocks_fetched && recvd_money) || !blocks_fetched  ) )
+  bool recvd_etn = false;
+  while(w2.refresh(true, blocks_fetched, recvd_etn, ok) && ( (blocks_fetched && recvd_etn) || !blocks_fetched  ) )
   {
     misc_utils::sleep_no_w(DIFFICULTY_BLOCKS_ESTIMATE_TIMESPAN*1000);//wait two blocks before sync on another wallet on another daemon
   }
 
-  uint64_t money_2 = w2.balance(0);
-  if(money_2 == transfered_money)
+  uint64_t etn_2 = w2.balance(0);
+  if(etn_2 == transfered_etn)
   {
     MGINFO_GREEN("-----------------------FINISHING TRANSACTIONS FLOW TEST OK-----------------------");
-    MGINFO_GREEN("transferred " << print_money(transfered_money) << " via " << i << " transactions" );
+    MGINFO_GREEN("transferred " << print_etn(transfered_etn) << " via " << i << " transactions" );
     return true;
   }else
   {
@@ -297,7 +297,7 @@ bool transactions_flow_test(std::string& working_folder,
     }
 
     MERROR("-----------------------FINISHING TRANSACTIONS FLOW TEST FAILED-----------------------" );
-    MERROR("income " << print_money(money_2) << " via " << i << " transactions, expected money = " << print_money(transfered_money) );
+    MERROR("income " << print_etn(etn_2) << " via " << i << " transactions, expected ETN = " << print_etn(transfered_etn) );
     LOCAL_ASSERT(false);
     return false;
   }

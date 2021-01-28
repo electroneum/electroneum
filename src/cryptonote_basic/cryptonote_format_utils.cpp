@@ -106,28 +106,6 @@ namespace cryptonote
   }
 }
 
-std::string hexStr(unsigned char *data, int len)
-{
-  std::stringstream ss;
-  ss << std::hex;
-  for (int i = 0; i < len; ++i)
-    ss << std::setw(2) << std::setfill('0') << (int)data[i];
-  return ss.str();
-}
-
-constexpr char hexmap[] = {'0', '1', '2', '3', '4', '5', '6', '7',
-                           '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
-
-std::string hexStr2(unsigned char *data, int len)
-{
-  std::string s(len * 2, ' ');
-  for (int i = 0; i < len; ++i) {
-    s[2 * i]     = hexmap[(data[i] & 0xF0) >> 4];
-    s[2 * i + 1] = hexmap[data[i] & 0x0F];
-  }
-  return s;
-}
-
 namespace cryptonote
 {
   //---------------------------------------------------------------
@@ -751,13 +729,13 @@ namespace cryptonote
     return true;
   }
   //---------------------------------------------------------------
-  bool get_inputs_money_amount(const transaction& tx, uint64_t& money)
+  bool get_inputs_etn_amount(const transaction& tx, uint64_t& etn)
   {
-    money = 0;
+    etn = 0;
     for(const auto& in: tx.vin)
     {
       CHECKED_GET_SPECIFIC_VARIANT(in, const txin_to_key, tokey_in, false);
-      money += tokey_in.amount;
+      etn += tokey_in.amount;
     }
     return true;
   }
@@ -800,37 +778,37 @@ namespace cryptonote
     return true;
   }
   //-----------------------------------------------------------------------------------------------
-  bool check_money_overflow(const transaction& tx)
+  bool check_etn_overflow(const transaction& tx)
   {
     return check_inputs_overflow(tx) && check_outs_overflow(tx);
   }
   //---------------------------------------------------------------
   bool check_inputs_overflow(const transaction& tx)
   {
-    uint64_t money = 0;
+    uint64_t etn = 0;
     for(const auto& in: tx.vin)
     {
       CHECKED_GET_SPECIFIC_VARIANT(in, const txin_to_key, tokey_in, false);
-      if(money > tokey_in.amount + money)
+      if(etn > tokey_in.amount + etn)
         return false;
-      money += tokey_in.amount;
+      etn += tokey_in.amount;
     }
     return true;
   }
   //---------------------------------------------------------------
   bool check_outs_overflow(const transaction& tx)
   {
-    uint64_t money = 0;
+    uint64_t etn = 0;
     for(const auto& o: tx.vout)
     {
-      if(money > o.amount + money)
+      if(etn > o.amount + etn)
         return false;
-      money += o.amount;
+      etn += o.amount;
     }
     return true;
   }
   //---------------------------------------------------------------
-  uint64_t get_outs_money_amount(const transaction& tx)
+  uint64_t get_outs_etn_amount(const transaction& tx)
   {
     uint64_t outputs_amount = 0;
     for(const auto& o: tx.vout)
@@ -890,19 +868,19 @@ namespace cryptonote
     return boost::none;
   }
   //---------------------------------------------------------------
-  bool lookup_acc_outs(const account_keys& acc, const transaction& tx, std::vector<size_t>& outs, uint64_t& money_transfered)
+  bool lookup_acc_outs(const account_keys& acc, const transaction& tx, std::vector<size_t>& outs, uint64_t& etn_transfered)
   {
     crypto::public_key tx_pub_key = get_tx_pub_key_from_extra(tx);
     if(null_pkey == tx_pub_key)
       return false;
     std::vector<crypto::public_key> additional_tx_pub_keys = get_additional_tx_pub_keys_from_extra(tx);
-    return lookup_acc_outs(acc, tx, tx_pub_key, additional_tx_pub_keys, outs, money_transfered);
+    return lookup_acc_outs(acc, tx, tx_pub_key, additional_tx_pub_keys, outs, etn_transfered);
   }
   //---------------------------------------------------------------
-  bool lookup_acc_outs(const account_keys& acc, const transaction& tx, const crypto::public_key& tx_pub_key, const std::vector<crypto::public_key>& additional_tx_pub_keys, std::vector<size_t>& outs, uint64_t& money_transfered)
+  bool lookup_acc_outs(const account_keys& acc, const transaction& tx, const crypto::public_key& tx_pub_key, const std::vector<crypto::public_key>& additional_tx_pub_keys, std::vector<size_t>& outs, uint64_t& etn_transfered)
   {
     CHECK_AND_ASSERT_MES(additional_tx_pub_keys.empty() || additional_tx_pub_keys.size() == tx.vout.size(), false, "wrong number of additional pubkeys" );
-    money_transfered = 0;
+    etn_transfered = 0;
     size_t i = 0;
     for(const tx_out& o:  tx.vout)
     {
@@ -910,7 +888,7 @@ namespace cryptonote
       if(is_out_to_acc(acc, boost::get<txout_to_key>(o.target), tx_pub_key, additional_tx_pub_keys, i))
       {
         outs.push_back(i);
-        money_transfered += o.amount;
+        etn_transfered += o.amount;
       }
       i++;
     }
@@ -959,7 +937,7 @@ namespace cryptonote
     }
   }
   //---------------------------------------------------------------
-  std::string print_money(uint64_t amount, unsigned int decimal_point)
+  std::string print_etn(uint64_t amount, unsigned int decimal_point)
   {
     if (decimal_point == (unsigned int)-1)
       decimal_point = default_decimal_point;

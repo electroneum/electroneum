@@ -671,7 +671,7 @@ namespace Language
         "attention",
         "bare",
         "bite",
-        "money",
+        "etn",
         "protect",
         "amaze",
         "appear",

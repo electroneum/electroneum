@@ -251,11 +251,11 @@ namespace crypto {
     return crypto_ops::secret_key_to_public_key(sec, pub);
   }
 
-  /* To generate an ephemeral key used to send money to:
+  /* To generate an ephemeral key used to send etn to:
    * * The sender generates a new key pair, which becomes the transaction key. The public transaction key is included in "extra" field.
    * * Both the sender and the receiver generate key derivation from the transaction key, the receivers' "view" key and the output index.
    * * The sender uses key derivation and the receivers' "spend" key to derive an ephemeral public key.
-   * * The receiver can either derive the public key (to check that the transaction is addressed to him) or the private key (to spend the money).
+   * * The receiver can either derive the public key (to check that the transaction is addressed to him) or the private key (to spend the etn).
    */
   inline bool generate_key_derivation(const public_key &key1, const secret_key &key2, key_derivation &derivation) {
     return crypto_ops::generate_key_derivation(key1, key2, derivation);
@@ -295,9 +295,9 @@ namespace crypto {
     return crypto_ops::check_tx_proof(prefix_hash, R, A, B, D, sig);
   }
 
-  /* To send money to a key:
+  /* To send etn to a key:
    * * The sender generates an ephemeral key and includes it in transaction output.
-   * * To spend the money, the receiver generates a key image from it.
+   * * To spend the etn, the receiver generates a key image from it.
    * * Then he selects a bunch of outputs, including the one he spends, and uses them to generate a ring signature.
    * To check the signature, it is necessary to collect all the keys that were used to generate it. To detect double spends, it is necessary to check that each key image is used at most once.
    */
