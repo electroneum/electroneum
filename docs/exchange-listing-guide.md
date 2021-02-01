@@ -91,25 +91,11 @@ Electroneum blockchain is based on the Monero/CryptoNote open-source projects.
 
 Electroneum blockchain was built on top of the CryptoNote Protocol, an open-source technology with advanced mathematical and cryptograph features to empower end-users with the best blockchain technology currently available.
 
-**Untraceable Payments**
-
-CryptoNote provides users with a completely anonymous payment scheme. CryptoNote implements the ring signature technology which allows you to sign a message on behalf of a group. The signature only proves the message was created by someone from the group, but all the possible signers are indistinguishable from each other.
-
-Source: [cryptonote.org](https://cryptonote.org/inside#untraceable-payments)
-
 **Double-Spending Proof**
 
 Nobody is able to spend the same ETN twice — even if all his signatures are anonymous. Every signature contains a key image — a kind of fingerprint of the secret key. It is based on a one-way cryptographic function; this implies that given only the key image it is impossible to restore the corresponding secret key. These key images are used to prevent double-spending.
 
 Source: [cryptonote.org](https://cryptonote.org/inside#double-spend-proof)
-
-
-**Blockchain Analysis Resistance**
-
-Non-repeating one-time addresses and mixed keys in ring signatures make the whole blockchain resistant to analysis. Each future transaction will only increase the entropy and create additional obstacles for an analyst.
-
-Source: [cryptonote.org](https://cryptonote.org/inside#blockchain-analysis-resistance)
-
 
 **Egalitarian Proof of Work**
 
