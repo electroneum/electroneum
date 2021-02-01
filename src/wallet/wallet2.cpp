@@ -101,8 +101,9 @@ using namespace cryptonote;
 #define CHACHA8_KEY_TAIL 0x8c
 #define CACHE_KEY_TAIL 0x8d
 
-#define UNSIGNED_TX_PREFIX "Electroneum unsigned tx set"
-#define SIGNED_TX_PREFIX "Electroneum signed tx set"
+// Magic number 004 means these payloads are encrypted.
+#define UNSIGNED_TX_PREFIX "Electroneum unsigned tx set \004"
+#define SIGNED_TX_PREFIX "Electroneum signed tx set \004"
 #define MULTISIG_UNSIGNED_TX_PREFIX "Electroneum multisig unsigned tx set\001"
 
 #define RECENT_OUTPUT_RATIO (0.5) // 50% of outputs are from the recent zone
@@ -6246,8 +6247,8 @@ std::string wallet2::dump_tx_to_str(const std::vector<pending_tx> &ptx_vector) c
   }
   LOG_PRINT_L2("Saving unsigned tx data: " << oss.str());
   std::string ciphertext = encrypt_with_view_secret_key(oss.str());
-  // Magic number 004 means this payload is encrypted.
-  return std::string(UNSIGNED_TX_PREFIX "\004") + ciphertext;
+
+  return std::string(UNSIGNED_TX_PREFIX) + ciphertext;
 }
 //----------------------------------------------------------------------------------------------------
 bool wallet2::load_unsigned_tx(const std::string &unsigned_filename, unsigned_tx_set &exported_txs) const
@@ -6294,6 +6295,11 @@ bool wallet2::parse_unsigned_tx_from_str(const std::string &unsigned_tx_st, unsi
       LOG_PRINT_L0("Failed to parse data from unsigned tx: " << e.what());
       return false;
     }
+    catch (...)
+    {
+    LOG_PRINT_L0("Failed to parse data from unsigned tx");
+    return false;
+    }
   }
   else if (version == '\004')
   {
@@ -6316,6 +6322,11 @@ bool wallet2::parse_unsigned_tx_from_str(const std::string &unsigned_tx_st, unsi
     {
       LOG_PRINT_L0("Failed to decrypt unsigned tx: " << e.what());
       return false;
+    }
+    catch(...)
+    {
+    LOG_PRINT_L0("Failed to parse data from unsigned tx");
+    return false;
     }
   }
   else
@@ -6526,8 +6537,7 @@ std::string wallet2::sign_tx_dump_to_str(unsigned_tx_set &exported_txs, std::vec
   }
   LOG_PRINT_L3("Saving signed tx data (with encryption): " << oss.str());
   std::string ciphertext = encrypt_with_view_secret_key(oss.str());
-  // Magic number 004 means this payload is encrypted.
-  return std::string(SIGNED_TX_PREFIX "\004") + ciphertext;
+  return std::string(SIGNED_TX_PREFIX) + ciphertext;
 }
 //----------------------------------------------------------------------------------------------------
 bool wallet2::load_tx(const std::string &signed_filename, std::vector<tools::wallet2::pending_tx> &ptx, std::function<bool(const signed_tx_set&)> accept_func)
@@ -6579,6 +6589,11 @@ bool wallet2::parse_tx_from_str(const std::string &signed_tx_st, std::vector<too
       LOG_PRINT_L0("Failed to parse data from signed transaction: " << e.what());
       return false;
     }
+    catch(...)
+    {
+    LOG_PRINT_L0("Failed to parse data from signed transaction");
+    return false;
+    }
   }
   else if (version == '\004')
   {
@@ -6601,6 +6616,11 @@ bool wallet2::parse_tx_from_str(const std::string &signed_tx_st, std::vector<too
     {
       LOG_PRINT_L0("Failed to decrypt signed transaction: " << e.what());
       return false;
+    }
+    catch(...)
+    {
+    LOG_PRINT_L0("Failed to parse decrypted data from signed transaction");
+    return false;
     }
   }
   else
