@@ -97,14 +97,6 @@ CryptoNote provides users with a completely anonymous payment scheme. CryptoNote
 
 Source: [cryptonote.org](https://cryptonote.org/inside#untraceable-payments)
 
-
-**Unlikable Transactions**
-
-Even if outgoing transactions are untraceable, everyone may still be able to see the payments you have received and thus determine your income. However, by using a variation of the Diffie-Hellman exchange protocol, a receiver has multiple unique one-time addresses derived from his single public key. After funds are sent to these addresses they can only be redeemed by the receiver; and it would be impossible to cross-link these payments.
-
-Source: [cryptonote.org](https://cryptonote.org/inside#unlinkable-transaction)
-
-
 **Double-Spending Proof**
 
 Nobody is able to spend the same ETN twice — even if all his signatures are anonymous. Every signature contains a key image — a kind of fingerprint of the secret key. It is based on a one-way cryptographic function; this implies that given only the key image it is impossible to restore the corresponding secret key. These key images are used to prevent double-spending.
