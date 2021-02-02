@@ -102,8 +102,8 @@ using namespace cryptonote;
 #define CACHE_KEY_TAIL 0x8d
 
 // Magic number 004 means these payloads are encrypted.
-#define UNSIGNED_TX_PREFIX "Electroneum unsigned tx set \004"
-#define SIGNED_TX_PREFIX "Electroneum signed tx set \004"
+#define UNSIGNED_TX_PREFIX "Electroneum unsigned tx set\004"
+#define SIGNED_TX_PREFIX "Electroneum signed tx set\004"
 #define MULTISIG_UNSIGNED_TX_PREFIX "Electroneum multisig unsigned tx set\001"
 
 #define RECENT_OUTPUT_RATIO (0.5) // 50% of outputs are from the recent zone
@@ -6273,7 +6273,7 @@ bool wallet2::load_unsigned_tx(const std::string &unsigned_filename, unsigned_tx
 bool wallet2::parse_unsigned_tx_from_str(const std::string &unsigned_tx_st, unsigned_tx_set &exported_txs) const
 {
   std::string s = unsigned_tx_st;
-  const size_t magiclen = strlen(UNSIGNED_TX_PREFIX);
+  const size_t magiclen = strlen(UNSIGNED_TX_PREFIX) - 1;
   if (strncmp(s.c_str(), UNSIGNED_TX_PREFIX, magiclen))
   {
     LOG_PRINT_L0("Bad magic from unsigned tx");
@@ -6325,7 +6325,7 @@ bool wallet2::parse_unsigned_tx_from_str(const std::string &unsigned_tx_st, unsi
     }
     catch(...)
     {
-    LOG_PRINT_L0("Failed to parse data from unsigned tx");
+    LOG_PRINT_L0("Failed to parse decrypted data from unsigned tx");
     return false;
     }
   }
@@ -6567,7 +6567,7 @@ bool wallet2::parse_tx_from_str(const std::string &signed_tx_st, std::vector<too
   boost::system::error_code errcode;
   signed_tx_set signed_txs;
 
-  const size_t magiclen = strlen(SIGNED_TX_PREFIX);
+  const size_t magiclen = strlen(SIGNED_TX_PREFIX) - 1;
   if (strncmp(s.c_str(), SIGNED_TX_PREFIX, magiclen))
   {
     LOG_PRINT_L0("Bad magic from signed transaction");
@@ -6619,7 +6619,7 @@ bool wallet2::parse_tx_from_str(const std::string &signed_tx_st, std::vector<too
     }
     catch(...)
     {
-    LOG_PRINT_L0("Failed to parse decrypted data from signed transaction");
+    LOG_PRINT_L0("Failed to decrypt signed transaction");
     return false;
     }
   }
