@@ -109,6 +109,7 @@ namespace crypto {
     ec_scalar c, r;
     friend class crypto_ops;
   };
+
 #pragma pack(pop)
 
   void hash_to_scalar(const void *data, size_t length, ec_scalar &res);
@@ -165,6 +166,8 @@ namespace crypto {
     friend bool check_tx_proof(const hash &, const public_key &, const public_key &, const boost::optional<public_key> &, const public_key &, const signature &);
     static void generate_key_image(const public_key &, const secret_key &, key_image &);
     friend void generate_key_image(const public_key &, const secret_key &, key_image &);
+    void generate_input_signature(const hash &prefix_hash, const hash &key_image, const secret_key sec_view, const secret_key  sec_spend, ed25519_signature signature);
+    friend void generate_input_signature(const hash &prefix_hash, const hash &key_image, const secret_key sec_view, const secret_key  sec_spend, ed25519_signature signature);
     static void generate_ring_signature(const hash &, const key_image &,
       const public_key *const *, std::size_t, const secret_key &, std::size_t, signature *);
     friend void generate_ring_signature(const hash &, const key_image &,

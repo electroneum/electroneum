@@ -492,6 +492,30 @@ namespace crypto {
     return sizeof(rs_comm) + pubs_count * sizeof(ec_point_pair);
   }
 
+  void crypto_ops::generate_input_signature(const hash &prefix_hash, const hash &key_image, const secret_key sec_view, const secret_key sec_spend, ed25519_signature signature){
+
+      assert(sc_check(&sec_view) == 0);
+      assert(sc_check(&sec_spend) == 0);
+
+      secret_key d;
+      // add the two secret keys and reduce modulo l to get a new valid secret key for signing.
+      // todo: move key to wallet
+      sc_add(&unwrap(d), &unwrap(sec_view), &unwrap(sec_spend));
+      sc_reduce32(&d);
+
+      ed25519_public_key D;
+      ed25519_publickey((unsigned char*)d.data, D);
+
+      // hash input specific key image with the overall tx prefix to get a unique signature per input.
+      std::vector<hash> hashes = {prefix_hash, key_image};
+      hash input_tree;
+      tree_hash(hashes.data(), hashes.size(), input_tree);
+
+      ed25519_sign((unsigned char *)input_tree.data, 32, (unsigned char *)d.data, D, signature);
+      //sanity check on signature
+      assert(ed25519_sign_open((unsigned char *)input_tree.data, 32, D, signature));
+  }
+
   void crypto_ops::generate_ring_signature(const hash &prefix_hash, const key_image &image,
     const public_key *const *pubs, size_t pubs_count,
     const secret_key &sec, size_t sec_index,
@@ -583,6 +607,7 @@ namespace crypto {
     boost::shared_ptr<rs_comm> buf(reinterpret_cast<rs_comm *>(malloc(rs_comm_size(pubs_count))), free);
     if (!buf)
       return false;
+
 #if !defined(NDEBUG)
     for (i = 0; i < pubs_count; i++) {
       assert(check_key(*pubs[i]));
