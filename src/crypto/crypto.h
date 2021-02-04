@@ -128,6 +128,7 @@ namespace crypto {
     POP_WARNINGS
 
   void hash_to_ec(const public_key &key, ge_p3 &res);
+  void hash_to_ec(const hash& h, ge_p3 &res);
 
   static_assert(sizeof(ec_point) == 32 && sizeof(ec_scalar) == 32 &&
     sizeof(public_key) == 32 && sizeof(secret_key) == 32 &&
@@ -166,6 +167,8 @@ namespace crypto {
     friend bool check_tx_proof(const hash &, const public_key &, const public_key &, const boost::optional<public_key> &, const public_key &, const signature &);
     static void generate_key_image(const public_key &, const secret_key &, key_image &);
     friend void generate_key_image(const public_key &, const secret_key &, key_image &);
+    static void generate_new_key_image(const uint64_t &amount, const uint64_t& amount_index, key_image &image);
+    friend void generate_new_key_image(const uint64_t &amount, const uint64_t& amount_index, key_image &image);
     void generate_input_signature(const hash &prefix_hash, const hash &key_image, const secret_key sec_view, const secret_key  sec_spend, ed25519_signature signature);
     friend void generate_input_signature(const hash &prefix_hash, const hash &key_image, const secret_key sec_view, const secret_key  sec_spend, ed25519_signature signature);
     static void generate_ring_signature(const hash &, const key_image &,

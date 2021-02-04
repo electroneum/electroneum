@@ -478,6 +478,13 @@ namespace crypto {
     ge_mul8(&point2, &point);
     ge_p1p1_to_p3(&res, &point2);
   }
+  void hash_to_ec(const hash& h, ge_p3 &res) {
+    ge_p2 point;
+    ge_p1p1 point2;
+    ge_fromfe_frombytes_vartime(&point, reinterpret_cast<const unsigned char *>(&h));
+    ge_mul8(&point2, &point);
+    ge_p1p1_to_p3(&res, &point2);
+  }
 
   void crypto_ops::generate_key_image(const public_key &pub, const secret_key &sec, key_image &image) {
     ge_p3 point;
@@ -486,6 +493,18 @@ namespace crypto {
     hash_to_ec(pub, point);
     ge_scalarmult(&point2, &unwrap(sec), &point);
     ge_tobytes(&image, &point2);
+  }
+
+  void crypto_ops::generate_new_key_image(const uint64_t &amount, const uint64_t& amount_index, key_image &image) {
+
+  hash amount_hash, index_hash, input_tree;
+  cn_fast_hash((const char *)amount,       64, amount_hash);
+  cn_fast_hash((const char *)amount_index, 64, index_hash);
+  std::vector<hash> image_hashes = {amount_hash, index_hash};
+  tree_hash(image_hashes.data(), image_hashes.size(), input_tree);
+  ge_p3 point;
+  hash_to_ec(input_tree, point);
+  ge_p3_tobytes(&image, &point);
   }
 
   size_t rs_comm_size(size_t pubs_count) {
