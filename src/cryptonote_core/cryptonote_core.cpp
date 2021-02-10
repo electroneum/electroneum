@@ -848,7 +848,8 @@ namespace cryptonote
     bad_semantics_txes_lock.unlock();
 
     uint8_t version = m_blockchain_storage.get_current_hard_fork_version();
-    const size_t max_tx_version = version < HF_VERSION_ENABLE_RCT ? 1 : 2;
+    //TODO: Public
+    const size_t max_tx_version = version < HF_VERSION_ENABLE_RCT ? 3 : 4;
     if (tx.version == 0 || tx.version > max_tx_version)
     {
       // v2 is the latest one we know
@@ -1126,14 +1127,6 @@ namespace cryptonote
       MERROR_VER("tx with invalid outputs, rejected for tx id= " << get_transaction_hash(tx));
       return false;
     }
-    if (tx.version > 1)
-    {
-      if (tx.rct_signatures.outPk.size() != tx.vout.size())
-      {
-        MERROR_VER("tx with mismatched vout/outPk count, rejected for tx id= " << get_transaction_hash(tx));
-        return false;
-      }
-    }
 
     if(!check_etn_overflow(tx))
     {
@@ -1141,17 +1134,15 @@ namespace cryptonote
       return false;
     }
 
-    if (tx.version == 1)
-    {
-      uint64_t amount_in = 0;
-      get_inputs_etn_amount(tx, amount_in);
-      uint64_t amount_out = get_outs_etn_amount(tx);
+    //TODO: Public
+    uint64_t amount_in = 0;
+    get_inputs_etn_amount(tx, amount_in);
+    uint64_t amount_out = get_outs_etn_amount(tx);
 
-      if(amount_in <= amount_out)
-      {
-        MERROR_VER("tx with wrong amounts: ins " << amount_in << ", outs " << amount_out << ", rejected for tx id= " << get_transaction_hash(tx));
-        return false;
-      }
+    if(amount_in <= amount_out)
+    {
+      MERROR_VER("tx with wrong amounts: ins " << amount_in << ", outs " << amount_out << ", rejected for tx id= " << get_transaction_hash(tx));
+      return false;
     }
     // for version > 1, ringct signatures check verifies amounts match
 

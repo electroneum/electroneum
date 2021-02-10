@@ -917,14 +917,6 @@ uint64_t BlockchainLMDB::add_transaction_data(const crypto::hash& blk_hash, cons
       throw0(DB_ERROR(lmdb_error("Failed to add prunable tx id to db transaction: ", result).c_str()));
   }
 
-  if (tx.version > 1)
-  {
-    MDB_val_set(val_prunable_hash, tx_prunable_hash);
-    result = mdb_cursor_put(m_cur_txs_prunable_hash, &val_tx_id, &val_prunable_hash, MDB_APPEND);
-    if (result)
-      throw0(DB_ERROR(lmdb_error("Failed to add prunable tx prunable hash to db transaction: ", result).c_str()));
-  }
-
   return tx_id;
 }
 
@@ -976,15 +968,6 @@ void BlockchainLMDB::remove_transaction_data(const crypto::hash& tx_hash, const 
     result = mdb_cursor_del(m_cur_txs_prunable_tip, 0);
     if (result)
         throw1(DB_ERROR(lmdb_error("Error adding removal of tx id to db transaction", result).c_str()));
-  }
-
-  if (tx.version > 1)
-  {
-    if ((result = mdb_cursor_get(m_cur_txs_prunable_hash, &val_tx_id, NULL, MDB_SET)))
-        throw1(DB_ERROR(lmdb_error("Failed to locate prunable hash tx for removal: ", result).c_str()));
-    result = mdb_cursor_del(m_cur_txs_prunable_hash, 0);
-    if (result)
-        throw1(DB_ERROR(lmdb_error("Failed to add removal of prunable hash tx to db transaction: ", result).c_str()));
   }
 
   remove_tx_outputs(tip->data.tx_id, tx);
@@ -1110,11 +1093,10 @@ void BlockchainLMDB::remove_tx_outputs(const uint64_t tx_id, const transaction& 
       throw0(DB_ERROR("tx has outputs, but no output indices found"));
   }
 
-  bool is_pseudo_rct = tx.version >= 2 && tx.vin.size() == 1 && tx.vin[0].type() == typeid(txin_gen);
   for (size_t i = tx.vout.size(); i-- > 0;)
   {
-    uint64_t amount = is_pseudo_rct ? 0 : tx.vout[i].amount;
-    remove_output(amount, amount_output_indices[i]);
+    //TODO: Public
+    remove_output(tx.vout[i].amount, amount_output_indices[i]);
   }
 }
 
@@ -4962,15 +4944,6 @@ void BlockchainLMDB::migrate_1_2()
       result = mdb_cursor_put(c_cur1, (MDB_val *)&k, &nv, 0);
       if (result)
         throw0(DB_ERROR(lmdb_error("Failed to put a record into txs_prunable: ", result).c_str()));
-
-      if (tx.version > 1)
-      {
-        crypto::hash prunable_hash = get_transaction_prunable_hash(tx);
-        MDB_val_set(val_prunable_hash, prunable_hash);
-        result = mdb_cursor_put(c_cur2, (MDB_val *)&k, &val_prunable_hash, 0);
-        if (result)
-          throw0(DB_ERROR(lmdb_error("Failed to put a record into txs_prunable_hash: ", result).c_str()));
-      }
 
       result = mdb_cursor_del(c_old, 0);
       if (result)

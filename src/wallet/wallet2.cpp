@@ -2012,21 +2012,11 @@ void wallet2::process_new_transaction(const crypto::hash &txid, const cryptonote
             td.m_pk_index = pk_index - 1;
             td.m_subaddr_index = tx_scan_info[o].received->index;
             expand_subaddresses(tx_scan_info[o].received->index);
-            if (tx.vout[o].amount == 0)
-            {
-              td.m_mask = tx_scan_info[o].mask;
-              td.m_rct = true;
-            }
-            else if (miner_tx && tx.version == 2)
-            {
-              td.m_mask = rct::identity();
-              td.m_rct = true;
-            }
-            else
-            {
-              td.m_mask = rct::identity();
-              td.m_rct = false;
-            }
+
+            //TODO: Public
+            td.m_mask = rct::identity();
+            td.m_rct = false;
+
             td.m_frozen = false;
 	    set_unspent(m_transfers.size()-1);
             if (td.m_key_image_known)
@@ -2084,21 +2074,11 @@ void wallet2::process_new_transaction(const crypto::hash &txid, const cryptonote
             td.m_pk_index = pk_index - 1;
             td.m_subaddr_index = tx_scan_info[o].received->index;
             expand_subaddresses(tx_scan_info[o].received->index);
-            if (tx.vout[o].amount == 0)
-            {
-              td.m_mask = tx_scan_info[o].mask;
-              td.m_rct = true;
-            }
-            else if (miner_tx && tx.version == 2)
-            {
-              td.m_mask = rct::identity();
-              td.m_rct = true;
-            }
-            else
-            {
-              td.m_mask = rct::identity();
-              td.m_rct = false;
-            }
+            
+            //TODO: Public
+            td.m_mask = rct::identity();
+            td.m_rct = false;
+
             if (output_tracker_cache)
               (*output_tracker_cache)[std::make_pair(tx.vout[o].amount, td.m_global_output_index)] = kit->second;
             if (m_multisig)
@@ -2197,8 +2177,9 @@ void wallet2::process_new_transaction(const crypto::hash &txid, const cryptonote
       }
     }
   }
-
-  uint64_t fee = miner_tx ? 0 : tx.version == 1 ? tx_etn_spent_in_ins - get_outs_etn_amount(tx) : tx.rct_signatures.txnFee;
+  
+  //TODO: Public
+  uint64_t fee = miner_tx ? 0 : tx_etn_spent_in_ins - get_outs_etn_amount(tx);
 
   if (tx_etn_spent_in_ins > 0 && !pool)
   {
@@ -2351,10 +2332,7 @@ void wallet2::process_outgoing(const crypto::hash &txid, const cryptonote::trans
     // wallet (eg, we're a cold wallet and the hot wallet sent it). For RCT transactions,
     // we only see 0 input amounts, so have to deduce amount out from other parameters.
     entry.first->second.m_amount_in = spent;
-    if (tx.version == 1)
-      entry.first->second.m_amount_out = get_outs_etn_amount(tx);
-    else
-      entry.first->second.m_amount_out = spent - tx.rct_signatures.txnFee;
+    entry.first->second.m_amount_out = get_outs_etn_amount(tx);
     entry.first->second.m_change = received;
 
     std::vector<tx_extra_field> tx_extra_fields;
@@ -10789,26 +10767,7 @@ void wallet2::check_tx_key_helper(const cryptonote::transaction &tx, const crypt
     if (found)
     {
       uint64_t amount;
-      if (tx.version == 1 || tx.rct_signatures.type == rct::RCTTypeNull)
-      {
-        amount = tx.vout[n].amount;
-      }
-      else
-      {
-        crypto::secret_key scalar1;
-        crypto::derivation_to_scalar(found_derivation, n, scalar1);
-        rct::ecdhTuple ecdh_info = tx.rct_signatures.ecdhInfo[n];
-        rct::ecdhDecode(ecdh_info, rct::sk2rct(scalar1), tx.rct_signatures.type == rct::RCTTypeBulletproof2);
-        const rct::key C = tx.rct_signatures.outPk[n].mask;
-        rct::key Ctmp;
-        THROW_WALLET_EXCEPTION_IF(sc_check(ecdh_info.mask.bytes) != 0, error::wallet_internal_error, "Bad ECDH input mask");
-        THROW_WALLET_EXCEPTION_IF(sc_check(ecdh_info.amount.bytes) != 0, error::wallet_internal_error, "Bad ECDH input amount");
-        rct::addKeys2(Ctmp, ecdh_info.mask, ecdh_info.amount, rct::H);
-        if (rct::equalKeys(C, Ctmp))
-          amount = rct::h2d(ecdh_info.amount);
-        else
-          amount = 0;
-      }
+      amount = tx.vout[n].amount;
       received += amount;
     }
   }

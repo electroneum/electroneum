@@ -304,7 +304,7 @@ bool init_output_indices(map_output_idx_t& outs, std::map<uint64_t, std::vector<
                 const tx_out &out = tx.vout[j];
 
                 output_index oi(out.target, out.amount, boost::get<txin_gen>(*blk.miner_tx.vin.begin()).height, i, j, &blk, vtx[i]);
-                oi.set_rct(tx.version == 2);
+                oi.set_rct(tx.version == 4);
                 oi.unlock_time = tx.unlock_time;
                 oi.is_coin_base = i == 0;
 
