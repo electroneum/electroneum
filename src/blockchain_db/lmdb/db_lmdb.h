@@ -72,6 +72,8 @@ typedef struct mdb_txn_cursors
 
   MDB_cursor *m_txc_properties;
   MDB_cursor *m_txc_validators;
+  MDB_cursor *m_txc_utxos;
+  MDB_cursor *m_txc_addr_outputs;
 } mdb_txn_cursors;
 
 #define m_cur_blocks	m_cursors->m_txc_blocks
@@ -92,6 +94,8 @@ typedef struct mdb_txn_cursors
 #define m_cur_hf_versions	m_cursors->m_txc_hf_versions
 #define m_cur_properties	m_cursors->m_txc_properties
 #define m_cur_validators	m_cursors->m_txc_validators
+#define m_cur_utxos	        m_cursors->m_txc_utxos
+#define m_cur_addr_outputs	m_cursors->m_txc_addr_outputs
 
 typedef struct mdb_rflags
 {
@@ -114,6 +118,8 @@ typedef struct mdb_rflags
   bool m_rf_hf_versions;
   bool m_rf_properties;
   bool m_rf_validators;
+  bool m_rf_utxos;
+  bool m_rf_addr_outputs;
 } mdb_rflags;
 
 typedef struct mdb_threadinfo
@@ -424,6 +430,11 @@ private:
   blobdata output_to_blob(const tx_out& output) const;
   tx_out output_from_blob(const blobdata& blob) const;
 
+  void add_chainstate_utxo(const transaction &tx, const uint32_t relative_out_index, const crypto::public_key combined_key);
+  void remove_chainstate_utxo(const transaction& tx, const uint32_t relative_out_index);
+
+  void add_addr_output(const transaction& tx, const uint32_t relative_out_index, const crypto::public_key& pub_view, const crypto::public_key& pub_spend, uint64_t amount);
+  void remove_addr_output(const transaction& tx, const uint32_t relative_out_index, const crypto::public_key& pub_view, const crypto::public_key& pub_spend, uint64_t amount);
   // migrate from older DB version to current
   void migrate(const uint32_t oldversion);
 
@@ -471,6 +482,8 @@ private:
   MDB_dbi m_hf_versions;
 
   MDB_dbi m_validators;
+  MDB_dbi m_utxos;
+  MDB_dbi m_addr_outputs;
 
   MDB_dbi m_properties;
 

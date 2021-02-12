@@ -95,6 +95,8 @@
  *   OUTPUT_DNE
  *   OUTPUT_EXISTS
  *   KEY_IMAGE_EXISTS
+ *   UTXO_EXISTS
+ *   ADDR_OUTPUT_EXISTS
  */
 
 namespace cryptonote
@@ -321,6 +323,26 @@ class KEY_IMAGE_EXISTS : public DB_EXCEPTION
   public:
     KEY_IMAGE_EXISTS() : DB_EXCEPTION("The spent key image to be added already exists!") { }
     KEY_IMAGE_EXISTS(const char* s) : DB_EXCEPTION(s) { }
+};
+
+/**
+ * @brief thrown when a utxo already exists, but shouldn't, namely when adding a block
+ */
+class UTXO_EXISTS : public DB_EXCEPTION
+{
+public:
+    UTXO_EXISTS() : DB_EXCEPTION("The utxo to be added already exists!") { }
+    UTXO_EXISTS(const char* s) : DB_EXCEPTION(s) { }
+};
+
+/**
+ * @brief thrown when an output record for an address already exists, but shouldn't, namely when adding a block
+ */
+class ADDR_OUTPUT_EXISTS : public DB_EXCEPTION
+{
+public:
+    ADDR_OUTPUT_EXISTS() : DB_EXCEPTION("The output record for this address already exists!") { }
+    ADDR_OUTPUT_EXISTS(const char* s) : DB_EXCEPTION(s) { }
 };
 
 /***********************************
