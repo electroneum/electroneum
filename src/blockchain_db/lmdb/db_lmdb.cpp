@@ -59,6 +59,10 @@ using namespace crypto;
 // Increase when the DB structure changes
 #define VERSION 5
 
+// Identifying prefix for chainstate keys
+#define CHAINSTATE_UTXO_BYTE_PREFIX 0x43
+#define CHAINSTATE_ADDR_OUTPUTS_BYTE_PREFIX 0x45
+
 namespace
 {
 
@@ -226,10 +230,10 @@ const char* const LMDB_TXPOOL_BLOB = "txpool_blob";
 
 const char* const LMDB_HF_STARTING_HEIGHTS = "hf_starting_heights";
 const char* const LMDB_HF_VERSIONS = "hf_versions";
-
 const char* const LMDB_VALIDATORS = "validators";
-
 const char* const LMDB_PROPERTIES = "properties";
+const char* const LMDB_UTXOS = "unspent_txos";
+const char* const LMDB_ADDR_OUTPUTS = "unspent_addr_outputs";
 
 const char zerokey[8] = {0};
 const MDB_val zerokval = { sizeof(zerokey), (void *)zerokey };
@@ -1275,6 +1279,125 @@ validator_db BlockchainLMDB::validator_from_blob(const blobdata blob) const
 
   return o;
 }
+void BlockchainLMDB::add_chainstate_utxo(const transaction& tx, const uint32_t relative_out_index,
+                                         const crypto::public_key combined_key)
+{
+    LOG_PRINT_L3("BlockchainLMDB::" << __func__);
+    check_open();
+    mdb_txn_cursors *m_cursors = &m_wcursors;
+    CURSOR(utxos)
+
+    int result = 0;
+
+    // UTXO keys are of the format: constant(C) + txhash + varint representation of the relative output index(O...#outs)
+    std::string utxo_id = std::to_string(CHAINSTATE_UTXO_BYTE_PREFIX)
+                        + std::string((const char*)tx.hash.data, 32)
+                        + tools::get_varint_data(relative_out_index);
+
+    MDB_val_set(utxo_key, utxo_id);
+    MDB_val_set(utxo_value, combined_key);
+
+    if (auto result = mdb_cursor_put(m_cur_utxos, &utxo_key, &utxo_value, MDB_NODUPDATA)) {
+        if (result == MDB_KEYEXIST)
+            throw1(UTXO_EXISTS("Attempting to add utxo that's already in the db"));
+        else
+            throw1(DB_ERROR(lmdb_error("Error adding utxo to db transaction: ", result).c_str()));
+    }
+}
+
+void BlockchainLMDB::remove_chainstate_utxo(const transaction& tx, const uint32_t relative_out_index)
+{
+    LOG_PRINT_L3("BlockchainLMDB::" << __func__);
+    check_open();
+    mdb_txn_cursors *m_cursors = &m_wcursors;
+
+    CURSOR(utxos)
+
+    std::string utxo_id = std::to_string(CHAINSTATE_UTXO_BYTE_PREFIX)
+                        + std::string((const char*)tx.hash.data, 32)
+                        + tools::get_varint_data(relative_out_index);
+
+    MDB_val_set(utxo_key, utxo_id);
+
+    auto result = mdb_cursor_get(m_cur_utxos, (MDB_val *)&zerokval, &utxo_key, MDB_GET_BOTH);
+    if (result != 0 && result != MDB_NOTFOUND)
+        throw1(DB_ERROR(lmdb_error("Error finding utxo to remove", result).c_str()));
+    if (!result)
+    {
+        result = mdb_cursor_del(m_cur_utxos, MDB_NODUPDATA);
+        if (result)
+            throw1(DB_ERROR(lmdb_error("Error adding removal of utxo to db transaction", result).c_str()));
+    }
+}
+
+void BlockchainLMDB::add_addr_output(const transaction& tx, const uint32_t relative_out_index, const crypto::public_key& pub_view, const crypto::public_key& pub_spend, uint64_t amount)
+{
+    LOG_PRINT_L3("BlockchainLMDB::" << __func__);
+    check_open();
+    mdb_txn_cursors *m_cursors = &m_wcursors;
+    CURSOR(addr_outputs)
+
+    int result = 0;
+
+    std::string utxo_id = std::to_string(CHAINSTATE_UTXO_BYTE_PREFIX)
+                          + std::string((const char*)tx.hash.data, 32)
+                          + tools::get_varint_data(relative_out_index);
+
+    // address db keys are of the format: constant(E) + concatenate (pubview, pubspend)
+    std::string addr_id = std::to_string(CHAINSTATE_ADDR_OUTPUTS_BYTE_PREFIX)
+            + std::string((const char*)pub_view.data, 32)
+            + std::string((const char*)pub_spend.data, 32);
+
+    //value stored in the db is concat (utxo identifier (=key in utxo table), amount)
+    // Amount is used for balance logic elsewhere
+    std::string utxo = utxo_id + tools::get_varint_data(amount);
+
+    MDB_val_str(addr_key, addr_id.c_str());
+    MDB_val_str(utxo_val, utxo.c_str());
+
+    if (auto result = mdb_cursor_put(m_cur_addr_outputs, &addr_key, &utxo_val, MDB_NODUPDATA)) {
+        if (result == MDB_KEYEXIST)
+            throw1(ADDR_OUTPUT_EXISTS("Attempting to add address output that's already in the db"));
+        else
+            throw1(DB_ERROR(lmdb_error("Error adding address output to db transaction: ", result).c_str()));
+    }
+}
+
+void BlockchainLMDB::remove_addr_output(const transaction& tx, const uint32_t relative_out_index, const crypto::public_key& pub_view,
+                                        const crypto::public_key& pub_spend, uint64_t amount)
+{
+    LOG_PRINT_L3("BlockchainLMDB::" << __func__);
+    check_open();
+    mdb_txn_cursors *m_cursors = &m_wcursors;
+
+    CURSOR(addr_outputs)
+
+    std::string utxo_id = std::to_string(CHAINSTATE_UTXO_BYTE_PREFIX)
+                          + std::string((const char*)tx.hash.data, 32)
+                          + tools::get_varint_data(relative_out_index);
+
+    // UTXO keys are of the format: constant(E) + combined public key (A+B=X)
+    std::string addr_id = std::to_string(CHAINSTATE_ADDR_OUTPUTS_BYTE_PREFIX)
+                          + std::string((const char*)pub_view.data, 32)
+                          + std::string((const char*)pub_spend.data, 32);
+
+    //value stored in the db is concat (utxo identifier (=key in utxo table), amount)
+    // Amount is used for balance logic elsewhere
+    std::string utxo = utxo_id + tools::get_varint_data(amount);
+
+    MDB_val_str(addr_key, addr_id.c_str());
+    MDB_val_str(utxo_val, utxo.c_str());
+
+    auto result = mdb_cursor_get(m_cur_addr_outputs, &addr_key, &utxo_val, MDB_GET_BOTH);
+    if (result != 0 && result != MDB_NOTFOUND)
+        throw1(DB_ERROR(lmdb_error("Error finding address output to remove", result).c_str()));
+    if (!result)
+    {
+        result = mdb_cursor_del(m_cur_addr_outputs, 0);
+        if (result)
+            throw1(DB_ERROR(lmdb_error("Error adding removal of address output to db transaction", result).c_str()));
+    }
+}
 
 BlockchainLMDB::~BlockchainLMDB()
 {
@@ -1359,7 +1482,7 @@ void BlockchainLMDB::open(const std::string& filename, const int db_flags)
   // set up lmdb environment
   if ((result = mdb_env_create(&m_env)))
     throw0(DB_ERROR(lmdb_error("Failed to create lmdb environment: ", result).c_str()));
-  if ((result = mdb_env_set_maxdbs(m_env, 20)))
+  if ((result = mdb_env_set_maxdbs(m_env, 25)))
     throw0(DB_ERROR(lmdb_error("Failed to set max number of dbs: ", result).c_str()));
 
   int threads = tools::get_max_concurrency();
@@ -1443,7 +1566,8 @@ void BlockchainLMDB::open(const std::string& filename, const int db_flags)
   lmdb_db_open(txn, LMDB_HF_VERSIONS, MDB_INTEGERKEY | MDB_CREATE, m_hf_versions, "Failed to open db handle for m_hf_versions");
 
   lmdb_db_open(txn, LMDB_VALIDATORS, MDB_INTEGERKEY | MDB_CREATE, m_validators, "Failed to open db handle for m_validators");
-
+  lmdb_db_open(txn, LMDB_UTXOS, MDB_CREATE, m_utxos, "Failed to open db handle for m_utxos");
+  lmdb_db_open(txn, LMDB_ADDR_OUTPUTS,  MDB_CREATE | MDB_DUPSORT, m_addr_outputs, "Failed to open db handle for m_addr_outputs");
   lmdb_db_open(txn, LMDB_PROPERTIES, MDB_CREATE, m_properties, "Failed to open db handle for m_properties");
 
   mdb_set_dupsort(txn, m_spent_keys, compare_hash32);
@@ -1456,10 +1580,14 @@ void BlockchainLMDB::open(const std::string& filename, const int db_flags)
     mdb_set_dupsort(txn, m_txs_prunable_tip, compare_uint64);
   mdb_set_compare(txn, m_txs_prunable, compare_uint64);
   mdb_set_dupsort(txn, m_txs_prunable_hash, compare_uint64);
+  mdb_set_dupsort(txn, m_addr_outputs, compare_string);
 
+  mdb_set_compare(txn, m_utxos, compare_string);
+  mdb_set_compare(txn, m_addr_outputs, compare_string);
   mdb_set_compare(txn, m_txpool_meta, compare_hash32);
   mdb_set_compare(txn, m_txpool_blob, compare_hash32);
   mdb_set_compare(txn, m_properties, compare_string);
+
 
   if (!(mdb_flags & MDB_RDONLY))
   {
@@ -1631,6 +1759,10 @@ void BlockchainLMDB::reset()
     throw0(DB_ERROR(lmdb_error("Failed to drop m_hf_versions: ", result).c_str()));
   if (auto result = mdb_drop(txn, m_validators, 0))
     throw0(DB_ERROR(lmdb_error("Failed to drop m_validators: ", result).c_str()));
+  if (auto result = mdb_drop(txn, m_utxos, 0))
+    throw0(DB_ERROR(lmdb_error("Failed to drop m_utxos: ", result).c_str()));
+  if (auto result = mdb_drop(txn, m_addr_outputs, 0))
+    throw0(DB_ERROR(lmdb_error("Failed to drop m_addr_outputs: ", result).c_str()));
   if (auto result = mdb_drop(txn, m_properties, 0))
     throw0(DB_ERROR(lmdb_error("Failed to drop m_properties: ", result).c_str()));
 
