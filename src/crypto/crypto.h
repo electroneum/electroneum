@@ -110,6 +110,11 @@ namespace crypto {
     friend class crypto_ops;
   };
 
+  POD_CLASS input_signature{
+      ed25519_public_key signature;
+      friend class crypto_ops;
+  };
+
 #pragma pack(pop)
 
   void hash_to_scalar(const void *data, size_t length, ec_scalar &res);

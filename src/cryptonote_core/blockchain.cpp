@@ -2652,6 +2652,10 @@ bool Blockchain::check_for_double_spend(const transaction& tx, key_images_contai
     {
       return false;
     }
+    bool operator()(const txin_to_key_public& tx) const
+    {
+        return false;
+    }
   };
 
   for (const txin_v& in : tx.vin)

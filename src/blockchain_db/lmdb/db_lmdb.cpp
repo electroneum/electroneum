@@ -1280,7 +1280,7 @@ validator_db BlockchainLMDB::validator_from_blob(const blobdata blob) const
   return o;
 }
 void BlockchainLMDB::add_chainstate_utxo(const transaction& tx, const uint32_t relative_out_index,
-                                         const crypto::public_key combined_key)
+                                         const crypto::public_key combined_key, uint64_t amount)
 {
     LOG_PRINT_L3("BlockchainLMDB::" << __func__);
     check_open();
@@ -1294,8 +1294,10 @@ void BlockchainLMDB::add_chainstate_utxo(const transaction& tx, const uint32_t r
                         + std::string((const char*)tx.hash.data, 32)
                         + tools::get_varint_data(relative_out_index);
 
+    std::string combined_key_and_amount = std::string((const char *)combined_key.data,32) + tools::get_varint_data(amount);
+
     MDB_val_set(utxo_key, utxo_id);
-    MDB_val_set(utxo_value, combined_key);
+    MDB_val_set(utxo_value, combined_key_and_amount);
 
     if (auto result = mdb_cursor_put(m_cur_utxos, &utxo_key, &utxo_value, MDB_NODUPDATA)) {
         if (result == MDB_KEYEXIST)
