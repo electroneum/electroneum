@@ -192,7 +192,7 @@ void BlockchainDB::add_transaction(const crypto::hash& blk_hash, const std::pair
     {
       const auto &txout = boost::get<txout_to_key_public>(tx.vout[i].target);
 
-      add_chainstate_utxo(tx.hash, i, crypto::AB_modulo_l(txout.dest_view_key, txout.dest_spend_key) , tx.vout[i].amount);
+      add_chainstate_utxo(tx.hash, i, addKeys(txout.dest_view_key, txout.dest_spend_key) , tx.vout[i].amount);
       add_addr_output(tx.hash, i, txout.dest_view_key, txout.dest_spend_key, tx.vout[i].amount);
     }
   }
@@ -290,7 +290,7 @@ void BlockchainDB::remove_transaction(const crypto::hash& tx_hash)
       const auto &txin = boost::get<txin_to_key_public>(tx_input);
       const auto &txout = boost::get<txout_to_key_public>(get_tx(txin.tx_hash).vout[txin.relative_offset].target);
 
-      add_chainstate_utxo(txin.tx_hash, txin.relative_offset, crypto::AB_modulo_l(txout.dest_view_key, txout.dest_spend_key), txin.amount);
+      add_chainstate_utxo(txin.tx_hash, txin.relative_offset, addKeys(txout.dest_view_key, txout.dest_spend_key), txin.amount);
     }
   }
 

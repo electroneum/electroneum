@@ -176,8 +176,6 @@ namespace crypto {
     friend void generate_new_key_image(const uint64_t &amount, const uint64_t& amount_index, key_image &image);
     void generate_input_signature(const hash &prefix_hash, const hash &key_image, const secret_key sec_view, const secret_key  sec_spend, ed25519_signature signature);
     friend void generate_input_signature(const hash &prefix_hash, const hash &key_image, const secret_key sec_view, const secret_key  sec_spend, ed25519_signature signature);
-    static public_key AB_modulo_l(const public_key A, const public_key B);
-    friend public_key AB_modulo_l(const public_key A, const public_key B);
     static void generate_ring_signature(const hash &, const key_image &,
       const public_key *const *, std::size_t, const secret_key &, std::size_t, signature *);
     friend void generate_ring_signature(const hash &, const key_image &,
@@ -329,8 +327,8 @@ namespace crypto {
     return crypto_ops::check_ring_signature(prefix_hash, image, pubs, pubs_count, sig);
   }
 
-  inline public_key AB_modulo_l(const public_key A, const public_key B) {
-    return crypto_ops::AB_modulo_l(A, B);
+  inline public_key addKeys(const public_key A, const public_key B) {
+    return addKeys(A, B);
   }
 
   /* Variants with vector<const public_key *> parameters.
