@@ -366,13 +366,12 @@ namespace cryptonote
   //---------------------------------------------------------------
   bool get_tx_fee(const transaction& tx, uint64_t & fee)
   {
-    //TODO: Public
     uint64_t amount_in = 0;
     uint64_t amount_out = 0;
     for(auto& in: tx.vin)
     {
-      CHECK_AND_ASSERT_MES(in.type() == typeid(txin_to_key), 0, "unexpected type id in transaction");
-      amount_in += boost::get<txin_to_key>(in).amount;
+      CHECK_AND_ASSERT_MES(in.type() == typeid(txin_to_key) || in.type() == typeid(txin_to_key_public), 0, "unexpected type id in transaction");
+      amount_in += tx.version == 1 ? boost::get<txin_to_key>(in).amount : boost::get<txin_to_key_public>(in).amount;
     }
     for(auto& o: tx.vout)
       amount_out += o.amount;
