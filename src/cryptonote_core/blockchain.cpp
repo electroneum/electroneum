@@ -2782,8 +2782,15 @@ bool Blockchain::check_tx_outputs(const transaction& tx, tx_verification_context
   if (hf_version >= HF_VERSION_FORBID_INVALID_PUBKEYS) {
     for (const auto &o: tx.vout) {
       if (o.target.type() == typeid(txout_to_key)) {
-        const txout_to_key& out_to_key = boost::get<txout_to_key>(o.target);
+        const txout_to_key &out_to_key = boost::get<txout_to_key>(o.target);
         if (!crypto::check_key(out_to_key.key)) {
+          tvc.m_invalid_output = true;
+          return false;
+        }
+      } else if (o.target.type() == typeid(txout_to_key_public)) {
+        const txout_to_key_public &out_to_key_public = boost::get<txout_to_key_public>(o.target);
+        if (!crypto::check_key(out_to_key_public.dest_spend_key) ||
+            !crypto::check_key(out_to_key_public.dest_view_key)) {
           tvc.m_invalid_output = true;
           return false;
         }
