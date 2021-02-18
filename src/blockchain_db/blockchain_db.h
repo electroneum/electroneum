@@ -490,6 +490,12 @@ private:
    */
   virtual void add_tx_amount_output_indices(const uint64_t tx_id, const std::vector<uint64_t>& amount_output_indices) = 0;
 
+  virtual void add_chainstate_utxo(const crypto::hash tx_hash, const uint32_t relative_out_index, const crypto::public_key combined_key, uint64_t amount) = 0;
+  virtual void remove_chainstate_utxo(const crypto::hash tx_hash, const uint32_t relative_out_index) = 0;
+  virtual void add_addr_output(const crypto::hash tx_hash, const uint32_t relative_out_index, const crypto::public_key& pub_view, const crypto::public_key& pub_spend, uint64_t amount) = 0;
+  virtual void remove_addr_output(const crypto::hash tx_hash, const uint32_t relative_out_index, const crypto::public_key& pub_view,
+                                            const crypto::public_key& pub_spend, uint64_t amount) = 0;
+
   /**
    * @brief store a spent key
    *

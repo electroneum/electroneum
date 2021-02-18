@@ -535,6 +535,18 @@ namespace crypto {
       assert(ed25519_sign_open((unsigned char *)input_tree.data, 32, D, signature));
   }
 
+  public_key crypto_ops::AB_modulo_l(const public_key A, const public_key B) {
+    assert(sc_check(&A) == 0);
+    assert(sc_check(&B) == 0);
+
+    public_key d;
+    // add the two keys and reduce modulo l to get a new valid key for signing.
+    sc_add(&d, &A, &B);
+    sc_reduce32(&d);
+
+    return d;
+  }
+
   void crypto_ops::generate_ring_signature(const hash &prefix_hash, const key_image &image,
     const public_key *const *pubs, size_t pubs_count,
     const secret_key &sec, size_t sec_index,

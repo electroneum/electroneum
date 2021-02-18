@@ -430,11 +430,11 @@ private:
   blobdata output_to_blob(const tx_out& output) const;
   tx_out output_from_blob(const blobdata& blob) const;
 
-  void add_chainstate_utxo(const transaction& tx, const uint32_t relative_out_index, const crypto::public_key combined_key, uint64_t amount);
-  void remove_chainstate_utxo(const transaction& tx, const uint32_t relative_out_index);
+  virtual void add_chainstate_utxo(const crypto::hash tx_hash, const uint32_t relative_out_index, const crypto::public_key combined_key, uint64_t amount);
+  virtual void remove_chainstate_utxo(const crypto::hash tx_hash, const uint32_t relative_out_index);
 
-  void add_addr_output(const transaction& tx, const uint32_t relative_out_index, const crypto::public_key& pub_view, const crypto::public_key& pub_spend, uint64_t amount);
-  void remove_addr_output(const transaction& tx, const uint32_t relative_out_index, const crypto::public_key& pub_view, const crypto::public_key& pub_spend, uint64_t amount);
+  virtual void add_addr_output(const crypto::hash tx_hash, const uint32_t relative_out_index, const crypto::public_key& pub_view, const crypto::public_key& pub_spend, uint64_t amount);
+  virtual void remove_addr_output(const crypto::hash tx_hash, const uint32_t relative_out_index, const crypto::public_key& pub_view, const crypto::public_key& pub_spend, uint64_t amount);
   // migrate from older DB version to current
   void migrate(const uint32_t oldversion);
 

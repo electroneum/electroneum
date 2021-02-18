@@ -974,7 +974,8 @@ void BlockchainLMDB::remove_transaction_data(const crypto::hash& tx_hash, const 
         throw1(DB_ERROR(lmdb_error("Error adding removal of tx id to db transaction", result).c_str()));
   }
 
-  remove_tx_outputs(tip->data.tx_id, tx);
+  if (tx.version == 1)
+    remove_tx_outputs(tip->data.tx_id, tx);
 
   result = mdb_cursor_get(m_cur_tx_outputs, &val_tx_id, NULL, MDB_SET);
   if (result == MDB_NOTFOUND)
@@ -1279,7 +1280,7 @@ validator_db BlockchainLMDB::validator_from_blob(const blobdata blob) const
 
   return o;
 }
-void BlockchainLMDB::add_chainstate_utxo(const transaction& tx, const uint32_t relative_out_index,
+void BlockchainLMDB::add_chainstate_utxo(const crypto::hash tx_hash, const uint32_t relative_out_index,
                                          const crypto::public_key combined_key, uint64_t amount)
 {
     LOG_PRINT_L3("BlockchainLMDB::" << __func__);
@@ -1291,7 +1292,7 @@ void BlockchainLMDB::add_chainstate_utxo(const transaction& tx, const uint32_t r
 
     // UTXO keys are of the format: constant(C) + txhash + varint representation of the relative output index(O...#outs)
     std::string utxo_id = std::to_string(CHAINSTATE_UTXO_BYTE_PREFIX)
-                        + std::string((const char*)tx.hash.data, 32)
+                        + std::string((const char*)tx_hash.data, 32)
                         + tools::get_varint_data(relative_out_index);
 
     std::string combined_key_and_amount = std::string((const char *)combined_key.data,32) + tools::get_varint_data(amount);
@@ -1307,7 +1308,7 @@ void BlockchainLMDB::add_chainstate_utxo(const transaction& tx, const uint32_t r
     }
 }
 
-void BlockchainLMDB::remove_chainstate_utxo(const transaction& tx, const uint32_t relative_out_index)
+void BlockchainLMDB::remove_chainstate_utxo(const crypto::hash tx_hash, const uint32_t relative_out_index)
 {
     LOG_PRINT_L3("BlockchainLMDB::" << __func__);
     check_open();
@@ -1316,7 +1317,7 @@ void BlockchainLMDB::remove_chainstate_utxo(const transaction& tx, const uint32_
     CURSOR(utxos)
 
     std::string utxo_id = std::to_string(CHAINSTATE_UTXO_BYTE_PREFIX)
-                        + std::string((const char*)tx.hash.data, 32)
+                        + std::string((const char*)tx_hash.data, 32)
                         + tools::get_varint_data(relative_out_index);
 
     MDB_val_set(utxo_key, utxo_id);
@@ -1332,7 +1333,7 @@ void BlockchainLMDB::remove_chainstate_utxo(const transaction& tx, const uint32_
     }
 }
 
-void BlockchainLMDB::add_addr_output(const transaction& tx, const uint32_t relative_out_index, const crypto::public_key& pub_view, const crypto::public_key& pub_spend, uint64_t amount)
+void BlockchainLMDB::add_addr_output(const crypto::hash tx_hash, const uint32_t relative_out_index, const crypto::public_key& pub_view, const crypto::public_key& pub_spend, uint64_t amount)
 {
     LOG_PRINT_L3("BlockchainLMDB::" << __func__);
     check_open();
@@ -1342,7 +1343,7 @@ void BlockchainLMDB::add_addr_output(const transaction& tx, const uint32_t relat
     int result = 0;
 
     std::string utxo_id = std::to_string(CHAINSTATE_UTXO_BYTE_PREFIX)
-                          + std::string((const char*)tx.hash.data, 32)
+                          + std::string((const char*)tx_hash.data, 32)
                           + tools::get_varint_data(relative_out_index);
 
     // address db keys are of the format: constant(E) + concatenate (pubview, pubspend)
@@ -1365,7 +1366,7 @@ void BlockchainLMDB::add_addr_output(const transaction& tx, const uint32_t relat
     }
 }
 
-void BlockchainLMDB::remove_addr_output(const transaction& tx, const uint32_t relative_out_index, const crypto::public_key& pub_view,
+void BlockchainLMDB::remove_addr_output(const crypto::hash tx_hash, const uint32_t relative_out_index, const crypto::public_key& pub_view,
                                         const crypto::public_key& pub_spend, uint64_t amount)
 {
     LOG_PRINT_L3("BlockchainLMDB::" << __func__);
@@ -1375,7 +1376,7 @@ void BlockchainLMDB::remove_addr_output(const transaction& tx, const uint32_t re
     CURSOR(addr_outputs)
 
     std::string utxo_id = std::to_string(CHAINSTATE_UTXO_BYTE_PREFIX)
-                          + std::string((const char*)tx.hash.data, 32)
+                          + std::string((const char*)tx_hash.data, 32)
                           + tools::get_varint_data(relative_out_index);
 
     // UTXO keys are of the format: constant(E) + combined public key (A+B=X)
