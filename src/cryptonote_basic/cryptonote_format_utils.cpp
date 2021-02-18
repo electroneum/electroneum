@@ -682,10 +682,18 @@ namespace cryptonote
   {
     for(const auto& in: tx.vin)
     {
-      CHECK_AND_ASSERT_MES(in.type() == typeid(txin_to_key), false, "wrong variant type: "
-        << in.type().name() << ", expected " << typeid(txin_to_key).name()
-        << ", in transaction id=" << get_transaction_hash(tx));
-
+      if (tx.version == 1)
+      {
+        CHECK_AND_ASSERT_MES(in.type() == typeid(txin_to_key), false, "wrong variant type: "
+                << in.type().name() << ", expected " << typeid(txin_to_key).name()
+                << ", in transaction id=" << get_transaction_hash(tx));
+      }
+      else //tx.version >= 2 (public transactions)
+      {
+        CHECK_AND_ASSERT_MES(in.type() == typeid(txin_to_key_public), false, "wrong variant type: "
+                << in.type().name() << ", expected " << typeid(txin_to_key_public).name()
+                << ", in transaction id=" << get_transaction_hash(tx));
+      }
     }
     return true;
   }
@@ -694,15 +702,30 @@ namespace cryptonote
   {
     for(const tx_out& out: tx.vout)
     {
-      CHECK_AND_ASSERT_MES(out.target.type() == typeid(txout_to_key), false, "wrong variant type: "
-        << out.target.type().name() << ", expected " << typeid(txout_to_key).name()
-        << ", in transaction id=" << get_transaction_hash(tx));
-      
-      //TODO: Public
-      CHECK_AND_NO_ASSERT_MES(0 < out.amount, false, "zero amount output in transaction id=" << get_transaction_hash(tx));
+      if (tx.version == 1)
+      {
+        CHECK_AND_ASSERT_MES(out.target.type() == typeid(txout_to_key), false, "wrong variant type: "
+                << out.target.type().name() << ", expected " << typeid(txout_to_key).name()
+                << ", in transaction id=" << get_transaction_hash(tx));
 
-      if(!check_key(boost::get<txout_to_key>(out.target).key))
-        return false;
+        CHECK_AND_NO_ASSERT_MES(0 < out.amount, false, "zero amount output in transaction id=" << get_transaction_hash(tx));
+
+        if(!check_key(boost::get<txout_to_key>(out.target).key))
+          return false;
+      }
+      else //tx.version >= 2 (public transactions)
+      {
+        CHECK_AND_ASSERT_MES(out.target.type() == typeid(txout_to_key_public), false, "wrong variant type: "
+                << out.target.type().name() << ", expected " << typeid(txout_to_key_public).name()
+                << ", in transaction id=" << get_transaction_hash(tx));
+
+        CHECK_AND_NO_ASSERT_MES(0 < out.amount, false, "zero amount output in transaction id=" << get_transaction_hash(tx));
+
+        if(!check_key(boost::get<txout_to_key_public>(out.target).dest_spend_key) ||
+                !check_key(boost::get<txout_to_key_public>(out.target).dest_view_key))
+          return false;
+      }
+
     }
     return true;
   }
