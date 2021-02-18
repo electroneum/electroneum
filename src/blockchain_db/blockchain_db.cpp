@@ -187,9 +187,27 @@ void BlockchainDB::add_transaction(const crypto::hash& blk_hash, const std::pair
   }
   else if (tx.version >= 2)
   {
-
     for (uint64_t i = 0; i < tx.vout.size(); ++i)
     {
+        if(tx.vout[i].target.type() != typeid(txout_to_key_public)){
+        {
+            LOG_PRINT_L1("Unsupported output type, reinstating UTXOs, removing key images and aborting transaction addition");
+            for (const txin_v& tx_input : tx.vin)
+            {
+                if (tx_input.type() == typeid(txin_to_key))
+                {
+                    remove_spent_key(boost::get<txin_to_key>(tx_input).k_image);
+                }
+                else if (tx_input.type() == typeid(txin_to_key_public)){
+                    const auto &txin = boost::get<txin_to_key_public>(tx_input);
+                    const auto &txout = boost::get<txout_to_key_public>(get_tx(tx.hash).vout[txin.relative_offset].target);
+
+                    add_chainstate_utxo(txin.tx_hash, txin.relative_offset, addKeys(txout.dest_view_key, txout.dest_spend_key), txin.amount);
+                }
+            }
+            return;
+        }
+        }
       const auto &txout = boost::get<txout_to_key_public>(tx.vout[i].target);
 
       add_chainstate_utxo(tx.hash, i, addKeys(txout.dest_view_key, txout.dest_spend_key) , tx.vout[i].amount);
