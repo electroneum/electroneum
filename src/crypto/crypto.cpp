@@ -535,23 +535,20 @@ namespace crypto {
       assert(ed25519_sign_open((unsigned char *)input_tree.data, 32, D, signature));
   }
 
-//for curve points: AB = A + B
-    void addKeys(public_key &AB, const public_key &A, const public_key &B) {
-        ge_p3 B2, A2;
-        assert(ge_frombytes_vartime(&B2, &B) == 0 && ge_frombytes_vartime(&A2, &A) == 0);
-        ge_cached tmp2;
-        ge_p3_to_cached(&tmp2, &B2);
-        ge_p1p1 tmp3;
-        ge_add(&tmp3, &A2, &tmp2);
-        ge_p1p1_to_p3(&A2, &tmp3);
-        ge_p3_tobytes(&AB, &A2);
-    }
+  //for curve points: AB = A + B
+  public_key crypto_ops::addKeys(const public_key &A, const public_key &B) {
+    public_key AB;
+    ge_p3 B2, A2;
+    assert(ge_frombytes_vartime(&B2, &B) == 0 && ge_frombytes_vartime(&A2, &A) == 0);
+    ge_cached tmp2;
+    ge_p3_to_cached(&tmp2, &B2);
+    ge_p1p1 tmp3;
+    ge_add(&tmp3, &A2, &tmp2);
+    ge_p1p1_to_p3(&A2, &tmp3);
+    ge_p3_tobytes(&AB, &A2);
 
-    public_key addKeys(const public_key &A, const public_key &B) {
-        public_key k;
-        addKeys(k, A, B);
-        return k;
-    }
+    return AB;
+  }
 
   void crypto_ops::generate_ring_signature(const hash &prefix_hash, const key_image &image,
     const public_key *const *pubs, size_t pubs_count,
