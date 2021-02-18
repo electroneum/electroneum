@@ -140,29 +140,48 @@ namespace cryptonote
     }
 
     uint64_t summary_amounts = 0;
-    for (size_t no = 0; no < out_amounts.size(); no++)
+    if (hard_fork_version >= 10)
     {
-      crypto::key_derivation derivation = AUTO_VAL_INIT(derivation);;
-      crypto::public_key out_eph_public_key = AUTO_VAL_INIT(out_eph_public_key);
-      bool r = crypto::generate_key_derivation(miner_address.m_view_public_key, txkey.sec, derivation);
-      CHECK_AND_ASSERT_MES(r, false, "while creating outs: failed to generate_key_derivation(" << miner_address.m_view_public_key << ", " << txkey.sec << ")");
+      for (unsigned long long out_amount : out_amounts)
+      {
+        txout_to_key_public tk;
+        tk.dest_view_key = miner_address.m_view_public_key;
+        tk.dest_spend_key = miner_address.m_spend_public_key;
 
-      r = crypto::derive_public_key(derivation, no, miner_address.m_spend_public_key, out_eph_public_key);
-      CHECK_AND_ASSERT_MES(r, false, "while creating outs: failed to derive_public_key(" << derivation << ", " << no << ", "<< miner_address.m_spend_public_key << ")");
+        tx_out out;
+        summary_amounts += out.amount = out_amount;
+        out.target = tk;
+        tx.vout.push_back(out);
+      }
 
-      txout_to_key tk;
-      tk.key = out_eph_public_key;
+      tx.version = 2;
+    }
+    else
+    {
+      for (size_t no = 0; no < out_amounts.size(); no++)
+      {
+        crypto::key_derivation derivation = AUTO_VAL_INIT(derivation);;
+        crypto::public_key out_eph_public_key = AUTO_VAL_INIT(out_eph_public_key);
+        bool r = crypto::generate_key_derivation(miner_address.m_view_public_key, txkey.sec, derivation);
+        CHECK_AND_ASSERT_MES(r, false, "while creating outs: failed to generate_key_derivation(" << miner_address.m_view_public_key << ", " << txkey.sec << ")");
 
-      tx_out out;
-      summary_amounts += out.amount = out_amounts[no];
-      out.target = tk;
-      tx.vout.push_back(out);
+        r = crypto::derive_public_key(derivation, no, miner_address.m_spend_public_key, out_eph_public_key);
+        CHECK_AND_ASSERT_MES(r, false, "while creating outs: failed to derive_public_key(" << derivation << ", " << no << ", "<< miner_address.m_spend_public_key << ")");
+
+        txout_to_key tk;
+        tk.key = out_eph_public_key;
+
+        tx_out out;
+        summary_amounts += out.amount = out_amounts[no];
+        out.target = tk;
+        tx.vout.push_back(out);
+      }
+
+      tx.version = 1;
     }
 
-    CHECK_AND_ASSERT_MES(summary_amounts == block_reward, false, "Failed to construct miner tx, summary_amounts = " << summary_amounts << " not equal block_reward = " << block_reward);
 
-    //TODO: Public
-    tx.version = 1;
+    CHECK_AND_ASSERT_MES(summary_amounts == block_reward, false, "Failed to construct miner tx, summary_amounts = " << summary_amounts << " not equal block_reward = " << block_reward);
 
     //lock
     tx.unlock_time = height + (hard_fork_version > 7 ? ETN_MINED_ETN_UNLOCK_WINDOW_V8 : CRYPTONOTE_MINED_ETN_UNLOCK_WINDOW);
