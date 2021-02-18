@@ -687,10 +687,10 @@ namespace cryptonote
                 << in.type().name() << ", expected " << typeid(txin_to_key).name()
                 << ", in transaction id=" << get_transaction_hash(tx));
       }
-      else //tx.version >= 2 (public transactions)
+      else //tx.version >= 2 (public transactions: can spend either old inputs or new inputs)
       {
-        CHECK_AND_ASSERT_MES(in.type() == typeid(txin_to_key_public), false, "wrong variant type: "
-                << in.type().name() << ", expected " << typeid(txin_to_key_public).name()
+        CHECK_AND_ASSERT_MES(in.type() == typeid(txin_to_key_public) || in.type() == typeid(txin_to_key), false, "wrong variant type: "
+                << in.type().name() << ", expected " << typeid(txin_to_key_public).name() << " or " << typeid(txin_to_key).name()
                 << ", in transaction id=" << get_transaction_hash(tx));
       }
     }
@@ -712,7 +712,7 @@ namespace cryptonote
         if(!check_key(boost::get<txout_to_key>(out.target).key))
           return false;
       }
-      else //tx.version >= 2 (public transactions)
+      else //tx.version >= 2 (public transactions: only new public outputs are allowed)
       {
         CHECK_AND_ASSERT_MES(out.target.type() == typeid(txout_to_key_public), false, "wrong variant type: "
                 << out.target.type().name() << ", expected " << typeid(txout_to_key_public).name()

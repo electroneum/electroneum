@@ -142,7 +142,7 @@ namespace cryptonote
     uint64_t summary_amounts = 0;
     if (hard_fork_version >= 10)
     {
-      for (unsigned long long out_amount : out_amounts)
+      for (const auto out_amount : out_amounts)
       {
         txout_to_key_public tk;
         tk.dest_view_key = miner_address.m_view_public_key;
