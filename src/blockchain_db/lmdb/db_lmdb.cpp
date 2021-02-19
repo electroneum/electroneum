@@ -1292,7 +1292,7 @@ void BlockchainLMDB::add_chainstate_utxo(const crypto::hash tx_hash, const uint3
 
     // UTXO keys are of the format: constant(C) + txhash + varint representation of the relative output index(O...#outs)
     std::string utxo_id = std::to_string(CHAINSTATE_UTXO_BYTE_PREFIX)
-                        + std::string((const char*)tx_hash.data, 32)
+                        + std::string(tx_hash.data)
                         + tools::get_varint_data(relative_out_index);
 
     std::string combined_key_and_amount = std::string((const char *)combined_key.data,32) + tools::get_varint_data(amount);
@@ -1317,7 +1317,7 @@ void BlockchainLMDB::remove_chainstate_utxo(const crypto::hash tx_hash, const ui
     CURSOR(utxos)
 
     std::string utxo_id = std::to_string(CHAINSTATE_UTXO_BYTE_PREFIX)
-                        + std::string((const char*)tx_hash.data, 32)
+                        + std::string(tx_hash.data)
                         + tools::get_varint_data(relative_out_index);
 
     MDB_val_set(utxo_key, utxo_id);
@@ -1343,13 +1343,13 @@ void BlockchainLMDB::add_addr_output(const crypto::hash tx_hash, const uint32_t 
     int result = 0;
 
     std::string utxo_id = std::to_string(CHAINSTATE_UTXO_BYTE_PREFIX)
-                          + std::string((const char*)tx_hash.data, 32)
+                          + std::string(tx_hash.data)
                           + tools::get_varint_data(relative_out_index);
 
     // address db keys are of the format: constant(E) + concatenate (pubview, pubspend)
     std::string addr_id = std::to_string(CHAINSTATE_ADDR_OUTPUTS_BYTE_PREFIX)
-            + std::string((const char*)pub_view.data, 32)
-            + std::string((const char*)pub_spend.data, 32);
+            + std::string(pub_view.data)
+            + std::string(pub_spend.data);
 
     //value stored in the db is concat (utxo identifier (=key in utxo table), amount)
     // Amount is used for balance logic elsewhere
@@ -1376,13 +1376,13 @@ void BlockchainLMDB::remove_addr_output(const crypto::hash tx_hash, const uint32
     CURSOR(addr_outputs)
 
     std::string utxo_id = std::to_string(CHAINSTATE_UTXO_BYTE_PREFIX)
-                          + std::string((const char*)tx_hash.data, 32)
+                          + std::string(tx_hash.data)
                           + tools::get_varint_data(relative_out_index);
 
     // UTXO keys are of the format: constant(E) + combined public key (A+B=X)
     std::string addr_id = std::to_string(CHAINSTATE_ADDR_OUTPUTS_BYTE_PREFIX)
-                          + std::string((const char*)pub_view.data, 32)
-                          + std::string((const char*)pub_spend.data, 32);
+                          + std::string(pub_view.data)
+                          + std::string(pub_spend.data);
 
     //value stored in the db is concat (utxo identifier (=key in utxo table), amount)
     // Amount is used for balance logic elsewhere

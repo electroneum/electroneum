@@ -495,44 +495,28 @@ namespace crypto {
     ge_tobytes(&image, &point2);
   }
 
-  void crypto_ops::generate_new_key_image(const uint64_t &amount, const uint64_t& amount_index, key_image &image) {
-
-  hash amount_hash, index_hash, input_tree;
-  cn_fast_hash((const char *)amount,       64, amount_hash);
-  cn_fast_hash((const char *)amount_index, 64, index_hash);
-  std::vector<hash> image_hashes = {amount_hash, index_hash};
-  tree_hash(image_hashes.data(), image_hashes.size(), input_tree);
-  ge_p3 point;
-  hash_to_ec(input_tree, point);
-  ge_p3_tobytes(&image, &point);
-  }
-
   size_t rs_comm_size(size_t pubs_count) {
     return sizeof(rs_comm) + pubs_count * sizeof(ec_point_pair);
   }
 
-  void crypto_ops::generate_input_signature(const hash &prefix_hash, const hash &key_image, const secret_key sec_view, const secret_key sec_spend, ed25519_signature signature){
+  void crypto_ops::generate_input_signatures(const hash &prefix_hash, const uint32_t numInputs, const secret_key sec_view, const secret_key sec_spend, std::vector<ed25519_signature> signatures){
 
-      assert(sc_check(&sec_view) == 0);
-      assert(sc_check(&sec_spend) == 0);
-
-      secret_key d;
       // add the two secret keys and reduce modulo l to get a new valid secret key for signing.
-      // todo: move key to wallet
-      sc_add(&unwrap(d), &unwrap(sec_view), &unwrap(sec_spend));
-      sc_reduce32(&d);
+      // todo: move key to wallet (maybe)
+      secret_key d = addSecretKeys(sec_view, sec_spend);
 
+      //corresponding public key for the combined secret key
       ed25519_public_key D;
       ed25519_publickey((unsigned char*)d.data, D);
 
-      // hash input specific key image with the overall tx prefix to get a unique signature per input.
-      std::vector<hash> hashes = {prefix_hash, key_image};
-      hash input_tree;
-      tree_hash(hashes.data(), hashes.size(), input_tree);
+      std::string prefix_string = std::string(prefix_hash.data);
 
-      ed25519_sign((unsigned char *)input_tree.data, 32, (unsigned char *)d.data, D, signature);
-      //sanity check on signature
-      assert(ed25519_sign_open((unsigned char *)input_tree.data, 32, D, signature));
+      for(uint32_t relative_input_index = 0; relative_input_index < numInputs; relative_input_index++){
+            std::string sigData = prefix_string + std::to_string(relative_input_index);
+            // sign tx prefix + relative input index
+          ed25519_sign((unsigned char *)sigData.data(), sigData.size(), (unsigned char *)d.data, D, signatures[relative_input_index]);
+          assert(ed25519_sign_open((unsigned char *)sigData.data(), 32, D, signatures[relative_input_index]));
+      }
   }
 
   //for curve points: AB = A + B
@@ -548,6 +532,15 @@ namespace crypto {
     ge_p3_tobytes(&AB, &A2);
 
     return AB;
+  }
+
+  secret_key crypto_ops::addSecretKeys(const secret_key& a, const secret_key& b){
+      assert(sc_check(&a) == 0);
+      assert(sc_check(&b) == 0);
+      secret_key d;
+      sc_add(&unwrap(d), &unwrap(a), &unwrap(b));
+      sc_reduce32(&d);
+      return d;
   }
 
   void crypto_ops::generate_ring_signature(const hash &prefix_hash, const key_image &image,

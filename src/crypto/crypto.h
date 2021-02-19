@@ -172,12 +172,12 @@ namespace crypto {
     friend bool check_tx_proof(const hash &, const public_key &, const public_key &, const boost::optional<public_key> &, const public_key &, const signature &);
     static void generate_key_image(const public_key &, const secret_key &, key_image &);
     friend void generate_key_image(const public_key &, const secret_key &, key_image &);
-    static void generate_new_key_image(const uint64_t &amount, const uint64_t& amount_index, key_image &image);
-    friend void generate_new_key_image(const uint64_t &amount, const uint64_t& amount_index, key_image &image);
-    void generate_input_signature(const hash &prefix_hash, const hash &key_image, const secret_key sec_view, const secret_key  sec_spend, ed25519_signature signature);
-    friend void generate_input_signature(const hash &prefix_hash, const hash &key_image, const secret_key sec_view, const secret_key  sec_spend, ed25519_signature signature);
+    void generate_input_signatures(const hash &prefix_hash, const uint32_t numInputs, const secret_key sec_view, const secret_key sec_spend, std::vector<ed25519_signature> signatures);
+    friend void generate_input_signatures(const hash &prefix_hash, const uint32_t numInputs, const secret_key sec_view, const secret_key sec_spend, std::vector<ed25519_signature> signatures);
     static public_key addKeys(const public_key &A, const public_key &B);
     friend public_key addKeys(const public_key &A, const public_key &B);
+    static secret_key addSecretKeys(const secret_key &A, const secret_key &B);
+    friend secret_key addSecretKeys(const secret_key &A, const secret_key &B);
     static void generate_ring_signature(const hash &, const key_image &,
       const public_key *const *, std::size_t, const secret_key &, std::size_t, signature *);
     friend void generate_ring_signature(const hash &, const key_image &,
