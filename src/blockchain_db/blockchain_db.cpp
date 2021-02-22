@@ -139,6 +139,7 @@ void BlockchainDB::add_transaction(const crypto::hash& blk_hash, const std::pair
     tx_hash = *tx_hash_ptr;
   }
 
+  // Sanity check on supported input types
   for (const txin_v& tx_input : tx.vin)
   {
     if (tx_input.type() == typeid(txin_to_key))
@@ -169,10 +170,10 @@ void BlockchainDB::add_transaction(const crypto::hash& blk_hash, const std::pair
     }
   }
 
-  uint64_t tx_id = add_transaction_data(blk_hash, txp, tx_hash, tx_prunable_hash);
-
   if (tx.version == 1)
   {
+    uint64_t tx_id = add_transaction_data(blk_hash, txp, tx_hash, tx_prunable_hash);
+
     std::vector<uint64_t> amount_output_indices(tx.vout.size());
 
     // iterate tx.vout using indices instead of C++11 foreach syntax because
@@ -187,27 +188,31 @@ void BlockchainDB::add_transaction(const crypto::hash& blk_hash, const std::pair
   }
   else if (tx.version >= 2)
   {
+    // Sanity check on supported output types
     for (uint64_t i = 0; i < tx.vout.size(); ++i)
     {
-        if(tx.vout[i].target.type() != typeid(txout_to_key_public)){
+      if(tx.vout[i].target.type() != typeid(txout_to_key_public))
+      {
+        LOG_PRINT_L1("Unsupported output type, reinstating UTXOs, removing key images and aborting transaction addition");
+        for (const txin_v& tx_input : tx.vin)
         {
-            LOG_PRINT_L1("Unsupported output type, reinstating UTXOs, removing key images and aborting transaction addition");
-            for (const txin_v& tx_input : tx.vin)
-            {
-                if (tx_input.type() == typeid(txin_to_key))
-                {
-                    remove_spent_key(boost::get<txin_to_key>(tx_input).k_image);
-                }
-                else if (tx_input.type() == typeid(txin_to_key_public)){
-                    const auto &txin = boost::get<txin_to_key_public>(tx_input);
-                    const auto &txout = boost::get<txout_to_key_public>(get_tx(tx.hash).vout[txin.relative_offset].target);
+          if (tx_input.type() == typeid(txin_to_key))
+          {
+            remove_spent_key(boost::get<txin_to_key>(tx_input).k_image);
+          }
+          else if (tx_input.type() == typeid(txin_to_key_public))
+          {
+            const auto &txin = boost::get<txin_to_key_public>(tx_input);
+            const auto &txout = boost::get<txout_to_key_public>(get_tx(tx.hash).vout[txin.relative_offset].target);
 
-                    add_chainstate_utxo(txin.tx_hash, txin.relative_offset, addKeys(txout.dest_view_key, txout.dest_spend_key), txin.amount);
-                }
-            }
-            return;
+            add_chainstate_utxo(txin.tx_hash, txin.relative_offset, addKeys(txout.dest_view_key, txout.dest_spend_key), txin.amount);
+          }
         }
-        }
+        return;
+      }
+
+      add_transaction_data(blk_hash, txp, tx_hash, tx_prunable_hash);
+
       const auto &txout = boost::get<txout_to_key_public>(tx.vout[i].target);
 
       add_chainstate_utxo(tx.hash, i, addKeys(txout.dest_view_key, txout.dest_spend_key) , tx.vout[i].amount);
