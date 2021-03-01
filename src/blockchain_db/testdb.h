@@ -162,6 +162,7 @@ public:
   virtual uint64_t get_max_block_size() override { return 100000000; }
   virtual void add_max_block_size(uint64_t sz) override { }
   virtual void add_chainstate_utxo(const crypto::hash tx_hash, const uint32_t relative_out_index, const crypto::public_key combined_key, uint64_t amount) override {}
+  virtual bool check_chainstate_utxo(const crypto::hash tx_hash, const uint32_t relative_out_index) override { return true; };
   virtual void remove_chainstate_utxo(const crypto::hash tx_hash, const uint32_t relative_out_index) override {}
 
   virtual void add_addr_output(const crypto::hash tx_hash, const uint32_t relative_out_index, const crypto::public_key& pub_view, const crypto::public_key& pub_spend, uint64_t amount) override {}
