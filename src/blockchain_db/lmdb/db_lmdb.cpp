@@ -1308,6 +1308,29 @@ void BlockchainLMDB::add_chainstate_utxo(const crypto::hash tx_hash, const uint3
     }
 }
 
+bool BlockchainLMDB::check_chainstate_utxo(const crypto::hash tx_hash, const uint32_t relative_out_index)
+{
+  LOG_PRINT_L3("BlockchainLMDB::" << __func__);
+  check_open();
+  mdb_txn_cursors *m_cursors = &m_wcursors;
+  CURSOR(utxos)
+
+  std::string utxo_id = std::to_string(CHAINSTATE_UTXO_BYTE_PREFIX)
+                        + std::string(tx_hash.data)
+                        + tools::get_varint_data(relative_out_index);
+
+  MDB_val_set(utxo_key, utxo_id);
+
+  auto result = mdb_cursor_get(m_cur_utxos, (MDB_val *)&zerokval, &utxo_key, MDB_GET_BOTH);
+  if (result != 0 && result != MDB_NOTFOUND)
+  {
+    throw1(DB_ERROR(lmdb_error("Error finding utxo", result).c_str()));
+    return false;
+  }
+
+  return true;
+}
+
 void BlockchainLMDB::remove_chainstate_utxo(const crypto::hash tx_hash, const uint32_t relative_out_index)
 {
     LOG_PRINT_L3("BlockchainLMDB::" << __func__);
