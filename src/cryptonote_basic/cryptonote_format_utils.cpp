@@ -662,11 +662,32 @@ namespace cryptonote
   bool get_inputs_etn_amount(const transaction& tx, uint64_t& etn)
   {
     etn = 0;
-    for(const auto& in: tx.vin)
-    {
-      CHECKED_GET_SPECIFIC_VARIANT(in, const txin_to_key, tokey_in, false);
-      etn += tokey_in.amount;
+    if(tx.version == 1) {
+      for(const auto& in: tx.vin)
+      {
+        CHECKED_GET_SPECIFIC_VARIANT(in, const txin_to_key, tokey_in, false);
+        etn += tokey_in.amount;
+      }
     }
+    else //tx.version >= 2 (public transactions: can spend either old inputs or new inputs)
+    {
+      for(const auto& in: tx.vin)
+      {
+        if (in.type() == typeid(txin_to_key))
+        {
+          etn += boost::get<txin_to_key>(in).amount;
+        }
+        else if (in.type() == typeid(txin_to_key_public))
+        {
+          etn += boost::get<txin_to_key_public>(in).amount;
+        }
+        else
+        {
+          return false;
+        }
+      }
+    }
+
     return true;
   }
   //---------------------------------------------------------------
