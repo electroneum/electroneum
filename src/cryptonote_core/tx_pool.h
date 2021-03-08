@@ -458,6 +458,8 @@ namespace cryptonote
      */
     bool have_tx_keyimg_as_spent(const crypto::key_image& key_im) const;
 
+    bool have_tx_utxo_as_spent(const txin_to_key_public& in) const;
+
     /**
      * @brief check if any spent key image in a transaction is in the pool
      *
@@ -541,6 +543,8 @@ namespace cryptonote
      */
     typedef std::unordered_map<crypto::key_image, std::unordered_set<crypto::hash> > key_images_container;
 
+    typedef std::unordered_map<std::string, std::unordered_set<crypto::hash> > utxos_container;
+
 #if defined(DEBUG_CREATE_BLOCK_TEMPLATE)
 public:
 #endif
@@ -550,9 +554,12 @@ private:
 #endif
 
     //! container for spent key images from the transactions in the pool
-    key_images_container m_spent_key_images;  
+    key_images_container m_spent_key_images;
 
-    //TODO: this time should be a named constant somewhere, not hard-coded
+    //! container for spent utxos from the transactions in the pool
+    utxos_container m_spent_utxos;
+
+      //TODO: this time should be a named constant somewhere, not hard-coded
     //! interval on which to check for stale/"stuck" transactions
     epee::math_helper::once_a_time_seconds<30> m_remove_stuck_tx_interval;
 
