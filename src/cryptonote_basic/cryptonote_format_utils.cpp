@@ -371,7 +371,15 @@ namespace cryptonote
     for(auto& in: tx.vin)
     {
       CHECK_AND_ASSERT_MES(in.type() == typeid(txin_to_key) || in.type() == typeid(txin_to_key_public), 0, "unexpected type id in transaction");
-      amount_in += tx.version == 1 ? boost::get<txin_to_key>(in).amount : boost::get<txin_to_key_public>(in).amount;
+
+      if(tx.version == 1 || tx.version == 2)
+      {
+        amount_in += boost::get<txin_to_key>(in).amount;
+      }
+      else
+      {
+        amount_in += boost::get<txin_to_key_public>(in).amount;
+      }
     }
     for(auto& o: tx.vout)
       amount_out += o.amount;
@@ -662,29 +670,19 @@ namespace cryptonote
   bool get_inputs_etn_amount(const transaction& tx, uint64_t& etn)
   {
     etn = 0;
-    if(tx.version == 1) {
+    if(tx.version == 1 || tx.version == 2) {
       for(const auto& in: tx.vin)
       {
         CHECKED_GET_SPECIFIC_VARIANT(in, const txin_to_key, tokey_in, false);
         etn += tokey_in.amount;
       }
     }
-    else //tx.version >= 2 (public transactions: can spend either old inputs or new inputs)
+    else //tx.version >= 3 (public transactions: can spend only new inputs)
     {
       for(const auto& in: tx.vin)
       {
-        if (in.type() == typeid(txin_to_key))
-        {
-          etn += boost::get<txin_to_key>(in).amount;
-        }
-        else if (in.type() == typeid(txin_to_key_public))
-        {
-          etn += boost::get<txin_to_key_public>(in).amount;
-        }
-        else
-        {
-          return false;
-        }
+        CHECKED_GET_SPECIFIC_VARIANT(in, const txin_to_key_public, tokey_in, false);
+        etn += tokey_in.amount;
       }
     }
 
@@ -702,16 +700,16 @@ namespace cryptonote
   {
     for(const auto& in: tx.vin)
     {
-      if (tx.version == 1)
+      if (tx.version == 1 || tx.version == 2)
       {
         CHECK_AND_ASSERT_MES(in.type() == typeid(txin_to_key), false, "wrong variant type: "
                 << in.type().name() << ", expected " << typeid(txin_to_key).name()
                 << ", in transaction id=" << get_transaction_hash(tx));
       }
-      else //tx.version >= 2 (public transactions: can spend either old inputs or new inputs)
+      else //tx.version >= 3 (public transactions: can spend only new inputs)
       {
-        CHECK_AND_ASSERT_MES(in.type() == typeid(txin_to_key_public) || in.type() == typeid(txin_to_key), false, "wrong variant type: "
-                << in.type().name() << ", expected " << typeid(txin_to_key_public).name() << " or " << typeid(txin_to_key).name()
+        CHECK_AND_ASSERT_MES(in.type() == typeid(txin_to_key_public), false, "wrong variant type: "
+                << in.type().name() << ", expected " << typeid(txin_to_key_public).name()
                 << ", in transaction id=" << get_transaction_hash(tx));
       }
     }

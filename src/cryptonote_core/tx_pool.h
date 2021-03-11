@@ -438,6 +438,8 @@ namespace cryptonote
      */
     bool insert_key_images(const transaction_prefix &tx, const crypto::hash &txid, bool kept_by_block);
 
+    bool insert_utxos(const transaction_prefix &tx, const crypto::hash &id, bool kept_by_block);
+
     /**
      * @brief remove old transactions from the pool
      *
@@ -498,6 +500,8 @@ namespace cryptonote
      */
     static bool have_key_images(const std::unordered_set<crypto::key_image>& kic, const transaction_prefix& tx);
 
+    static bool have_utxos(const std::unordered_set<std::string>& utxos, const transaction_prefix& tx);
+
     /**
      * @brief append the key images from a transaction to the given set
      *
@@ -507,6 +511,8 @@ namespace cryptonote
      * @return false if any append fails, otherwise true
      */
     static bool append_key_images(std::unordered_set<crypto::key_image>& kic, const transaction_prefix& tx);
+
+    static bool append_utxos(std::unordered_set<std::string>& utxos, const transaction_prefix& tx);
 
     /**
      * @brief check if a transaction is a valid candidate for inclusion in a block

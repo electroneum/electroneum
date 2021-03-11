@@ -140,7 +140,7 @@ namespace cryptonote
     }
 
     uint64_t summary_amounts = 0;
-    if (hard_fork_version >= 10)
+    if (hard_fork_version >= HF_VERSION_PUBLIC_TX)
     {
       for (const auto out_amount : out_amounts)
       {
@@ -154,7 +154,7 @@ namespace cryptonote
         tx.vout.push_back(out);
       }
 
-      tx.version = 2;
+      tx.version = 3;
     }
     else
     {
