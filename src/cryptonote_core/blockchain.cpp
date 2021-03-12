@@ -98,7 +98,7 @@ static const struct {
   { 7, 324500, 0, 1538985600 }, // Estimated July 5th, 8:30AM UTC
   { 8, 589169, 0, 1562547600 },
   { 9, 862866, 0, 1595615809 }, // Estimated July 22th, 2020
-  { 10, 1000000, 0, 10000000000 }, // todo: choose real date
+  //{ 10, 1000000, 0, 10000000000 }, // todo: choose real date
 };
 static const uint64_t mainnet_hard_fork_version_1_till = 307499;
 
@@ -114,7 +114,7 @@ static const struct {
   { 7, 215000, 0, 1530615600 },
   { 8, 446674, 0, 1562889600 },
   { 9, 707121, 0, 1595615809 },
-  { 10, 1000000, 0, 10000000000 }, // todo: choose real date
+  //{ 10, 1000000, 0, 10000000000 }, // todo: choose real date
 };
 static const uint64_t testnet_hard_fork_version_1_till = 190059;
 
@@ -136,7 +136,7 @@ static const struct {
   { 7, 37000, 0, 1521600000 },
   { 8, 38000, 0, 1521800000 },
   { 9, 39000, 0, 1522000000 },
-  { 10, 1000000, 0, 10000000000 }, // todo: choose real date
+  //{ 10, 1000000, 0, 10000000000 }, // todo: choose real date
 };
 
 //------------------------------------------------------------------
@@ -2860,9 +2860,21 @@ bool Blockchain::check_tx_inputs(transaction& tx, tx_verification_context &tvc, 
   if (tx.version >= 3) //only public inputs allowed
   {
 
+    //check for duplicate inputs
+    std::unordered_set<std::string> ins;
+    for(const auto& in: tx.vin)
+    {
+      CHECKED_GET_SPECIFIC_VARIANT(in, const txin_to_key_public, tokey_in, false);
+      if(!ins.insert(std::string(tokey_in.tx_hash.data) + std::to_string(tokey_in.relative_offset)).second)
+      {
+        tvc.m_invalid_input = true;
+        tvc.m_verification_failed = true;
+        return false;
+      }
+    }
+
     if(tx.vin.size() != tx.public_input_signatures.size())
     {
-      tvc.m_verification_impossible = true;
       tvc.m_invalid_input = true;
       tvc.m_verification_failed = true;
       return false;
@@ -2907,9 +2919,9 @@ bool Blockchain::check_tx_inputs(transaction& tx, tx_verification_context &tvc, 
         tvc.m_verification_failed = true;
         return false;
       }
-
-      return true;
     }
+
+    return true;
   }
 
   // from hard fork 2, we require mixin at least 2 unless one output cannot mix with 2 others
