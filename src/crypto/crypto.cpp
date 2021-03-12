@@ -519,6 +519,14 @@ namespace crypto {
       }
   }
 
+  bool crypto_ops::verify_input_signature(const hash &prefix_hash,const uint32_t relative_input_index, const public_key pub_view, const public_key pub_spend, ed25519_signature signature)
+  {
+    public_key D = addKeys(pub_view, pub_spend);
+
+    std::string sigData = std::string(prefix_hash.data) + std::to_string(relative_input_index);
+    return ed25519_sign_open((unsigned char *)sigData.data(), 32, (unsigned char*)D.data, signature) == 0;
+  }
+
   //for curve points: AB = A + B
   public_key crypto_ops::addKeys(const public_key &A, const public_key &B) {
     public_key AB;

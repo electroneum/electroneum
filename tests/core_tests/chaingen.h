@@ -585,7 +585,7 @@ public:
       m_c.cleanup_handle_incoming_blocks();
     }
     else
-      bvc.m_verifivation_failed = true;
+      bvc.m_verification_failed = true;
     bool r = m_validator.check_block_verification_context(bvc, m_ev_index, b);
     CHECK_AND_NO_ASSERT_MES(r, false, "block verification context check failed");
     return r;
@@ -615,7 +615,7 @@ public:
       m_c.cleanup_handle_incoming_blocks();
     }
     else
-      bvc.m_verifivation_failed = true;
+      bvc.m_verification_failed = true;
 
     cryptonote::block blk;
     std::stringstream ss;

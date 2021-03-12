@@ -223,11 +223,11 @@ bool gen_block_reward::check_block_verification_context(const cryptonote::block_
   if (m_invalid_block_index == event_idx)
   {
     m_invalid_block_index = 0;
-    return bvc.m_verifivation_failed;
+    return bvc.m_verification_failed;
   }
   else
   {
-    return !bvc.m_verifivation_failed;
+    return !bvc.m_verification_failed;
   }
 }
 

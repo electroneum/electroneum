@@ -304,17 +304,17 @@ struct txin_to_key_public
         }
         ar.end_array();
 
-        if(version == 2){
+        if(version == 3){
             ar.tag("public_input_signatures");
             ar.begin_array();
-            PREPARE_CUSTOM_VECTOR_SERIALIZATION(public_vin.size(), public_input_signatures);
+            PREPARE_CUSTOM_VECTOR_SERIALIZATION(vin.size(), public_input_signatures);
             bool signatures_not_expected = public_input_signatures.empty();
-            if (!signatures_not_expected && public_vin.size() != public_input_signatures.size())
+            if (!signatures_not_expected && vin.size() != public_input_signatures.size())
                 return false;
 
-            for (size_t i = 0; i < public_vin.size(); ++i)
+            for (size_t i = 0; i < vin.size(); ++i)
                 {
-                    size_t signature_size = get_signature_size(public_vin[i]);
+                    size_t signature_size = get_signature_size(vin[i]);
                     if (signatures_not_expected)
                     {
                         if (0 == signature_size)
@@ -328,7 +328,7 @@ struct txin_to_key_public
 
                     FIELD(public_input_signatures);
 
-                    if (public_vin.size() - i > 1)
+                    if (vin.size() - i > 1)
                         ar.delimit_array();
                 }
             ar.end_array();
