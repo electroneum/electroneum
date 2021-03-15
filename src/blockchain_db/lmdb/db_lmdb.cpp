@@ -1100,7 +1100,6 @@ void BlockchainLMDB::remove_tx_outputs(const uint64_t tx_id, const transaction& 
 
   for (size_t i = tx.vout.size(); i-- > 0;)
   {
-    //TODO: Public
     remove_output(tx.vout[i].amount, amount_output_indices[i]);
   }
 }

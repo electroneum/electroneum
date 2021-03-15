@@ -1581,7 +1581,6 @@ bool Blockchain::create_block_template(block& b, const crypto::hash *from_block,
       LOG_ERROR("Creating block template: error: invalid transaction weight");
     }
 
-    //TODO: Public
     uint64_t inputs_amount;
     if (!get_inputs_etn_amount(cur_tx.tx, inputs_amount))
     {
@@ -2767,7 +2766,6 @@ bool Blockchain::check_tx_outputs(const transaction& tx, tx_verification_context
 
   const uint8_t hf_version = m_hardfork->get_current_version();
 
-  //TODO: Public
   // from hard fork 2, we forbid dust and compound outputs
   if (hf_version >= HF_VERSION_FORBID_DUST_OUTPUTS) {
     for (auto &o: tx.vout) {
@@ -3048,7 +3046,6 @@ bool Blockchain::check_tx_inputs(transaction& tx, tx_verification_context &tvc, 
       return false;
     }
 
-    //TODO: Public
     // basically, make sure number of inputs == number of signatures
     CHECK_AND_ASSERT_MES(sig_index < tx.signatures.size(), false, "wrong transaction: not signature entry for input with index= " << sig_index);
 
@@ -3082,7 +3079,6 @@ bool Blockchain::check_tx_inputs(transaction& tx, tx_verification_context &tvc, 
       return false;
     }
 
-    //TODO: Public
     if (threads > 1)
     {
       // ND: Speedup

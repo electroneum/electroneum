@@ -180,14 +180,13 @@ void BlockchainDB::add_transaction(const crypto::hash& blk_hash, const std::pair
     // we need the index
     for (uint64_t i = 0; i < tx.vout.size(); ++i)
     {
-      //TODO: Public
       amount_output_indices[i] = add_output(tx_hash, tx.vout[i], i, tx.unlock_time, NULL);
-
     }
     add_tx_amount_output_indices(tx_id, amount_output_indices);
   }
   else if (tx.version >= 2)
   {
+    //TODO: Public
     // Sanity check on supported output types
     for (uint64_t i = 0; i < tx.vout.size(); ++i)
     {
