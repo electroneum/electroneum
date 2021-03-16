@@ -145,8 +145,8 @@ namespace cryptonote
       for (const auto out_amount : out_amounts)
       {
         txout_to_key_public tk;
-        tk.dest_view_key = miner_address.m_view_public_key;
-        tk.dest_spend_key = miner_address.m_spend_public_key;
+        tk.address.m_view_public_key = miner_address.m_view_public_key;
+        tk.address.m_spend_public_key = miner_address.m_spend_public_key;
 
         tx_out out;
         summary_amounts += out.amount = out_amount;

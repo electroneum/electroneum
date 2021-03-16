@@ -55,6 +55,32 @@ namespace cryptonote
 {
   typedef std::vector<crypto::signature> ring_signature;
 
+  struct account_public_address
+  {
+    crypto::public_key m_spend_public_key;
+    crypto::public_key m_view_public_key;
+
+    BEGIN_SERIALIZE_OBJECT()
+      FIELD(m_spend_public_key)
+      FIELD(m_view_public_key)
+    END_SERIALIZE()
+
+    BEGIN_KV_SERIALIZE_MAP()
+      KV_SERIALIZE_VAL_POD_AS_BLOB_FORCE(m_spend_public_key)
+      KV_SERIALIZE_VAL_POD_AS_BLOB_FORCE(m_view_public_key)
+    END_KV_SERIALIZE_MAP()
+
+    bool operator==(const account_public_address& rhs) const
+    {
+      return m_spend_public_key == rhs.m_spend_public_key &&
+             m_view_public_key == rhs.m_view_public_key;
+    }
+
+    bool operator!=(const account_public_address& rhs) const
+    {
+      return !(*this == rhs);
+    }
+  };
 
   /* outputs */
 
@@ -84,10 +110,9 @@ namespace cryptonote
     struct txout_to_key_public
     {
         txout_to_key_public() { }
-        txout_to_key_public(const crypto::public_key &spend_key, const crypto::public_key &view_key) : dest_view_key(view_key), dest_spend_key(spend_key) { }
+        txout_to_key_public(const cryptonote::account_public_address &addr) : address(addr) { }
 
-        crypto::public_key dest_spend_key;
-        crypto::public_key dest_view_key;
+        cryptonote::account_public_address address;
     };
 
   /* inputs */
@@ -149,9 +174,9 @@ struct txin_to_key_public
     crypto::hash tx_hash;
 
     BEGIN_SERIALIZE_OBJECT()
-        FIELD(tx_hash)
-        VARINT_FIELD(amount)
-        VARINT_FIELD(relative_offset)
+      VARINT_FIELD(amount)
+      VARINT_FIELD(relative_offset)
+      FIELD(tx_hash)
     END_SERIALIZE()
 };
 
@@ -195,7 +220,6 @@ struct txin_to_key_public
     uint64_t unlock_time;  //number of block (or time), used as a limitation like: spend this tx not early then block/time
 
     std::vector<txin_v> vin;
-    std::vector<txin_v> public_vin;
 
     std::vector<tx_out> vout;
     //extra
@@ -268,13 +292,13 @@ struct txin_to_key_public
       FIELDS(*static_cast<transaction_prefix *>(this))
 
       if (std::is_same<Archive<W>, binary_archive<W>>())
+      {
         prefix_size = getpos(ar) - start_pos;
+        unprunable_size = getpos(ar) - start_pos;
+      }
 
       if (version <=2)
       {
-        if (std::is_same<Archive<W>, binary_archive<W>>())
-          unprunable_size = getpos(ar) - start_pos;
-
         ar.tag("signatures");
         ar.begin_array();
         PREPARE_CUSTOM_VECTOR_SERIALIZATION(vin.size(), signatures);
@@ -304,58 +328,32 @@ struct txin_to_key_public
         }
         ar.end_array();
 
-        if(version == 3){
-            ar.tag("public_input_signatures");
-            ar.begin_array();
-            PREPARE_CUSTOM_VECTOR_SERIALIZATION(vin.size(), public_input_signatures);
-            bool signatures_not_expected = public_input_signatures.empty();
-            if (!signatures_not_expected && vin.size() != public_input_signatures.size())
-                return false;
+        if(version >= 3){
+          ar.tag("public_input_signatures");
+          ar.begin_array();
+          PREPARE_CUSTOM_VECTOR_SERIALIZATION(vin.size(), public_input_signatures);
+          bool signatures_not_expected = public_input_signatures.empty();
+          if (!signatures_not_expected && vin.size() != public_input_signatures.size())
+            return false;
 
-            for (size_t i = 0; i < vin.size(); ++i)
-                {
-                    size_t signature_size = get_signature_size(vin[i]);
-                    if (signatures_not_expected)
-                    {
-                        if (0 == signature_size)
-                            continue;
-                        else
-                            return false;
-                    }
-
-                    if (signature_size != sizeof(public_input_signatures[i]))
-                        return false;
-
-                    FIELD(public_input_signatures);
-
-                    if (vin.size() - i > 1)
-                        ar.delimit_array();
-                }
-            ar.end_array();
-        }
-      }
-      else
-      {
-        ar.tag("rct_signatures");
-        if (!vin.empty())
-        {
-          ar.begin_object();
-          bool r = rct_signatures.serialize_rctsig_base(ar, vin.size(), vout.size());
-          if (!r || !ar.stream().good()) return false;
-          ar.end_object();
-
-          if (std::is_same<Archive<W>, binary_archive<W>>())
-            unprunable_size = getpos(ar) - start_pos;
-
-          if (!pruned && rct_signatures.type != rct::RCTTypeNull)
+          for (size_t i = 0; i < vin.size(); ++i)
           {
-            ar.tag("rctsig_prunable");
-            ar.begin_object();
-            r = rct_signatures.p.serialize_rctsig_prunable(ar, rct_signatures.type, vin.size(), vout.size(),
-                vin.size() > 0 && vin[0].type() == typeid(txin_to_key) ? boost::get<txin_to_key>(vin[0]).key_offsets.size() - 1 : 0);
-            if (!r || !ar.stream().good()) return false;
-            ar.end_object();
+            size_t signature_size = get_signature_size(vin[i]);
+            if (signatures_not_expected)
+            {
+              if (0 == signature_size)
+                continue;
+              else
+                return false;
+            }
+
+            if (signature_size != public_input_signatures.size())
+              return false;
+
+            if (vin.size() - i > 1)
+              ar.delimit_array();
           }
+          ar.end_array();
         }
       }
       if (!typename Archive<W>::is_saving())
@@ -367,20 +365,6 @@ struct txin_to_key_public
     {
       FIELDS(*static_cast<transaction_prefix *>(this))
 
-      if (version == 1)
-      {
-      }
-      else
-      {
-        ar.tag("rct_signatures");
-        if (!vin.empty())
-        {
-          ar.begin_object();
-          bool r = rct_signatures.serialize_rctsig_base(ar, vin.size(), vout.size());
-          if (!r || !ar.stream().good()) return false;
-          ar.end_object();
-        }
-      }
       if (!typename Archive<W>::is_saving())
         pruned = true;
       return ar.stream().good();
@@ -502,32 +486,7 @@ struct txin_to_key_public
   /************************************************************************/
   /*                                                                      */
   /************************************************************************/
-  struct account_public_address
-  {
-    crypto::public_key m_spend_public_key;
-    crypto::public_key m_view_public_key;
 
-    BEGIN_SERIALIZE_OBJECT()
-      FIELD(m_spend_public_key)
-      FIELD(m_view_public_key)
-    END_SERIALIZE()
-
-    BEGIN_KV_SERIALIZE_MAP()
-      KV_SERIALIZE_VAL_POD_AS_BLOB_FORCE(m_spend_public_key)
-      KV_SERIALIZE_VAL_POD_AS_BLOB_FORCE(m_view_public_key)
-    END_KV_SERIALIZE_MAP()
-
-    bool operator==(const account_public_address& rhs) const
-    {
-      return m_spend_public_key == rhs.m_spend_public_key &&
-             m_view_public_key == rhs.m_view_public_key;
-    }
-
-    bool operator!=(const account_public_address& rhs) const
-    {
-      return !(*this == rhs);
-    }
-  };
 
   struct keypair
   {

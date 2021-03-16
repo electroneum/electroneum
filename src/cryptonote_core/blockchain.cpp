@@ -2679,6 +2679,11 @@ bool Blockchain::get_tx_outputs_gindexs(const crypto::hash& tx_id, size_t n_txes
     MERROR_VER("get_tx_outputs_gindexs failed to find transaction with id = " << tx_id);
     return false;
   }
+
+  //no output indexes for tx.version >= 2 (public tx)
+  if (m_db->get_tx(tx_id).version >= 2)
+    return true;
+
   indexs = m_db->get_tx_amount_output_indices(tx_index, n_txes);
   CHECK_AND_ASSERT_MES(n_txes == indexs.size(), false, "Wrong indexs size");
 
@@ -2695,6 +2700,11 @@ bool Blockchain::get_tx_outputs_gindexs(const crypto::hash& tx_id, std::vector<u
     MERROR_VER("get_tx_outputs_gindexs failed to find transaction with id = " << tx_id);
     return false;
   }
+
+  //no output indexes for tx.version >= 2 (public tx)
+  if (m_db->get_tx(tx_id).version >= 2)
+    return true;
+
   std::vector<std::vector<uint64_t>> indices = m_db->get_tx_amount_output_indices(tx_index, 1);
   CHECK_AND_ASSERT_MES(indices.size() == 1, false, "Wrong indices size");
   indexs = indices.front();
@@ -2794,8 +2804,8 @@ bool Blockchain::check_tx_outputs(const transaction& tx, tx_verification_context
                   return false;
               }
               const txout_to_key_public &out_to_key_public = boost::get<txout_to_key_public>(o.target);
-              if (!crypto::check_key(out_to_key_public.dest_spend_key) ||
-                  !crypto::check_key(out_to_key_public.dest_view_key)) {
+              if (!crypto::check_key(out_to_key_public.address.m_spend_public_key) ||
+                  !crypto::check_key(out_to_key_public.address.m_view_public_key)) {
                   tvc.m_invalid_output = true;
                   return false;
               }
@@ -2808,12 +2818,26 @@ bool Blockchain::check_tx_outputs(const transaction& tx, tx_verification_context
 bool Blockchain::have_tx_keyimges_as_spent(const transaction &tx) const
 {
   LOG_PRINT_L3("Blockchain::" << __func__);
-  for (const txin_v& in: tx.vin)
+
+  if (tx.version >= 3)
   {
-    CHECKED_GET_SPECIFIC_VARIANT(in, const txin_to_key, in_to_key, true);
-    if(have_tx_keyimg_as_spent(in_to_key.k_image))
-      return true;
+    for (const txin_v& in: tx.vin)
+    {
+      CHECKED_GET_SPECIFIC_VARIANT(in, const txin_to_key_public, in_to_key, true);
+      if(!m_db->check_chainstate_utxo(in_to_key.tx_hash, in_to_key.relative_offset))
+        return true;
+    }
   }
+  else
+  {
+    for (const txin_v& in: tx.vin)
+    {
+      CHECKED_GET_SPECIFIC_VARIANT(in, const txin_to_key, in_to_key, true);
+      if(have_tx_keyimg_as_spent(in_to_key.k_image))
+        return true;
+    }
+  }
+
   return false;
 }
 bool Blockchain::expand_transaction_2(transaction &tx, const crypto::hash &tx_prefix_hash, const std::vector<std::vector<rct::ctkey>> &pubkeys)
@@ -2911,7 +2935,7 @@ bool Blockchain::check_tx_inputs(transaction& tx, tx_verification_context &tvc, 
 
       // check signature
       const txout_to_key_public& out_to_key = boost::get<txout_to_key_public>(parent_tx.vout[in_to_key.relative_offset].target);
-      bool valid = crypto::verify_input_signature(parent_tx.hash, in_to_key.relative_offset, out_to_key.dest_view_key, out_to_key.dest_spend_key, tx.public_input_signatures[i].signature);
+      bool valid = crypto::verify_input_signature(parent_tx.hash, in_to_key.relative_offset, out_to_key.address.m_view_public_key, out_to_key.address.m_spend_public_key, tx.public_input_signatures[i].signature);
       if (!valid)
       {
         tvc.m_verification_failed = true;

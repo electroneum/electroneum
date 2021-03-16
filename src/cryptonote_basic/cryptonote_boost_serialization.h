@@ -115,8 +115,7 @@ namespace boost
   template <class Archive>
   inline void serialize(Archive &a, cryptonote::txout_to_key_public &x, const boost::serialization::version_type ver)
   {
-      a & x.dest_spend_key;
-      a & x.dest_view_key;
+      a & x.address;
   }
 
   template <class Archive>

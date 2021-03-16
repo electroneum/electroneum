@@ -739,8 +739,8 @@ namespace cryptonote
 
         CHECK_AND_NO_ASSERT_MES(0 < out.amount, false, "zero amount output in transaction id=" << get_transaction_hash(tx));
 
-        if(!check_key(boost::get<txout_to_key_public>(out.target).dest_spend_key) ||
-                !check_key(boost::get<txout_to_key_public>(out.target).dest_view_key))
+        if(!check_key(boost::get<txout_to_key_public>(out.target).address.m_spend_public_key) ||
+                !check_key(boost::get<txout_to_key_public>(out.target).address.m_view_public_key))
           return false;
       }
 

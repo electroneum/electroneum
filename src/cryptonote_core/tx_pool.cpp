@@ -958,7 +958,7 @@ namespace cryptonote
   {
     CRITICAL_REGION_LOCAL(m_transactions_lock);
     CRITICAL_REGION_LOCAL1(m_blockchain);
-    //TODO: Public
+
     spent.clear();
 
     for (const auto& image : key_images)
