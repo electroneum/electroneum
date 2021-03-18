@@ -848,11 +848,18 @@ namespace cryptonote
     bad_semantics_txes_lock.unlock();
 
     uint8_t version = m_blockchain_storage.get_current_hard_fork_version();
-    //TODO: Public
-    const size_t max_tx_version = version < HF_VERSION_ENABLE_RCT ? 3 : 4;
+
+    const size_t max_tx_version = version < HF_VERSION_PUBLIC_TX ? 1 : 3;
     if (tx.version == 0 || tx.version > max_tx_version)
     {
       // v2 is the latest one we know
+      tvc.m_verification_failed = true;
+      return false;
+    }
+
+    const size_t min_tx_version = version >= HF_VERSION_PUBLIC_TX ? 2 : 1;
+    if (tx.version < min_tx_version)
+    {
       tvc.m_verification_failed = true;
       return false;
     }
@@ -1134,7 +1141,6 @@ namespace cryptonote
       return false;
     }
 
-    //TODO: Public
     uint64_t amount_in = 0;
     get_inputs_etn_amount(tx, amount_in);
     uint64_t amount_out = get_outs_etn_amount(tx);
@@ -1152,23 +1158,29 @@ namespace cryptonote
       return false;
     }
 
-    //check if tx use different key images
-    if(!check_tx_inputs_keyimages_diff(tx))
+    if(tx.version >= 3)
     {
-      MERROR_VER("tx uses a single key image more than once");
-      return false;
+      //check if tx use different utxos
+      if(!check_tx_inputs_utxos_diff(tx))
+      {
+        MERROR_VER("tx uses a single utxo more than once");
+        return false;
+      }
     }
-
-    if (!check_tx_inputs_ring_members_diff(tx))
+    else
     {
-      MERROR_VER("tx uses duplicate ring members");
-      return false;
-    }
+      //check if tx use different key images
+      if(!check_tx_inputs_keyimages_diff(tx))
+      {
+        MERROR_VER("tx uses a single key image more than once");
+        return false;
+      }
 
-    if (!check_tx_inputs_keyimages_domain(tx))
-    {
-      MERROR_VER("tx uses key image not in the valid domain");
-      return false;
+      if (!check_tx_inputs_keyimages_domain(tx))
+      {
+        MERROR_VER("tx uses key image not in the valid domain");
+        return false;
+      }
     }
 
     return true;
@@ -1202,7 +1214,6 @@ namespace cryptonote
   bool core::are_key_images_spent_in_pool(const std::vector<crypto::key_image>& key_im, std::vector<bool> &spent) const
   {
     spent.clear();
-    //TODO: Public
     return m_mempool.check_for_key_images(key_im, spent);
   }
   //-----------------------------------------------------------------------------------------------
@@ -1241,6 +1252,18 @@ namespace cryptonote
     {
       CHECKED_GET_SPECIFIC_VARIANT(in, const txin_to_key, tokey_in, false);
       if(!ki.insert(tokey_in.k_image).second)
+        return false;
+    }
+    return true;
+  }
+  //-----------------------------------------------------------------------------------------------
+  bool core::check_tx_inputs_utxos_diff(const transaction& tx) const
+  {
+    std::unordered_set<std::string> ins;
+    for(const auto& in: tx.vin)
+    {
+      CHECKED_GET_SPECIFIC_VARIANT(in, const txin_to_key_public, tokey_in, false);
+      if(!ins.insert(std::string(tokey_in.tx_hash.data) + std::to_string(tokey_in.relative_offset)).second)
         return false;
     }
     return true;

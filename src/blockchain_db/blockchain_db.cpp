@@ -186,7 +186,6 @@ void BlockchainDB::add_transaction(const crypto::hash& blk_hash, const std::pair
   }
   else if (tx.version >= 2)
   {
-    //TODO: Public
     // Sanity check on supported output types
     for (uint64_t i = 0; i < tx.vout.size(); ++i)
     {

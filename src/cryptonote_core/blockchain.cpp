@@ -3758,7 +3758,6 @@ leave:
 #endif
     {
       // validate that transaction inputs and the keys spending them are correct.
-      //TODO: Public
       tx_verification_context tvc;
       if(!check_tx_inputs(tx, tvc))
       {

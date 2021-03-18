@@ -983,6 +983,8 @@ namespace cryptonote
       */
      bool check_tx_inputs_keyimages_diff(const transaction& tx) const;
 
+     bool check_tx_inputs_utxos_diff(const transaction& tx) const;
+
      /**
       * @brief verify that each ring uses distinct members
       *
