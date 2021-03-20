@@ -431,7 +431,7 @@ private:
   tx_out output_from_blob(const blobdata& blob) const;
 
   virtual void add_chainstate_utxo(const crypto::hash tx_hash, const uint32_t relative_out_index, const crypto::public_key combined_key, uint64_t amount);
-  virtual bool check_chainstate_utxo(const crypto::hash tx_hash, const uint32_t relative_out_index);
+  virtual bool exists_chainstate_utxo(const crypto::hash tx_hash, const uint32_t relative_out_index);
   virtual void remove_chainstate_utxo(const crypto::hash tx_hash, const uint32_t relative_out_index);
 
   virtual void add_addr_output(const crypto::hash tx_hash, const uint32_t relative_out_index, const crypto::public_key& pub_view, const crypto::public_key& pub_spend, uint64_t amount);

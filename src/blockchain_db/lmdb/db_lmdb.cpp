@@ -1307,7 +1307,7 @@ void BlockchainLMDB::add_chainstate_utxo(const crypto::hash tx_hash, const uint3
     }
 }
 
-bool BlockchainLMDB::check_chainstate_utxo(const crypto::hash tx_hash, const uint32_t relative_out_index)
+bool BlockchainLMDB::exists_chainstate_utxo(const crypto::hash tx_hash, const uint32_t relative_out_index)
 {
   LOG_PRINT_L3("BlockchainLMDB::" << __func__);
   check_open();

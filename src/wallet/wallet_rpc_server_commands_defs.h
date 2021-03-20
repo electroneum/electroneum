@@ -1373,6 +1373,7 @@ namespace wallet_rpc
     bool double_spend_seen;
     uint64_t confirmations;
     uint64_t suggested_confirmations_threshold;
+    bool nonexistent_utxo_seen;
 
     BEGIN_KV_SERIALIZE_MAP()
       KV_SERIALIZE(txid);
@@ -1391,6 +1392,7 @@ namespace wallet_rpc
       KV_SERIALIZE(double_spend_seen)
       KV_SERIALIZE_OPT(confirmations, (uint64_t)0)
       KV_SERIALIZE_OPT(suggested_confirmations_threshold, (uint64_t)0)
+      KV_SERIALIZE(double_spend_seen)
     END_KV_SERIALIZE_MAP()
   };
 

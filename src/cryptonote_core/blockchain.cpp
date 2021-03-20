@@ -2815,30 +2815,32 @@ bool Blockchain::check_tx_outputs(const transaction& tx, tx_verification_context
   return true;
 }
 //------------------------------------------------------------------
-bool Blockchain::have_tx_keyimges_as_spent(const transaction &tx) const
+bool Blockchain::key_images_already_spent(const transaction &tx) const
 {
-  LOG_PRINT_L3("Blockchain::" << __func__);
+    LOG_PRINT_L3("Blockchain::" << __func__);
 
-  if (tx.version >= 3)
-  {
     for (const txin_v& in: tx.vin)
     {
-      CHECKED_GET_SPECIFIC_VARIANT(in, const txin_to_key_public, in_to_key, true);
-      if(!m_db->check_chainstate_utxo(in_to_key.tx_hash, in_to_key.relative_offset))
-        return true;
+        CHECKED_GET_SPECIFIC_VARIANT(in, const txin_to_key, in_to_key, true);
+        if(have_tx_keyimg_as_spent(in_to_key.k_image))
+            return true;
     }
-  }
-  else
-  {
+
+    return false;
+}
+//------------------------------------------------------------------
+bool Blockchain::utxo_nonexistent(const transaction &tx) const
+{
+    LOG_PRINT_L3("Blockchain::" << __func__);
+
     for (const txin_v& in: tx.vin)
     {
-      CHECKED_GET_SPECIFIC_VARIANT(in, const txin_to_key, in_to_key, true);
-      if(have_tx_keyimg_as_spent(in_to_key.k_image))
-        return true;
+        CHECKED_GET_SPECIFIC_VARIANT(in, const txin_to_key_public, in_to_key, true);
+        if(!m_db->exists_chainstate_utxo(in_to_key.tx_hash, in_to_key.relative_offset))
+            return true;
     }
-  }
 
-  return false;
+    return false;
 }
 bool Blockchain::expand_transaction_2(transaction &tx, const crypto::hash &tx_prefix_hash, const std::vector<std::vector<rct::ctkey>> &pubkeys)
 {
@@ -2926,9 +2928,9 @@ bool Blockchain::check_tx_inputs(transaction& tx, tx_verification_context &tvc, 
       CHECK_AND_ASSERT_MES(parent_tx.vout.size() <= in_to_key.relative_offset, false, "wrong relative_offset in tx input at Blockchain::check_tx_inputs");
       CHECK_AND_ASSERT_MES(parent_tx.vout[in_to_key.relative_offset].amount != in_to_key.amount, false, "wrong amount in tx input at Blockchain::check_tx_inputs");
 
-      if (!m_db->check_chainstate_utxo(in_to_key.tx_hash, in_to_key.relative_offset))
+      if (!m_db->exists_chainstate_utxo(in_to_key.tx_hash, in_to_key.relative_offset))
       {
-        tvc.m_double_spend = true;
+        tvc.m_utxo_nonexistent = true;
         tvc.m_verification_failed = true;
         return false;
       }
@@ -3492,9 +3494,9 @@ bool Blockchain::flush_txes_from_pool(const std::vector<crypto::hash> &txids)
     cryptonote::blobdata txblob;
     size_t tx_weight;
     uint64_t fee;
-    bool relayed, do_not_relay, double_spend_seen;
+    bool relayed, do_not_relay, double_spend_seen, nonexistent_utxo_seen;
     MINFO("Removing txid " << txid << " from the pool");
-    if(m_tx_pool.have_tx(txid) && !m_tx_pool.take_tx(txid, tx, txblob, tx_weight, fee, relayed, do_not_relay, double_spend_seen))
+    if(m_tx_pool.have_tx(txid) && !m_tx_pool.take_tx(txid, tx, txblob, tx_weight, fee, relayed, do_not_relay, double_spend_seen, nonexistent_utxo_seen))
     {
       MERROR("Failed to remove txid " << txid << " from the pool");
       res = false;
@@ -3702,7 +3704,7 @@ leave:
     blobdata txblob;
     size_t tx_weight = 0;
     uint64_t fee = 0;
-    bool relayed = false, do_not_relay = false, double_spend_seen = false;
+    bool relayed = false, do_not_relay = false, double_spend_seen = false, nonexistent_utxo_seen = false;
     TIME_MEASURE_START(aa);
 
 // XXX old code does not check whether tx exists
@@ -3719,7 +3721,7 @@ leave:
     TIME_MEASURE_START(bb);
 
     // get transaction with hash <tx_id> from tx_pool
-    if(!m_tx_pool.take_tx(tx_id, tx_tmp, txblob, tx_weight, fee, relayed, do_not_relay, double_spend_seen))
+    if(!m_tx_pool.take_tx(tx_id, tx_tmp, txblob, tx_weight, fee, relayed, do_not_relay, double_spend_seen, nonexistent_utxo_seen))
     {
       MERROR_VER("Block with id: " << id  << " has at least one unknown transaction with id: " << tx_id);
       bvc.m_verification_failed = true;
@@ -4819,13 +4821,13 @@ void Blockchain::load_compiled_in_block_hashes(const GetCheckpointsCallback& get
 
         size_t tx_weight;
         uint64_t fee;
-        bool relayed, do_not_relay, double_spend_seen;
+        bool relayed, do_not_relay, double_spend_seen, nonexistent_utxo_seen;
         transaction pool_tx;
         blobdata txblob;
         for(const transaction &tx : txs)
         {
           crypto::hash tx_hash = get_transaction_hash(tx);
-          m_tx_pool.take_tx(tx_hash, pool_tx, txblob, tx_weight, fee, relayed, do_not_relay, double_spend_seen);
+          m_tx_pool.take_tx(tx_hash, pool_tx, txblob, tx_weight, fee, relayed, do_not_relay, double_spend_seen, nonexistent_utxo_seen);
         }
       }
     }

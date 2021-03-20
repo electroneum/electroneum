@@ -43,6 +43,7 @@ namespace cryptonote
     bool m_added_to_pool; 
     bool m_low_mixin;
     bool m_double_spend;
+    bool m_utxo_nonexistent;
     bool m_invalid_input;
     bool m_invalid_output;
     bool m_too_big;

@@ -7840,6 +7840,8 @@ bool simple_wallet::get_transfers(std::vector<std::string>& local_args, std::vec
         std::string double_spend_note;
         if (i->second.m_double_spend_seen)
           double_spend_note = tr("[Double spend seen on the network: this transaction may or may not end up being mined] ");
+        if (i->second.m_nonexistent_utxo_seen)
+           success_msg_writer() << tr("Nonexistent UTXO seen on the network: this transaction may or may not end up being mined");
         transfers.push_back({
           "pool",
           "pool",
@@ -9360,6 +9362,8 @@ bool simple_wallet::show_transfer(const std::vector<std::string> &args)
         success_msg_writer() << "Note: " << m_wallet->get_tx_note(txid);
         if (i->second.m_double_spend_seen)
           success_msg_writer() << tr("Double spend seen on the network: this transaction may or may not end up being mined");
+        if (i->second.m_nonexistent_utxo_seen)
+              success_msg_writer() << tr("Nonexistent UTXO seen on the network: this transaction may or may not end up being mined");
         return true;
       }
     }

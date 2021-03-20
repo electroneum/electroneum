@@ -366,6 +366,7 @@ namespace cryptonote
       uint64_t block_timestamp;
       std::vector<uint64_t> output_indices;
       bool relayed;
+      bool nonexistent_utxo_seen;
 
       BEGIN_KV_SERIALIZE_MAP()
         KV_SERIALIZE(tx_hash)
@@ -386,6 +387,7 @@ namespace cryptonote
         {
           KV_SERIALIZE(relayed)
         }
+        KV_SERIALIZE(nonexistent_utxo_seen)
       END_KV_SERIALIZE_MAP()
     };
 
@@ -1334,6 +1336,7 @@ namespace cryptonote
     bool do_not_relay;
     bool double_spend_seen;
     std::string tx_blob;
+    bool nonexistent_utxo_seen;
 
     BEGIN_KV_SERIALIZE_MAP()
       KV_SERIALIZE(id_hash)
@@ -1352,6 +1355,7 @@ namespace cryptonote
       KV_SERIALIZE(do_not_relay)
       KV_SERIALIZE(double_spend_seen)
       KV_SERIALIZE(tx_blob)
+      KV_SERIALIZE(nonexistent_utxo_seen)
     END_KV_SERIALIZE_MAP()
   };
 
@@ -1497,8 +1501,9 @@ namespace cryptonote
     uint64_t histo_98pc;
     std::vector<txpool_histo> histo;
     uint32_t num_double_spends;
+    uint32_t num_nonexistent_utxos;
 
-    txpool_stats(): bytes_total(0), bytes_min(0), bytes_max(0), bytes_med(0), fee_total(0), oldest(0), txs_total(0), num_failing(0), num_10m(0), num_not_relayed(0), histo_98pc(0), num_double_spends(0) {}
+    txpool_stats(): bytes_total(0), bytes_min(0), bytes_max(0), bytes_med(0), fee_total(0), oldest(0), txs_total(0), num_failing(0), num_10m(0), num_not_relayed(0), histo_98pc(0), num_double_spends(0), num_nonexistent_utxos(0) {}
 
     BEGIN_KV_SERIALIZE_MAP()
       KV_SERIALIZE(bytes_total)
@@ -1514,6 +1519,7 @@ namespace cryptonote
       KV_SERIALIZE(histo_98pc)
       KV_SERIALIZE_CONTAINER_POD_AS_BLOB(histo)
       KV_SERIALIZE(num_double_spends)
+      KV_SERIALIZE(num_nonexistent_utxos)
     END_KV_SERIALIZE_MAP()
   };
 

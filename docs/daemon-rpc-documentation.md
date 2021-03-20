@@ -1381,6 +1381,7 @@ Outputs:
   * *block_height*  - unsigned int; block height including the transaction
   * *block_timestamp*  - unsigned int; Unix time at chich the block has been added to the blockchain
   * *double_spend_seen*  - boolean; States if the transaction is a double-spend ( `true` ) or not ( `false` )
+  * *nonexistent_utxo_seen*  - boolean; States if the transaction contains a nonexistent utxo; a potential double spend ( `true` ) or not ( `false` )
   * *in_pool*  - boolean; States if the transaction is in pool ( `true` ) or included in a block ( `false` )
   * *output_indices*  - array of unsigned int; transaction indexes
   * *tx_hash*  - string; transaction hash
@@ -1400,6 +1401,7 @@ $ curl -X POST http://127.0.0.1:26968/get_transactions -d '{"txs_hashes":["d6e48
     "block_height": 993442,
     "block_timestamp": 1457749396,
     "double_spend_seen": false,
+    "nonexistent_utxo_seen": false,
     "in_pool": false,
     "output_indices": [198769,418598,176616,50345,509],
     "tx_hash": "d6e48158472848e6687173a91ae6eebfa3e1d778e65252ee99d7515d63090408"
@@ -1422,6 +1424,7 @@ $ curl -X POST http://127.0.0.1:26968/get_transactions -d '{"txs_hashes":["d6e48
     "block_height": 993442,
     "block_timestamp": 1457749396,
     "double_spend_seen": false,
+    "nonexistent_utxo_seen": false,
     "in_pool": false,
     "output_indices": [198769,418598,176616,50345,509],
     "tx_hash": "d6e48158472848e6687173a91ae6eebfa3e1d778e65252ee99d7515d63090408"
@@ -1867,6 +1870,7 @@ Outputs:
 * *transactions*  - List of transactions in the mempool are not in a block on the main chain at the moment:
   * *blob_size*  - unsigned int; The size of the full transaction blob.
   * *double_spend_seen*  - boolean; States if this transaction has been seen as double spend.
+  * *nonexistent_utxo_seen*  - boolean; States if the transaction contains a nonexistent utxo; a potential double spend ( `true` ) or not ( `false` )
   * *do_not_relay* ; boolean; States if this transaction should not be relayed
   * *fee*  - unsigned int; The amount of the mining fee included in the transaction, in Atomic Units.
   * *id_hash*  - string; The transaction ID hash.
@@ -1926,6 +1930,7 @@ $ curl -X POST http://127.0.0.1:26968/get_transaction_pool -H 'Content-Type: app
     "blob_size": 13193,
     "do_not_relay": false,
     "double_spend_seen": false,
+    "nonexistent_utxo_seen": false,
     "fee": 9694360000,
     "id_hash": "f8fb875cfc9e2e59bcf96a42474c79e01d50b69e6548d445d45984f7db66e50f",
     "kept_by_block": false,

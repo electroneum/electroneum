@@ -313,6 +313,11 @@ namespace rpc
         if (!res.error_details.empty()) res.error_details += " and ";
         res.error_details = "double spend";
       }
+      if (tvc.m_utxo_nonexistent)
+      {
+        if (!res.error_details.empty()) res.error_details += " and ";
+        res.error_details = "utxo is already spent or is nonexistent";
+      }
       if (tvc.m_invalid_input)
       {
         if (!res.error_details.empty()) res.error_details += " and ";

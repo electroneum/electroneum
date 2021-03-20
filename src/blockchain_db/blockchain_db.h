@@ -151,8 +151,9 @@ struct txpool_tx_meta_t
   uint8_t do_not_relay;
   uint8_t double_spend_seen: 1;
   uint8_t bf_padding: 7;
+  uint8_t utxo_nonexistent_seen;
 
-  uint8_t padding[76]; // till 192 bytes
+  uint8_t padding[68]; // till 192 bytes
 };
 
 #define DBF_SAFE       1
@@ -1759,7 +1760,7 @@ public:
    */
   void set_auto_remove_logs(bool auto_remove) { m_auto_remove_logs = auto_remove; }
 
-  virtual bool check_chainstate_utxo(const crypto::hash tx_hash, const uint32_t relative_out_index) = 0;
+  virtual bool exists_chainstate_utxo(const crypto::hash tx_hash, const uint32_t relative_out_index) = 0;
 
   bool m_open;  //!< Whether or not the BlockchainDB is open/ready for use
   mutable epee::critical_section m_synchronization_lock;  //!< A lock, currently for when BlockchainLMDB needs to resize the backing db file

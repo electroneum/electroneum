@@ -692,12 +692,14 @@ namespace cryptonote
         if (it != per_tx_pool_tx_info.end())
         {
           e.double_spend_seen = it->second.double_spend_seen;
+          e.nonexistent_utxo_seen = it->second.nonexistent_utxo_seen;
           e.relayed = it->second.relayed;
         }
         else
         {
           MERROR("Failed to determine pool info for " << tx_hash);
           e.double_spend_seen = false;
+          e.nonexistent_utxo_seen = false;
           e.relayed = false;
         }
       }
@@ -841,6 +843,8 @@ namespace cryptonote
         add_reason(reason, "bad ring size");
       if ((res.double_spend = tvc.m_double_spend))
         add_reason(reason, "double spend");
+      if ((res.double_spend = tvc.m_utxo_nonexistent))
+        add_reason(reason, "utxo has been spent already or doesn't exist");
       if ((res.invalid_input = tvc.m_invalid_input))
         add_reason(reason, "invalid input");
       if ((res.invalid_output = tvc.m_invalid_output))

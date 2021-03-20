@@ -203,13 +203,23 @@ namespace cryptonote
     // TODO: Investigate why not?
     if(!kept_by_block)
     {
-      if(have_tx_keyimges_as_spent(tx))
-      {
-        mark_double_spend(tx);
-        LOG_PRINT_L1("Transaction with id= "<< id << " used already spent key images");
-        tvc.m_verification_failed = true;
-        tvc.m_double_spend = true;
-        return false;
+        if(tx.version <= 2) {
+            if (key_images_already_spent(tx)) {
+                mark_double_spend_or_nonexistent_utxo(tx);
+                LOG_PRINT_L1("Transaction with id= " << id << " used already spent key images");
+                tvc.m_verification_failed = true;
+                tvc.m_double_spend = true;
+                return false;
+            }
+        }
+      if(tx.version > 2) {
+          if (utxo_nonexistent(tx)) {
+              mark_double_spend_or_nonexistent_utxo(tx);
+              LOG_PRINT_L1("Transaction with id= " << id << " used nonexistent utxos");
+              tvc.m_verification_failed = true;
+              tvc.m_utxo_nonexistent = true;
+              return false;
+          }
       }
     }
 
@@ -247,7 +257,8 @@ namespace cryptonote
         meta.last_relayed_time = time(NULL);
         meta.relayed = relayed;
         meta.do_not_relay = do_not_relay;
-        meta.double_spend_seen = have_tx_keyimges_as_spent(tx);
+        meta.double_spend_seen = key_images_already_spent(tx);
+        meta.utxo_nonexistent_seen = utxo_nonexistent(tx);
         meta.bf_padding = 0;
         memset(meta.padding, 0, sizeof(meta.padding));
         try
@@ -291,6 +302,7 @@ namespace cryptonote
       meta.relayed = relayed;
       meta.do_not_relay = do_not_relay;
       meta.double_spend_seen = false;
+      meta.utxo_nonexistent_seen = false;
       meta.bf_padding = 0;
       memset(meta.padding, 0, sizeof(meta.padding));
 
@@ -512,7 +524,7 @@ namespace cryptonote
     return true;
   }
   //---------------------------------------------------------------------------------
-  bool tx_memory_pool::take_tx(const crypto::hash &id, transaction &tx, cryptonote::blobdata &txblob, size_t& tx_weight, uint64_t& fee, bool &relayed, bool &do_not_relay, bool &double_spend_seen)
+  bool tx_memory_pool::take_tx(const crypto::hash &id, transaction &tx, cryptonote::blobdata &txblob, size_t& tx_weight, uint64_t& fee, bool &relayed, bool &do_not_relay, bool &double_spend_seen, bool &nonexistent_utxo_seen)
   {
     CRITICAL_REGION_LOCAL(m_transactions_lock);
     CRITICAL_REGION_LOCAL1(m_blockchain);
@@ -548,6 +560,7 @@ namespace cryptonote
       relayed = meta.relayed;
       do_not_relay = meta.do_not_relay;
       double_spend_seen = meta.double_spend_seen;
+      nonexistent_utxo_seen = meta.utxo_nonexistent_seen;
 
       // remove first, in case this throws, so key images aren't removed
       m_blockchain.remove_txpool_tx(id);
@@ -785,6 +798,8 @@ namespace cryptonote
       agebytes[age].bytes += meta.weight;
       if (meta.double_spend_seen)
         ++stats.num_double_spends;
+      if(meta.utxo_nonexistent_seen)
+        ++stats.num_nonexistent_utxos;
       return true;
       }, false, include_unrelayed_txes);
     stats.bytes_med = epee::misc_utils::median(weights);
@@ -867,6 +882,8 @@ namespace cryptonote
       txi.last_relayed_time = include_sensitive_data ? meta.last_relayed_time : 0;
       txi.do_not_relay = meta.do_not_relay;
       txi.double_spend_seen = meta.double_spend_seen;
+      txi.nonexistent_utxo_seen = meta.utxo_nonexistent_seen;
+
       tx_infos.push_back(std::move(txi));
       return true;
     }, true, include_sensitive_data);
@@ -936,6 +953,8 @@ namespace cryptonote
       txi.last_relayed_time = meta.last_relayed_time;
       txi.do_not_relay = meta.do_not_relay;
       txi.double_spend_seen = meta.double_spend_seen;
+      txi.nonexistent_utxo_seen = meta.utxo_nonexistent_seen;
+
       tx_infos.push_back(txi);
       return true;
     }, true, false);
@@ -1005,29 +1024,36 @@ namespace cryptonote
     CRITICAL_REGION_LOCAL1(m_blockchain);
     return m_blockchain.get_db().txpool_has_tx(id);
   }
-  //---------------------------------------------------------------------------------
-  bool tx_memory_pool::have_tx_keyimges_as_spent(const transaction& tx) const
+
+    //---------------------------------------------------------------------------------
+  bool tx_memory_pool::key_images_already_spent(const transaction& tx) const
   {
     CRITICAL_REGION_LOCAL(m_transactions_lock);
     CRITICAL_REGION_LOCAL1(m_blockchain);
     for(const auto& in: tx.vin)
     {
-      if(in.type() == typeid(txin_to_key))
-      {
-        const auto &tokey_in = boost::get<txin_to_key>(in);
-        if(have_tx_keyimg_as_spent(tokey_in.k_image)) // key_image
-          return true;
-      }
-      else if (in.type() == typeid(txin_to_key_public))
-      {
-        const auto &tokey_in = boost::get<txin_to_key_public>(in);
-        if(have_tx_utxo_as_spent(tokey_in)) // UTXO
-          return true;
-      }
-      else
-      {
-        return true;
-      }
+        if(in.type() == typeid(txin_to_key))
+        {
+            const auto &tokey_in = boost::get<txin_to_key>(in);
+            if(have_tx_keyimg_as_spent(tokey_in.k_image)) // key_image
+                return true;
+        }
+    }
+    return false;
+  }
+  //---------------------------------------------------------------------------------
+  bool tx_memory_pool::utxo_nonexistent(const transaction& tx) const
+  {
+    CRITICAL_REGION_LOCAL(m_transactions_lock);
+    CRITICAL_REGION_LOCAL1(m_blockchain);
+    for(const auto& in: tx.vin)
+    {
+        if (in.type() == typeid(txin_to_key_public))
+        {
+            const auto &tokey_in = boost::get<txin_to_key_public>(in);
+            if(have_tx_utxo_as_spent(tokey_in)) // UTXO
+                return true;
+        }
     }
     return false;
   }
@@ -1134,9 +1160,14 @@ namespace cryptonote
     }
 
     //if we here, transaction seems valid, but, anyway, check for key_images collisions with blockchain, just to be sure
-    if(m_blockchain.have_tx_keyimges_as_spent(lazy_tx()))
+    if(m_blockchain.key_images_already_spent(lazy_tx()))
     {
       txd.double_spend_seen = true;
+      return false;
+    }
+    if(m_blockchain.utxo_nonexistent(lazy_tx()))
+    {
+      txd.utxo_nonexistent_seen = true;
       return false;
     }
 
@@ -1208,7 +1239,7 @@ namespace cryptonote
     return true;
   }
   //---------------------------------------------------------------------------------
-  void tx_memory_pool::mark_double_spend(const transaction &tx)
+  void tx_memory_pool::mark_double_spend_or_nonexistent_utxo(const transaction &tx)
   {
     CRITICAL_REGION_LOCAL(m_transactions_lock);
     CRITICAL_REGION_LOCAL1(m_blockchain);
@@ -1270,7 +1301,7 @@ namespace cryptonote
             if (!meta.double_spend_seen)
             {
               MDEBUG("Marking " << txid << " as double spending " << txin_key);
-              meta.double_spend_seen = true;
+              meta.utxo_nonexistent_seen = true;
               changed = true;
               try
               {
@@ -1316,6 +1347,7 @@ namespace cryptonote
         << "fee: " << print_etn(meta.fee) << std::endl
         << "kept_by_block: " << (meta.kept_by_block ? 'T' : 'F') << std::endl
         << "double_spend_seen: " << (meta.double_spend_seen ? 'T' : 'F') << std::endl
+        << "nonexistent_utxo_seen: " << (meta.utxo_nonexistent_seen ? 'T' : 'F') << std::endl
         << "max_used_block_height: " << meta.max_used_block_height << std::endl
         << "max_used_block_id: " << meta.max_used_block_id << std::endl
         << "last_failed_height: " << meta.last_failed_height << std::endl

@@ -1778,6 +1778,7 @@ Outputs:
     * *amount*  - unsigned int; Amount transferred to this destination.
     * *address*  - string; Address for this destination. Base58 representation of the public keys.
   * *double_spend_seen*  - boolean; True if the key image(s) for the transfer have been seen before.
+  * *nonexistent_utxo_seen*  - boolean; States if the transaction contains a nonexistent utxo; a potential double spend ( `true` ) or not ( `false` )
   * *fee*  - unsigned int; Transaction fee for this transfer.
   * *height*  - unsigned int; Height of the first block that confirmed this transfer.
   * *note*  - string; Note about this transfer.
@@ -1811,6 +1812,7 @@ $ curl -X POST http://localhost:40000/json_rpc -d '{"jsonrpc":"2.0","id":"0","me
         "amount": 20000
       }],
       "double_spend_seen": false,
+      "nonexistent_utxo_seen": false,
       "fee": 10,
       "height": 153624,
       "note": "",

@@ -140,10 +140,11 @@ namespace cryptonote
      * @param relayed return-by-reference was transaction relayed to us by the network?
      * @param do_not_relay return-by-reference is transaction not to be relayed to the network?
      * @param double_spend_seen return-by-reference was a double spend seen for that transaction?
+     * @param nonexistent_utxo_seen return-by-reference was a nonexistent utxo seen for that transaction?
      *
      * @return true unless the transaction cannot be found in the pool
      */
-    bool take_tx(const crypto::hash &id, transaction &tx, cryptonote::blobdata &txblob, size_t& tx_weight, uint64_t& fee, bool &relayed, bool &do_not_relay, bool &double_spend_seen);
+    bool take_tx(const crypto::hash &id, transaction &tx, cryptonote::blobdata &txblob, size_t& tx_weight, uint64_t& fee, bool &relayed, bool &do_not_relay, bool &double_spend_seen, bool &nonexistent_utxo_seen);
 
     /**
      * @brief checks if the pool has a transaction with the given hash
@@ -427,6 +428,7 @@ namespace cryptonote
       bool do_not_relay; //!< to avoid relay this transaction to the network
 
       bool double_spend_seen; //!< true iff another tx was seen double spending this one
+      bool nonexistent_utxo_seen;
     };
 
   private:
@@ -474,7 +476,19 @@ namespace cryptonote
      *
      * @return true if any spent key images are present in the pool, otherwise false
      */
-    bool have_tx_keyimges_as_spent(const transaction& tx) const;
+
+    bool key_images_already_spent(const transaction &tx) const;
+
+    /**
+    * @brief check if any utxo in a transaction has already been spent  (v3 tx onwards)
+    *
+    * @param tx the transaction to check
+    *
+    * @return true if any utxo is nonexistent, else false
+    */
+
+    bool utxo_nonexistent(const transaction &tx) const;
+
 
     /**
      * @brief forget a transaction's spent key images
@@ -488,6 +502,8 @@ namespace cryptonote
      *
      * @return false if any key images to be removed cannot be found, otherwise true
      */
+
+
     bool remove_transaction_keyimages(const transaction_prefix& tx, const crypto::hash &txid);
 
     /**
@@ -529,7 +545,7 @@ namespace cryptonote
     /**
      * @brief mark all transactions double spending the one passed
      */
-    void mark_double_spend(const transaction &tx);
+    void mark_double_spend_or_nonexistent_utxo(const transaction &tx);
 
     /**
      * @brief prune lowest fee/byte txes till we're not above bytes
