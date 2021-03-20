@@ -44,7 +44,7 @@
 #define CRYPTONOTE_PUBLIC_ADDRESS_TEXTBLOB_VER          0
 #define CRYPTONOTE_MINED_ETN_UNLOCK_WINDOW            18
 #define ETN_MINED_ETN_UNLOCK_WINDOW_V8                5
-#define CURRENT_TRANSACTION_VERSION                     2
+#define CURRENT_TRANSACTION_VERSION                     3
 #define CURRENT_BLOCK_MAJOR_VERSION                     1
 #define CURRENT_BLOCK_MINOR_VERSION                     0
 #define CRYPTONOTE_BLOCK_FUTURE_TIME_LIMIT              60*60*2
@@ -172,6 +172,7 @@
 #define HF_VERSION_ORDERED_TX_INPUTS              100
 #define HF_VERSION_ALLOW_BULLETPROOF              100
 #define HF_VERSION_FORBIT_BORROMEAN_RANGE_PROOFS  HF_VERSION_ALLOW_BULLETPROOF + 1
+#define HF_VERSION_PUBLIC_TX                      10
 
 
 #define PER_KB_FEE_QUANTIZATION_DECIMALS        2

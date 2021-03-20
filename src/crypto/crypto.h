@@ -172,10 +172,14 @@ namespace crypto {
     friend bool check_tx_proof(const hash &, const public_key &, const public_key &, const boost::optional<public_key> &, const public_key &, const signature &);
     static void generate_key_image(const public_key &, const secret_key &, key_image &);
     friend void generate_key_image(const public_key &, const secret_key &, key_image &);
-    static void generate_new_key_image(const uint64_t &amount, const uint64_t& amount_index, key_image &image);
-    friend void generate_new_key_image(const uint64_t &amount, const uint64_t& amount_index, key_image &image);
-    void generate_input_signature(const hash &prefix_hash, const hash &key_image, const secret_key sec_view, const secret_key  sec_spend, ed25519_signature signature);
-    friend void generate_input_signature(const hash &prefix_hash, const hash &key_image, const secret_key sec_view, const secret_key  sec_spend, ed25519_signature signature);
+    void generate_input_signatures(const hash &prefix_hash, const uint32_t numInputs, const secret_key sec_view, const secret_key sec_spend, std::vector<ed25519_signature> signatures);
+    friend void generate_input_signatures(const hash &prefix_hash, const uint32_t numInputs, const secret_key sec_view, const secret_key sec_spend, std::vector<ed25519_signature> signatures);
+    static bool verify_input_signature(const hash &prefix_hash,const uint32_t relative_input_index, const public_key pub_view, const public_key pub_spend, ed25519_signature signature);
+    friend bool verify_input_signature(const hash &prefix_hash,const uint32_t relative_input_index, const public_key pub_view, const public_key pub_spend, ed25519_signature signature);
+    static public_key addKeys(const public_key &A, const public_key &B);
+    friend public_key addKeys(const public_key &A, const public_key &B);
+    static secret_key addSecretKeys(const secret_key &A, const secret_key &B);
+    friend secret_key addSecretKeys(const secret_key &A, const secret_key &B);
     static void generate_ring_signature(const hash &, const key_image &,
       const public_key *const *, std::size_t, const secret_key &, std::size_t, signature *);
     friend void generate_ring_signature(const hash &, const key_image &,
@@ -295,6 +299,10 @@ namespace crypto {
     return crypto_ops::check_signature(prefix_hash, pub, sig);
   }
 
+  inline bool verify_input_signature(const hash &prefix_hash,const uint32_t relative_input_index, const public_key pub_view, const public_key pub_spend, ed25519_signature signature) {
+    return crypto_ops::verify_input_signature(prefix_hash, relative_input_index, pub_view, pub_spend, signature);
+  }
+
   /* Generation and checking of a tx proof; given a tx pubkey R, the recipient's view pubkey A, and the key 
    * derivation D, the signature proves the knowledge of the tx secret key r such that R=r*G and D=r*A
    * When the recipient's address is a subaddress, the tx pubkey R is defined as R=r*B where B is the recipient's spend pubkey
@@ -327,8 +335,8 @@ namespace crypto {
     return crypto_ops::check_ring_signature(prefix_hash, image, pubs, pubs_count, sig);
   }
 
-  inline public_key addKeys(const public_key A, const public_key B) {
-    return addKeys(A, B);
+  inline public_key addKeys(const public_key &A, const public_key &B) {
+    return crypto_ops::addKeys(A, B);
   }
 
   /* Variants with vector<const public_key *> parameters.

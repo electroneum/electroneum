@@ -126,7 +126,7 @@ namespace cryptonote
     {
       // v0 never accepted
       LOG_PRINT_L1("transaction version 0 is invalid");
-      tvc.m_verifivation_failed = true;
+      tvc.m_verification_failed = true;
       return false;
     }
 
@@ -136,25 +136,31 @@ namespace cryptonote
     {
       // not clear if we should set that, since verifivation (sic) did not fail before, since
       // the tx was accepted before timing out.
-      tvc.m_verifivation_failed = true;
+      tvc.m_verification_failed = true;
       return false;
     }
 
     if(!check_inputs_types_supported(tx))
     {
-      tvc.m_verifivation_failed = true;
+      tvc.m_verification_failed = true;
       tvc.m_invalid_input = true;
+      return false;
+    }
+
+    if(!check_outs_valid(tx))
+    {
+      tvc.m_verification_failed = true;
+      tvc.m_invalid_output = true;
       return false;
     }
 
     // fee per kilobyte, size rounded up.
     uint64_t fee;
 
-    //TODO: Public
     uint64_t inputs_amount = 0;
     if(!get_inputs_etn_amount(tx, inputs_amount))
     {
-      tvc.m_verifivation_failed = true;
+      tvc.m_verification_failed = true;
       return false;
     }
 
@@ -162,14 +168,14 @@ namespace cryptonote
     if(outputs_amount > inputs_amount)
     {
       LOG_PRINT_L1("transaction use more ETN than it has: use " << print_etn(outputs_amount) << ", have " << print_etn(inputs_amount));
-      tvc.m_verifivation_failed = true;
+      tvc.m_verification_failed = true;
       tvc.m_overspend = true;
       return false;
     }
     else if(outputs_amount == inputs_amount)
     {
       LOG_PRINT_L1("transaction fee is zero: outputs_amount == inputs_amount, rejecting.");
-      tvc.m_verifivation_failed = true;
+      tvc.m_verification_failed = true;
       tvc.m_fee_too_low = true;
       return false;
     }
@@ -178,7 +184,7 @@ namespace cryptonote
 
     if (!kept_by_block && !m_blockchain.check_fee(tx_weight, fee))
     {
-      tvc.m_verifivation_failed = true;
+      tvc.m_verification_failed = true;
       tvc.m_fee_too_low = true;
       return false;
     }
@@ -187,7 +193,7 @@ namespace cryptonote
     if ((!kept_by_block || version >= HF_VERSION_PER_BYTE_FEE) && tx_weight > tx_weight_limit)
     {
       LOG_PRINT_L1("transaction is too heavy: " << tx_weight << " bytes, maximum weight: " << tx_weight_limit);
-      tvc.m_verifivation_failed = true;
+      tvc.m_verification_failed = true;
       tvc.m_too_big = true;
       return false;
     }
@@ -201,7 +207,7 @@ namespace cryptonote
       {
         mark_double_spend(tx);
         LOG_PRINT_L1("Transaction with id= "<< id << " used already spent key images");
-        tvc.m_verifivation_failed = true;
+        tvc.m_verification_failed = true;
         tvc.m_double_spend = true;
         return false;
       }
@@ -210,13 +216,13 @@ namespace cryptonote
     if (!m_blockchain.check_tx_outputs(tx, tvc))
     {
       LOG_PRINT_L1("Transaction with id= "<< id << " has at least one invalid output");
-      tvc.m_verifivation_failed = true;
+      tvc.m_verification_failed = true;
       tvc.m_invalid_output = true;
       return false;
     }
 
     // assume failure during verification steps until success is certain
-    tvc.m_verifivation_failed = true;
+    tvc.m_verification_failed = true;
 
     time_t receive_time = time(nullptr);
 
@@ -261,12 +267,12 @@ namespace cryptonote
           MERROR("transaction already exists at inserting in memory pool: " << e.what());
           return false;
         }
-        tvc.m_verifivation_impossible = true;
+        tvc.m_verification_impossible = true;
         tvc.m_added_to_pool = true;
       }else
       {
         LOG_PRINT_L1("tx used wrong inputs, rejected");
-        tvc.m_verifivation_failed = true;
+        tvc.m_verification_failed = true;
         tvc.m_invalid_input = true;
         return false;
       }
@@ -312,7 +318,7 @@ namespace cryptonote
         tvc.m_should_be_relayed = true;
     }
 
-    tvc.m_verifivation_failed = false;
+    tvc.m_verification_failed = false;
     m_txpool_weight += tx_weight;
 
     ++m_cookie;
@@ -413,10 +419,29 @@ namespace cryptonote
       CHECKED_GET_SPECIFIC_VARIANT(in, const txin_to_key, txin, false);
       std::unordered_set<crypto::hash>& kei_image_set = m_spent_key_images[txin.k_image];
       CHECK_AND_ASSERT_MES(kept_by_block || kei_image_set.size() == 0, false, "internal error: kept_by_block=" << kept_by_block
-                                          << ",  kei_image_set.size()=" << kei_image_set.size() << ENDL << "txin.k_image=" << txin.k_image << ENDL
-                                          << "tx_id=" << id );
+                                                                                                               << ",  kei_image_set.size()=" << kei_image_set.size() << ENDL << "txin.k_image=" << txin.k_image << ENDL
+                                                                                                               << "tx_id=" << id );
       auto ins_res = kei_image_set.insert(id);
       CHECK_AND_ASSERT_MES(ins_res.second, false, "internal error: try to insert duplicate iterator in key_image set");
+    }
+    ++m_cookie;
+    return true;
+  }
+  //---------------------------------------------------------------------------------
+  bool tx_memory_pool::insert_utxos(const transaction_prefix &tx, const crypto::hash &id, bool kept_by_block)
+  {
+    for(const auto& in: tx.vin)
+    {
+      CHECKED_GET_SPECIFIC_VARIANT(in, const txin_to_key_public, txin, false);
+      std::string txin_key = std::to_string(0x43) //CHAINSTATE_UTXO_BYTE_PREFIX
+                             + std::string(txin.tx_hash.data)
+                             + tools::get_varint_data(txin.relative_offset);
+      std::unordered_set<crypto::hash>& utxo_set = m_spent_utxos[txin_key];
+      CHECK_AND_ASSERT_MES(kept_by_block || utxo_set.size() == 0, false, "internal error: kept_by_block=" << kept_by_block
+                                                                                                          << ",  utxo_set.size()=" << utxo_set.size() << ENDL << "txin=" << txin_key << ENDL
+                                                                                                          << "tx_id=" << id );
+      auto ins_res = utxo_set.insert(id);
+      CHECK_AND_ASSERT_MES(ins_res.second, false, "internal error: try to insert duplicate iterator in utxo set");
     }
     ++m_cookie;
     return true;
@@ -432,24 +457,56 @@ namespace cryptonote
     // ND: Speedup
     for(const txin_v& vi: tx.vin)
     {
-      CHECKED_GET_SPECIFIC_VARIANT(vi, const txin_to_key, txin, false);
-      auto it = m_spent_key_images.find(txin.k_image);
-      CHECK_AND_ASSERT_MES(it != m_spent_key_images.end(), false, "failed to find transaction input in key images. img=" << txin.k_image << ENDL
-                                    << "transaction id = " << actual_hash);
-      std::unordered_set<crypto::hash>& key_image_set =  it->second;
-      CHECK_AND_ASSERT_MES(key_image_set.size(), false, "empty key_image set, img=" << txin.k_image << ENDL
-        << "transaction id = " << actual_hash);
-
-      auto it_in_set = key_image_set.find(actual_hash);
-      CHECK_AND_ASSERT_MES(it_in_set != key_image_set.end(), false, "transaction id not found in key_image set, img=" << txin.k_image << ENDL
-        << "transaction id = " << actual_hash);
-      key_image_set.erase(it_in_set);
-      if(!key_image_set.size())
+      if(vi.type() == typeid(txin_to_key))
       {
-        //it is now empty hash container for this key_image
-        m_spent_key_images.erase(it);
-      }
+        const auto &txin = boost::get<txin_to_key>(vi);
 
+        auto it = m_spent_key_images.find(txin.k_image);
+        CHECK_AND_ASSERT_MES(it != m_spent_key_images.end(), false, "failed to find transaction input in key images. img=" << txin.k_image << ENDL
+                                                                                                                           << "transaction id = " << actual_hash);
+        std::unordered_set<crypto::hash>& key_image_set =  it->second;
+        CHECK_AND_ASSERT_MES(key_image_set.size(), false, "empty key_image set, img=" << txin.k_image << ENDL
+                                                                                      << "transaction id = " << actual_hash);
+
+        auto it_in_set = key_image_set.find(actual_hash);
+        CHECK_AND_ASSERT_MES(it_in_set != key_image_set.end(), false, "transaction id not found in key_image set, img=" << txin.k_image << ENDL
+                                                                                                                        << "transaction id = " << actual_hash);
+        key_image_set.erase(it_in_set);
+        if(!key_image_set.size())
+        {
+          //it is now empty hash container for this key_image
+          m_spent_key_images.erase(it);
+        }
+      }
+      else if (vi.type() == typeid(txin_to_key_public))
+      {
+        const auto &txin = boost::get<txin_to_key_public>(vi);
+
+        std::string txin_key = std::to_string(0x43) //CHAINSTATE_UTXO_BYTE_PREFIX
+                               + std::string(txin.tx_hash.data)
+                               + tools::get_varint_data(txin.relative_offset);
+
+        auto it = m_spent_utxos.find(txin_key);
+        CHECK_AND_ASSERT_MES(it != m_spent_utxos.end(), false, "failed to find transaction input in utxos. utxo=" << txin_key << ENDL
+                                                                                                                           << "transaction id = " << actual_hash);
+        std::unordered_set<crypto::hash>& utxo_set = it->second;
+        CHECK_AND_ASSERT_MES(utxo_set.size(), false, "empty utxo set, utxo=" << txin_key << ENDL
+                                                                                      << "transaction id = " << actual_hash);
+
+        auto it_in_set = utxo_set.find(actual_hash);
+        CHECK_AND_ASSERT_MES(it_in_set != utxo_set.end(), false, "transaction id not found in utxo set, utxo=" << txin_key << ENDL
+                                                                                                                        << "transaction id = " << actual_hash);
+        utxo_set.erase(it_in_set);
+        if(!utxo_set.size())
+        {
+          //it is now empty hash container for this key_image
+          m_spent_utxos.erase(it);
+        }
+      }
+      else
+      {
+        return false;
+      }
     }
     ++m_cookie;
     return true;
@@ -955,9 +1012,22 @@ namespace cryptonote
     CRITICAL_REGION_LOCAL1(m_blockchain);
     for(const auto& in: tx.vin)
     {
-      CHECKED_GET_SPECIFIC_VARIANT(in, const txin_to_key, tokey_in, true);//should never fail
-      if(have_tx_keyimg_as_spent(tokey_in.k_image))
-         return true;
+      if(in.type() == typeid(txin_to_key))
+      {
+        const auto &tokey_in = boost::get<txin_to_key>(in);
+        if(have_tx_keyimg_as_spent(tokey_in.k_image)) // key_image
+          return true;
+      }
+      else if (in.type() == typeid(txin_to_key_public))
+      {
+        const auto &tokey_in = boost::get<txin_to_key_public>(in);
+        if(have_tx_utxo_as_spent(tokey_in)) // UTXO
+          return true;
+      }
+      else
+      {
+        return true;
+      }
     }
     return false;
   }
@@ -966,6 +1036,15 @@ namespace cryptonote
   {
     CRITICAL_REGION_LOCAL(m_transactions_lock);
     return m_spent_key_images.end() != m_spent_key_images.find(key_im);
+  }
+  //---------------------------------------------------------------------------------
+  bool tx_memory_pool::have_tx_utxo_as_spent(const txin_to_key_public& in) const
+  {
+    CRITICAL_REGION_LOCAL(m_transactions_lock);
+    std::string txin_key = std::to_string(0x43) //CHAINSTATE_UTXO_BYTE_PREFIX
+                               + std::string(in.tx_hash.data)
+                               + tools::get_varint_data(in.relative_offset);
+    return m_spent_utxos.end() != m_spent_utxos.find(txin_key);
   }
   //---------------------------------------------------------------------------------
   void tx_memory_pool::lock() const
@@ -1053,6 +1132,7 @@ namespace cryptonote
         }
       }
     }
+
     //if we here, transaction seems valid, but, anyway, check for key_images collisions with blockchain, just to be sure
     if(m_blockchain.have_tx_keyimges_as_spent(lazy_tx()))
     {
@@ -1068,9 +1148,12 @@ namespace cryptonote
   {
     for(size_t i = 0; i!= tx.vin.size(); i++)
     {
-      CHECKED_GET_SPECIFIC_VARIANT(tx.vin[i], const txin_to_key, itk, false);
-      if(k_images.count(itk.k_image))
-        return true;
+      if(tx.vin[i].type() == typeid(txin_to_key))
+      {
+        const auto &itk = boost::get<txin_to_key>(tx.vin[i]);
+        if(k_images.count(itk.k_image))
+          return true;
+      }
     }
     return false;
   }
@@ -1079,9 +1162,48 @@ namespace cryptonote
   {
     for(size_t i = 0; i!= tx.vin.size(); i++)
     {
-      CHECKED_GET_SPECIFIC_VARIANT(tx.vin[i], const txin_to_key, itk, false);
-      auto i_res = k_images.insert(itk.k_image);
-      CHECK_AND_ASSERT_MES(i_res.second, false, "internal error: key images pool cache - inserted duplicate image in set: " << itk.k_image);
+      if(tx.vin[i].type() == typeid(txin_to_key))
+      {
+        const auto &itk = boost::get<txin_to_key>(tx.vin[i]);
+        auto i_res = k_images.insert(itk.k_image);
+        CHECK_AND_ASSERT_MES(i_res.second, false, "internal error: key images pool cache - inserted duplicate image in set: " << itk.k_image);
+      }
+    }
+    return true;
+  }
+  //---------------------------------------------------------------------------------
+  bool tx_memory_pool::have_utxos(const std::unordered_set<std::string>& utxos, const transaction_prefix& tx)
+  {
+    for(size_t i = 0; i!= tx.vin.size(); i++)
+    {
+      if(tx.vin[i].type() == typeid(txin_to_key_public))
+      {
+        const auto &itk = boost::get<txin_to_key_public>(tx.vin[i]);
+        std::string txin_key = std::to_string(0x43) //CHAINSTATE_UTXO_BYTE_PREFIX
+                               + std::string(itk.tx_hash.data)
+                               + tools::get_varint_data(itk.relative_offset);
+        if(utxos.count(txin_key))
+          return true;
+      }
+
+    }
+    return false;
+  }
+  //---------------------------------------------------------------------------------
+  bool tx_memory_pool::append_utxos(std::unordered_set<std::string>& utxos, const transaction_prefix& tx)
+  {
+    for(size_t i = 0; i!= tx.vin.size(); i++)
+    {
+      if(tx.vin[i].type() == typeid(txin_to_key_public))
+      {
+        const auto &itk = boost::get<txin_to_key_public>(tx.vin[i]);
+
+        std::string txin_key = std::to_string(0x43) //CHAINSTATE_UTXO_BYTE_PREFIX
+                               + std::string(itk.tx_hash.data)
+                               + tools::get_varint_data(itk.relative_offset);
+        auto i_res = utxos.insert(txin_key);
+        CHECK_AND_ASSERT_MES(i_res.second, false, "internal error: utxo pool cache - inserted duplicate image in set: " << txin_key);
+      }
     }
     return true;
   }
@@ -1094,35 +1216,78 @@ namespace cryptonote
     LockedTXN lock(m_blockchain);
     for(size_t i = 0; i!= tx.vin.size(); i++)
     {
-      CHECKED_GET_SPECIFIC_VARIANT(tx.vin[i], const txin_to_key, itk, void());
-      const key_images_container::const_iterator it = m_spent_key_images.find(itk.k_image);
-      if (it != m_spent_key_images.end())
+      if(tx.vin[i].type() == typeid(txin_to_key))
       {
-        for (const crypto::hash &txid: it->second)
+        CHECKED_GET_SPECIFIC_VARIANT(tx.vin[i], const txin_to_key, itk, void());
+        const key_images_container::const_iterator it = m_spent_key_images.find(itk.k_image);
+        if (it != m_spent_key_images.end())
         {
-          txpool_tx_meta_t meta;
-          if (!m_blockchain.get_txpool_tx_meta(txid, meta))
+          for (const crypto::hash &txid: it->second)
           {
-            MERROR("Failed to find tx meta in txpool");
-            // continue, not fatal
-            continue;
-          }
-          if (!meta.double_spend_seen)
-          {
-            MDEBUG("Marking " << txid << " as double spending " << itk.k_image);
-            meta.double_spend_seen = true;
-            changed = true;
-            try
+            txpool_tx_meta_t meta;
+            if (!m_blockchain.get_txpool_tx_meta(txid, meta))
             {
-              m_blockchain.update_txpool_tx(txid, meta);
-            }
-            catch (const std::exception &e)
-            {
-              MERROR("Failed to update tx meta: " << e.what());
+              MERROR("Failed to find tx meta in txpool");
               // continue, not fatal
+              continue;
+            }
+            if (!meta.double_spend_seen)
+            {
+              MDEBUG("Marking " << txid << " as double spending " << itk.k_image);
+              meta.double_spend_seen = true;
+              changed = true;
+              try
+              {
+                m_blockchain.update_txpool_tx(txid, meta);
+              }
+              catch (const std::exception &e)
+              {
+                MERROR("Failed to update tx meta: " << e.what());
+                // continue, not fatal
+              }
             }
           }
         }
+      }
+      else if (tx.vin[i].type() == typeid(txin_to_key_public))
+      {
+        CHECKED_GET_SPECIFIC_VARIANT(tx.vin[i], const txin_to_key_public, itk, void());
+        std::string txin_key = std::to_string(0x43) //CHAINSTATE_UTXO_BYTE_PREFIX
+                               + std::string(itk.tx_hash.data)
+                               + tools::get_varint_data(itk.relative_offset);
+        const utxos_container::const_iterator it = m_spent_utxos.find(txin_key);
+        if (it != m_spent_utxos.end())
+        {
+          for (const crypto::hash &txid: it->second)
+          {
+            txpool_tx_meta_t meta;
+            if (!m_blockchain.get_txpool_tx_meta(txid, meta))
+            {
+              MERROR("Failed to find tx meta in txpool");
+              // continue, not fatal
+              continue;
+            }
+            if (!meta.double_spend_seen)
+            {
+              MDEBUG("Marking " << txid << " as double spending " << txin_key);
+              meta.double_spend_seen = true;
+              changed = true;
+              try
+              {
+                m_blockchain.update_txpool_tx(txid, meta);
+              }
+              catch (const std::exception &e)
+              {
+                MERROR("Failed to update tx meta: " << e.what());
+                // continue, not fatal
+              }
+            }
+          }
+        }
+      }
+      else
+      {
+        return;
       }
     }
     lock.commit();
@@ -1179,6 +1344,7 @@ namespace cryptonote
     size_t max_total_weight_v5 = 2 * median_weight - CRYPTONOTE_COINBASE_BLOB_RESERVED_SIZE;
     size_t max_total_weight = version >= 5 ? max_total_weight_v5 : max_total_weight_pre_v5;
     std::unordered_set<crypto::key_image> k_images;
+    std::unordered_set<std::string> utxos;
 
     LOG_PRINT_L2("Filling block template, median weight " << median_weight << ", " << m_txs_by_fee_and_receive_time.size() << " txes in the pool");
 
@@ -1270,12 +1436,18 @@ namespace cryptonote
         LOG_PRINT_L2("  key images already seen");
         continue;
       }
+      if (have_utxos(utxos, tx))
+      {
+        LOG_PRINT_L2("  utxos already seen");
+        continue;
+      }
 
       bl.tx_hashes.push_back(sorted_it->second);
       total_weight += meta.weight;
       fee += meta.fee;
       best_coinbase = coinbase;
       append_key_images(k_images, tx);
+      append_utxos(utxos, tx);
       LOG_PRINT_L2("  added, new block weight " << total_weight << "/" << max_total_weight << ", coinbase " << print_etn(best_coinbase));
     }
     lock.commit();
@@ -1359,6 +1531,7 @@ namespace cryptonote
     m_txpool_max_weight = max_txpool_weight ? max_txpool_weight : DEFAULT_TXPOOL_MAX_WEIGHT;
     m_txs_by_fee_and_receive_time.clear();
     m_spent_key_images.clear();
+    m_spent_utxos.clear();
     m_txpool_weight = 0;
     std::vector<crypto::hash> remove;
 
@@ -1377,9 +1550,14 @@ namespace cryptonote
           remove.push_back(txid);
           return true;
         }
-        if (!insert_key_images(tx, txid, meta.kept_by_block))
+        if (tx.version <= 2 && !insert_key_images(tx, txid, meta.kept_by_block))
         {
           MFATAL("Failed to insert key images from txpool tx");
+          return false;
+        }
+        if (tx.version >= 3 && !insert_utxos(tx, txid, meta.kept_by_block))
+        {
+          MFATAL("Failed to insert utxos from txpool tx");
           return false;
         }
         m_txs_by_fee_and_receive_time.emplace(std::pair<double, time_t>(meta.fee / (double)meta.weight, meta.receive_time), txid);

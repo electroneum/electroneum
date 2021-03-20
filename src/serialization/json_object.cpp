@@ -505,10 +505,10 @@ void toJsonValue(rapidjson::Document& doc, const cryptonote::txout_to_key& txout
 
 void toJsonValue(rapidjson::Document& doc, const cryptonote::txout_to_key_public& txout, rapidjson::Value& val)
 {
-    val.SetObject();
+  val.SetObject();
 
-    INSERT_INTO_JSON_OBJECT(val, doc, dest_spend_key, txout.dest_spend_key);
-    INSERT_INTO_JSON_OBJECT(val, doc, dest_view_key, txout.dest_view_key);
+  INSERT_INTO_JSON_OBJECT(val, doc, spub, txout.address.m_spend_public_key);
+  INSERT_INTO_JSON_OBJECT(val, doc, vpub, txout.address.m_view_public_key);
 }
 
 void fromJsonValue(const rapidjson::Value& val, cryptonote::txout_to_key& txout)
@@ -523,13 +523,12 @@ void fromJsonValue(const rapidjson::Value& val, cryptonote::txout_to_key& txout)
 
 void fromJsonValue(const rapidjson::Value& val, cryptonote::txout_to_key_public& txout)
 {
-    if (!val.IsObject())
-    {
-        throw WRONG_TYPE("json object");
-    }
+  if (!val.IsObject())
+  {
+      throw WRONG_TYPE("json object");
+  }
 
-    GET_FROM_JSON_OBJECT(val, txout.dest_spend_key, dest_spend_key);
-    GET_FROM_JSON_OBJECT(val, txout.dest_view_key, dest_view_key );
+  GET_FROM_JSON_OBJECT(val, txout.address, address);
 }
 
 void toJsonValue(rapidjson::Document& doc, const cryptonote::tx_out& txout, rapidjson::Value& val)
@@ -551,7 +550,7 @@ void toJsonValue(rapidjson::Document& doc, const cryptonote::tx_out& txout, rapi
     }
     void operator()(cryptonote::txout_to_key_public const& output) const
     {
-      INSERT_INTO_JSON_OBJECT(val, doc, to_key, output);
+      INSERT_INTO_JSON_OBJECT(val, doc, to_key_public, output);
     }
     void operator()(cryptonote::txout_to_script const& output) const
     {
@@ -587,6 +586,12 @@ void fromJsonValue(const rapidjson::Value& val, cryptonote::tx_out& txout)
     if (elem.name == "to_key")
     {
       cryptonote::txout_to_key tmpVal;
+      fromJsonValue(elem.value, tmpVal);
+      txout.target = std::move(tmpVal);
+    }
+    else if (elem.name == "to_key_public")
+    {
+      cryptonote::txout_to_key_public tmpVal;
       fromJsonValue(elem.value, tmpVal);
       txout.target = std::move(tmpVal);
     }

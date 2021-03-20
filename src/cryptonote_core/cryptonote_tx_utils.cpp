@@ -140,13 +140,13 @@ namespace cryptonote
     }
 
     uint64_t summary_amounts = 0;
-    if (hard_fork_version >= 10)
+    if (hard_fork_version >= HF_VERSION_PUBLIC_TX)
     {
       for (const auto out_amount : out_amounts)
       {
         txout_to_key_public tk;
-        tk.dest_view_key = miner_address.m_view_public_key;
-        tk.dest_spend_key = miner_address.m_spend_public_key;
+        tk.address.m_view_public_key = miner_address.m_view_public_key;
+        tk.address.m_spend_public_key = miner_address.m_spend_public_key;
 
         tx_out out;
         summary_amounts += out.amount = out_amount;
@@ -154,7 +154,7 @@ namespace cryptonote
         tx.vout.push_back(out);
       }
 
-      tx.version = 2;
+      tx.version = 3;
     }
     else
     {
