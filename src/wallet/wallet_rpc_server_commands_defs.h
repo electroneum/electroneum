@@ -1392,7 +1392,7 @@ namespace wallet_rpc
       KV_SERIALIZE(double_spend_seen)
       KV_SERIALIZE_OPT(confirmations, (uint64_t)0)
       KV_SERIALIZE_OPT(suggested_confirmations_threshold, (uint64_t)0)
-      KV_SERIALIZE(double_spend_seen)
+      KV_SERIALIZE(nonexistent_utxo_seen)
     END_KV_SERIALIZE_MAP()
   };
 

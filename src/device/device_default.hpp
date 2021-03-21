@@ -139,6 +139,7 @@ namespace hw {
                                          const std::vector<const crypto::public_key *> &pubs,
                                          const crypto::secret_key &sec, std::size_t sec_index,
                                          crypto::signature *sig) override;
+            bool generate_input_signatures(const crypto::hash &prefix_hash, const uint32_t numInputs, const crypto::secret_key sec_view, const crypto::secret_key sec_spend, std::vector<crypto::input_signature>& signatures) override;
             bool hash_to_scalar(boost::shared_ptr<crypto::rs_comm> buf, size_t length, crypto::ec_scalar &res) override;
         };
 

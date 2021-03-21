@@ -499,7 +499,7 @@ namespace crypto {
     return sizeof(rs_comm) + pubs_count * sizeof(ec_point_pair);
   }
 
-  void crypto_ops::generate_input_signatures(const hash &prefix_hash, const uint32_t numInputs, const secret_key sec_view, const secret_key sec_spend, std::vector<ed25519_signature> signatures){
+  void crypto_ops::generate_input_signatures(const hash &prefix_hash, const uint32_t numInputs, const secret_key sec_view, const secret_key sec_spend, std::vector<input_signature>& signatures){
 
       // add the two secret keys and reduce modulo l to get a new valid secret key for signing.
       // todo: move key to wallet (maybe)
@@ -514,8 +514,8 @@ namespace crypto {
       for(uint32_t relative_input_index = 0; relative_input_index < numInputs; relative_input_index++){
             std::string sigData = prefix_string + std::to_string(relative_input_index);
             // sign tx prefix + relative input index
-          ed25519_sign((unsigned char *)sigData.data(), sigData.size(), (unsigned char *)d.data, D, signatures[relative_input_index]);
-          assert(ed25519_sign_open((unsigned char *)sigData.data(), 32, D, signatures[relative_input_index]));
+          ed25519_sign((unsigned char *)sigData.data(), sigData.size(), (unsigned char *)d.data, D, signatures[relative_input_index].signature);
+          assert(ed25519_sign_open((unsigned char *)sigData.data(), 32, D, signatures[relative_input_index].signature));
       }
   }
 
