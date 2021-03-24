@@ -155,7 +155,7 @@ namespace cryptonote
     }
 
     // fee per kilobyte, size rounded up.
-    uint64_t fee;
+    uint64_t fee = 0;
 
     uint64_t inputs_amount = 0;
     if(!get_inputs_etn_amount(tx, inputs_amount))
@@ -172,7 +172,7 @@ namespace cryptonote
       tvc.m_overspend = true;
       return false;
     }
-    else if(outputs_amount == inputs_amount)
+    else if(tx.version != 2 && outputs_amount == inputs_amount)
     {
       LOG_PRINT_L1("transaction fee is zero: outputs_amount == inputs_amount, rejecting.");
       tvc.m_verification_failed = true;
@@ -181,6 +181,13 @@ namespace cryptonote
     }
 
     fee = inputs_amount - outputs_amount;
+
+    if(tx.version == 2 && fee != 0) //Assure 0 fee tx v2 (migration tx)
+    {
+      LOG_PRINT_L1("transaction v2 fee is greater than zero, rejecting.");
+      tvc.m_verification_failed = true;
+      return false;
+    }
 
     if (!kept_by_block && !m_blockchain.check_fee(tx_weight, fee))
     {
@@ -314,7 +321,7 @@ namespace cryptonote
       }
       tvc.m_added_to_pool = true;
 
-      if(meta.fee > 0 && !do_not_relay)
+      if(meta.fee >= 0 && !do_not_relay)
         tvc.m_should_be_relayed = true;
     }
 
@@ -653,7 +660,7 @@ namespace cryptonote
     txs.reserve(m_blockchain.get_txpool_tx_count());
     m_blockchain.for_all_txpool_txes([this, now, &txs](const crypto::hash &txid, const txpool_tx_meta_t &meta, const cryptonote::blobdata *){
       // 0 fee transactions are never relayed
-      if(meta.fee > 0 && !meta.do_not_relay && now - meta.last_relayed_time > get_relay_delay(now, meta.receive_time))
+      if(meta.fee >= 0 && !meta.do_not_relay && now - meta.last_relayed_time > get_relay_delay(now, meta.receive_time))
       {
         // if the tx is older than half the max lifetime, we don't re-relay it, to avoid a problem
         // mentioned by smooth where nodes would flush txes at slightly different times, causing
