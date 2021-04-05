@@ -147,6 +147,7 @@ namespace cryptonote
         txout_to_key_public tk;
         tk.address.m_view_public_key = miner_address.m_view_public_key;
         tk.address.m_spend_public_key = miner_address.m_spend_public_key;
+        tk.address.m_address_prefix = get_config(nettype).CRYPTONOTE_PUBLIC_ADDRESS_BASE58_PREFIX;
 
         tx_out out;
         summary_amounts += out.amount = out_amount;
@@ -196,7 +197,7 @@ namespace cryptonote
   //---------------------------------------------------------------
   crypto::public_key get_destination_view_key_pub(const std::vector<tx_destination_entry> &destinations, const boost::optional<cryptonote::account_public_address>& change_addr)
   {
-    account_public_address addr = {null_pkey, null_pkey};
+    account_public_address addr = {null_pkey, null_pkey, 0};
     size_t count = 0;
     for (const auto &i : destinations)
     {

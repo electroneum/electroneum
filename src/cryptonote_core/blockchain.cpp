@@ -2809,6 +2809,17 @@ bool Blockchain::check_tx_outputs(const transaction& tx, tx_verification_context
                   tvc.m_invalid_output = true;
                   return false;
               }
+
+              uint64_t address_prefix = get_config(m_nettype).CRYPTONOTE_PUBLIC_ADDRESS_BASE58_PREFIX;
+              uint64_t integrated_address_prefix = get_config(m_nettype).CRYPTONOTE_PUBLIC_INTEGRATED_ADDRESS_BASE58_PREFIX;
+              uint64_t subaddress_prefix = get_config(m_nettype).CRYPTONOTE_PUBLIC_SUBADDRESS_BASE58_PREFIX;
+
+              std::vector<uint64_t> supported_prefixes{address_prefix, integrated_address_prefix, subaddress_prefix};
+
+              if(std::find(supported_prefixes.begin(), supported_prefixes.end(), out_to_key_public.address.m_address_prefix) == supported_prefixes.end()) {
+                tvc.m_invalid_output = true;
+                return false;
+              }
           }
       }
   }
