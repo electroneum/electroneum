@@ -118,6 +118,9 @@ namespace cryptonote
     , uint32_t nonce
     );
 
+
+  bool json_keypublic_to_address(std::string &json, network_type nettype);
+
 }
 
 BOOST_CLASS_VERSION(cryptonote::tx_source_entry, 1)

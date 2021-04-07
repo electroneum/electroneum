@@ -59,25 +59,21 @@ namespace cryptonote
   {
     crypto::public_key m_spend_public_key;
     crypto::public_key m_view_public_key;
-    uint64_t m_address_prefix;
 
     BEGIN_SERIALIZE_OBJECT()
       FIELD(m_spend_public_key)
       FIELD(m_view_public_key)
-      VARINT_FIELD(m_address_prefix)
     END_SERIALIZE()
 
     BEGIN_KV_SERIALIZE_MAP()
       KV_SERIALIZE_VAL_POD_AS_BLOB_FORCE(m_spend_public_key)
       KV_SERIALIZE_VAL_POD_AS_BLOB_FORCE(m_view_public_key)
-      KV_SERIALIZE_VAL_POD_AS_BLOB_FORCE(m_address_prefix)
     END_KV_SERIALIZE_MAP()
 
     bool operator==(const account_public_address& rhs) const
     {
       return m_spend_public_key == rhs.m_spend_public_key &&
-             m_view_public_key == rhs.m_view_public_key &&
-             m_address_prefix == rhs.m_address_prefix;
+             m_view_public_key == rhs.m_view_public_key;
     }
 
     bool operator!=(const account_public_address& rhs) const
@@ -113,16 +109,16 @@ namespace cryptonote
 
     struct txout_to_key_public
     {
-        txout_to_key_public() { }
-        txout_to_key_public(const cryptonote::account_public_address &addr) : address(addr) { }
-
+        uint64_t m_address_prefix;
         cryptonote::account_public_address address;
+
         BEGIN_SERIALIZE_OBJECT()
-          FIELDS(address)
+          VARINT_FIELD(m_address_prefix)
+          FIELD(address)
         END_SERIALIZE()
     };
 
-  /* inputs */
+    /* inputs */
 
   struct txin_gen
   {
@@ -199,7 +195,7 @@ struct txin_to_key_public
 
     BEGIN_SERIALIZE_OBJECT()
       VARINT_FIELD(amount)
-      FIELDS(target)
+      FIELD(target)
     END_SERIALIZE()
 
   };

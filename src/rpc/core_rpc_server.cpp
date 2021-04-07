@@ -1740,11 +1740,10 @@ namespace cryptonote
     }
     res.blob = string_tools::buff_to_hex_nodelimer(t_serializable_object_to_blob(blk));
     res.json = obj_to_json_str(blk);
-    //bool v8 = !blk.signatory.empty() && !blk.signature.empty();
-    //size_t p1 = std::distance(res.json.begin(), boost::find_nth(res.json, "signatory", 0).begin());
-    //res.json.erase(p1 + 12, v8 ? 1 : 1);
-    //size_t p2 = std::distance(res.json.begin(), boost::find_nth(res.json, "signature", 1).begin());
-    //res.json.erase(p2 + 12, v8 ? 1 : 1);
+
+    if (blk.major_version >= HF_VERSION_PUBLIC_TX) {
+      json_keypublic_to_address(res.json, nettype());
+    }
     res.status = CORE_RPC_STATUS_OK;
     return true;
   }

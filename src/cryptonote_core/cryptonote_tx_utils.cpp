@@ -147,7 +147,7 @@ namespace cryptonote
         txout_to_key_public tk;
         tk.address.m_view_public_key = miner_address.m_view_public_key;
         tk.address.m_spend_public_key = miner_address.m_spend_public_key;
-        tk.address.m_address_prefix = get_config(nettype).CRYPTONOTE_PUBLIC_ADDRESS_BASE58_PREFIX;
+        tk.m_address_prefix = get_config(nettype).CRYPTONOTE_PUBLIC_ADDRESS_BASE58_PREFIX;
 
         tx_out out;
         summary_amounts += out.amount = out_amount;
@@ -197,7 +197,7 @@ namespace cryptonote
   //---------------------------------------------------------------
   crypto::public_key get_destination_view_key_pub(const std::vector<tx_destination_entry> &destinations, const boost::optional<cryptonote::account_public_address>& change_addr)
   {
-    account_public_address addr = {null_pkey, null_pkey, 0};
+    account_public_address addr = {null_pkey, null_pkey};
     size_t count = 0;
     for (const auto &i : destinations)
     {
@@ -581,4 +581,47 @@ namespace cryptonote
     return true;
   }
   //---------------------------------------------------------------
+  bool json_keypublic_to_address(std::string &json, network_type nettype)
+  {
+    std::string str_key = "keypublic";
+    std::string str_replace = "address";
+    int nPos = json.find(str_key, 0);
+
+    while (nPos != std::string::npos)
+    {
+      json.replace(nPos, str_key.size(), str_replace);
+
+      // adding 4 to nPos to account for the \": \"
+      nPos = nPos + str_replace.size() + 4;
+
+      // varint prefix is 16 characters in length
+      std::string prefix = json.substr(nPos, 16);
+
+      // get public spend key starting from nPos + varint prefix length
+      std::string ps = json.substr(nPos + 16, 64);
+      std::string ps_unhex = boost::algorithm::unhex(ps);
+
+      // get public view key starting from nPos + varint prefix length + public spend key length
+      std::string pv = json.substr(nPos + 16 + 64, 64);
+      std::string pv_unhex = boost::algorithm::unhex(pv);
+
+      account_public_address addr = AUTO_VAL_INIT(addr);
+      for(int i = 0; i < 32; ++i)
+      {
+        addr.m_spend_public_key.data[i] = ps_unhex.at(i);
+        addr.m_view_public_key.data[i] = pv_unhex.at(i);
+      }
+
+      // 6286000000000000 is the subaddress prefix in cryptonote_config.h
+      bool is_subaddress = "6286000000000000" == prefix;
+
+      std::string etn_address = get_account_address_as_str(nettype, is_subaddress, addr);
+      json.replace(nPos, 144, etn_address);
+
+      // find next "keypublic" starting from the last one nPos
+      nPos = json.find(str_key, nPos + str_replace.size());
+    }
+
+    return true;
+  }
 }
