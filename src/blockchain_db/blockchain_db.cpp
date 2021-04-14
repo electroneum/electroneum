@@ -214,10 +214,7 @@ void BlockchainDB::add_transaction(const crypto::hash& blk_hash, const std::pair
       const auto &txout = boost::get<txout_to_key_public>(tx.vout[i].target);
 
       add_chainstate_utxo(tx.hash, i, addKeys(txout.address.m_view_public_key, txout.address.m_spend_public_key) , tx.vout[i].amount);
-
-      //TODO: Public
-      //add_addr_output(tx.hash, i, addKeys(txout.address.m_view_public_key, txout.address.m_spend_public_key), tx.vout[i].amount);
-      //get_addr_output(tx.hash, i, addKeys(txout.address.m_view_public_key, txout.address.m_spend_public_key), tx.vout[i].amount);
+      add_addr_output(tx.hash, i, addKeys(txout.address.m_view_public_key, txout.address.m_spend_public_key), tx.vout[i].amount);
     }
   }
 }
@@ -325,8 +322,7 @@ void BlockchainDB::remove_transaction(const crypto::hash& tx_hash)
       const auto &txout = boost::get<txout_to_key_public>(tx.vout[i].target);
 
       remove_chainstate_utxo(tx.hash, i);
-      //TODO: Public
-      //remove_addr_output(tx_hash, i, addKeys(txout.address.m_view_public_key, txout.address.m_spend_public_key), tx.vout[i].amount);
+      remove_addr_output(tx_hash, i, addKeys(txout.address.m_view_public_key, txout.address.m_spend_public_key), tx.vout[i].amount);
     }
   }
 

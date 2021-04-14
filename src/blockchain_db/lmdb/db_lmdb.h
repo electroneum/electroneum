@@ -353,7 +353,8 @@ public:
   static int compare_uint64(const MDB_val *a, const MDB_val *b);
   static int compare_hash32(const MDB_val *a, const MDB_val *b);
   static int compare_string(const MDB_val *a, const MDB_val *b);
-  static int compare_string_hex(const MDB_val *a, const MDB_val *b);
+  static int compare_data(const MDB_val *a, const MDB_val *b);
+  static int compare_publickey(const MDB_val *a, const MDB_val *b);
 
 private:
   void do_resize(uint64_t size_increase=0);
@@ -430,9 +431,6 @@ private:
 
   blobdata output_to_blob(const tx_out& output) const;
   tx_out output_from_blob(const blobdata& blob) const;
-
-  blobdata addr_output_data_to_blob(const addr_output_data_t& acc) const;
-  addr_output_data_t addr_output_data_from_blob(const blobdata blob) const;
 
   virtual void add_chainstate_utxo(const crypto::hash tx_hash, const uint32_t relative_out_index, const crypto::public_key combined_key, uint64_t amount);
   virtual bool check_chainstate_utxo(const crypto::hash tx_hash, const uint32_t relative_out_index);

@@ -169,16 +169,39 @@ int BlockchainLMDB::compare_string(const MDB_val *a, const MDB_val *b)
   return strcmp(va, vb);
 }
 
-int BlockchainLMDB::compare_string_hex(const MDB_val *a, const MDB_val *b)
+int BlockchainLMDB::compare_data(const MDB_val *a, const MDB_val *b)
 {
-  const char *va = (const char*) a->mv_data;
-  const char *vb = (const char*) b->mv_data;
+  size_t size = std::max(a->mv_size, b->mv_size);
 
-  std::string va_hex = epee::string_tools::buff_to_hex_nodelimer(std::string(va, a->mv_size));
-  std::string vb_hex = epee::string_tools::buff_to_hex_nodelimer(std::string(vb, b->mv_size));
+  uint8_t *va = (uint8_t*) a->mv_data;
+  uint8_t *vb = (uint8_t*) b->mv_data;
+  for (int n = 0; n < size; ++n)
+  {
+    if (va[n] == vb[n])
+      continue;
+    return va[n] < vb[n] ? -1 : 1;
+  }
 
-  int res = va_hex.compare(vb_hex);
-  return res;
+  return 0;
+}
+
+int BlockchainLMDB::compare_publickey(const MDB_val *a, const MDB_val *b)
+{
+
+  const crypto::public_key res = *(const crypto::public_key *) a->mv_data;
+  const crypto::public_key res2 = *(const crypto::public_key *) b->mv_data;
+
+
+  uint8_t *va = (uint8_t*) a->mv_data;
+  uint8_t *vb = (uint8_t*) b->mv_data;
+  for (int n = 0; n < 32; ++n)
+  {
+    if (va[n] == vb[n])
+      continue;
+    return va[n] < vb[n] ? -1 : 1;
+  }
+
+  return 0;
 }
 
 }
@@ -355,6 +378,14 @@ typedef struct outtx {
     crypto::hash tx_hash;
     uint64_t local_index;
 } outtx;
+
+typedef struct acc_outs_t {
+    //crypto::public_key combined_key;
+    uint64_t db_index;
+    crypto::hash tx_hash;
+    uint64_t relative_out_index;
+    uint64_t amount;
+}acc_outs_t;
 
 std::atomic<uint64_t> mdb_txn_safe::num_active_txns{0};
 std::atomic_flag mdb_txn_safe::creation_gate = ATOMIC_FLAG_INIT;
@@ -1456,7 +1487,7 @@ void BlockchainLMDB::open(const std::string& filename, const int db_flags)
 
   lmdb_db_open(txn, LMDB_VALIDATORS, MDB_INTEGERKEY | MDB_CREATE, m_validators, "Failed to open db handle for m_validators");
   lmdb_db_open(txn, LMDB_UTXOS, MDB_CREATE, m_utxos, "Failed to open db handle for m_utxos");
-  lmdb_db_open(txn, LMDB_ADDR_OUTPUTS, MDB_CREATE, m_addr_outputs, "Failed to open db handle for m_addr_outputs");
+  lmdb_db_open(txn, LMDB_ADDR_OUTPUTS, MDB_CREATE | MDB_DUPSORT | MDB_DUPFIXED, m_addr_outputs, "Failed to open db handle for m_addr_outputs");
   lmdb_db_open(txn, LMDB_PROPERTIES, MDB_CREATE, m_properties, "Failed to open db handle for m_properties");
 
   mdb_set_dupsort(txn, m_spent_keys, compare_hash32);
@@ -1470,11 +1501,13 @@ void BlockchainLMDB::open(const std::string& filename, const int db_flags)
   mdb_set_compare(txn, m_txs_prunable, compare_uint64);
   mdb_set_dupsort(txn, m_txs_prunable_hash, compare_uint64);
 
-  mdb_set_compare(txn, m_utxos, compare_string_hex);
-  mdb_set_compare(txn, m_addr_outputs, compare_hash32);
+  mdb_set_compare(txn, m_utxos, compare_data);
   mdb_set_compare(txn, m_txpool_meta, compare_hash32);
   mdb_set_compare(txn, m_txpool_blob, compare_hash32);
   mdb_set_compare(txn, m_properties, compare_string);
+
+  mdb_set_dupsort(txn, m_addr_outputs, compare_data);
+  mdb_set_compare(txn, m_addr_outputs, compare_publickey);
 
 
   if (!(mdb_flags & MDB_RDONLY))
@@ -1861,51 +1894,35 @@ void BlockchainLMDB::add_addr_output(const crypto::hash tx_hash, const uint32_t 
 
   int result = 0;
 
+  MDB_val k = {sizeof(combined_key), (void *)&combined_key};
+  MDB_val v;
+  result = mdb_cursor_get(m_cur_addr_outputs, &k, &v, MDB_SET);
+  if (result != 0 && result != MDB_NOTFOUND)
+    throw1(DB_ERROR(lmdb_error("Error finding addr output to add: ", result).c_str()));
+
+  mdb_size_t num_elems = 0;
+
+  if(result == 0)
+  {
+    result = mdb_cursor_count(m_cur_addr_outputs, &num_elems);
+    if (result)
+      throw0(DB_ERROR(std::string("Failed to get number outputs for address: ").append(mdb_strerror(result)).c_str()));
+  }
+
   acc_outs_t acc;
+  acc.db_index = num_elems;
   acc.tx_hash = tx_hash;
   acc.relative_out_index = relative_out_index;
   acc.amount = amount;
 
-  addr_output_key_t key;
-  key.combined_key = combined_key;
+  MDB_val acc_v = {sizeof(acc), (void *)&acc};
 
-  addr_output_data_t data;
-  data.acc_outs.push_back(acc);
+  result = mdb_cursor_put(m_cur_addr_outputs, &k, &acc_v, MDB_APPENDDUP);
+  if (result == MDB_KEYEXIST)
+    throw1(UTXO_EXISTS("Attempting to add addr output that's already in the db."));
+  else if(result != 0)
+    throw1(DB_ERROR(lmdb_error("Error adding addr output to db transaction: ", result).c_str()));
 
-  MDB_val k = {sizeof(key), (void *)&key};
-
-  MDB_val prev_val;
-
-  result = mdb_cursor_get(m_cur_addr_outputs, &k, &prev_val, MDB_SET_KEY);
-  if (result != 0 && result != MDB_NOTFOUND)
-    throw1(DB_ERROR(lmdb_error("Error finding addr output to add: ", result).c_str()));
-
-  if(result == MDB_NOTFOUND) {
-
-    blobdata b = addr_output_data_to_blob(data);
-    MDB_val v = {sizeof(b), (void *)&b};
-    result = mdb_cursor_put(m_cur_addr_outputs, &k, &v, MDB_NODUPDATA);
-    if (result == MDB_KEYEXIST)
-      throw1(UTXO_EXISTS("Attempting to add addr output that's already in the db."));
-    else if(result != 0)
-      throw1(DB_ERROR(lmdb_error("Error adding addr output to db transaction: ", result).c_str()));
-
-    return;
-  }
-
-  /*
-  blobdata ret;
-  ret.assign(reinterpret_cast<const char*>(prev_val.mv_data), prev_val.mv_size);
-
-  addr_output_data_t &ret_data = addr_output_data_from_blob(ret);
-  ret_data.acc_outs.push_back(acc);
-
-  MDB_val v = {sizeof(ret_data), (void *)&ret_data};
-
-  result = mdb_cursor_put(m_cur_addr_outputs, &k, &v, MDB_CURRENT);
-  if (result != 0)
-    throw1(DB_ERROR(lmdb_error("Error adding address output to db transaction: ", result).c_str()));
-  */
 }
 
 void BlockchainLMDB::get_addr_output(const crypto::hash tx_hash, const uint32_t relative_out_index,
@@ -1914,22 +1931,29 @@ void BlockchainLMDB::get_addr_output(const crypto::hash tx_hash, const uint32_t 
 {
   LOG_PRINT_L3("BlockchainLMDB::" << __func__);
   check_open();
-  mdb_txn_cursors *m_cursors = &m_wcursors;
-  CURSOR(addr_outputs)
+
+  TXN_PREFIX_RDONLY();
+  RCURSOR(addr_outputs);
 
   int result = 0;
 
-  addr_output_key_t key;
-  key.combined_key = combined_key;
+  MDB_val k = {sizeof(combined_key), (void *)&combined_key};
 
-  MDB_val k = {sizeof(key), (void *)&key};
-  MDB_val v;
+  MDB_cursor_op op = MDB_SET_KEY;
+  while (1) {
+    MDB_val v;
+    int ret = mdb_cursor_get(m_cur_addr_outputs, &k, &v, op);
+    op = MDB_NEXT_DUP;
+    if (ret == MDB_NOTFOUND)
+      break;
+    if (ret)
+      throw0(DB_ERROR("Failed to enumerate address outputs"));
 
-  result = mdb_cursor_get(m_cur_addr_outputs, &k, &v, MDB_SET_KEY);
-  if (result != 0)
-    throw1(DB_ERROR(lmdb_error("Error finding addr output: ", result).c_str()));
+    const acc_outs_t res = *(const acc_outs_t *) v.mv_data;
 
-  const addr_output_data_t &ret_data = *(const addr_output_data_t*)v.mv_data;
+  }
+
+  TXN_POSTFIX_RDONLY();
 }
 
 void BlockchainLMDB::remove_addr_output(const crypto::hash tx_hash, const uint32_t relative_out_index,
@@ -1944,65 +1968,26 @@ void BlockchainLMDB::remove_addr_output(const crypto::hash tx_hash, const uint32
 
   int result = 0;
 
-  addr_output_key_t key;
-  key.combined_key = combined_key;
+  MDB_val k = {sizeof(combined_key), (void *)&combined_key};
 
-  MDB_val k = {sizeof(key), (void *)&key};
-  MDB_val v;
+  MDB_cursor_op op = MDB_SET_KEY;
+  while (1) {
+    MDB_val v;
+    int ret = mdb_cursor_get(m_cur_addr_outputs, &k, &v, op);
+    op = MDB_NEXT_DUP;
+    if (ret == MDB_NOTFOUND)
+      break;
+    if (ret)
+      throw0(DB_ERROR("Failed to enumerate outputs"));
 
-  result = mdb_cursor_get(m_cur_addr_outputs, &k, &v, MDB_SET_KEY);
-  if (result != 0)
-    throw1(DB_ERROR(lmdb_error("Error finding addr output to add: ", result).c_str()));
+    const acc_outs_t res = *(const acc_outs_t *) v.mv_data;
 
-  addr_output_data_t &ret_data = *(addr_output_data_t*)v.mv_data;
-
-  auto it = std::find_if(ret_data.acc_outs.begin(), ret_data.acc_outs.end(),
-                         [&](const acc_outs_t& a)
-                         {
-                             return a.tx_hash == tx_hash &&
-                                    a.relative_out_index == relative_out_index &&
-                                    a.amount == amount;
-                         });
-
-  if (it != ret_data.acc_outs.end()) {
-    int index = std::distance(ret_data.acc_outs.begin(), it);
-    ret_data.acc_outs.erase(ret_data.acc_outs.begin() + index);
-
-    v = {sizeof(ret_data), (void *)&ret_data};
-
-    result = mdb_cursor_put(m_cur_addr_outputs, &k, &v, MDB_CURRENT);
-    if (result != 0)
-      throw1(DB_ERROR(lmdb_error("Error adding address output to db transaction: ", result).c_str()));
+    if(res.tx_hash == tx_hash && res.relative_out_index == relative_out_index && res.amount == amount) {
+      result = mdb_cursor_del(m_cur_addr_outputs, 0);
+      if (result)
+        throw1(DB_ERROR(lmdb_error("Error removing of addr output from db: ", result).c_str()));
+    }
   }
-  else
-  {
-    throw1(UTXO_EXISTS("Unable to find addr output to remove."));
-  }
-
-}
-
-blobdata BlockchainLMDB::addr_output_data_to_blob(const addr_output_data_t& acc) const
-{
-  LOG_PRINT_L3("BlockchainLMDB::" << __func__);
-  blobdata b;
-
-  if (!t_serializable_object_to_blob(acc, b))
-    throw1(DB_ERROR("Error serializing account output data to blob"));
-  return b;
-}
-
-addr_output_data_t BlockchainLMDB::addr_output_data_from_blob(const blobdata blob) const
-{
-  LOG_PRINT_L3("BlockchainLMDB::" << __func__);
-  std::stringstream ss;
-  ss << blob;
-  binary_archive<false> ba(ss);
-  addr_output_data_t o = AUTO_VAL_INIT(o);
-
-  if (!(::serialization::serialize(ba, o)))
-    throw1(DB_ERROR("Error deserializing account output data blob"));
-
-  return o;
 }
 
 void BlockchainLMDB::add_txpool_tx(const crypto::hash &txid, const cryptonote::blobdata &blob, const txpool_tx_meta_t &meta)

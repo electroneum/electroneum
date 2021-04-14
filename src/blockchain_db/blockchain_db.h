@@ -167,31 +167,6 @@ struct chainstate_value_t
   uint64_t amount;
 };
 
-struct addr_output_key_t
-{
-  crypto::public_key combined_key;
-};
-
-struct acc_outs_t {
-    crypto::hash tx_hash;
-    uint32_t relative_out_index;
-    uint64_t amount;
-
-    BEGIN_SERIALIZE_OBJECT()
-      FIELD(tx_hash)
-      FIELD(relative_out_index)
-      FIELD(amount)
-    END_SERIALIZE()
-};
-
-struct addr_output_data_t
-{
-  std::vector<acc_outs_t> acc_outs;
-  BEGIN_SERIALIZE_OBJECT()
-    FIELD(acc_outs)
-  END_SERIALIZE()
-};
-
 #define DBF_SAFE       1
 #define DBF_FAST       2
 #define DBF_FASTEST    4
