@@ -1062,10 +1062,6 @@ bool t_rpc_command_executor::print_transaction_pool_long() {
                           << "last_failed_height: " << tx_info.last_failed_height << std::endl
                           << "last_failed_id: " << tx_info.last_failed_id_hash << std::endl;
     }
-    if (res.spent_key_images.empty())
-    {
-      tools::msg_writer() << "WARNING: Inconsistent pool state - no spent key images";
-    }
   }
   if (! res.spent_key_images.empty())
   {

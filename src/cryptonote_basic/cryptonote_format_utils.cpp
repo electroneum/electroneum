@@ -756,6 +756,18 @@ namespace cryptonote
   bool check_inputs_overflow(const transaction& tx)
   {
     uint64_t etn = 0;
+    if(tx.version >= 3)
+    {
+      for(const auto& in: tx.vin)
+      {
+        CHECKED_GET_SPECIFIC_VARIANT(in, const txin_to_key_public, tokey_in, false);
+        if(etn > tokey_in.amount + etn)
+          return false;
+        etn += tokey_in.amount;
+      }
+      return true;
+    }
+
     for(const auto& in: tx.vin)
     {
       CHECKED_GET_SPECIFIC_VARIANT(in, const txin_to_key, tokey_in, false);
