@@ -380,7 +380,6 @@ typedef struct outtx {
 } outtx;
 
 typedef struct acc_outs_t {
-    //crypto::public_key combined_key;
     uint64_t db_index;
     crypto::hash tx_hash;
     uint64_t relative_out_index;
@@ -1905,9 +1904,12 @@ void BlockchainLMDB::add_addr_output(const crypto::hash tx_hash, const uint32_t 
 
   if(result == 0)
   {
-    result = mdb_cursor_count(m_cur_addr_outputs, &num_elems);
+    result = mdb_cursor_get(m_cur_addr_outputs, &k, &v, MDB_LAST_DUP);
     if (result)
       throw0(DB_ERROR(std::string("Failed to get number outputs for address: ").append(mdb_strerror(result)).c_str()));
+
+    const acc_outs_t res = *(const acc_outs_t *) v.mv_data;
+    num_elems = res.db_index + 1;
   }
 
   acc_outs_t acc;
