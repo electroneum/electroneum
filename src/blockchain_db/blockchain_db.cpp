@@ -213,7 +213,7 @@ void BlockchainDB::add_transaction(const crypto::hash& blk_hash, const std::pair
 
       const auto &txout = boost::get<txout_to_key_public>(tx.vout[i].target);
 
-      add_chainstate_utxo(tx.hash, i, addKeys(txout.address.m_view_public_key, txout.address.m_spend_public_key) , tx.vout[i].amount);
+      add_chainstate_utxo(tx.hash, i, addKeys(txout.address.m_view_public_key, txout.address.m_spend_public_key) , tx.vout[i].amount, miner_tx);
       add_addr_output(tx.hash, i, addKeys(txout.address.m_view_public_key, txout.address.m_spend_public_key), tx.vout[i].amount);
     }
   }

@@ -1805,7 +1805,7 @@ void BlockchainLMDB::unlock()
 
 
 void BlockchainLMDB::add_chainstate_utxo(const crypto::hash tx_hash, const uint32_t relative_out_index,
-                                         const crypto::public_key combined_key, uint64_t amount)
+                                         const crypto::public_key combined_key, uint64_t amount, bool is_coinbase)
 {
   LOG_PRINT_L3("BlockchainLMDB::" << __func__);
   check_open();
@@ -1822,6 +1822,7 @@ void BlockchainLMDB::add_chainstate_utxo(const crypto::hash tx_hash, const uint3
   chainstate_value_t data;
   data.amount = amount;
   data.combined_key = combined_key;
+  data.is_coinbase = is_coinbase;
 
   MDB_val_set(k, index);
   MDB_val_set(v, data);
