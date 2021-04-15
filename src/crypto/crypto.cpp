@@ -499,7 +499,7 @@ namespace crypto {
     return sizeof(rs_comm) + pubs_count * sizeof(ec_point_pair);
   }
 
-  void crypto_ops::generate_input_signatures(const hash &prefix_hash, const uint32_t numInputs, const secret_key sec_view, const secret_key sec_spend, std::vector<ed25519_signature> signatures){
+  void crypto_ops::generate_input_signatures(const hash prefix_hash, const uint32_t numInputs, const secret_key sec_view, const secret_key sec_spend, std::vector<ed25519_signature> &signatures){
 
       // add the two secret keys and reduce modulo l to get a new valid secret key for signing.
       // todo: move key to wallet (maybe)

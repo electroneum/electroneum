@@ -1740,11 +1740,8 @@ namespace cryptonote
     }
     res.blob = string_tools::buff_to_hex_nodelimer(t_serializable_object_to_blob(blk));
     res.json = obj_to_json_str(blk);
-
-    if (blk.major_version >= HF_VERSION_PUBLIC_TX) {
-      json_keypublic_to_address(res.json, nettype());
-    }
     res.status = CORE_RPC_STATUS_OK;
+    
     return true;
   }
   //------------------------------------------------------------------------------------------------------------------------------
