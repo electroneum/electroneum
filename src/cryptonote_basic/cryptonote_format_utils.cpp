@@ -189,13 +189,15 @@ namespace cryptonote
   //---------------------------------------------------------------
   bool is_v1_tx(const blobdata_ref& tx_blob)
   {
+    //TODO: Public - assure return true. Build logic for prunable v2/v3 tx data later.
+    return true;
+
     uint64_t version;
     const char* begin = static_cast<const char*>(tx_blob.data());
     const char* end = begin + tx_blob.size();
     int read = tools::read_varint(begin, end, version);
     if (read <= 0)
       throw std::runtime_error("Internal error getting transaction version");
-    return version <= 1;
   }
   //---------------------------------------------------------------
   bool is_v1_tx(const blobdata& tx_blob)

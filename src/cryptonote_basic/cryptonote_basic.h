@@ -50,6 +50,7 @@
 #include "misc_language.h"
 #include "ringct/rctTypes.h"
 #include "device/device.hpp"
+#include "common/base58.h"
 
 namespace cryptonote
 {
@@ -107,16 +108,37 @@ namespace cryptonote
     crypto::public_key key;
   };
 
-    struct txout_to_key_public
-    {
-        uint64_t m_address_prefix;
-        cryptonote::account_public_address address;
+  struct txout_to_key_public
+  {
+      uint64_t m_address_prefix;
+      cryptonote::account_public_address address;
 
-        BEGIN_SERIALIZE_OBJECT()
+      std::string etn_address;
+
+      BEGIN_SERIALIZE_OBJECT()
+
+        if (std::is_same<Archive<W>, json_archive<W>>())
+        {
+          std::stringstream ss;
+          binary_archive<true> ba(ss);
+          bool r = ::serialization::serialize(ba, const_cast<account_public_address&>(address));
+          std::string address_blob = ss.str();
+
+          if(!r) return false;
+
+          etn_address = tools::base58::encode_addr(m_address_prefix, address_blob);
+
+          ar.tag("address");
+          ar.serialize_string(etn_address);
+          if (!ar.stream().good())
+            return false;
+
+        } else {
           VARINT_FIELD(m_address_prefix)
           FIELD(address)
-        END_SERIALIZE()
-    };
+        }
+      END_SERIALIZE()
+  };
 
     /* inputs */
 
@@ -523,7 +545,6 @@ namespace std {
 }
 
 BLOB_SERIALIZER(cryptonote::txout_to_key);
-BLOB_SERIALIZER(cryptonote::txout_to_key_public);
 BLOB_SERIALIZER(cryptonote::txout_to_scripthash);
 
 VARIANT_TAG(binary_archive, cryptonote::txin_gen, 0xff);
@@ -542,11 +563,11 @@ VARIANT_TAG(json_archive, cryptonote::txin_gen, "gen");
 VARIANT_TAG(json_archive, cryptonote::txin_to_script, "script");
 VARIANT_TAG(json_archive, cryptonote::txin_to_scripthash, "scripthash");
 VARIANT_TAG(json_archive, cryptonote::txin_to_key, "key");
-VARIANT_TAG(json_archive, cryptonote::txin_to_key_public, "keypublic");
+VARIANT_TAG(json_archive, cryptonote::txin_to_key_public, "public_input");
 VARIANT_TAG(json_archive, cryptonote::txout_to_script, "script");
 VARIANT_TAG(json_archive, cryptonote::txout_to_scripthash, "scripthash");
 VARIANT_TAG(json_archive, cryptonote::txout_to_key, "key");
-VARIANT_TAG(json_archive, cryptonote::txout_to_key_public, "keypublic");
+VARIANT_TAG(json_archive, cryptonote::txout_to_key_public, "public_output");
 VARIANT_TAG(json_archive, cryptonote::transaction, "tx");
 VARIANT_TAG(json_archive, cryptonote::block, "block");
 
@@ -554,10 +575,10 @@ VARIANT_TAG(debug_archive, cryptonote::txin_gen, "gen");
 VARIANT_TAG(debug_archive, cryptonote::txin_to_script, "script");
 VARIANT_TAG(debug_archive, cryptonote::txin_to_scripthash, "scripthash");
 VARIANT_TAG(debug_archive, cryptonote::txin_to_key, "key");
-VARIANT_TAG(debug_archive, cryptonote::txin_to_key_public, "keypublic");
+VARIANT_TAG(debug_archive, cryptonote::txin_to_key_public, "public_input");
 VARIANT_TAG(debug_archive, cryptonote::txout_to_script, "script");
 VARIANT_TAG(debug_archive, cryptonote::txout_to_scripthash, "scripthash");
 VARIANT_TAG(debug_archive, cryptonote::txout_to_key, "key");
-VARIANT_TAG(debug_archive, cryptonote::txout_to_key_public, "keypublic");
+VARIANT_TAG(debug_archive, cryptonote::txout_to_key_public, "public_output");
 VARIANT_TAG(debug_archive, cryptonote::transaction, "tx");
 VARIANT_TAG(debug_archive, cryptonote::block, "block");
