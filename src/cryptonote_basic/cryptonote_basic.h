@@ -280,7 +280,6 @@ struct txin_to_key_public
 
   public:
     std::vector<std::vector<crypto::signature> > signatures; //count signatures  always the same as inputs count
-    std::vector<crypto::input_signature> public_input_signatures;
     rct::rctSig rct_signatures;
 
     // hash cash
@@ -322,65 +321,35 @@ struct txin_to_key_public
         unprunable_size = getpos(ar) - start_pos;
       }
 
-      if (version <=2)
+      ar.tag("signatures");
+      ar.begin_array();
+      PREPARE_CUSTOM_VECTOR_SERIALIZATION(vin.size(), signatures);
+      bool signatures_not_expected = signatures.empty();
+      if (!signatures_not_expected && vin.size() != signatures.size())
+        return false;
+
+      if (!pruned) for (size_t i = 0; i < vin.size(); ++i)
       {
-        ar.tag("signatures");
-        ar.begin_array();
-        PREPARE_CUSTOM_VECTOR_SERIALIZATION(vin.size(), signatures);
-        bool signatures_not_expected = signatures.empty();
-        if (!signatures_not_expected && vin.size() != signatures.size())
+        size_t signature_size = get_signature_size(vin[i]);
+        if (signatures_not_expected)
+        {
+          if (0 == signature_size)
+            continue;
+          else
+            return false;
+        }
+
+        PREPARE_CUSTOM_VECTOR_SERIALIZATION(signature_size, signatures[i]);
+        if (signature_size != signatures[i].size())
           return false;
 
-        if (!pruned) for (size_t i = 0; i < vin.size(); ++i)
-        {
-          size_t signature_size = get_signature_size(vin[i]);
-          if (signatures_not_expected)
-          {
-            if (0 == signature_size)
-              continue;
-            else
-              return false;
-          }
+        FIELDS(signatures[i]);
 
-          PREPARE_CUSTOM_VECTOR_SERIALIZATION(signature_size, signatures[i]);
-          if (signature_size != signatures[i].size())
-            return false;
-
-          FIELDS(signatures[i]);
-
-          if (vin.size() - i > 1)
-            ar.delimit_array();
-        }
-        ar.end_array();
-
-        if(version >= 3){
-          ar.tag("public_input_signatures");
-          ar.begin_array();
-          PREPARE_CUSTOM_VECTOR_SERIALIZATION(vin.size(), public_input_signatures);
-          bool signatures_not_expected = public_input_signatures.empty();
-          if (!signatures_not_expected && vin.size() != public_input_signatures.size())
-            return false;
-
-          for (size_t i = 0; i < vin.size(); ++i)
-          {
-            size_t signature_size = get_signature_size(vin[i]);
-            if (signatures_not_expected)
-            {
-              if (0 == signature_size)
-                continue;
-              else
-                return false;
-            }
-
-            if (signature_size != public_input_signatures.size())
-              return false;
-
-            if (vin.size() - i > 1)
-              ar.delimit_array();
-          }
-          ar.end_array();
-        }
+        if (vin.size() - i > 1)
+          ar.delimit_array();
       }
+      ar.end_array();
+
       if (!typename Archive<W>::is_saving())
         pruned = false;
     END_SERIALIZE()

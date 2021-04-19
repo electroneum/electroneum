@@ -257,6 +257,13 @@ namespace crypto {
     ec_point Y;
   };
 
+  struct s_comm_3 {
+      hash h;
+      uint32_t i;
+      ec_point key;
+      ec_point comm;
+  };
+
   void crypto_ops::generate_signature(const hash &prefix_hash, const public_key &pub, const secret_key &sec, signature &sig) {
     ge_p3 tmp3;
     ec_scalar k;
@@ -499,32 +506,65 @@ namespace crypto {
     return sizeof(rs_comm) + pubs_count * sizeof(ec_point_pair);
   }
 
-  void crypto_ops::generate_input_signatures(const hash prefix_hash, const uint32_t numInputs, const secret_key sec_view, const secret_key sec_spend, std::vector<ed25519_signature> &signatures){
+  void crypto_ops::generate_input_signature(const hash prefix_hash, const uint32_t out_index, const secret_key sec_view, const secret_key sec_spend, signature &sig){
 
-      // add the two secret keys and reduce modulo l to get a new valid secret key for signing.
-      // todo: move key to wallet (maybe)
-      secret_key d = addSecretKeys(sec_view, sec_spend);
+    // add the two secret keys and reduce modulo l to get a new valid secret key for signing.
+    secret_key sec = addSecretKeys(sec_view, sec_spend);
 
-      //corresponding public key for the combined secret key
-      ed25519_public_key D;
-      ed25519_publickey((unsigned char*)d.data, D);
+    //corresponding public key for the combined secret key
+    public_key pub;
+    ge_p3 t;
+    assert(sc_check(&sec) == 0);
+    ge_scalarmult_base(&t, &sec);
+    ge_p3_tobytes(&pub, &t);
 
-      std::string prefix_string = std::string(prefix_hash.data);
-
-      for(uint32_t relative_input_index = 0; relative_input_index < numInputs; relative_input_index++){
-            std::string sigData = prefix_string + std::to_string(relative_input_index);
-            // sign tx prefix + relative input index
-          ed25519_sign((unsigned char *)sigData.data(), sigData.size(), (unsigned char *)d.data, D, signatures[relative_input_index]);
-          assert(ed25519_sign_open((unsigned char *)sigData.data(), 32, D, signatures[relative_input_index]));
-      }
+    //generate signature
+    ge_p3 tmp3;
+    ec_scalar k;
+    s_comm_3 buf;
+    buf.h = prefix_hash;
+    buf.i = out_index;
+    buf.key = pub;
+    try_again:
+    random_scalar(k);
+    if (((const uint32_t*)(&k))[7] == 0) // we don't want tiny numbers here
+      goto try_again;
+    ge_scalarmult_base(&tmp3, &k);
+    ge_p3_tobytes(&buf.comm, &tmp3);
+    hash_to_scalar(&buf, sizeof(s_comm_3), sig.c);
+    if (!sc_isnonzero((const unsigned char*)sig.c.data))
+      goto try_again;
+    sc_mulsub(&sig.r, &sig.c, &unwrap(sec), &k);
+    if (!sc_isnonzero((const unsigned char*)sig.r.data))
+      goto try_again;
   }
 
-  bool crypto_ops::verify_input_signature(const hash &prefix_hash,const uint32_t relative_input_index, const public_key pub_view, const public_key pub_spend, ed25519_signature signature)
+  bool crypto_ops::verify_input_signature(const hash &prefix_hash,const uint32_t relative_input_index, const public_key pub_view, const public_key pub_spend, signature sig)
   {
-    public_key D = addKeys(pub_view, pub_spend);
+    public_key pub = addKeys(pub_view, pub_spend);
 
-    std::string sigData = std::string(prefix_hash.data) + std::to_string(relative_input_index);
-    return ed25519_sign_open((unsigned char *)sigData.data(), 32, (unsigned char*)D.data, signature) == 0;
+    ge_p2 tmp2;
+    ge_p3 tmp3;
+    ec_scalar c;
+    s_comm_3 buf;
+    assert(check_key(pub));
+    buf.h = prefix_hash;
+    buf.i = relative_input_index;
+    buf.key = pub;
+    if (ge_frombytes_vartime(&tmp3, &pub) != 0) {
+      return false;
+    }
+    if (sc_check(&sig.c) != 0 || sc_check(&sig.r) != 0 || !sc_isnonzero(&sig.c)) {
+      return false;
+    }
+    ge_double_scalarmult_base_vartime(&tmp2, &sig.c, &tmp3, &sig.r);
+    ge_tobytes(&buf.comm, &tmp2);
+    static const ec_point infinity = {{ 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}};
+    if (memcmp(&buf.comm, &infinity, 32) == 0)
+      return false;
+    hash_to_scalar(&buf, sizeof(s_comm_3), c);
+    sc_sub(&c, &c, &sig.c);
+    return sc_isnonzero(&c) == 0;
   }
 
   //for curve points: AB = A + B
