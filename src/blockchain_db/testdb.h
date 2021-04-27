@@ -166,7 +166,7 @@ public:
   virtual void remove_chainstate_utxo(const crypto::hash tx_hash, const uint32_t relative_out_index) override {}
 
   virtual void add_addr_output(const crypto::hash tx_hash, const uint32_t relative_out_index, const crypto::public_key& combined_key, uint64_t amount) override {}
-  virtual void get_addr_output(const crypto::hash tx_hash, const uint32_t relative_out_index, const crypto::public_key& combined_key, uint64_t amount) override {}
+  virtual std::vector<address_outputs> get_addr_output(const crypto::public_key& combined_key) override { return std::vector<address_outputs> {}; }
   virtual void remove_addr_output(const crypto::hash tx_hash, const uint32_t relative_out_index, const crypto::public_key& combined_key, uint64_t amount) override {}
 };
 

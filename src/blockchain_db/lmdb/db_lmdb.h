@@ -349,6 +349,8 @@ public:
 
   bool get_output_distribution(uint64_t amount, uint64_t from_height, uint64_t to_height, std::vector<uint64_t> &distribution, uint64_t &base) const;
 
+  virtual std::vector<address_outputs> get_addr_output(const crypto::public_key& combined_key);
+
   // helper functions
   static int compare_uint64(const MDB_val *a, const MDB_val *b);
   static int compare_hash32(const MDB_val *a, const MDB_val *b);
@@ -437,7 +439,6 @@ private:
   virtual void remove_chainstate_utxo(const crypto::hash tx_hash, const uint32_t relative_out_index);
 
   virtual void add_addr_output(const crypto::hash tx_hash, const uint32_t relative_out_index, const crypto::public_key& combined_key, uint64_t amount);
-  virtual void get_addr_output(const crypto::hash tx_hash, const uint32_t relative_out_index, const crypto::public_key& combined_key, uint64_t amount);
   virtual void remove_addr_output(const crypto::hash tx_hash, const uint32_t relative_out_index, const crypto::public_key& combined_key, uint64_t amount);
   // migrate from older DB version to current
   void migrate(const uint32_t oldversion);

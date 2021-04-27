@@ -187,11 +187,6 @@ int BlockchainLMDB::compare_data(const MDB_val *a, const MDB_val *b)
 
 int BlockchainLMDB::compare_publickey(const MDB_val *a, const MDB_val *b)
 {
-
-  const crypto::public_key res = *(const crypto::public_key *) a->mv_data;
-  const crypto::public_key res2 = *(const crypto::public_key *) b->mv_data;
-
-
   uint8_t *va = (uint8_t*) a->mv_data;
   uint8_t *vb = (uint8_t*) b->mv_data;
   for (int n = 0; n < 32; ++n)
@@ -1928,9 +1923,7 @@ void BlockchainLMDB::add_addr_output(const crypto::hash tx_hash, const uint32_t 
 
 }
 
-void BlockchainLMDB::get_addr_output(const crypto::hash tx_hash, const uint32_t relative_out_index,
-                                     const crypto::public_key& combined_key,
-                                     uint64_t amount)
+std::vector<address_outputs> BlockchainLMDB::get_addr_output(const crypto::public_key& combined_key)
 {
   LOG_PRINT_L3("BlockchainLMDB::" << __func__);
   check_open();
@@ -1939,6 +1932,7 @@ void BlockchainLMDB::get_addr_output(const crypto::hash tx_hash, const uint32_t 
   RCURSOR(addr_outputs);
 
   int result = 0;
+  std::vector<address_outputs> address_outputs;
 
   MDB_val k = {sizeof(combined_key), (void *)&combined_key};
 
@@ -1954,9 +1948,19 @@ void BlockchainLMDB::get_addr_output(const crypto::hash tx_hash, const uint32_t 
 
     const acc_outs_t res = *(const acc_outs_t *) v.mv_data;
 
+    cryptonote::address_outputs addr_out;
+    addr_out.tx_hash = res.tx_hash;
+    addr_out.relative_out_index = res.relative_out_index;
+    addr_out.amount = res.amount;
+    addr_out.spent = !check_chainstate_utxo(res.tx_hash, res.relative_out_index);
+
+    address_outputs.push_back(addr_out);
+
   }
 
   TXN_POSTFIX_RDONLY();
+
+  return address_outputs;
 }
 
 void BlockchainLMDB::remove_addr_output(const crypto::hash tx_hash, const uint32_t relative_out_index,

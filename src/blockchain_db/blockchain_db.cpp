@@ -186,6 +186,8 @@ void BlockchainDB::add_transaction(const crypto::hash& blk_hash, const std::pair
   }
   else if (tx.version >= 2)
   {
+    add_transaction_data(blk_hash, txp, tx_hash, tx_prunable_hash);
+
     // Sanity check on supported output types
     for (uint64_t i = 0; i < tx.vout.size(); ++i)
     {
@@ -208,8 +210,6 @@ void BlockchainDB::add_transaction(const crypto::hash& blk_hash, const std::pair
         }
         return;
       }
-
-      add_transaction_data(blk_hash, txp, tx_hash, tx_prunable_hash);
 
       const auto &txout = boost::get<txout_to_key_public>(tx.vout[i].target);
 

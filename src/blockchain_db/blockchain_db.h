@@ -168,6 +168,14 @@ struct chainstate_value_t
   bool is_coinbase;
 };
 
+struct address_outputs
+{
+  crypto::hash tx_hash;
+  uint64_t relative_out_index;
+  uint64_t amount;
+  bool spent;
+};
+
 #define DBF_SAFE       1
 #define DBF_FAST       2
 #define DBF_FASTEST    4
@@ -506,7 +514,6 @@ private:
   virtual void add_chainstate_utxo(const crypto::hash tx_hash, const uint32_t relative_out_index, const crypto::public_key combined_key, uint64_t amount, bool is_coinbase = false) = 0;
   virtual void remove_chainstate_utxo(const crypto::hash tx_hash, const uint32_t relative_out_index) = 0;
   virtual void add_addr_output(const crypto::hash tx_hash, const uint32_t relative_out_index, const crypto::public_key& combined_key, uint64_t amount) = 0;
-  virtual void get_addr_output(const crypto::hash tx_hash, const uint32_t relative_out_index, const crypto::public_key& combined_key, uint64_t amount) = 0;
   virtual void remove_addr_output(const crypto::hash tx_hash, const uint32_t relative_out_index, const crypto::public_key& combined_key, uint64_t amount) = 0;
 
   /**
@@ -1776,6 +1783,8 @@ public:
 
   bool m_open;  //!< Whether or not the BlockchainDB is open/ready for use
   mutable epee::critical_section m_synchronization_lock;  //!< A lock, currently for when BlockchainLMDB needs to resize the backing db file
+
+  virtual std::vector<address_outputs> get_addr_output(const crypto::public_key& combined_key) = 0;
 
 };  // class BlockchainDB
 
