@@ -260,6 +260,7 @@ const char* const LMDB_VALIDATORS = "validators";
 const char* const LMDB_PROPERTIES = "properties";
 const char* const LMDB_UTXOS = "unspent_txos";
 const char* const LMDB_ADDR_OUTPUTS = "unspent_addr_outputs";
+const char* const LMDB_TX_INPUTS = "tx_inputs";
 
 const char zerokey[8] = {0};
 const MDB_val zerokval = { sizeof(zerokey), (void *)zerokey };
@@ -1482,6 +1483,7 @@ void BlockchainLMDB::open(const std::string& filename, const int db_flags)
   lmdb_db_open(txn, LMDB_VALIDATORS, MDB_INTEGERKEY | MDB_CREATE, m_validators, "Failed to open db handle for m_validators");
   lmdb_db_open(txn, LMDB_UTXOS, MDB_CREATE, m_utxos, "Failed to open db handle for m_utxos");
   lmdb_db_open(txn, LMDB_ADDR_OUTPUTS, MDB_CREATE | MDB_DUPSORT | MDB_DUPFIXED, m_addr_outputs, "Failed to open db handle for m_addr_outputs");
+  lmdb_db_open(txn, LMDB_TX_INPUTS, MDB_CREATE, m_tx_inputs, "Failed to open db handle for m_tx_inputs");
   lmdb_db_open(txn, LMDB_PROPERTIES, MDB_CREATE, m_properties, "Failed to open db handle for m_properties");
 
   mdb_set_dupsort(txn, m_spent_keys, compare_hash32);
@@ -1502,6 +1504,8 @@ void BlockchainLMDB::open(const std::string& filename, const int db_flags)
 
   mdb_set_dupsort(txn, m_addr_outputs, compare_uint64);
   mdb_set_compare(txn, m_addr_outputs, compare_publickey);
+
+  mdb_set_compare(txn, m_tx_inputs, compare_data);
 
 
   if (!(mdb_flags & MDB_RDONLY))
@@ -1678,6 +1682,8 @@ void BlockchainLMDB::reset()
     throw0(DB_ERROR(lmdb_error("Failed to drop m_utxos: ", result).c_str()));
   if (auto result = mdb_drop(txn, m_addr_outputs, 0))
     throw0(DB_ERROR(lmdb_error("Failed to drop m_addr_outputs: ", result).c_str()));
+  if (auto result = mdb_drop(txn, m_tx_inputs, 0))
+    throw0(DB_ERROR(lmdb_error("Failed to drop m_tx_inputs: ", result).c_str()));
   if (auto result = mdb_drop(txn, m_properties, 0))
     throw0(DB_ERROR(lmdb_error("Failed to drop m_properties: ", result).c_str()));
 
@@ -1875,6 +1881,84 @@ void BlockchainLMDB::remove_chainstate_utxo(const crypto::hash tx_hash, const ui
     result = mdb_cursor_del(m_cur_utxos, 0);
     if (result)
       throw1(DB_ERROR(lmdb_error("Error adding removal of utxo to db transaction", result).c_str()));
+  }
+}
+
+void BlockchainLMDB::add_tx_input(const crypto::hash tx_hash, const uint32_t relative_out_index, const crypto::hash parent_tx_hash, const uint64_t in_index)
+{
+  LOG_PRINT_L3("BlockchainLMDB::" << __func__);
+  check_open();
+
+  mdb_txn_cursors *m_cursors = &m_wcursors;
+  CURSOR(tx_inputs)
+
+  int result = 0;
+
+  chainstate_key_t key;
+  key.tx_hash = tx_hash;
+  key.relative_out_index = relative_out_index;
+
+  tx_input_t data;
+  data.tx_hash = parent_tx_hash;
+  data.in_index = in_index;
+
+  MDB_val_set(k, key);
+  MDB_val_set(v, data);
+
+  if (auto result = mdb_cursor_put(m_cur_tx_inputs, &k, &v, MDB_NODUPDATA)) {
+    if (result == MDB_KEYEXIST)
+      throw1(UTXO_EXISTS("Attempting to add tx input that's already in the db"));
+    else
+      throw1(DB_ERROR(lmdb_error("Error adding tx input to db transaction: ", result).c_str()));
+  }
+}
+
+tx_input_t BlockchainLMDB::get_tx_input(const crypto::hash tx_hash, const uint32_t relative_out_index)
+{
+  LOG_PRINT_L3("BlockchainLMDB::" << __func__);
+  check_open();
+
+  TXN_PREFIX_RDONLY();
+  RCURSOR(tx_inputs)
+
+  chainstate_key_t key;
+  key.tx_hash = tx_hash;
+  key.relative_out_index = relative_out_index;
+
+  MDB_val k = {sizeof(key), (void *)&key};
+  MDB_val v;
+  auto result = mdb_cursor_get(m_cur_tx_inputs, &k, &v, MDB_SET_KEY);
+  if (result == MDB_NOTFOUND)
+    return tx_input_t();
+  if (result != 0)
+    throw1(DB_ERROR(lmdb_error("Error finding tx input: ", result).c_str()));
+
+  TXN_POSTFIX_RDONLY();
+  return *(const tx_input_t *) v.mv_data;
+}
+
+void BlockchainLMDB::remove_tx_input(const crypto::hash tx_hash, const uint32_t relative_out_index)
+{
+  LOG_PRINT_L3("BlockchainLMDB::" << __func__);
+  check_open();
+
+  mdb_txn_cursors *m_cursors = &m_wcursors;
+  CURSOR(tx_inputs)
+
+  chainstate_key_t key;
+  key.tx_hash = tx_hash;
+  key.relative_out_index = relative_out_index;
+
+  MDB_val k = {sizeof(key), (void *)&key};
+
+  auto result = mdb_cursor_get(m_cur_tx_inputs, &k, NULL, MDB_SET);
+  if (result != 0 && result != MDB_NOTFOUND)
+    throw1(DB_ERROR(lmdb_error("Error finding tx input to remove", result).c_str()));
+  if (!result)
+  {
+    result = mdb_cursor_del(m_cur_tx_inputs, 0);
+    if (result)
+      throw1(DB_ERROR(lmdb_error("Error adding removal of tx input to db transaction", result).c_str()));
   }
 }
 

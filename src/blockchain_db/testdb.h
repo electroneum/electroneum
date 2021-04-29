@@ -168,6 +168,9 @@ public:
   virtual void add_addr_output(const crypto::hash tx_hash, const uint32_t relative_out_index, const crypto::public_key& combined_key, uint64_t amount) override {}
   virtual std::vector<address_outputs> get_addr_output(const crypto::public_key& combined_key) override { return std::vector<address_outputs> {}; }
   virtual void remove_addr_output(const crypto::hash tx_hash, const uint32_t relative_out_index, const crypto::public_key& combined_key, uint64_t amount) override {}
+  virtual void add_tx_input(const crypto::hash tx_hash, const uint32_t relative_out_index, const crypto::hash parent_tx_hash, const uint64_t in_index) override {}
+  virtual tx_input_t get_tx_input(const crypto::hash tx_hash, const uint32_t relative_out_index) override { return tx_input_t(); }
+  virtual void remove_tx_input(const crypto::hash tx_hash, const uint32_t relative_out_index) override {}
 };
 
 }
