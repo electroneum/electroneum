@@ -2047,6 +2047,39 @@ std::vector<address_outputs> BlockchainLMDB::get_addr_output(const crypto::publi
   return address_outputs;
 }
 
+uint64_t BlockchainLMDB::get_balance(const crypto::public_key& combined_key) 
+{
+  LOG_PRINT_L3("BlockchainLMDB::" << __func__);
+  check_open();
+
+  TXN_PREFIX_RDONLY();
+  RCURSOR(addr_outputs);
+
+  uint64_t balance = 0;
+
+  MDB_val k = {sizeof(combined_key), (void *)&combined_key};
+
+  MDB_cursor_op op = MDB_SET_KEY;
+  while (1) {
+    MDB_val v;
+    int ret = mdb_cursor_get(m_cur_addr_outputs, &k, &v, op);
+    op = MDB_NEXT_DUP;
+    if (ret == MDB_NOTFOUND)
+      break;
+    if (ret)
+      throw0(DB_ERROR("Failed to enumerate address outputs"));
+
+    const acc_outs_t res = *(const acc_outs_t *) v.mv_data;
+
+    if(check_chainstate_utxo(res.tx_hash, res.relative_out_index))
+      balance += res.amount;
+  }
+
+  TXN_POSTFIX_RDONLY();
+
+  return balance;
+}
+
 void BlockchainLMDB::remove_addr_output(const crypto::hash tx_hash, const uint32_t relative_out_index,
                                         const crypto::public_key& combined_key,
                                         uint64_t amount)

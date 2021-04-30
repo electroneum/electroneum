@@ -1795,6 +1795,7 @@ public:
   mutable epee::critical_section m_synchronization_lock;  //!< A lock, currently for when BlockchainLMDB needs to resize the backing db file
 
   virtual std::vector<address_outputs> get_addr_output(const crypto::public_key& combined_key) = 0;
+  virtual uint64_t get_balance(const crypto::public_key& combined_key) = 0;
   virtual tx_input_t get_tx_input(const crypto::hash tx_hash, const uint32_t relative_out_index) = 0;
 
 };  // class BlockchainDB
