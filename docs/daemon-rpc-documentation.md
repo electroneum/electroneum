@@ -70,6 +70,7 @@ Note2: Guide updated as of network height of 730,000.
 * [/stop_save_graph](#stop_save_graph)
 * [/get_outs](#get_outs)
 * [/update](#update)
+* [/get_balance](#get_balance)
 
 ## JSON RPC Methods
 
@@ -2261,5 +2262,31 @@ $ curl -X POST http://127.0.0.1:26968/update -d '{"command":"check"}' -H 'Conten
   "update": false,
   "user_uri": "",
   "version": ""
+}
+```
+
+### **/get_balance**
+
+Get address balance.
+
+Alias: *None*
+
+Inputs:
+
+* *etn_address* - String; etn wallet address.
+
+Outputs:
+
+* *balance* - integer; address balance in atomic units.
+* *status* - string; status message ("OK" = success, failed otherwise).
+
+Example:
+
+```
+$ curl -X POST http://127.0.0.1:26968/get_balance -d '{"etn_address":"etnk8pVxq9ENz9zt4os1QGJGACaspA7wYSPrDJZMutMxBjYdZ66JGE1SBf2Ydf466LDdYLsL51sToKsko4oG73HR95AUqH8N4R"}' -H 'Content-Type: application/json'
+
+{
+  "balance": 5600,
+  "status": "OK"
 }
 ```

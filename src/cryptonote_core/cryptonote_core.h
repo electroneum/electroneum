@@ -866,6 +866,8 @@ namespace cryptonote
 
      std::string sign_message(std::string sk, std::string msg);
 
+     uint64_t get_balance(const address_parse_info &addr);
+
    private:
 
      /**

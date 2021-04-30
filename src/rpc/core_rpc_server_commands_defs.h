@@ -1541,6 +1541,30 @@ namespace cryptonote
     typedef epee::misc_utils::struct_init<response_t> response;
   };
 
+  struct COMMAND_RPC_GET_BALANCE
+  {
+    struct request_t
+    {
+      std::string etn_address;
+      BEGIN_KV_SERIALIZE_MAP()
+        KV_SERIALIZE(etn_address)
+      END_KV_SERIALIZE_MAP()
+    };
+    typedef epee::misc_utils::struct_init<request_t> request;
+
+    struct response_t
+    {
+      uint64_t balance;
+      std::string status;
+      
+      BEGIN_KV_SERIALIZE_MAP()
+        KV_SERIALIZE(balance)
+        KV_SERIALIZE(status)
+      END_KV_SERIALIZE_MAP()
+    };
+    typedef epee::misc_utils::struct_init<response_t> response;
+  };
+
   struct COMMAND_RPC_GET_CONNECTIONS
   {
     struct request_t

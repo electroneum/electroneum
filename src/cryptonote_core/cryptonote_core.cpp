@@ -2017,6 +2017,20 @@ namespace cryptonote
     return boost::algorithm::hex(b_str);
   }
   //-----------------------------------------------------------------------------------------------
+  uint64_t core::get_balance(const address_parse_info &addr)
+  {
+    crypto::public_key combined_key = crypto::addKeys(addr.address.m_view_public_key, addr.address.m_spend_public_key);
+    std::vector<address_outputs> addr_outs = m_blockchain_storage.get_db().get_addr_output(combined_key);
+
+    uint64_t balance = 0;
+    for(const auto &out: addr_outs)
+    {
+      if(!out.spent) balance += out.amount;
+    }
+
+    return balance;
+  }
+  //-----------------------------------------------------------------------------------------------
   void core::graceful_exit()
   {
     raise(SIGTERM);
