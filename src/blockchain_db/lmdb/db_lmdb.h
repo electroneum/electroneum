@@ -352,7 +352,8 @@ public:
 
   bool get_output_distribution(uint64_t amount, uint64_t from_height, uint64_t to_height, std::vector<uint64_t> &distribution, uint64_t &base) const;
 
-  virtual std::vector<address_outputs> get_addr_output(const crypto::public_key& combined_key);
+  virtual std::vector<address_outputs> get_addr_output_all(const crypto::public_key& combined_key);
+  virtual std::vector<address_outputs> get_addr_output_batch(const crypto::public_key& combined_key, uint64_t start_db_index = 0, uint64_t batch_size = 100, bool desc = false);
   virtual uint64_t get_balance(const crypto::public_key& combined_key);
   virtual tx_input_t get_tx_input(const crypto::hash tx_hash, const uint32_t relative_out_index);
 

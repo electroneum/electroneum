@@ -71,6 +71,7 @@ Note2: Guide updated as of network height of 730,000.
 * [/get_outs](#get_outs)
 * [/update](#update)
 * [/get_balance](#get_balance)
+* [/get_address_batch_history](#get_address_batch_history)
 
 ## JSON RPC Methods
 
@@ -2290,3 +2291,23 @@ $ curl -X POST http://127.0.0.1:26968/get_balance -d '{"etn_address":"etnk8pVxq9
   "status": "OK"
 }
 ```
+
+### **/get_address_batch_history**
+
+Get address transaction history in bacthes.
+
+Alias: *None*
+
+Inputs:
+
+* *etn_address* - String; etn wallet address.
+* *start_out_id* - Integer; get batch starting from *<start_out_id>*. Use *start_out_id* = 0 for first batch call, subsequent calls this attribute needs to be set according to the *<next_out_id>* attribute from previous request response.
+* *batch_size* - Integer; batch size, amount of txs to be retrieved in each call.
+* *desc* - Boolean; return list of transactions in descending order (from latest to oldest) if set to true.
+
+Outputs:
+
+* *last_page* - Boolean; *false* indicates that there are more transactions to fetch using batch call. *true* if batch call reached the end of the transaction list.
+* *next_out_id* - Integer; used as *<start_out_id>* for subsequent batch calls.
+* *status* - String; status message ("OK" = success, failed otherwise).
+* *txs* - Array[String]; transaction hashes.

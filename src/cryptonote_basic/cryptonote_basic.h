@@ -56,6 +56,15 @@ namespace cryptonote
 {
   typedef std::vector<crypto::signature> ring_signature;
 
+  struct address_outputs
+  {
+    uint64_t out_id;
+    crypto::hash tx_hash;
+    uint64_t relative_out_index;
+    uint64_t amount;
+    bool spent;
+  };
+
   struct account_public_address
   {
     crypto::public_key m_spend_public_key;

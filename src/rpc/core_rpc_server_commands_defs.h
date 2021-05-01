@@ -1565,6 +1565,40 @@ namespace cryptonote
     typedef epee::misc_utils::struct_init<response_t> response;
   };
 
+  struct COMMAND_RPC_GET_ADDRESS_BATCH_HISTORY
+  {
+    struct request_t
+    {
+      std::string etn_address;
+      uint64_t start_out_id;
+      uint64_t batch_size;
+      bool desc;
+      BEGIN_KV_SERIALIZE_MAP()
+        KV_SERIALIZE(etn_address)
+        KV_SERIALIZE(start_out_id)
+        KV_SERIALIZE(batch_size)
+        KV_SERIALIZE_OPT(desc, false);
+      END_KV_SERIALIZE_MAP()
+    };
+    typedef epee::misc_utils::struct_init<request_t> request;
+
+    struct response_t
+    {
+      std::string status;
+      uint64_t next_out_id;
+      bool last_page;
+      std::vector<std::string> txs;
+      
+      BEGIN_KV_SERIALIZE_MAP()
+        KV_SERIALIZE(status)
+        KV_SERIALIZE(next_out_id)
+        KV_SERIALIZE(last_page)
+        KV_SERIALIZE(txs)
+      END_KV_SERIALIZE_MAP()
+    };
+    typedef epee::misc_utils::struct_init<response_t> response;
+  };
+
   struct COMMAND_RPC_GET_CONNECTIONS
   {
     struct request_t

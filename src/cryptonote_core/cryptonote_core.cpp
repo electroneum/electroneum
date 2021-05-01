@@ -2023,6 +2023,12 @@ namespace cryptonote
     return m_blockchain_storage.get_db().get_balance(combined_key);
   }
   //-----------------------------------------------------------------------------------------------
+  std::vector<address_outputs> core::get_address_batch_history(const address_parse_info &addr, const uint64_t &start_tx_id, const uint64_t &batch_size, bool desc)
+  {
+    crypto::public_key combined_key = crypto::addKeys(addr.address.m_view_public_key, addr.address.m_spend_public_key);
+    return m_blockchain_storage.get_db().get_addr_output_batch(combined_key, start_tx_id, batch_size, desc);
+  }
+  //-----------------------------------------------------------------------------------------------
   void core::graceful_exit()
   {
     raise(SIGTERM);

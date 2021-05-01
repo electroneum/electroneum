@@ -1770,6 +1770,47 @@ namespace cryptonote
     return true;
   }
   //------------------------------------------------------------------------------------------------------------------------------
+  bool core_rpc_server::on_get_address_batch_history(const COMMAND_RPC_GET_ADDRESS_BATCH_HISTORY::request& req, COMMAND_RPC_GET_ADDRESS_BATCH_HISTORY::response& res, const connection_context *ctx)
+  {
+    PERF_TIMER(on_get_address_batch_history);
+    CHECK_CORE_READY();
+
+    if (req.etn_address.empty())
+    {
+      res.status = "Failed: Request attribute <etn_address> is mandatory.";
+      return true;
+    }
+
+    address_parse_info addr_info;
+    if(!get_account_address_from_str(addr_info, nettype(), req.etn_address))
+    {
+      res.status = "Failed: can't parse address from <etn_address> = " + req.etn_address;
+      return true;
+    }
+
+    std::vector<address_outputs> outs = m_core.get_address_batch_history(addr_info, req.start_out_id, req.batch_size, req.desc);
+
+    if(!outs.empty() && outs.size() > req.batch_size) 
+    {
+      res.next_out_id = outs.at(outs.size() - 1).out_id;
+      res.last_page = false;
+      outs.pop_back();
+    }
+    else
+    {
+      res.last_page = true;
+    }
+
+    for(auto out: outs)
+    {
+      res.txs.push_back(epee::string_tools::pod_to_hex(out.tx_hash));
+    }
+
+    res.status = "OK";
+
+    return true;
+  }
+  //------------------------------------------------------------------------------------------------------------------------------
   bool core_rpc_server::on_get_connections(const COMMAND_RPC_GET_CONNECTIONS::request& req, COMMAND_RPC_GET_CONNECTIONS::response& res, epee::json_rpc::error& error_resp, const connection_context *ctx)
   {
     PERF_TIMER(on_get_connections);

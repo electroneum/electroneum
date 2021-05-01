@@ -2007,7 +2007,7 @@ void BlockchainLMDB::add_addr_output(const crypto::hash tx_hash, const uint32_t 
 
 }
 
-std::vector<address_outputs> BlockchainLMDB::get_addr_output(const crypto::public_key& combined_key)
+std::vector<address_outputs> BlockchainLMDB::get_addr_output_all(const crypto::public_key& combined_key)
 {
   LOG_PRINT_L3("BlockchainLMDB::" << __func__);
   check_open();
@@ -2033,12 +2033,72 @@ std::vector<address_outputs> BlockchainLMDB::get_addr_output(const crypto::publi
     const acc_outs_t res = *(const acc_outs_t *) v.mv_data;
 
     cryptonote::address_outputs addr_out;
+    addr_out.out_id = res.db_index;
     addr_out.tx_hash = res.tx_hash;
     addr_out.relative_out_index = res.relative_out_index;
     addr_out.amount = res.amount;
     addr_out.spent = !check_chainstate_utxo(res.tx_hash, res.relative_out_index);
 
     address_outputs.push_back(addr_out);
+
+  }
+
+  TXN_POSTFIX_RDONLY();
+
+  return address_outputs;
+}
+
+std::vector<address_outputs> BlockchainLMDB::get_addr_output_batch(const crypto::public_key& combined_key, uint64_t start_db_index, uint64_t batch_size, bool desc)
+{
+  LOG_PRINT_L3("BlockchainLMDB::" << __func__);
+  check_open();
+
+  TXN_PREFIX_RDONLY();
+  RCURSOR(addr_outputs);
+
+  std::vector<address_outputs> address_outputs;
+
+  MDB_val k = {sizeof(combined_key), (void *)&combined_key};
+
+  MDB_cursor_op op;
+  if (start_db_index)
+    op = MDB_GET_BOTH;
+  else
+  {
+    op = desc ? MDB_LAST : MDB_SET_KEY;
+  }
+
+  std::set<std::string> tx_hashes;
+  for(auto i = 0; i < batch_size + 1; ++i) {
+    MDB_val v;
+    if(op == MDB_GET_BOTH)
+      v = MDB_val{sizeof(start_db_index), (void*)&start_db_index};
+
+    int ret = mdb_cursor_get(m_cur_addr_outputs, &k, &v, op);
+    op = desc ? MDB_PREV_DUP : MDB_NEXT_DUP;
+    if (ret == MDB_NOTFOUND)
+      break;
+    if (ret)
+      throw0(DB_ERROR("Failed to enumerate address outputs"));
+
+    const acc_outs_t res = *(const acc_outs_t *) v.mv_data;
+
+    std::string tx_hash_hex = epee::string_tools::pod_to_hex(res.tx_hash);
+    if(tx_hashes.find(tx_hash_hex) != tx_hashes.end())
+    {
+      --i;
+      continue;
+    }
+
+    cryptonote::address_outputs addr_out;
+    addr_out.out_id = res.db_index;
+    addr_out.tx_hash = res.tx_hash;
+    addr_out.relative_out_index = res.relative_out_index;
+    addr_out.amount = res.amount;
+    addr_out.spent = !check_chainstate_utxo(res.tx_hash, res.relative_out_index);
+
+    address_outputs.push_back(addr_out);
+    tx_hashes.emplace(tx_hash_hex);
 
   }
 
