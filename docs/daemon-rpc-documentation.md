@@ -2311,3 +2311,22 @@ Outputs:
 * *next_out_id* - Integer; used as *<start_out_id>* for subsequent batch calls.
 * *status* - String; status message ("OK" = success, failed otherwise).
 * *txs* - Array[String]; transaction hashes.
+
+Example:
+
+```
+$ curl -X POST http://127.0.0.1:26968/get_balance -d '{ "etn_address":"etnk8pVxq9ENz9zt4os1QGJGACaspA7wYSPrDJZMutMxBjYdZ66JGE1SBf2Ydf466LDdYLsL51sToKsko4oG73HR95AUqH8N4R", "start_out_id": 0, "batch_size": 5, "desc": false }' -H 'Content-Type: application/json'
+
+{
+    "last_page": false,
+    "next_out_id": 5,
+    "status": "OK",
+    "txs": [
+        "80d169e7ccbb89ebc43ed8a0d3164ea94e9359c3b59bb23a9df4c261ea47d7bc",
+        "8055358615cf3329a8faddfbcc103c287e03a9dd9497cdc18ef1406eb0b49f27",
+        "337a360cddc1defb1089f0fb9765d978581ffd5f26050c82bc900a7360cbb2e0",
+        "44d80705e40cea37cbc443860cbbfea357bab0f1f20f2bef9a491d048df4ec22",
+        "4c2cdfa290a356a07b8412a1fbe316d5b074c9c6d15a96a59bee922a70c294a9"
+    ]
+}
+```
