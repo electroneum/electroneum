@@ -2059,18 +2059,21 @@ std::vector<address_outputs> BlockchainLMDB::get_addr_output_batch(const crypto:
   std::vector<address_outputs> address_outputs;
 
   MDB_val k = {sizeof(combined_key), (void *)&combined_key};
+  MDB_val v;
 
   MDB_cursor_op op;
   if (start_db_index)
     op = MDB_GET_BOTH;
   else
   {
-    op = desc ? MDB_LAST : MDB_SET_KEY;
+    op = desc ? MDB_LAST_DUP : MDB_FIRST_DUP;
+    int result = mdb_cursor_get(m_cur_addr_outputs, &k, &v, MDB_SET_KEY);
+    if (result != 0 && result != MDB_NOTFOUND)
+      throw1(DB_ERROR(lmdb_error("Failed to enumerate address outputs", result).c_str()));
   }
 
   std::set<std::string> tx_hashes;
   for(auto i = 0; i < batch_size + 1; ++i) {
-    MDB_val v;
     if(op == MDB_GET_BOTH)
       v = MDB_val{sizeof(start_db_index), (void*)&start_db_index};
 
@@ -2099,11 +2102,9 @@ std::vector<address_outputs> BlockchainLMDB::get_addr_output_batch(const crypto:
 
     address_outputs.push_back(addr_out);
     tx_hashes.emplace(tx_hash_hex);
-
   }
 
   TXN_POSTFIX_RDONLY();
-
   return address_outputs;
 }
 

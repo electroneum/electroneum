@@ -1788,26 +1788,33 @@ namespace cryptonote
       return true;
     }
 
-    std::vector<address_outputs> outs = m_core.get_address_batch_history(addr_info, req.start_out_id, req.batch_size, req.desc);
-
-    if(!outs.empty() && outs.size() > req.batch_size) 
+    try
     {
-      res.next_out_id = outs.at(outs.size() - 1).out_id;
-      res.last_page = false;
-      outs.pop_back();
+      std::vector<address_outputs> outs = m_core.get_address_batch_history(addr_info, req.start_out_id, req.batch_size, req.desc);
+      if(!outs.empty() && outs.size() > req.batch_size) 
+      {
+        res.next_out_id = outs.at(outs.size() - 1).out_id;
+        res.last_page = false;
+        outs.pop_back();
+      }
+      else
+      {
+        res.last_page = true;
+      }
+
+      for(auto out: outs)
+      {
+        res.txs.push_back(epee::string_tools::pod_to_hex(out.tx_hash));
+      }
+
+      res.status = "OK";
     }
-    else
+    catch(const std::exception& e)
     {
-      res.last_page = true;
+      res.status = "Failed: " + std::string(e.what());
+      return true;
     }
-
-    for(auto out: outs)
-    {
-      res.txs.push_back(epee::string_tools::pod_to_hex(out.tx_hash));
-    }
-
-    res.status = "OK";
-
+    
     return true;
   }
   //------------------------------------------------------------------------------------------------------------------------------
