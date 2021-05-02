@@ -189,13 +189,15 @@ namespace cryptonote
   //---------------------------------------------------------------
   bool is_v1_tx(const blobdata_ref& tx_blob)
   {
+    //TODO: Public - assure return true. Build logic for prunable v2/v3 tx data later.
+    return true;
+
     uint64_t version;
     const char* begin = static_cast<const char*>(tx_blob.data());
     const char* end = begin + tx_blob.size();
     int read = tools::read_varint(begin, end, version);
     if (read <= 0)
       throw std::runtime_error("Internal error getting transaction version");
-    return version <= 1;
   }
   //---------------------------------------------------------------
   bool is_v1_tx(const blobdata& tx_blob)
@@ -756,6 +758,18 @@ namespace cryptonote
   bool check_inputs_overflow(const transaction& tx)
   {
     uint64_t etn = 0;
+    if(tx.version >= 3)
+    {
+      for(const auto& in: tx.vin)
+      {
+        CHECKED_GET_SPECIFIC_VARIANT(in, const txin_to_key_public, tokey_in, false);
+        if(etn > tokey_in.amount + etn)
+          return false;
+        etn += tokey_in.amount;
+      }
+      return true;
+    }
+
     for(const auto& in: tx.vin)
     {
       CHECKED_GET_SPECIFIC_VARIANT(in, const txin_to_key, tokey_in, false);

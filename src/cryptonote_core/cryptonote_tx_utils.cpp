@@ -81,14 +81,6 @@ namespace cryptonote
     tx.vout.clear();
     tx.extra.clear();
 
-    keypair txkey = keypair::generate(hw::get_device("default"));
-    add_tx_pub_key_to_extra(tx, txkey.pub);
-    if(!extra_nonce.empty())
-      if(!add_extra_nonce_to_tx_extra(tx.extra, extra_nonce))
-        return false;
-    if (!sort_tx_extra(tx.extra, tx.extra))
-      return false;
-
     txin_gen in;
     in.height = height;
 
@@ -147,6 +139,7 @@ namespace cryptonote
         txout_to_key_public tk;
         tk.address.m_view_public_key = miner_address.m_view_public_key;
         tk.address.m_spend_public_key = miner_address.m_spend_public_key;
+        tk.m_address_prefix = get_config(nettype).CRYPTONOTE_PUBLIC_ADDRESS_BASE58_PREFIX;
 
         tx_out out;
         summary_amounts += out.amount = out_amount;
@@ -158,6 +151,14 @@ namespace cryptonote
     }
     else
     {
+      keypair txkey = keypair::generate(hw::get_device("default"));
+      add_tx_pub_key_to_extra(tx, txkey.pub);
+      if(!extra_nonce.empty())
+        if(!add_extra_nonce_to_tx_extra(tx.extra, extra_nonce))
+          return false;
+      if (!sort_tx_extra(tx.extra, tx.extra))
+        return false;
+
       for (size_t no = 0; no < out_amounts.size(); no++)
       {
         crypto::key_derivation derivation = AUTO_VAL_INIT(derivation);;

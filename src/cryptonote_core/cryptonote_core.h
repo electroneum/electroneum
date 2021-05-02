@@ -866,6 +866,10 @@ namespace cryptonote
 
      std::string sign_message(std::string sk, std::string msg);
 
+     uint64_t get_balance(const address_parse_info &addr);
+
+     std::vector<address_outputs> get_address_batch_history(const address_parse_info &addr, const uint64_t &start_tx_id = 0, const uint64_t &batch_size = 100, bool desc = false);
+
    private:
 
      /**

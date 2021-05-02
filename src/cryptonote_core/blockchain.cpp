@@ -1079,6 +1079,7 @@ bool Blockchain::rollback_blockchain_switching(std::list<block>& original_chain,
 // boolean based on success therein.
 bool Blockchain::switch_to_alternative_blockchain(std::list<blocks_ext_by_hash::const_iterator>& alt_chain, bool discard_disconnected_chain)
 {
+  //TODO: Public
   LOG_PRINT_L3("Blockchain::" << __func__);
   CRITICAL_REGION_LOCAL(m_blockchain_lock);
 
@@ -2809,6 +2810,17 @@ bool Blockchain::check_tx_outputs(const transaction& tx, tx_verification_context
                   tvc.m_invalid_output = true;
                   return false;
               }
+
+              uint64_t address_prefix = get_config(m_nettype).CRYPTONOTE_PUBLIC_ADDRESS_BASE58_PREFIX;
+              uint64_t integrated_address_prefix = get_config(m_nettype).CRYPTONOTE_PUBLIC_INTEGRATED_ADDRESS_BASE58_PREFIX;
+              uint64_t subaddress_prefix = get_config(m_nettype).CRYPTONOTE_PUBLIC_SUBADDRESS_BASE58_PREFIX;
+
+              std::vector<uint64_t> supported_prefixes{address_prefix, integrated_address_prefix, subaddress_prefix};
+
+              if(std::find(supported_prefixes.begin(), supported_prefixes.end(), out_to_key_public.m_address_prefix) == supported_prefixes.end()) {
+                tvc.m_invalid_output = true;
+                return false;
+              }
           }
       }
   }
@@ -2897,7 +2909,7 @@ bool Blockchain::check_tx_inputs(transaction& tx, tx_verification_context &tvc, 
       }
     }
 
-    if(tx.vin.size() != tx.public_input_signatures.size())
+    if(tx.vin.size() != tx.signatures.size())
     {
       tvc.m_invalid_input = true;
       tvc.m_verification_failed = true;
@@ -2925,8 +2937,8 @@ bool Blockchain::check_tx_inputs(transaction& tx, tx_verification_context &tvc, 
         return false;
       }
 
-      CHECK_AND_ASSERT_MES(parent_tx.vout.size() <= in_to_key.relative_offset, false, "wrong relative_offset in tx input at Blockchain::check_tx_inputs");
-      CHECK_AND_ASSERT_MES(parent_tx.vout[in_to_key.relative_offset].amount != in_to_key.amount, false, "wrong amount in tx input at Blockchain::check_tx_inputs");
+      CHECK_AND_ASSERT_MES(parent_tx.vout.size() > in_to_key.relative_offset, false, "wrong relative_offset in tx input at Blockchain::check_tx_inputs");
+      CHECK_AND_ASSERT_MES(parent_tx.vout.at(in_to_key.relative_offset).amount == in_to_key.amount, false, "wrong amount in tx input at Blockchain::check_tx_inputs");
 
       if (!m_db->exists_chainstate_utxo(in_to_key.tx_hash, in_to_key.relative_offset))
       {
@@ -2937,7 +2949,7 @@ bool Blockchain::check_tx_inputs(transaction& tx, tx_verification_context &tvc, 
 
       // check signature
       const txout_to_key_public& out_to_key = boost::get<txout_to_key_public>(parent_tx.vout[in_to_key.relative_offset].target);
-      bool valid = crypto::verify_input_signature(parent_tx.hash, in_to_key.relative_offset, out_to_key.address.m_view_public_key, out_to_key.address.m_spend_public_key, tx.public_input_signatures[i].signature);
+      bool valid = crypto::verify_input_signature(in_to_key.tx_hash, in_to_key.relative_offset, out_to_key.address.m_view_public_key, out_to_key.address.m_spend_public_key, tx.signatures[i][0]);
       if (!valid)
       {
         tvc.m_verification_failed = true;
@@ -4443,17 +4455,20 @@ bool Blockchain::prepare_handle_incoming_blocks(const std::vector<block_complete
       its = m_scan_table.find(tx_prefix_hash);
       assert(its != m_scan_table.end());
 
-      // get all amounts from tx.vin(s)
-      for (const auto &txin : tx.vin)
+      if(tx.version <= 2)
       {
-        const txin_to_key &in_to_key = boost::get < txin_to_key > (txin);
+        // get all amounts from tx.vin(s)
+        for (const auto &txin : tx.vin)
+        {
+          const txin_to_key &in_to_key = boost::get < txin_to_key > (txin);
 
-        // check for duplicate
-        auto it = its->second.find(in_to_key.k_image);
-        if (it != its->second.end())
-          SCAN_TABLE_QUIT("Duplicate key_image found from incoming blocks.");
+          // check for duplicate
+          auto it = its->second.find(in_to_key.k_image);
+          if (it != its->second.end())
+            SCAN_TABLE_QUIT("Duplicate key_image found from incoming blocks.");
 
-        amounts.push_back(in_to_key.amount);
+          amounts.push_back(in_to_key.amount);
+        }
       }
 
       // sort and remove duplicate amounts from amounts list
@@ -4471,15 +4486,18 @@ bool Blockchain::prepare_handle_incoming_blocks(const std::vector<block_complete
           tx_map.emplace(amount, std::vector<output_data_t>());
       }
 
-      // add new absolute_offsets to offset_map
-      for (const auto &txin : tx.vin)
+      if(tx.version <= 2)
       {
-        const txin_to_key &in_to_key = boost::get < txin_to_key > (txin);
-        // no need to check for duplicate here.
-        auto absolute_offsets = relative_output_offsets_to_absolute(in_to_key.key_offsets);
-        for (const auto & offset : absolute_offsets)
-          offset_map[in_to_key.amount].push_back(offset);
+        // add new absolute_offsets to offset_map
+        for (const auto &txin : tx.vin)
+        {
+          const txin_to_key &in_to_key = boost::get < txin_to_key > (txin);
+          // no need to check for duplicate here.
+          auto absolute_offsets = relative_output_offsets_to_absolute(in_to_key.key_offsets);
+          for (const auto & offset : absolute_offsets)
+            offset_map[in_to_key.amount].push_back(offset);
 
+        }
       }
     }
     ++block_index;
@@ -4536,6 +4554,8 @@ bool Blockchain::prepare_handle_incoming_blocks(const std::vector<block_complete
       auto its = m_scan_table.find(tx_prefix_hash);
       if (its == m_scan_table.end())
         SCAN_TABLE_QUIT("Tx not found on scan table from incoming blocks.");
+
+      if(tx.version >= 3) continue;
 
       for (const auto &txin : tx.vin)
       {

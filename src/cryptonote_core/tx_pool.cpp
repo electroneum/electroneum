@@ -46,6 +46,7 @@
 #include "warnings.h"
 #include "common/perf_timer.h"
 #include "crypto/hash.h"
+#include "string_tools.h"
 
 #undef ELECTRONEUM_DEFAULT_LOG_CATEGORY
 #define ELECTRONEUM_DEFAULT_LOG_CATEGORY "txpool"
@@ -155,7 +156,7 @@ namespace cryptonote
     }
 
     // fee per kilobyte, size rounded up.
-    uint64_t fee;
+    uint64_t fee = 0;
 
     uint64_t inputs_amount = 0;
     if(!get_inputs_etn_amount(tx, inputs_amount))
@@ -172,7 +173,7 @@ namespace cryptonote
       tvc.m_overspend = true;
       return false;
     }
-    else if(outputs_amount == inputs_amount)
+    else if(tx.version != 2 && outputs_amount == inputs_amount)
     {
       LOG_PRINT_L1("transaction fee is zero: outputs_amount == inputs_amount, rejecting.");
       tvc.m_verification_failed = true;
@@ -181,6 +182,13 @@ namespace cryptonote
     }
 
     fee = inputs_amount - outputs_amount;
+
+    if(tx.version == 2 && fee != 0) //Assure 0 fee tx v2 (migration tx)
+    {
+      LOG_PRINT_L1("transaction v2 fee is greater than zero, rejecting.");
+      tvc.m_verification_failed = true;
+      return false;
+    }
 
     if (!kept_by_block && !m_blockchain.check_fee(tx_weight, fee))
     {
@@ -268,7 +276,7 @@ namespace cryptonote
           CRITICAL_REGION_LOCAL1(m_blockchain);
           LockedTXN lock(m_blockchain);
           m_blockchain.add_txpool_tx(id, blob, meta);
-          if (!insert_key_images(tx, id, kept_by_block))
+          if ((tx.version <= 2 && !insert_key_images(tx, id, kept_by_block)) || (tx.version >= 3 && !insert_utxos(tx, id, kept_by_block)))
             return false;
           m_txs_by_fee_and_receive_time.emplace(std::pair<double, std::time_t>(fee / (double)tx_weight, receive_time), id);
           lock.commit();
@@ -314,7 +322,7 @@ namespace cryptonote
         LockedTXN lock(m_blockchain);
         m_blockchain.remove_txpool_tx(id);
         m_blockchain.add_txpool_tx(id, blob, meta);
-        if (!insert_key_images(tx, id, kept_by_block))
+        if ((tx.version <= 2 && !insert_key_images(tx, id, kept_by_block)) || (tx.version >= 3 && !insert_utxos(tx, id, kept_by_block)))
           return false;
         m_txs_by_fee_and_receive_time.emplace(std::pair<double, std::time_t>(fee / (double)tx_weight, receive_time), id);
         lock.commit();
@@ -326,7 +334,7 @@ namespace cryptonote
       }
       tvc.m_added_to_pool = true;
 
-      if(meta.fee > 0 && !do_not_relay)
+      if(meta.fee >= 0 && !do_not_relay)
         tvc.m_should_be_relayed = true;
     }
 
@@ -445,9 +453,7 @@ namespace cryptonote
     for(const auto& in: tx.vin)
     {
       CHECKED_GET_SPECIFIC_VARIANT(in, const txin_to_key_public, txin, false);
-      std::string txin_key = std::to_string(0x43) //CHAINSTATE_UTXO_BYTE_PREFIX
-                             + std::string(txin.tx_hash.data)
-                             + tools::get_varint_data(txin.relative_offset);
+      std::string txin_key = epee::string_tools::buff_to_hex_nodelimer(t_serializable_object_to_blob(txin));
       std::unordered_set<crypto::hash>& utxo_set = m_spent_utxos[txin_key];
       CHECK_AND_ASSERT_MES(kept_by_block || utxo_set.size() == 0, false, "internal error: kept_by_block=" << kept_by_block
                                                                                                           << ",  utxo_set.size()=" << utxo_set.size() << ENDL << "txin=" << txin_key << ENDL
@@ -494,9 +500,7 @@ namespace cryptonote
       {
         const auto &txin = boost::get<txin_to_key_public>(vi);
 
-        std::string txin_key = std::to_string(0x43) //CHAINSTATE_UTXO_BYTE_PREFIX
-                               + std::string(txin.tx_hash.data)
-                               + tools::get_varint_data(txin.relative_offset);
+        std::string txin_key = epee::string_tools::buff_to_hex_nodelimer(t_serializable_object_to_blob(txin));
 
         auto it = m_spent_utxos.find(txin_key);
         CHECK_AND_ASSERT_MES(it != m_spent_utxos.end(), false, "failed to find transaction input in utxos. utxo=" << txin_key << ENDL
@@ -666,7 +670,7 @@ namespace cryptonote
     txs.reserve(m_blockchain.get_txpool_tx_count());
     m_blockchain.for_all_txpool_txes([this, now, &txs](const crypto::hash &txid, const txpool_tx_meta_t &meta, const cryptonote::blobdata *){
       // 0 fee transactions are never relayed
-      if(meta.fee > 0 && !meta.do_not_relay && now - meta.last_relayed_time > get_relay_delay(now, meta.receive_time))
+      if(meta.fee >= 0 && !meta.do_not_relay && now - meta.last_relayed_time > get_relay_delay(now, meta.receive_time))
       {
         // if the tx is older than half the max lifetime, we don't re-relay it, to avoid a problem
         // mentioned by smooth where nodes would flush txes at slightly different times, causing
@@ -1067,9 +1071,7 @@ namespace cryptonote
   bool tx_memory_pool::have_tx_utxo_as_spent(const txin_to_key_public& in) const
   {
     CRITICAL_REGION_LOCAL(m_transactions_lock);
-    std::string txin_key = std::to_string(0x43) //CHAINSTATE_UTXO_BYTE_PREFIX
-                               + std::string(in.tx_hash.data)
-                               + tools::get_varint_data(in.relative_offset);
+    std::string txin_key = epee::string_tools::buff_to_hex_nodelimer(t_serializable_object_to_blob(in));
     return m_spent_utxos.end() != m_spent_utxos.find(txin_key);
   }
   //---------------------------------------------------------------------------------
@@ -1210,9 +1212,7 @@ namespace cryptonote
       if(tx.vin[i].type() == typeid(txin_to_key_public))
       {
         const auto &itk = boost::get<txin_to_key_public>(tx.vin[i]);
-        std::string txin_key = std::to_string(0x43) //CHAINSTATE_UTXO_BYTE_PREFIX
-                               + std::string(itk.tx_hash.data)
-                               + tools::get_varint_data(itk.relative_offset);
+        std::string txin_key = epee::string_tools::buff_to_hex_nodelimer(t_serializable_object_to_blob(itk));
         if(utxos.count(txin_key))
           return true;
       }
@@ -1229,9 +1229,7 @@ namespace cryptonote
       {
         const auto &itk = boost::get<txin_to_key_public>(tx.vin[i]);
 
-        std::string txin_key = std::to_string(0x43) //CHAINSTATE_UTXO_BYTE_PREFIX
-                               + std::string(itk.tx_hash.data)
-                               + tools::get_varint_data(itk.relative_offset);
+        std::string txin_key = epee::string_tools::buff_to_hex_nodelimer(t_serializable_object_to_blob(itk));
         auto i_res = utxos.insert(txin_key);
         CHECK_AND_ASSERT_MES(i_res.second, false, "internal error: utxo pool cache - inserted duplicate image in set: " << txin_key);
       }
@@ -1283,9 +1281,7 @@ namespace cryptonote
       else if (tx.vin[i].type() == typeid(txin_to_key_public))
       {
         CHECKED_GET_SPECIFIC_VARIANT(tx.vin[i], const txin_to_key_public, itk, void());
-        std::string txin_key = std::to_string(0x43) //CHAINSTATE_UTXO_BYTE_PREFIX
-                               + std::string(itk.tx_hash.data)
-                               + tools::get_varint_data(itk.relative_offset);
+        std::string txin_key = epee::string_tools::buff_to_hex_nodelimer(t_serializable_object_to_blob(itk));
         const utxos_container::const_iterator it = m_spent_utxos.find(txin_key);
         if (it != m_spent_utxos.end())
         {

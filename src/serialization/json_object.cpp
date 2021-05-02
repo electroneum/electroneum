@@ -503,12 +503,23 @@ void toJsonValue(rapidjson::Document& doc, const cryptonote::txout_to_key& txout
   INSERT_INTO_JSON_OBJECT(val, doc, key, txout.key);
 }
 
+void fromJsonValue(const rapidjson::Value& val, cryptonote::txout_to_key_public& txout)
+{
+  if (!val.IsObject())
+  {
+    throw WRONG_TYPE("json object");
+  }
+
+  GET_FROM_JSON_OBJECT(val, txout.m_address_prefix, prefix);
+  GET_FROM_JSON_OBJECT(val, txout.address, address);
+}
+
 void toJsonValue(rapidjson::Document& doc, const cryptonote::txout_to_key_public& txout, rapidjson::Value& val)
 {
   val.SetObject();
 
-  INSERT_INTO_JSON_OBJECT(val, doc, spub, txout.address.m_spend_public_key);
-  INSERT_INTO_JSON_OBJECT(val, doc, vpub, txout.address.m_view_public_key);
+  INSERT_INTO_JSON_OBJECT(val, doc, prefix, txout.m_address_prefix);
+  INSERT_INTO_JSON_OBJECT(val, doc, address, txout.address);
 }
 
 void fromJsonValue(const rapidjson::Value& val, cryptonote::txout_to_key& txout)
@@ -519,16 +530,6 @@ void fromJsonValue(const rapidjson::Value& val, cryptonote::txout_to_key& txout)
   }
 
   GET_FROM_JSON_OBJECT(val, txout.key, key);
-}
-
-void fromJsonValue(const rapidjson::Value& val, cryptonote::txout_to_key_public& txout)
-{
-  if (!val.IsObject())
-  {
-      throw WRONG_TYPE("json object");
-  }
-
-  GET_FROM_JSON_OBJECT(val, txout.address, address);
 }
 
 void toJsonValue(rapidjson::Document& doc, const cryptonote::tx_out& txout, rapidjson::Value& val)

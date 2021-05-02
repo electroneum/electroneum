@@ -110,11 +110,6 @@ namespace crypto {
     friend class crypto_ops;
   };
 
-  POD_CLASS input_signature{
-      ed25519_signature signature;
-      friend class crypto_ops;
-  };
-
 #pragma pack(pop)
 
   void hash_to_scalar(const void *data, size_t length, ec_scalar &res);
@@ -172,10 +167,10 @@ namespace crypto {
     friend bool check_tx_proof(const hash &, const public_key &, const public_key &, const boost::optional<public_key> &, const public_key &, const signature &);
     static void generate_key_image(const public_key &, const secret_key &, key_image &);
     friend void generate_key_image(const public_key &, const secret_key &, key_image &);
-    static void generate_input_signatures(const hash &prefix_hash, const uint32_t numInputs, const secret_key sec_view, const secret_key sec_spend, std::vector<input_signature>& signatures);
-    friend void generate_input_signatures(const hash &prefix_hash, const uint32_t numInputs, const secret_key sec_view, const secret_key sec_spend, std::vector<input_signature>& signatures);
-    static bool verify_input_signature(const hash &prefix_hash,const uint32_t relative_input_index, const public_key pub_view, const public_key pub_spend, ed25519_signature signature);
-    friend bool verify_input_signature(const hash &prefix_hash,const uint32_t relative_input_index, const public_key pub_view, const public_key pub_spend, ed25519_signature signature);
+    static void generate_input_signature(const hash prefix_hash, const uint32_t out_index, const secret_key sec_view, const secret_key sec_spend, signature &sig);
+    friend void generate_input_signature(const hash prefix_hash, const uint32_t out_index, const secret_key sec_view, const secret_key sec_spend, signature &sig);
+    static bool verify_input_signature(const hash &prefix_hash,const uint32_t relative_input_index, const public_key pub_view, const public_key pub_spend, signature sig);
+    friend bool verify_input_signature(const hash &prefix_hash,const uint32_t relative_input_index, const public_key pub_view, const public_key pub_spend, signature sig);
     static public_key addKeys(const public_key &A, const public_key &B);
     friend public_key addKeys(const public_key &A, const public_key &B);
     static secret_key addSecretKeys(const secret_key &A, const secret_key &B);
@@ -299,8 +294,12 @@ namespace crypto {
     return crypto_ops::check_signature(prefix_hash, pub, sig);
   }
 
-  inline bool verify_input_signature(const hash &prefix_hash,const uint32_t relative_input_index, const public_key pub_view, const public_key pub_spend, ed25519_signature signature) {
-    return crypto_ops::verify_input_signature(prefix_hash, relative_input_index, pub_view, pub_spend, signature);
+  inline void generate_input_signature(const hash prefix_hash, const uint32_t out_index, const secret_key sec_view, const secret_key sec_spend, signature &sig){
+    return crypto_ops::generate_input_signature(prefix_hash, out_index, sec_view, sec_spend, sig);
+  }
+
+  inline bool verify_input_signature(const hash &prefix_hash,const uint32_t relative_input_index, const public_key pub_view, const public_key pub_spend, signature sig) {
+    return crypto_ops::verify_input_signature(prefix_hash, relative_input_index, pub_view, pub_spend, sig);
   }
 
   /* Generation and checking of a tx proof; given a tx pubkey R, the recipient's view pubkey A, and the key 
@@ -333,10 +332,6 @@ namespace crypto {
     const public_key *const *pubs, std::size_t pubs_count,
     const signature *sig) {
     return crypto_ops::check_ring_signature(prefix_hash, image, pubs, pubs_count, sig);
-  }
-
-  inline void generate_input_signatures(const hash &prefix_hash, const uint32_t numInputs, const secret_key sec_view, const secret_key sec_spend, std::vector<input_signature>& signatures){
-      generate_input_signatures(prefix_hash, numInputs, sec_view, sec_spend, signatures);
   }
 
   inline public_key addKeys(const public_key &A, const public_key &B) {

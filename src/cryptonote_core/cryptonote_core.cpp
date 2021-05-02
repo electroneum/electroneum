@@ -921,57 +921,6 @@ namespace cryptonote
         tx_info[n].result = false;
         continue;
       }
-
-      if (tx_info[n].tx->version < 2)
-        continue;
-      const rct::rctSig &rv = tx_info[n].tx->rct_signatures;
-      switch (rv.type) {
-        case rct::RCTTypeNull:
-          // coinbase should not come here, so we reject for all other types
-          MERROR_VER("Unexpected Null rctSig type");
-          set_semantics_failed(tx_info[n].tx_hash);
-          tx_info[n].tvc.m_verification_failed = true;
-          tx_info[n].result = false;
-          break;
-        case rct::RCTTypeSimple:
-          if (!rct::verRctSemanticsSimple(rv))
-          {
-            MERROR_VER("rct signature semantics check failed");
-            set_semantics_failed(tx_info[n].tx_hash);
-            tx_info[n].tvc.m_verification_failed = true;
-            tx_info[n].result = false;
-            break;
-          }
-          break;
-        case rct::RCTTypeFull:
-          if (!rct::verRct(rv, true))
-          {
-            MERROR_VER("rct signature semantics check failed");
-            set_semantics_failed(tx_info[n].tx_hash);
-            tx_info[n].tvc.m_verification_failed = true;
-            tx_info[n].result = false;
-            break;
-          }
-          break;
-        case rct::RCTTypeBulletproof:
-        case rct::RCTTypeBulletproof2:
-          if (!is_canonical_bulletproof_layout(rv.p.bulletproofs))
-          {
-            MERROR_VER("Bulletproof does not have canonical form");
-            set_semantics_failed(tx_info[n].tx_hash);
-            tx_info[n].tvc.m_verification_failed = true;
-            tx_info[n].result = false;
-            break;
-          }
-          rvv.push_back(&rv); // delayed batch verification
-          break;
-        default:
-          MERROR_VER("Unknown rct type: " << rv.type);
-          set_semantics_failed(tx_info[n].tx_hash);
-          tx_info[n].tvc.m_verification_failed = true;
-          tx_info[n].result = false;
-          break;
-      }
     }
     if (!rvv.empty() && !rct::verRctSemanticsSimple(rvv))
     {
@@ -2066,6 +2015,18 @@ namespace cryptonote
   std::string core::sign_message(std::string sk, std::string msg) {
     std::string b_str = crypto::sign_message(msg, sk);
     return boost::algorithm::hex(b_str);
+  }
+  //-----------------------------------------------------------------------------------------------
+  uint64_t core::get_balance(const address_parse_info &addr)
+  {
+    crypto::public_key combined_key = crypto::addKeys(addr.address.m_view_public_key, addr.address.m_spend_public_key);
+    return m_blockchain_storage.get_db().get_balance(combined_key);
+  }
+  //-----------------------------------------------------------------------------------------------
+  std::vector<address_outputs> core::get_address_batch_history(const address_parse_info &addr, const uint64_t &start_tx_id, const uint64_t &batch_size, bool desc)
+  {
+    crypto::public_key combined_key = crypto::addKeys(addr.address.m_view_public_key, addr.address.m_spend_public_key);
+    return m_blockchain_storage.get_db().get_addr_output_batch(combined_key, start_tx_id, batch_size, desc);
   }
   //-----------------------------------------------------------------------------------------------
   void core::graceful_exit()

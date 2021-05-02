@@ -125,7 +125,6 @@ namespace cryptonote
     , std::string const & genesis_tx
     , uint32_t nonce
     );
-
 }
 
 BOOST_CLASS_VERSION(cryptonote::tx_source_entry, 1)

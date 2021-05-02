@@ -139,9 +139,12 @@ void BlockchainDB::add_transaction(const crypto::hash& blk_hash, const std::pair
     tx_hash = *tx_hash_ptr;
   }
 
+  std::vector<std::pair<crypto::hash, uint64_t>> utxos_to_remove;
+
   // Sanity check on supported input types
-  for (const txin_v& tx_input : tx.vin)
+  for (auto i = 0; i < tx.vin.size(); ++i)
   {
+    const txin_v& tx_input = tx.vin[i];
     if (tx_input.type() == typeid(txin_to_key))
     {
       add_spent_key(boost::get<txin_to_key>(tx_input).k_image);
@@ -149,7 +152,8 @@ void BlockchainDB::add_transaction(const crypto::hash& blk_hash, const std::pair
     else if (tx_input.type() == typeid(txin_to_key_public))
     {
       const auto &txin = boost::get<txin_to_key_public>(tx_input);
-      remove_chainstate_utxo(txin.tx_hash, txin.relative_offset);
+      utxos_to_remove.push_back({txin.tx_hash, txin.relative_offset});
+      add_tx_input(txin.tx_hash, txin.relative_offset, tx.hash, i);
     }
     else if (tx_input.type() == typeid(txin_gen))
     {
@@ -170,6 +174,11 @@ void BlockchainDB::add_transaction(const crypto::hash& blk_hash, const std::pair
     }
   }
 
+  for(auto utxo: utxos_to_remove)
+  {
+    remove_chainstate_utxo(utxo.first, utxo.second);
+  }
+
   if (tx.version == 1)
   {
     uint64_t tx_id = add_transaction_data(blk_hash, txp, tx_hash, tx_prunable_hash);
@@ -186,6 +195,8 @@ void BlockchainDB::add_transaction(const crypto::hash& blk_hash, const std::pair
   }
   else if (tx.version >= 2)
   {
+    add_transaction_data(blk_hash, txp, tx_hash, tx_prunable_hash);
+
     // Sanity check on supported output types
     for (uint64_t i = 0; i < tx.vout.size(); ++i)
     {
@@ -209,12 +220,10 @@ void BlockchainDB::add_transaction(const crypto::hash& blk_hash, const std::pair
         return;
       }
 
-      add_transaction_data(blk_hash, txp, tx_hash, tx_prunable_hash);
-
       const auto &txout = boost::get<txout_to_key_public>(tx.vout[i].target);
 
-      add_chainstate_utxo(tx.hash, i, addKeys(txout.address.m_view_public_key, txout.address.m_spend_public_key) , tx.vout[i].amount);
-      add_addr_output(tx.hash, i, txout.address.m_view_public_key, txout.address.m_spend_public_key, tx.vout[i].amount);
+      add_chainstate_utxo(tx.hash, i, addKeys(txout.address.m_view_public_key, txout.address.m_spend_public_key) , tx.vout[i].amount, miner_tx);
+      add_addr_output(tx.hash, i, addKeys(txout.address.m_view_public_key, txout.address.m_spend_public_key), tx.vout[i].amount);
     }
   }
 }
@@ -312,6 +321,7 @@ void BlockchainDB::remove_transaction(const crypto::hash& tx_hash)
       const auto &txout = boost::get<txout_to_key_public>(get_tx(txin.tx_hash).vout[txin.relative_offset].target);
 
       add_chainstate_utxo(txin.tx_hash, txin.relative_offset, addKeys(txout.address.m_view_public_key, txout.address.m_spend_public_key), txin.amount);
+      remove_tx_input(txin.tx_hash, txin.relative_offset);
     }
   }
 
@@ -322,7 +332,7 @@ void BlockchainDB::remove_transaction(const crypto::hash& tx_hash)
       const auto &txout = boost::get<txout_to_key_public>(tx.vout[i].target);
 
       remove_chainstate_utxo(tx.hash, i);
-      remove_addr_output(tx_hash, i, txout.address.m_view_public_key, txout.address.m_spend_public_key, tx.vout[i].amount);
+      remove_addr_output(tx_hash, i, addKeys(txout.address.m_view_public_key, txout.address.m_spend_public_key), tx.vout[i].amount);
     }
   }
 

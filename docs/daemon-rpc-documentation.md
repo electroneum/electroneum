@@ -70,6 +70,8 @@ Note2: Guide updated as of network height of 730,000.
 * [/stop_save_graph](#stop_save_graph)
 * [/get_outs](#get_outs)
 * [/update](#update)
+* [/get_balance](#get_balance)
+* [/get_address_batch_history](#get_address_batch_history)
 
 ## JSON RPC Methods
 
@@ -2266,5 +2268,70 @@ $ curl -X POST http://127.0.0.1:26968/update -d '{"command":"check"}' -H 'Conten
   "update": false,
   "user_uri": "",
   "version": ""
+}
+```
+
+### **/get_balance**
+
+Get address balance.
+
+Alias: *None*
+
+Inputs:
+
+* *etn_address* - String; etn wallet address.
+
+Outputs:
+
+* *balance* - integer; address balance in atomic units.
+* *status* - string; status message ("OK" = success, failed otherwise).
+
+Example:
+
+```
+$ curl -X POST http://127.0.0.1:26968/get_balance -d '{"etn_address":"etnk8pVxq9ENz9zt4os1QGJGACaspA7wYSPrDJZMutMxBjYdZ66JGE1SBf2Ydf466LDdYLsL51sToKsko4oG73HR95AUqH8N4R"}' -H 'Content-Type: application/json'
+
+{
+  "balance": 5600,
+  "status": "OK"
+}
+```
+
+### **/get_address_batch_history**
+
+Get address transaction history in bacthes.
+
+Alias: *None*
+
+Inputs:
+
+* *etn_address* - String; etn wallet address.
+* *start_out_id* - Integer; get batch starting from *<start_out_id>*. Use *start_out_id* = 0 for first batch call, subsequent calls this attribute needs to be set according to the *<next_out_id>* attribute from previous request response.
+* *batch_size* - Integer; batch size, amount of txs to be retrieved in each call.
+* *desc* - Boolean; return list of transactions in descending order (from latest to oldest) if set to true.
+
+Outputs:
+
+* *last_page* - Boolean; *false* indicates that there are more transactions to fetch using batch call. *true* if batch call reached the end of the transaction list.
+* *next_out_id* - Integer; used as *<start_out_id>* for subsequent batch calls.
+* *status* - String; status message ("OK" = success, failed otherwise).
+* *txs* - Array[String]; transaction hashes.
+
+Example:
+
+```
+$ curl -X POST http://127.0.0.1:26968/get_balance -d '{ "etn_address":"etnk8pVxq9ENz9zt4os1QGJGACaspA7wYSPrDJZMutMxBjYdZ66JGE1SBf2Ydf466LDdYLsL51sToKsko4oG73HR95AUqH8N4R", "start_out_id": 0, "batch_size": 5, "desc": false }' -H 'Content-Type: application/json'
+
+{
+    "last_page": false,
+    "next_out_id": 5,
+    "status": "OK",
+    "txs": [
+        "80d169e7ccbb89ebc43ed8a0d3164ea94e9359c3b59bb23a9df4c261ea47d7bc",
+        "8055358615cf3329a8faddfbcc103c287e03a9dd9497cdc18ef1406eb0b49f27",
+        "337a360cddc1defb1089f0fb9765d978581ffd5f26050c82bc900a7360cbb2e0",
+        "44d80705e40cea37cbc443860cbbfea357bab0f1f20f2bef9a491d048df4ec22",
+        "4c2cdfa290a356a07b8412a1fbe316d5b074c9c6d15a96a59bee922a70c294a9"
+    ]
 }
 ```

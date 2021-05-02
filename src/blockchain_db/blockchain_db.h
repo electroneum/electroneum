@@ -156,6 +156,27 @@ struct txpool_tx_meta_t
   uint8_t padding[68]; // till 192 bytes
 };
 
+struct chainstate_key_t
+{
+  crypto::hash tx_hash;
+  uint32_t relative_out_index;
+};
+
+struct chainstate_value_t
+{
+  crypto::public_key combined_key;
+  uint64_t amount;
+  bool is_coinbase;
+};
+
+struct tx_input_t
+{
+  crypto::hash tx_hash;
+  uint64_t in_index;
+
+  tx_input_t() : tx_hash(crypto::null_hash), in_index(0) { }
+};
+
 #define DBF_SAFE       1
 #define DBF_FAST       2
 #define DBF_FASTEST    4
@@ -491,11 +512,12 @@ private:
    */
   virtual void add_tx_amount_output_indices(const uint64_t tx_id, const std::vector<uint64_t>& amount_output_indices) = 0;
 
-  virtual void add_chainstate_utxo(const crypto::hash tx_hash, const uint32_t relative_out_index, const crypto::public_key combined_key, uint64_t amount) = 0;
+  virtual void add_chainstate_utxo(const crypto::hash tx_hash, const uint32_t relative_out_index, const crypto::public_key combined_key, uint64_t amount, bool is_coinbase = false) = 0;
   virtual void remove_chainstate_utxo(const crypto::hash tx_hash, const uint32_t relative_out_index) = 0;
-  virtual void add_addr_output(const crypto::hash tx_hash, const uint32_t relative_out_index, const crypto::public_key& pub_view, const crypto::public_key& pub_spend, uint64_t amount) = 0;
-  virtual void remove_addr_output(const crypto::hash tx_hash, const uint32_t relative_out_index, const crypto::public_key& pub_view,
-                                            const crypto::public_key& pub_spend, uint64_t amount) = 0;
+  virtual void add_addr_output(const crypto::hash tx_hash, const uint32_t relative_out_index, const crypto::public_key& combined_key, uint64_t amount) = 0;
+  virtual void remove_addr_output(const crypto::hash tx_hash, const uint32_t relative_out_index, const crypto::public_key& combined_key, uint64_t amount) = 0;
+  virtual void add_tx_input(const crypto::hash tx_hash, const uint32_t relative_out_index, const crypto::hash parent_tx_hash, const uint64_t in_index) = 0;
+  virtual void remove_tx_input(const crypto::hash tx_hash, const uint32_t relative_out_index) = 0;
 
   /**
    * @brief store a spent key
@@ -1764,6 +1786,11 @@ public:
 
   bool m_open;  //!< Whether or not the BlockchainDB is open/ready for use
   mutable epee::critical_section m_synchronization_lock;  //!< A lock, currently for when BlockchainLMDB needs to resize the backing db file
+
+  virtual std::vector<address_outputs> get_addr_output_all(const crypto::public_key& combined_key) = 0;
+  virtual std::vector<address_outputs> get_addr_output_batch(const crypto::public_key& combined_key, uint64_t start_db_index = 0, uint64_t batch_size = 100, bool desc = false) = 0;
+  virtual uint64_t get_balance(const crypto::public_key& combined_key) = 0;
+  virtual tx_input_t get_tx_input(const crypto::hash tx_hash, const uint32_t relative_out_index) = 0;
 
 };  // class BlockchainDB
 

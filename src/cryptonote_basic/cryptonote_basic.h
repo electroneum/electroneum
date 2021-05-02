@@ -50,10 +50,20 @@
 #include "misc_language.h"
 #include "ringct/rctTypes.h"
 #include "device/device.hpp"
+#include "common/base58.h"
 
 namespace cryptonote
 {
   typedef std::vector<crypto::signature> ring_signature;
+
+  struct address_outputs
+  {
+    uint64_t out_id;
+    crypto::hash tx_hash;
+    uint64_t relative_out_index;
+    uint64_t amount;
+    bool spent;
+  };
 
   struct account_public_address
   {
@@ -107,15 +117,39 @@ namespace cryptonote
     crypto::public_key key;
   };
 
-    struct txout_to_key_public
-    {
-        txout_to_key_public() { }
-        txout_to_key_public(const cryptonote::account_public_address &addr) : address(addr) { }
+  struct txout_to_key_public
+  {
+      uint64_t m_address_prefix;
+      cryptonote::account_public_address address;
 
-        cryptonote::account_public_address address;
-    };
+      std::string etn_address;
 
-  /* inputs */
+      BEGIN_SERIALIZE_OBJECT()
+
+        if (std::is_same<Archive<W>, json_archive<W>>())
+        {
+          std::stringstream ss;
+          binary_archive<true> ba(ss);
+          bool r = ::serialization::serialize(ba, const_cast<account_public_address&>(address));
+          std::string address_blob = ss.str();
+
+          if(!r) return false;
+
+          etn_address = tools::base58::encode_addr(m_address_prefix, address_blob);
+
+          ar.tag("address");
+          ar.serialize_string(etn_address);
+          if (!ar.stream().good())
+            return false;
+
+        } else {
+          VARINT_FIELD(m_address_prefix)
+          FIELD(address)
+        }
+      END_SERIALIZE()
+  };
+
+    /* inputs */
 
   struct txin_gen
   {
@@ -256,7 +290,6 @@ struct txin_to_key_public
 
   public:
     std::vector<std::vector<crypto::signature> > signatures; //count signatures  always the same as inputs count
-    std::vector<crypto::input_signature> public_input_signatures;
     rct::rctSig rct_signatures;
 
     // hash cash
@@ -298,65 +331,35 @@ struct txin_to_key_public
         unprunable_size = getpos(ar) - start_pos;
       }
 
-      if (version <=2)
+      ar.tag("signatures");
+      ar.begin_array();
+      PREPARE_CUSTOM_VECTOR_SERIALIZATION(vin.size(), signatures);
+      bool signatures_not_expected = signatures.empty();
+      if (!signatures_not_expected && vin.size() != signatures.size())
+        return false;
+
+      if (!pruned) for (size_t i = 0; i < vin.size(); ++i)
       {
-        ar.tag("signatures");
-        ar.begin_array();
-        PREPARE_CUSTOM_VECTOR_SERIALIZATION(vin.size(), signatures);
-        bool signatures_not_expected = signatures.empty();
-        if (!signatures_not_expected && vin.size() != signatures.size())
+        size_t signature_size = get_signature_size(vin[i]);
+        if (signatures_not_expected)
+        {
+          if (0 == signature_size)
+            continue;
+          else
+            return false;
+        }
+
+        PREPARE_CUSTOM_VECTOR_SERIALIZATION(signature_size, signatures[i]);
+        if (signature_size != signatures[i].size())
           return false;
 
-        if (!pruned) for (size_t i = 0; i < vin.size(); ++i)
-        {
-          size_t signature_size = get_signature_size(vin[i]);
-          if (signatures_not_expected)
-          {
-            if (0 == signature_size)
-              continue;
-            else
-              return false;
-          }
+        FIELDS(signatures[i]);
 
-          PREPARE_CUSTOM_VECTOR_SERIALIZATION(signature_size, signatures[i]);
-          if (signature_size != signatures[i].size())
-            return false;
-
-          FIELDS(signatures[i]);
-
-          if (vin.size() - i > 1)
-            ar.delimit_array();
-        }
-        ar.end_array();
-
-        if(version >= 3){
-          ar.tag("public_input_signatures");
-          ar.begin_array();
-          PREPARE_CUSTOM_VECTOR_SERIALIZATION(vin.size(), public_input_signatures);
-          bool signatures_not_expected = public_input_signatures.empty();
-          if (!signatures_not_expected && vin.size() != public_input_signatures.size())
-            return false;
-
-          for (size_t i = 0; i < vin.size(); ++i)
-          {
-            size_t signature_size = get_signature_size(vin[i]);
-            if (signatures_not_expected)
-            {
-              if (0 == signature_size)
-                continue;
-              else
-                return false;
-            }
-
-            if (signature_size != public_input_signatures.size())
-              return false;
-
-            if (vin.size() - i > 1)
-              ar.delimit_array();
-          }
-          ar.end_array();
-        }
+        if (vin.size() - i > 1)
+          ar.delimit_array();
       }
+      ar.end_array();
+
       if (!typename Archive<W>::is_saving())
         pruned = false;
     END_SERIALIZE()
@@ -521,7 +524,6 @@ namespace std {
 }
 
 BLOB_SERIALIZER(cryptonote::txout_to_key);
-BLOB_SERIALIZER(cryptonote::txout_to_key_public);
 BLOB_SERIALIZER(cryptonote::txout_to_scripthash);
 
 VARIANT_TAG(binary_archive, cryptonote::txin_gen, 0xff);
@@ -540,11 +542,11 @@ VARIANT_TAG(json_archive, cryptonote::txin_gen, "gen");
 VARIANT_TAG(json_archive, cryptonote::txin_to_script, "script");
 VARIANT_TAG(json_archive, cryptonote::txin_to_scripthash, "scripthash");
 VARIANT_TAG(json_archive, cryptonote::txin_to_key, "key");
-VARIANT_TAG(json_archive, cryptonote::txin_to_key_public, "keypublic");
+VARIANT_TAG(json_archive, cryptonote::txin_to_key_public, "public_input");
 VARIANT_TAG(json_archive, cryptonote::txout_to_script, "script");
 VARIANT_TAG(json_archive, cryptonote::txout_to_scripthash, "scripthash");
 VARIANT_TAG(json_archive, cryptonote::txout_to_key, "key");
-VARIANT_TAG(json_archive, cryptonote::txout_to_key_public, "keypublic");
+VARIANT_TAG(json_archive, cryptonote::txout_to_key_public, "public_output");
 VARIANT_TAG(json_archive, cryptonote::transaction, "tx");
 VARIANT_TAG(json_archive, cryptonote::block, "block");
 
@@ -552,10 +554,10 @@ VARIANT_TAG(debug_archive, cryptonote::txin_gen, "gen");
 VARIANT_TAG(debug_archive, cryptonote::txin_to_script, "script");
 VARIANT_TAG(debug_archive, cryptonote::txin_to_scripthash, "scripthash");
 VARIANT_TAG(debug_archive, cryptonote::txin_to_key, "key");
-VARIANT_TAG(debug_archive, cryptonote::txin_to_key_public, "keypublic");
+VARIANT_TAG(debug_archive, cryptonote::txin_to_key_public, "public_input");
 VARIANT_TAG(debug_archive, cryptonote::txout_to_script, "script");
 VARIANT_TAG(debug_archive, cryptonote::txout_to_scripthash, "scripthash");
 VARIANT_TAG(debug_archive, cryptonote::txout_to_key, "key");
-VARIANT_TAG(debug_archive, cryptonote::txout_to_key_public, "keypublic");
+VARIANT_TAG(debug_archive, cryptonote::txout_to_key_public, "public_output");
 VARIANT_TAG(debug_archive, cryptonote::transaction, "tx");
 VARIANT_TAG(debug_archive, cryptonote::block, "block");
