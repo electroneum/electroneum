@@ -2416,8 +2416,8 @@ namespace cryptonote
 
         res.signature = v;
     }
-
-    catch(std::exception){
+    catch(const std::exception &e)
+    {
         error_resp.code = CORE_RPC_ERROR_CODE_INTERNAL_ERROR;
         error_resp.message = "Failed to sign message. Please check that you are using a valid private key.";
         return false;

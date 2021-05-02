@@ -142,7 +142,7 @@ void BlockchainDB::add_transaction(const crypto::hash& blk_hash, const std::pair
   std::vector<std::pair<crypto::hash, uint64_t>> utxos_to_remove;
 
   // Sanity check on supported input types
-  for (auto i = 0; i < tx.vin.size(); ++i)
+  for (size_t i = 0; i < tx.vin.size(); ++i)
   {
     const txin_v& tx_input = tx.vin[i];
     if (tx_input.type() == typeid(txin_to_key))

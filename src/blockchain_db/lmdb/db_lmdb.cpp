@@ -175,7 +175,7 @@ int BlockchainLMDB::compare_data(const MDB_val *a, const MDB_val *b)
 
   uint8_t *va = (uint8_t*) a->mv_data;
   uint8_t *vb = (uint8_t*) b->mv_data;
-  for (int n = 0; n < size; ++n)
+  for (size_t n = 0; n < size; ++n)
   {
     if (va[n] == vb[n])
       continue;
@@ -2102,7 +2102,7 @@ std::vector<address_outputs> BlockchainLMDB::get_addr_output_batch(const crypto:
   }
 
   std::set<std::string> tx_hashes;
-  for(auto i = 0; i < batch_size + 1; ++i) {
+  for(size_t i = 0; i < batch_size + 1; ++i) {
     if(op == MDB_GET_BOTH)
       v = MDB_val{sizeof(start_db_index), (void*)&start_db_index};
 

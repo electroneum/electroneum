@@ -2916,7 +2916,7 @@ bool Blockchain::check_tx_inputs(transaction& tx, tx_verification_context &tvc, 
       return false;
     }
 
-    for (auto i = 0; i < tx.vin.size(); ++i)//(const auto& txin : tx.vin)
+    for (size_t i = 0; i < tx.vin.size(); ++i)
     {
       CHECK_AND_ASSERT_MES(tx.vin[i].type() == typeid(txin_to_key_public), false, "wrong type id in tx input at Blockchain::check_tx_inputs");
 
