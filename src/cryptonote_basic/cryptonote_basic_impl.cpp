@@ -118,6 +118,8 @@ namespace cryptonote {
         case STAGENET:
           V9_BLOCK_HEIGHT = 39000;
           break;
+        default:
+          V9_BLOCK_HEIGHT = 39000;
       }
 
       base_reward = 400 * COIN;
@@ -127,7 +129,7 @@ namespace cryptonote {
       if (halvings > 2) {
 
         //Force 2x tail emission after 2nd halving if circulating supply < max supply
-        base_reward = (ETN_SUPPLY - already_generated_coins >= 0) ? FINAL_SUBSIDY_PER_MINUTE * 2 : FINAL_SUBSIDY_PER_MINUTE;
+        base_reward = (already_generated_coins >= ETN_SUPPLY) ? FINAL_SUBSIDY_PER_MINUTE : FINAL_SUBSIDY_PER_MINUTE * 2;
 
       } else {
         base_reward >>= halvings;
