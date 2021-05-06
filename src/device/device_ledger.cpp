@@ -2329,7 +2329,7 @@ namespace hw {
         return true;
     }
 
-    bool device_ledger::generate_input_signatures(const crypto::hash &prefix_hash, const uint32_t numInputs, const crypto::secret_key sec_view, const crypto::secret_key sec_spend, std::vector<crypto::input_signature>& signatures){
+    bool device_ledger::generate_input_signature(const crypto::hash &prefix_hash, const uint32_t input_index, const crypto::secret_key sec_view, const crypto::secret_key sec_spend, crypto::signature& signature){
         // todo: 4.0.0.0
     }
 

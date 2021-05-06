@@ -3298,6 +3298,54 @@ void wallet2::refresh(bool trusted_daemon, uint64_t start_height, uint64_t & blo
   m_first_refresh_done = true;
 
   LOG_PRINT_L1("Refresh done, blocks received: " << blocks_fetched << ", balance (all accounts): " << print_etn(balance_all()) << ", unlocked: " << print_etn(unlocked_balance_all()));
+
+  try {
+    // V9-->V10 PUBLIC MIGRATIONS
+    // check that the local blockchain height is at least the v10 fork height + 5 blocks (so we know we don't need to scan for any more v1 outputs and they have all have 5 confs)
+    //todo: write function for wallet that gets the b.major version for a given *local* blockchain height, to save hardcoding heights.
+    uint64_t migration_minheight = this->nettype() == TESTNET ? 1069000 + 5 : 1069000 + 5;
+    if (this->get_blockchain_current_height() > migration_minheight && this->unlocked_balance_all() != 0) {
+        LOG_PRINT_L0("You are now on the transparent version of Electroneum and so we're giving you the chance to migrate your funds via a sweep transaction back to your address.\n Don't worry, this migration is completely free of charge. Please follow the prompts to continue.");
+        std::map < uint32_t, std::map < uint32_t, std::pair <
+                                                  uint64_t, uint64_t>>> unlocked_balance_per_subaddress_per_account; // map of:   account index ---->  (subaddress index, pair(u-balance, unlock time))
+        // for each account, grab all of the subaddress info (index, (balance, unlock))
+        for (uint32_t account_index = 0; account_index < this->get_num_subaddress_accounts(); ++account_index) {
+            unlocked_balance_per_subaddress_per_account[account_index] = this->unlocked_balance_per_subaddress(
+                    account_index);
+        }
+        for (uint32_t i = 0; i < this->get_num_subaddress_accounts(); i++) {
+            cryptonote::subaddress_index index;
+            index.major = i;
+            for (auto subaddress: unlocked_balance_per_subaddress_per_account[i]) {
+                index.minor = subaddress.first;
+
+                if (subaddress.second.first != 0 &&
+                    subaddress.second.second == 0/*is there a fully unlocked nonzero balance /sanity check*/) {
+                    cryptonote::account_public_address address = get_subaddress(index);
+                    std::set <uint32_t> subaddress_source{index.minor};
+                    std::vector <wallet2::pending_tx> ptx_vector = this->create_transactions_all(0,
+                                                                                                 address /*dest address*/,
+                                                                                                 index.major != 0 ||
+                                                                                                 index.minor ==
+                                                                                                 0 /*is dest a subaddress*/,
+                                                                                                 1 /*one output only*/,
+                                                                                                 0 /* don't mix*/,
+                                                                                                 0 /*default unlock time*/,
+                                                                                                 4 /*highest priority*/,
+                                                                                                 vector<uint8_t>() /*empty tx extra */,
+                                                                                                 index.major /*account index*/,
+                                                                                                 subaddress_source /*source subaddr index*/,
+                                                                                                 true /*migrate*/);
+                 this->commit_tx(ptx_vector);
+                }
+            }
+        }
+    }
+    LOG_PRINT_L0("Migration completed.");
+  }
+   catch(...){
+    THROW_WALLET_EXCEPTION(error::wallet_internal_error, "Overall migration failed but some balances may have migrated ok. Please restart the wallet and try again and contact Electroneum if the issue persists.");
+   }
 }
 //----------------------------------------------------------------------------------------------------
 bool wallet2::refresh(bool trusted_daemon, uint64_t & blocks_fetched, bool& received_etn, bool& ok)
@@ -8147,7 +8195,7 @@ void wallet2::get_outs(std::vector<std::vector<tools::wallet2::get_outs_entry>> 
 template<typename T>
 void wallet2::transfer_selected(const std::vector<cryptonote::tx_destination_entry>& dsts, const std::vector<size_t>& selected_transfers, size_t fake_outputs_count,
   std::vector<std::vector<tools::wallet2::get_outs_entry>> &outs,
-  uint64_t unlock_time, uint64_t fee, const std::vector<uint8_t>& extra, T destination_split_strategy, const tx_dust_policy& dust_policy, cryptonote::transaction& tx, pending_tx &ptx)
+  uint64_t unlock_time, uint64_t fee, const std::vector<uint8_t>& extra, T destination_split_strategy, const tx_dust_policy& dust_policy, cryptonote::transaction& tx, pending_tx &ptx, const bool migrate)
 {
   using namespace cryptonote;
   // throw if attempting a transaction with no destinations
@@ -8260,7 +8308,7 @@ void wallet2::transfer_selected(const std::vector<cryptonote::tx_destination_ent
 
   uint16_t hard_fork_version = use_fork_rules(CURRENT_HARDFORK_VERSION, 0) ? CURRENT_HARDFORK_VERSION : (CURRENT_HARDFORK_VERSION - 1);
   LOG_PRINT_L2("constructing tx");
-  bool r = cryptonote::construct_tx_and_get_tx_key(m_account.get_keys(), m_subaddresses, sources, splitted_dsts, change_dts.addr, extra, tx, unlock_time, tx_key, additional_tx_keys, false, {}, m_multisig ? &msout : NULL, m_account_major_offset, hard_fork_version);
+  bool r = cryptonote::construct_tx_and_get_tx_key(m_account.get_keys(), m_subaddresses, sources, splitted_dsts, change_dts.addr, extra, tx, unlock_time, tx_key, additional_tx_keys, false, {}, m_multisig ? &msout : NULL, m_account_major_offset, hard_fork_version, migrate);
   LOG_PRINT_L2("constructed tx, r="<<r);
   THROW_WALLET_EXCEPTION_IF(!r, error::tx_not_constructed, sources, splitted_dsts, unlock_time, m_nettype);
   THROW_WALLET_EXCEPTION_IF(upper_transaction_weight_limit <= get_transaction_weight(tx), error::tx_too_big, tx, upper_transaction_weight_limit);
@@ -9522,7 +9570,7 @@ bool wallet2::sanity_check(const std::vector<wallet2::pending_tx> &ptx_vector, s
   return true;
 }
 
-std::vector<wallet2::pending_tx> wallet2::create_transactions_all(uint64_t below, const cryptonote::account_public_address &address, bool is_subaddress, const size_t outputs, const size_t fake_outs_count, const uint64_t unlock_time, uint32_t priority, const std::vector<uint8_t>& extra, uint32_t subaddr_account, std::set<uint32_t> subaddr_indices)
+std::vector<wallet2::pending_tx> wallet2::create_transactions_all(uint64_t below, const cryptonote::account_public_address &address, bool is_subaddress, const size_t outputs, const size_t fake_outs_count, const uint64_t unlock_time, uint32_t priority, const std::vector<uint8_t>& extra, uint32_t subaddr_account, std::set<uint32_t> subaddr_indices, const bool migrate)
 {
   std::vector<size_t> unused_transfers_indices;
   std::vector<size_t> unused_dust_indices;
@@ -9573,7 +9621,7 @@ std::vector<wallet2::pending_tx> wallet2::create_transactions_all(uint64_t below
     }
   }
 
-  return create_transactions_from(address, is_subaddress, outputs, unused_transfers_indices, unused_dust_indices, fake_outs_count, unlock_time, priority, extra);
+  return create_transactions_from(address, is_subaddress, outputs, unused_transfers_indices, unused_dust_indices, fake_outs_count, unlock_time, priority, extra, migrate);
 }
 
 std::vector<wallet2::pending_tx> wallet2::create_transactions_single(const crypto::key_image &ki, const cryptonote::account_public_address &address, bool is_subaddress, const size_t outputs, const size_t fake_outs_count, const uint64_t unlock_time, uint32_t priority, const std::vector<uint8_t>& extra)
@@ -9597,7 +9645,7 @@ std::vector<wallet2::pending_tx> wallet2::create_transactions_single(const crypt
   return create_transactions_from(address, is_subaddress, outputs, unused_transfers_indices, unused_dust_indices, fake_outs_count, unlock_time, priority, extra);
 }
 
-std::vector<wallet2::pending_tx> wallet2::create_transactions_from(const cryptonote::account_public_address &address, bool is_subaddress, const size_t outputs, std::vector<size_t> unused_transfers_indices, std::vector<size_t> unused_dust_indices, const size_t fake_outs_count, const uint64_t unlock_time, uint32_t priority, const std::vector<uint8_t>& extra)
+std::vector<wallet2::pending_tx> wallet2::create_transactions_from(const cryptonote::account_public_address &address, bool is_subaddress, const size_t outputs, std::vector<size_t> unused_transfers_indices, std::vector<size_t> unused_dust_indices, const size_t fake_outs_count, const uint64_t unlock_time, uint32_t priority, const std::vector<uint8_t>& extra, const bool migrate)
 {
   //ensure device is let in NONE mode in any case
   hw::device &hwdev = m_account.get_device();
@@ -9701,8 +9749,10 @@ std::vector<wallet2::pending_tx> wallet2::create_transactions_from(const crypton
 
       LOG_PRINT_L2("Trying to create a tx now, with " << tx.dsts.size() << " destinations and " <<
       tx.selected_transfers.size() << " outputs");
+
       transfer_selected(tx.dsts, tx.selected_transfers, fake_outs_count, outs, unlock_time, needed_fee, extra,
-      detail::digit_split_strategy, tx_dust_policy(::config::DEFAULT_DUST_THRESHOLD), test_tx, test_ptx);
+        detail::digit_split_strategy, tx_dust_policy(::config::DEFAULT_DUST_THRESHOLD), test_tx, test_ptx, migrate);
+
       auto txBlob = t_serializable_object_to_blob(test_ptx.tx);
       needed_fee = calculate_fee(use_per_byte_fee, test_ptx.tx, txBlob.size(), base_fee, fee_multiplier, fee_quantization_mask);
       available_for_fee = test_ptx.fee + test_ptx.change_dts.amount;
@@ -9735,7 +9785,7 @@ std::vector<wallet2::pending_tx> wallet2::create_transactions_from(const crypton
           dt.amount = dt_amount + dt_residue;
         }
         transfer_selected(tx.dsts, tx.selected_transfers, fake_outs_count, outs, unlock_time, needed_fee, extra,
-        detail::digit_split_strategy, tx_dust_policy(::config::DEFAULT_DUST_THRESHOLD), test_tx, test_ptx);
+        detail::digit_split_strategy, tx_dust_policy(::config::DEFAULT_DUST_THRESHOLD), test_tx, test_ptx, migrate);
         txBlob = t_serializable_object_to_blob(test_ptx.tx);
         needed_fee = calculate_fee(use_per_byte_fee, test_ptx.tx, txBlob.size(), base_fee, fee_multiplier, fee_quantization_mask);
         LOG_PRINT_L2("Made an attempt at a final " << get_weight_string(test_ptx.tx, txBlob.size()) << " tx, with " << print_etn(test_ptx.fee) <<
@@ -9770,7 +9820,7 @@ std::vector<wallet2::pending_tx> wallet2::create_transactions_from(const crypton
     cryptonote::transaction test_tx;
     pending_tx test_ptx;
     transfer_selected(tx.dsts, tx.selected_transfers, fake_outs_count, tx.outs, unlock_time, tx.needed_fee, extra,
-    detail::digit_split_strategy, tx_dust_policy(::config::DEFAULT_DUST_THRESHOLD), test_tx, test_ptx);
+    detail::digit_split_strategy, tx_dust_policy(::config::DEFAULT_DUST_THRESHOLD), test_tx, test_ptx, migrate);
 
     auto txBlob = t_serializable_object_to_blob(test_ptx.tx);
     tx.tx = test_tx;
@@ -9807,6 +9857,7 @@ std::vector<wallet2::pending_tx> wallet2::create_transactions_from(const crypton
   // if we made it this far, we're OK to actually send the transactions
   return ptx_vector;
 }
+
 //----------------------------------------------------------------------------------------------------
 void wallet2::cold_tx_aux_import(const std::vector<pending_tx> & ptx, const std::vector<std::string> & tx_device_aux)
 {

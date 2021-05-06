@@ -428,8 +428,8 @@ namespace hw {
             return true;
         }
 
-        bool device_default::generate_input_signatures(const crypto::hash &prefix_hash, const uint32_t numInputs, const crypto::secret_key sec_view, const crypto::secret_key sec_spend, std::vector<crypto::input_signature>& signatures){
-            generate_input_signatures(prefix_hash, numInputs, sec_view, sec_spend, signatures);
+        bool device_default::generate_input_signature(const crypto::hash &prefix_hash, const uint32_t input_index, const crypto::secret_key sec_view, const crypto::secret_key sec_spend, crypto::signature& signature){
+            generate_input_signature(prefix_hash, input_index, sec_view, sec_spend, signature);
             return true;
         }
 

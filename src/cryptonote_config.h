@@ -153,7 +153,7 @@
 
 #define THREAD_STACK_SIZE                       5 * 1024 * 1024
 
-#define CURRENT_HARDFORK_VERSION                  8
+#define CURRENT_HARDFORK_VERSION                  10
 #define HF_VERSION_FORBID_DUST_OUTPUTS            2
 #define HF_VERSION_FORBID_INVALID_PUBKEYS         4
 #define HF_VERSION_ENFORCE_0_DECOY_TXS            6

@@ -231,7 +231,7 @@ namespace hw {
 
         virtual bool  close_tx(void) = 0;
         virtual bool get_transaction_prefix_hash(const cryptonote::transaction_prefix& tx, crypto::hash& tx_prefix_hash) = 0;
-        virtual bool generate_input_signatures(const crypto::hash &prefix_hash, const uint32_t numInputs, const crypto::secret_key sec_view, const crypto::secret_key sec_spend, std::vector<crypto::input_signature>& signatures) = 0;
+        virtual bool generate_input_signature(const crypto::hash &prefix_hash, const uint32_t input_index, const crypto::secret_key sec_view, const crypto::secret_key sec_spend, crypto::signature& signature) = 0;
         virtual bool generate_ring_signature(const crypto::hash &prefix_hash, const crypto::key_image &image,
                                      const std::vector<const crypto::public_key *> &pubs,
                                      const crypto::secret_key &sec, std::size_t sec_index,

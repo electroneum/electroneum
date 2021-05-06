@@ -235,8 +235,7 @@ namespace cryptonote
       msout->c.clear();
     }
 
-    //V2 if we're migrating, irrespective of version. If no migration, use v1 before fork and v3 after it
-    tx.version = migrate ? 2 : hard_fork_version > 9 ? 3 : 1;
+    tx.version = hard_fork_version > 9 ? (migrate ? 2: 3) : 1;
     tx.unlock_time = unlock_time;
 
     tx.extra = extra;
@@ -541,7 +540,14 @@ namespace cryptonote
                  "transaction_created: " << get_transaction_hash(tx) << ENDL << obj_to_json_str(tx) << ENDL
                                          << ss_ring_s.str());
       }else{ //new public signatures for v3 onwards
-        hwdev.generate_input_signatures(tx_prefix_hash, tx.vin.size(), sender_account_keys.m_view_secret_key, sender_account_keys.m_spend_secret_key, tx.public_input_signatures);
+          for(uint64_t i = 0; i< tx.vin.size(); i++) {
+              crypto::signature signature;
+              std::vector<crypto::signature> signature_vec;
+              hwdev.generate_input_signature(tx_prefix_hash, i, sender_account_keys.m_view_secret_key,
+                                             sender_account_keys.m_spend_secret_key, signature);
+              signature_vec.push_back(signature);
+              tx.signatures.push_back(signature_vec);
+          }
       }
     }
 
@@ -568,7 +574,7 @@ namespace cryptonote
           additional_tx_keys.push_back(keypair::generate(sender_account_keys.get_device()).sec);
       }
 
-      bool r = construct_tx_with_tx_key(sender_account_keys, subaddresses, sources, destinations, change_addr, extra, tx, unlock_time, tx_key, additional_tx_keys, rct, rct_config, msout, true, account_major_offset);
+      bool r = construct_tx_with_tx_key(sender_account_keys, subaddresses, sources, destinations, change_addr, extra, tx, unlock_time, tx_key, additional_tx_keys, rct, rct_config, msout, true, account_major_offset, hard_fork_version, migrate);
       hwdev.close_tx();
       return r;
     } catch(...) {

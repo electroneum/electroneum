@@ -2848,7 +2848,7 @@ bool Blockchain::utxo_nonexistent(const transaction &tx) const
     for (const txin_v& in: tx.vin)
     {
         CHECKED_GET_SPECIFIC_VARIANT(in, const txin_to_key_public, in_to_key, true);
-        if(!m_db->exists_chainstate_utxo(in_to_key.tx_hash, in_to_key.relative_offset))
+        if(!m_db->check_chainstate_utxo(in_to_key.tx_hash, in_to_key.relative_offset))
             return true;
     }
 
@@ -2940,7 +2940,7 @@ bool Blockchain::check_tx_inputs(transaction& tx, tx_verification_context &tvc, 
       CHECK_AND_ASSERT_MES(parent_tx.vout.size() > in_to_key.relative_offset, false, "wrong relative_offset in tx input at Blockchain::check_tx_inputs");
       CHECK_AND_ASSERT_MES(parent_tx.vout.at(in_to_key.relative_offset).amount == in_to_key.amount, false, "wrong amount in tx input at Blockchain::check_tx_inputs");
 
-      if (!m_db->exists_chainstate_utxo(in_to_key.tx_hash, in_to_key.relative_offset))
+      if (!m_db->check_chainstate_utxo(in_to_key.tx_hash, in_to_key.relative_offset))
       {
         tvc.m_utxo_nonexistent = true;
         tvc.m_verification_failed = true;
@@ -2957,7 +2957,7 @@ bool Blockchain::check_tx_inputs(transaction& tx, tx_verification_context &tvc, 
       }
     }
 
-    return true;
+    return true; //returns check_tx_inputs. no extra work required for public tx
   }
 
   // from hard fork 2, we require mixin at least 2 unless one output cannot mix with 2 others

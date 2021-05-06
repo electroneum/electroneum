@@ -4096,7 +4096,7 @@ bool simple_wallet::init(const boost::program_options::variables_map& vm)
     }
     m_wallet->rewrite(m_wallet_file, password);
   }
-  else
+  else // OPENING A WALLET FROM A WALLET FILE
   {
     assert(!m_wallet_file.empty());
     if (!m_subaddress_lookahead.empty())
@@ -8333,12 +8333,17 @@ bool simple_wallet::run()
   // check and display warning, but go on anyway
   try_connect_to_daemon();
 
+  //initial refresh
   refresh_main(0, ResetNone, true);
 
   m_auto_refresh_enabled = m_wallet->auto_refresh();
+
+  // Idle thread which scans if m_auto_refresh_enabled, and listens to daemon
   m_idle_thread = boost::thread([&]{wallet_idle_thread();});
 
   message_writer(console_color_green, false) << "Background refresh thread started";
+
+  //Indefinitely runs and listens on commands until user says to close wallet or an exception is thrown
   return m_cmd_binder.run_handling([this](){return get_prompt();}, "");
 }
 //----------------------------------------------------------------------------------------------------
@@ -9462,7 +9467,7 @@ int main(int argc, char* argv[])
   std::locale::global(boost::locale::generator().generate(""));
   boost::filesystem::path::imbue(std::locale());
 #endif
-
+  // READ IN OPTIONS FROM COMMAND LINE
   po::options_description desc_params(wallet_args::tr("Wallet options"));
   tools::wallet2::init_options(desc_params);
   command_line::add_arg(desc_params, arg_wallet_file);
@@ -9516,6 +9521,8 @@ int main(int argc, char* argv[])
     return 0;
   }
 
+
+  // INITIALISE THE WALLET AND OPEN IT UP (.init)
   cryptonote::simple_wallet w;
   const bool r = w.init(*vm);
   CHECK_AND_ASSERT_MES(r, 1, sw::tr("Failed to initialize wallet"));
@@ -9550,8 +9557,11 @@ int main(int argc, char* argv[])
         w.stop();
       }
     });
+
+    // FINALLY, RUN THE WALLET
     w.run();
 
+    // CLOSE WALLET DOWN WHEN CONTROL RETURNS FROM w.run()
     w.deinit();
   }
   return 0;
