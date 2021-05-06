@@ -3306,8 +3306,7 @@ void wallet2::refresh(bool trusted_daemon, uint64_t start_height, uint64_t & blo
     uint64_t migration_minheight = this->nettype() == TESTNET ? 1069000 + 5 : 1069000 + 5;
     if (this->get_blockchain_current_height() > migration_minheight && this->unlocked_balance_all() != 0) {
         LOG_PRINT_L0("You are now on the transparent version of Electroneum and so we're giving you the chance to migrate your funds via a sweep transaction back to your address.\n Don't worry, this migration is completely free of charge. Please follow the prompts to continue.");
-        std::map < uint32_t, std::map < uint32_t, std::pair <
-                                                  uint64_t, uint64_t>>> unlocked_balance_per_subaddress_per_account; // map of:   account index ---->  (subaddress index, pair(u-balance, unlock time))
+        std::map < uint32_t, std::map < uint32_t, std::pair <uint64_t, uint64_t>>> unlocked_balance_per_subaddress_per_account; // map of:   account index ---->  (subaddress index, pair(u-balance, unlock time))
         // for each account, grab all of the subaddress info (index, (balance, unlock))
         for (uint32_t account_index = 0; account_index < this->get_num_subaddress_accounts(); ++account_index) {
             unlocked_balance_per_subaddress_per_account[account_index] = this->unlocked_balance_per_subaddress(
@@ -9503,71 +9502,83 @@ skip_tx:
   return ptx_vector;
 }
 
-bool wallet2::sanity_check(const std::vector<wallet2::pending_tx> &ptx_vector, std::vector<cryptonote::tx_destination_entry> dsts) const
-{
-  MDEBUG("sanity_check: " << ptx_vector.size() << " txes, " << dsts.size() << " destinations");
+bool wallet2::sanity_check(const std::vector<wallet2::pending_tx> &ptx_vector,
+                           std::vector<cryptonote::tx_destination_entry> dsts) const {
+    MDEBUG("sanity_check: " << ptx_vector.size() << " txes, " << dsts.size() << " destinations");
 
-  hw::device &hwdev = m_account.get_device();
+    hw::device &hwdev = m_account.get_device();
 
-  THROW_WALLET_EXCEPTION_IF(ptx_vector.empty(), error::wallet_internal_error, "No transactions");
+    THROW_WALLET_EXCEPTION_IF(ptx_vector.empty(), error::wallet_internal_error, "No transactions");
 
-  // check every party in there does receive at least the required amount
-  std::unordered_map<account_public_address, std::pair<uint64_t, bool>> required;
-  for (const auto &d: dsts)
-  {
-    required[d.addr].first += d.amount;
-    required[d.addr].second = d.is_subaddress;
-  }
+    if (std::all_of(ptx_vector.begin(), ptx_vector.end(), [](const pending_tx &ptx) { return ptx.tx.version == 1; })) { // we only need do tx proofs for v1
+        // check every party in there does receive at least the required amount
+        std::unordered_map<account_public_address, std::pair<uint64_t, bool>> required;
+        for (const auto &d: dsts) {
+            required[d.addr].first += d.amount;
+            required[d.addr].second = d.is_subaddress;
+        }
 
-  // add change
-  uint64_t change = 0;
-  for (const auto &ptx: ptx_vector)
-  {
-    for (size_t idx: ptx.selected_transfers)
-      change += m_transfers[idx].amount();
-    change -= ptx.fee;
-  }
-  for (const auto &r: required)
-    change -= r.second.first;
-  MDEBUG("Adding " << cryptonote::print_etn(change) << " expected change");
+        // add change
+        uint64_t change = 0;
+        for (const auto &ptx: ptx_vector) {
+            for (size_t idx: ptx.selected_transfers) //1:add the amount you're spending
+                change += m_transfers[idx].amount();
+            change -= ptx.fee; //2: take off the fee
+        }
+        for (const auto &r: required)
+            change -= r.second.first; // 3: subtract the destination required amount
+        MDEBUG("Adding " << cryptonote::print_etn(change) << " expected change");
 
-  // for all txes that have actual change, check change is coming back to the sending wallet
-  for (const pending_tx &ptx: ptx_vector)
-  {
-    if (ptx.change_dts.amount == 0)
-      continue;
-    THROW_WALLET_EXCEPTION_IF(m_subaddresses.find(ptx.change_dts.addr.m_spend_public_key) == m_subaddresses.end(),
-         error::wallet_internal_error, "Change address is not ours");
-    required[ptx.change_dts.addr].first += ptx.change_dts.amount;
-    required[ptx.change_dts.addr].second = ptx.change_dts.is_subaddress;
-  }
+        // for all txes that have actual change, check change is coming back to the sending wallet
+        for (const pending_tx &ptx: ptx_vector) {
+            if (ptx.change_dts.amount == 0)
+                continue;
+            THROW_WALLET_EXCEPTION_IF(
+                    m_subaddresses.find(ptx.change_dts.addr.m_spend_public_key) == m_subaddresses.end(),
+                    error::wallet_internal_error, "Change address is not ours");
+            required[ptx.change_dts.addr].first += ptx.change_dts.amount;
+            required[ptx.change_dts.addr].second = ptx.change_dts.is_subaddress;
+        }
 
-  for (const auto &r: required)
-  {
-    const account_public_address &address = r.first;
-    const crypto::public_key &view_pkey = address.m_view_public_key;
 
-    uint64_t total_received = 0;
-    for (const auto &ptx: ptx_vector)
-    {
-      uint64_t received = 0;
-      try
-      {
-        std::string proof = get_tx_proof(ptx.tx, ptx.tx_key, ptx.additional_tx_keys, address, r.second.second, "automatic-sanity-check");
-        check_tx_proof(ptx.tx, address, r.second.second, "automatic-sanity-check", proof, received);
-      }
-      catch (const std::exception &e) { received = 0; }
-      total_received += received;
+        for (const auto &r: required) {
+            const account_public_address &address = r.first;
+            const crypto::public_key &view_pkey = address.m_view_public_key;
+
+            uint64_t total_received = 0;
+
+            for (const auto &ptx: ptx_vector) {
+                uint64_t received = 0;
+                try {
+                    std::string proof = get_tx_proof(ptx.tx, ptx.tx_key, ptx.additional_tx_keys, address,
+                                                     r.second.second,
+                                                     "automatic-sanity-check");
+                    check_tx_proof(ptx.tx, address, r.second.second, "automatic-sanity-check", proof, received);
+                }
+                catch (const std::exception &e) { received = 0; }
+                total_received += received;
+            }
+
+            std::stringstream ss;
+            ss << "Total received by "
+               << cryptonote::get_account_address_as_str(m_nettype, r.second.second, address)
+               << ": "
+               << cryptonote::print_etn(total_received) << ", expected " << cryptonote::print_etn(r.second.first);
+            MDEBUG(ss.str());
+            THROW_WALLET_EXCEPTION_IF(total_received < r.second.first, error::wallet_internal_error, ss.str());
+        }
+    } // end of v1 sanity check
+    else {
+        // for all txes that have actual change, check change is coming back to the sending wallet
+        for (const pending_tx &ptx: ptx_vector) {
+            if (ptx.change_dts.amount == 0)
+                continue;
+            THROW_WALLET_EXCEPTION_IF(
+                    m_subaddresses.find(ptx.change_dts.addr.m_spend_public_key) == m_subaddresses.end(),
+                    error::wallet_internal_error, "Change address is not ours");
+        }
     }
-
-    std::stringstream ss;
-    ss << "Total received by " << cryptonote::get_account_address_as_str(m_nettype, r.second.second, address) << ": "
-        << cryptonote::print_etn(total_received) << ", expected " << cryptonote::print_etn(r.second.first);
-    MDEBUG(ss.str());
-    THROW_WALLET_EXCEPTION_IF(total_received < r.second.first, error::wallet_internal_error, ss.str());
-  }
-
-  return true;
+    return true;
 }
 
 std::vector<wallet2::pending_tx> wallet2::create_transactions_all(uint64_t below, const cryptonote::account_public_address &address, bool is_subaddress, const size_t outputs, const size_t fake_outs_count, const uint64_t unlock_time, uint32_t priority, const std::vector<uint8_t>& extra, uint32_t subaddr_account, std::set<uint32_t> subaddr_indices, const bool migrate)
@@ -10600,6 +10611,7 @@ std::string wallet2::get_tx_proof(const crypto::hash &txid, const cryptonote::ac
       tx_hash = cryptonote::get_transaction_hash(tx);
     }
 
+    CHECK_AND_ASSERT_THROW_MES(tx.version == 1, "Tx proofs are for v1 transactions only");
     THROW_WALLET_EXCEPTION_IF(tx_hash != txid, error::wallet_internal_error, "Failed to get the right transaction from daemon");
 
     // determine if the address is found in the subaddress hash table (i.e. whether the proof is outbound or inbound)
@@ -10775,6 +10787,7 @@ bool wallet2::check_tx_proof(const crypto::hash &txid, const cryptonote::account
 
 bool wallet2::check_tx_proof(const cryptonote::transaction &tx, const cryptonote::account_public_address &address, bool is_subaddress, const std::string &message, const std::string &sig_str, uint64_t &received) const
 {
+  CHECK_AND_ASSERT_THROW_MES(tx.version == 1, "Tx proofs are for v1 transactions only");
   const bool is_out = sig_str.substr(0, 3) == "Out";
   const std::string header = is_out ? "OutProofV1" : "InProofV1";
   const size_t header_len = header.size();
