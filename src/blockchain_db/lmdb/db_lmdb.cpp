@@ -380,6 +380,7 @@ typedef struct acc_outs_t {
     crypto::hash tx_hash;
     uint64_t relative_out_index;
     uint64_t amount;
+    uint64_t unlock_time;
 }acc_outs_t;
 
 std::atomic<uint64_t> mdb_txn_safe::num_active_txns{0};
@@ -1805,7 +1806,7 @@ void BlockchainLMDB::unlock()
 
 
 void BlockchainLMDB::add_chainstate_utxo(const crypto::hash tx_hash, const uint32_t relative_out_index,
-                                         const crypto::public_key combined_key, uint64_t amount, bool is_coinbase)
+                                         const crypto::public_key combined_key, uint64_t amount, uint64_t unlock_time, bool is_coinbase)
 {
   LOG_PRINT_L3("BlockchainLMDB::" << __func__);
   check_open();
@@ -1858,6 +1859,33 @@ bool BlockchainLMDB::check_chainstate_utxo(const crypto::hash tx_hash, const uin
   TXN_POSTFIX_RDONLY();
   return true;
 }
+
+uint64_t BlockchainLMDB::get_utxo_unlock_time(const crypto::hash tx_hash, const uint32_t relative_out_index)
+{
+    LOG_PRINT_L3("BlockchainLMDB::" << __func__);
+    check_open();
+
+    TXN_PREFIX_RDONLY();
+    RCURSOR(utxos)
+
+    chainstate_key_t index;
+    index.tx_hash = tx_hash;
+    index.relative_out_index = relative_out_index;
+
+    MDB_val k = {sizeof(index), (void *)&index};
+    MDB_val v;
+
+    auto result = mdb_cursor_get(m_cur_utxos, &k, &v, MDB_SET_KEY);
+    if (result == MDB_NOTFOUND)
+        return false;
+    if (result != 0)
+        throw1(DB_ERROR(lmdb_error("Error finding utxo: ", result).c_str()));
+
+    auto res = *(const chainstate_value_t *) v.mv_data;
+    TXN_POSTFIX_RDONLY();
+    return res.unlock_time;
+}
+
 
 void BlockchainLMDB::remove_chainstate_utxo(const crypto::hash tx_hash, const uint32_t relative_out_index)
 {
@@ -1964,7 +1992,7 @@ void BlockchainLMDB::remove_tx_input(const crypto::hash tx_hash, const uint32_t 
 
 void BlockchainLMDB::add_addr_output(const crypto::hash tx_hash, const uint32_t relative_out_index,
                                      const crypto::public_key& combined_key,
-                                     uint64_t amount)
+                                     uint64_t amount, uint64_t unlock_time)
 {
   LOG_PRINT_L3("BlockchainLMDB::" << __func__);
   check_open();
@@ -1996,6 +2024,7 @@ void BlockchainLMDB::add_addr_output(const crypto::hash tx_hash, const uint32_t 
   acc.tx_hash = tx_hash;
   acc.relative_out_index = relative_out_index;
   acc.amount = amount;
+  acc.unlock_time = unlock_time;
 
   MDB_val acc_v = {sizeof(acc), (void *)&acc};
 
@@ -2143,7 +2172,7 @@ uint64_t BlockchainLMDB::get_balance(const crypto::public_key& combined_key)
 
 void BlockchainLMDB::remove_addr_output(const crypto::hash tx_hash, const uint32_t relative_out_index,
                                         const crypto::public_key& combined_key,
-                                        uint64_t amount)
+                                        uint64_t amount, uint64_t unlock_time)
 {
   LOG_PRINT_L3("BlockchainLMDB::" << __func__);
   check_open();
@@ -2167,7 +2196,7 @@ void BlockchainLMDB::remove_addr_output(const crypto::hash tx_hash, const uint32
 
     const acc_outs_t res = *(const acc_outs_t *) v.mv_data;
 
-    if(res.tx_hash == tx_hash && res.relative_out_index == relative_out_index && res.amount == amount) {
+    if(res.tx_hash == tx_hash && res.relative_out_index == relative_out_index && res.amount == amount && res.unlock_time == unlock_time ) {
       result = mdb_cursor_del(m_cur_addr_outputs, 0);
       if (result)
         throw1(DB_ERROR(lmdb_error("Error removing of addr output from db: ", result).c_str()));

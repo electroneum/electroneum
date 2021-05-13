@@ -440,12 +440,13 @@ private:
   blobdata output_to_blob(const tx_out& output) const;
   tx_out output_from_blob(const blobdata& blob) const;
 
-  virtual void add_chainstate_utxo(const crypto::hash tx_hash, const uint32_t relative_out_index, const crypto::public_key combined_key, uint64_t amount, bool is_coinbase = false);
+  virtual void add_chainstate_utxo(const crypto::hash tx_hash, const uint32_t relative_out_index, const crypto::public_key combined_key, uint64_t amount, uint64_t unlock_time, bool is_coinbase = false);
   virtual bool check_chainstate_utxo(const crypto::hash tx_hash, const uint32_t relative_out_index);
+  virtual uint64_t get_utxo_unlock_time(const crypto::hash tx_hash, const uint32_t relative_out_index);
   virtual void remove_chainstate_utxo(const crypto::hash tx_hash, const uint32_t relative_out_index);
 
-  virtual void add_addr_output(const crypto::hash tx_hash, const uint32_t relative_out_index, const crypto::public_key& combined_key, uint64_t amount);
-  virtual void remove_addr_output(const crypto::hash tx_hash, const uint32_t relative_out_index, const crypto::public_key& combined_key, uint64_t amount);
+  virtual void add_addr_output(const crypto::hash tx_hash, const uint32_t relative_out_index, const crypto::public_key& combined_key, uint64_t amount, uint64_t unlock_time);
+  virtual void remove_addr_output(const crypto::hash tx_hash, const uint32_t relative_out_index, const crypto::public_key& combined_key, uint64_t amount, uint64_t unlock_time);
 
   virtual void add_tx_input(const crypto::hash tx_hash, const uint32_t relative_out_index, const crypto::hash parent_tx_hash, const uint64_t in_index);
   virtual void remove_tx_input(const crypto::hash tx_hash, const uint32_t relative_out_index);

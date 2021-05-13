@@ -213,8 +213,7 @@ void BlockchainDB::add_transaction(const crypto::hash& blk_hash, const std::pair
           {
             const auto &txin = boost::get<txin_to_key_public>(tx_input);
             const auto &txout = boost::get<txout_to_key_public>(get_tx(tx.hash).vout[txin.relative_offset].target);
-
-            add_chainstate_utxo(txin.tx_hash, txin.relative_offset, addKeys(txout.address.m_view_public_key, txout.address.m_spend_public_key), txin.amount);
+            add_chainstate_utxo(txin.tx_hash, txin.relative_offset, addKeys(txout.address.m_view_public_key, txout.address.m_spend_public_key), txin.amount, get_tx_unlock_time(txin.tx_hash));
           }
         }
         return;
@@ -222,8 +221,8 @@ void BlockchainDB::add_transaction(const crypto::hash& blk_hash, const std::pair
 
       const auto &txout = boost::get<txout_to_key_public>(tx.vout[i].target);
 
-      add_chainstate_utxo(tx.hash, i, addKeys(txout.address.m_view_public_key, txout.address.m_spend_public_key) , tx.vout[i].amount, miner_tx);
-      add_addr_output(tx.hash, i, addKeys(txout.address.m_view_public_key, txout.address.m_spend_public_key), tx.vout[i].amount);
+      add_chainstate_utxo(tx.hash, i, addKeys(txout.address.m_view_public_key, txout.address.m_spend_public_key) , tx.vout[i].amount, miner_tx, txp.first.unlock_time);
+      add_addr_output(tx.hash, i, addKeys(txout.address.m_view_public_key, txout.address.m_spend_public_key), tx.vout[i].amount, txp.first.unlock_time);
     }
   }
 }
@@ -270,7 +269,7 @@ uint64_t BlockchainDB::add_block( const std::pair<block, blobdata>& blck
   add_block(blk, block_weight, long_term_block_weight, cumulative_difficulty, coins_generated, 0, blk_hash);
   TIME_MEASURE_FINISH(time1);
   time_add_block1 += time1;
-
+  //voting mechanism
   m_hardfork->add(blk, prev_height);
 
   ++num_calls;
@@ -317,10 +316,10 @@ void BlockchainDB::remove_transaction(const crypto::hash& tx_hash)
     }
     else if (tx_input.type() == typeid(txin_to_key_public))
     {
-      const auto &txin = boost::get<txin_to_key_public>(tx_input);
-      const auto &txout = boost::get<txout_to_key_public>(get_tx(txin.tx_hash).vout[txin.relative_offset].target);
+      const auto &txin = boost::get<txin_to_key_public>(tx_input); // tx in being used in the tx to be removed.
+      const auto &txout = boost::get<txout_to_key_public>(get_tx(txin.tx_hash).vout[txin.relative_offset].target); //previous tx out that this tx in references
 
-      add_chainstate_utxo(txin.tx_hash, txin.relative_offset, addKeys(txout.address.m_view_public_key, txout.address.m_spend_public_key), txin.amount);
+      add_chainstate_utxo(txin.tx_hash, txin.relative_offset, addKeys(txout.address.m_view_public_key, txout.address.m_spend_public_key), txin.amount, get_tx_unlock_time(txin.tx_hash));
       remove_tx_input(txin.tx_hash, txin.relative_offset);
     }
   }
@@ -332,7 +331,7 @@ void BlockchainDB::remove_transaction(const crypto::hash& tx_hash)
       const auto &txout = boost::get<txout_to_key_public>(tx.vout[i].target);
 
       remove_chainstate_utxo(tx.hash, i);
-      remove_addr_output(tx_hash, i, addKeys(txout.address.m_view_public_key, txout.address.m_spend_public_key), tx.vout[i].amount);
+      remove_addr_output(tx_hash, i, addKeys(txout.address.m_view_public_key, txout.address.m_spend_public_key), tx.vout[i].amount, tx.unlock_time);
     }
   }
 
