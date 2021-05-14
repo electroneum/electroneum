@@ -793,8 +793,12 @@ namespace tools
           er.message = "A single payment id is allowed per transaction";
           return false;
         }
-        integrated_payment_id = info.payment_id;
-        cryptonote::set_encrypted_payment_id_to_tx_extra_nonce(extra_nonce, integrated_payment_id);
+
+        crypto::hash payment_id = null_hash;
+        memcpy(payment_id.data, info.payment_id.data, 8); // convert short pid to regular
+        memset(payment_id.data + 8, 0, 24); // merely a sanity check
+
+        set_payment_id_to_tx_extra_nonce(extra_nonce, payment_id);
 
         /* Append Payment ID data into extra */
         if (!cryptonote::add_extra_nonce_to_tx_extra(extra, extra_nonce)) {
@@ -1215,8 +1219,11 @@ namespace tools
             crypto::hash payment_id;
             if(cryptonote::get_encrypted_payment_id_from_tx_extra_nonce(extra_nonce.nonce, payment_id8))
             {
-              desc.payment_id = epee::string_tools::pod_to_hex(payment_id8);
-              has_encrypted_payment_id = true;
+              crypto::hash payment_id = crypto::null_hash;
+              memcpy(payment_id.data, ipayment_id8.data, 8); // convert short pid to regular
+              memset(payment_id.data + 8, 0, 24); // merely a sanity check
+              desc.payment_id = epee::string_tools::pod_to_hex(payment_id);
+
             }
             else if (cryptonote::get_payment_id_from_tx_extra_nonce(extra_nonce.nonce, payment_id))
             {
@@ -1706,7 +1713,7 @@ namespace tools
       er.message = "Payment ID has invalid format";
       return false;
     }
-
+    // we always convert short IDs to long ones for the purposes of searching for payments
       if(sizeof(payment_id) == payment_id_blob.size())
       {
         payment_id = *reinterpret_cast<const crypto::hash*>(payment_id_blob.data());

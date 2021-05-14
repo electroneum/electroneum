@@ -5836,13 +5836,14 @@ bool simple_wallet::transfer_main(int transfer_type, const std::vector<std::stri
       std::string extra_nonce;
       if (info.has_payment_id)
       {
-        set_encrypted_payment_id_to_tx_extra_nonce(extra_nonce, info.payment_id);
+        memcpy(payment_id.data, info.payment_id.data, 8); // convert short pid to regular
+        memset(payment_id.data + 8, 0, 24); // merely a sanity check
+        set_payment_id_to_tx_extra_nonce(extra_nonce, payment_id);
       }
       else if (tools::wallet2::parse_payment_id(payment_id_uri, payment_id))
       {
         LONG_PAYMENT_ID_SUPPORT_CHECK();
         set_payment_id_to_tx_extra_nonce(extra_nonce, payment_id);
-        message_writer() << tr("Warning: Unencrypted payment IDs will harm your privacy: ask the recipient to use subaddresses instead");
       }
       else
       {
@@ -6429,7 +6430,11 @@ bool simple_wallet::sweep_main(uint64_t below, bool locked, const std::vector<st
     }
 
     std::string extra_nonce;
-    set_encrypted_payment_id_to_tx_extra_nonce(extra_nonce, info.payment_id);
+    crypto::hash payment_id = crypto::null_hash;
+    memcpy(payment_id.data, info.payment_id.data, 8); // convert short pid to regular
+    memset(payment_id.data + 8, 0, 24); // merely a sanity check
+
+    set_payment_id_to_tx_extra_nonce(extra_nonce, payment_id);
     bool r = add_extra_nonce_to_tx_extra(extra, extra_nonce);
     if(!r)
     {
@@ -6700,7 +6705,11 @@ bool simple_wallet::sweep_single(const std::vector<std::string> &args_)
     }
 
     std::string extra_nonce;
-    set_encrypted_payment_id_to_tx_extra_nonce(extra_nonce, info.payment_id);
+    crypto::hash payment_id = crypto::null_hash;
+    memcpy(payment_id.data, info.payment_id.data, 8); // convert short pid to regular
+    memset(payment_id.data + 8, 0, 24); // merely a sanity check
+
+    set_payment_id_to_tx_extra_nonce(extra_nonce, payment_id);
     if (!add_extra_nonce_to_tx_extra(extra, extra_nonce))
     {
       fail_msg_writer() << tr("failed to set up payment id, though it was decoded correctly");
@@ -6927,12 +6936,14 @@ bool simple_wallet::accept_loaded_tx(const std::function<size_t()> get_num_txes,
 
           if (is_dummy)
           {
-            payment_id_string += std::string("dummy encrypted payment ID");
+            payment_id_string += std::string("dummy payment ID");
           }
           else
           {
-            payment_id_string += std::string("encrypted payment ID ") + epee::string_tools::pod_to_hex(payment_id8);
-            has_encrypted_payment_id = true;
+            crypto::hash payment_id = crypto::null_hash;
+            memcpy(payment_id.data, payment_id8.data, 8); // convert short pid to regular
+            memset(payment_id.data + 8, 0, 24); // merely a sanity check
+            payment_id_string += std::string("payment ID ") + epee::string_tools::pod_to_hex(payment_id);
           }
         }
         else if (get_payment_id_from_tx_extra_nonce(extra_nonce.nonce, payment_id))

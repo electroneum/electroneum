@@ -911,14 +911,18 @@ bool get_short_payment_id(crypto::hash8 &payment_id8, const tools::wallet2::pend
 tools::wallet2::tx_construction_data get_construction_data_with_decrypted_short_payment_id(const tools::wallet2::pending_tx &ptx, hw::device &hwdev)
 {
   tools::wallet2::tx_construction_data construction_data = ptx.construction_data;
-  crypto::hash8 payment_id = null_hash8;
-  if (get_short_payment_id(payment_id, ptx, hwdev))
+  crypto::hash8 payment_id8 = null_hash8;
+  if (get_short_payment_id(payment_id8, ptx, hwdev))
   {
     // Remove encrypted
     remove_field_from_tx_extra(construction_data.extra, typeid(cryptonote::tx_extra_nonce));
     // Add decrypted
     std::string extra_nonce;
-    set_encrypted_payment_id_to_tx_extra_nonce(extra_nonce, payment_id);
+    crypto::hash payment_id = null_hash;
+    memcpy(payment_id.data, payment_id8.data, 8); // convert short pid to regular
+    memset(payment_id.data + 8, 0, 24); // merely a sanity check
+
+    set_payment_id_to_tx_extra_nonce(extra_nonce, payment_id);
     THROW_WALLET_EXCEPTION_IF(!add_extra_nonce_to_tx_extra(construction_data.extra, extra_nonce),
         tools::error::wallet_internal_error, "Failed to add decrypted payment id to tx extra");
     LOG_PRINT_L1("Decrypted payment ID: " << payment_id);
@@ -2233,11 +2237,11 @@ void wallet2::process_new_transaction(const crypto::hash &txid, const cryptonote
           }
           else
           {
-            LOG_PRINT_L2("Decrypted payment ID: " << payment_id8);
             // put the 64 bit decrypted payment id in the first 8 bytes
             memcpy(payment_id.data, payment_id8.data, 8);
             // rest is already 0, but guard against code changes above
             memset(payment_id.data + 8, 0, 24);
+            LOG_PRINT_L2(" payment ID: " << payment_id);
           }
         }
         else
