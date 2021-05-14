@@ -190,7 +190,7 @@ namespace cryptonote
       return false;
     }
 
-    if (!kept_by_block && !m_blockchain.check_fee(tx_weight, fee))
+    if (tx.version != 2 && !kept_by_block && !m_blockchain.check_fee(tx_weight, fee))
     {
       tvc.m_verification_failed = true;
       tvc.m_fee_too_low = true;
