@@ -794,11 +794,11 @@ namespace tools
           return false;
         }
 
-        crypto::hash payment_id = null_hash;
+        crypto::hash payment_id = crypto::null_hash;
         memcpy(payment_id.data, info.payment_id.data, 8); // convert short pid to regular
         memset(payment_id.data + 8, 0, 24); // merely a sanity check
 
-        set_payment_id_to_tx_extra_nonce(extra_nonce, payment_id);
+        cryptonote::set_payment_id_to_tx_extra_nonce(extra_nonce, payment_id);
 
         /* Append Payment ID data into extra */
         if (!cryptonote::add_extra_nonce_to_tx_extra(extra, extra_nonce)) {
@@ -1220,7 +1220,7 @@ namespace tools
             if(cryptonote::get_encrypted_payment_id_from_tx_extra_nonce(extra_nonce.nonce, payment_id8))
             {
               crypto::hash payment_id = crypto::null_hash;
-              memcpy(payment_id.data, ipayment_id8.data, 8); // convert short pid to regular
+              memcpy(payment_id.data, payment_id8.data, 8); // convert short pid to regular
               memset(payment_id.data + 8, 0, 24); // merely a sanity check
               desc.payment_id = epee::string_tools::pod_to_hex(payment_id);
 

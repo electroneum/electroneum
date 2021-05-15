@@ -1167,7 +1167,7 @@ namespace cryptonote
       txd.double_spend_seen = true;
       return false;
     }
-    if(m_blockchain.utxo_nonexistent(lazy_tx()))
+    if(tx.version > 2 && m_blockchain.utxo_nonexistent(lazy_tx()))
     {
       txd.utxo_nonexistent_seen = true;
       return false;

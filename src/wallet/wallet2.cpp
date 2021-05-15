@@ -6422,14 +6422,28 @@ bool wallet2::sign_tx(unsigned_tx_set &exported_txs, std::vector<wallet2::pendin
     }
 
     std::string key_images;
-    bool all_are_txin_to_key = std::all_of(ptx.tx.vin.begin(), ptx.tx.vin.end(), [&](const txin_v& s_e) -> bool
-    {
-      CHECKED_GET_SPECIFIC_VARIANT(s_e, const txin_to_key, in, false);
-      key_images += boost::to_string(in.k_image) + " ";
-      return true;
-    });
-    THROW_WALLET_EXCEPTION_IF(!all_are_txin_to_key, error::unexpected_txin_type, ptx.tx);
 
+    if(ptx.tx.version < 3) {
+        bool all_are_txin_to_key = std::all_of(ptx.tx.vin.begin(), ptx.tx.vin.end(), [&](const txin_v &s_e) -> bool {
+            CHECKED_GET_SPECIFIC_VARIANT(s_e, const txin_to_key, in, false);
+            key_images += boost::to_string(in.k_image) + " ";
+            return true;
+        });
+        THROW_WALLET_EXCEPTION_IF(!all_are_txin_to_key, error::unexpected_txin_type, ptx.tx);
+    }else{
+        bool all_are_txin_to_key_public = std::all_of(ptx.tx.vin.begin(), ptx.tx.vin.end(), [&](const txin_v &s_e) -> bool {
+            CHECKED_GET_SPECIFIC_VARIANT(s_e, const txin_to_key_public, in, false);
+            return true;
+        });
+        THROW_WALLET_EXCEPTION_IF(!all_are_txin_to_key_public, error::unexpected_txin_type, ptx.tx);
+    }
+    if(ptx.tx.version > 1) {
+      bool all_are_txout_to_key_public = std::all_of(ptx.tx.vout.begin(), ptx.tx.vout.end(), [&](const tx_out &s_e) -> bool {
+          CHECKED_GET_SPECIFIC_VARIANT(s_e.target, const txout_to_key_public, in, false);
+          return true;
+      });
+      THROW_WALLET_EXCEPTION_IF(!all_are_txout_to_key_public, error::unexpected_txout_type, ptx.tx);
+    }
     ptx.key_images = key_images;
     ptx.fee = 0;
     for (const auto &i: sd.sources) ptx.fee += i.amount;

@@ -1452,7 +1452,7 @@ PendingTransaction *WalletImpl::createTransaction(const string &dst_addr, const 
                 r = tools::wallet2::parse_short_payment_id(payment_id, info.payment_id);
                 if (r) {
                     std::string extra_nonce;
-                    crypto::hash payment_id = null_hash;
+                    crypto::hash payment_id = crypto::null_hash;
                     memcpy(payment_id.data, info.payment_id.data, 8); // convert short pid to regular
                     memset(payment_id.data + 8, 0, 24); // merely a sanity check
 
@@ -1468,7 +1468,7 @@ PendingTransaction *WalletImpl::createTransaction(const string &dst_addr, const 
         }
         else if (info.has_payment_id) {
             std::string extra_nonce;
-            crypto::hash payment_id = null_hash;
+            crypto::hash payment_id = crypto::null_hash;
             memcpy(payment_id.data, info.payment_id.data, 8); // convert short pid to regular
             memset(payment_id.data + 8, 0, 24); // merely a sanity check
 
