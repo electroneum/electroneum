@@ -1457,7 +1457,7 @@ bool Blockchain::create_block_template(block& b, const crypto::hash *from_block,
   LOG_PRINT_L3("Blockchain::" << __func__);
   size_t median_weight;
   uint64_t already_generated_coins;
-  uint64_t pool_cookie;
+  //uint64_t pool_cookie;
 
   m_tx_pool.lock();
   const auto unlock_guard = epee::misc_utils::create_scope_leave_handler([&]() { m_tx_pool.unlock(); });
@@ -1562,7 +1562,7 @@ bool Blockchain::create_block_template(block& b, const crypto::hash *from_block,
   {
     return false;
   }
-  pool_cookie = m_tx_pool.cookie();
+  //pool_cookie = m_tx_pool.cookie();
 #if defined(DEBUG_CREATE_BLOCK_TEMPLATE)
   size_t real_txs_weight = 0;
   uint64_t real_fee = 0;

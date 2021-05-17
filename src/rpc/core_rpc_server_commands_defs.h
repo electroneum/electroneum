@@ -439,7 +439,7 @@ namespace cryptonote
 
     struct response_t
     {
-      std::vector<int> spent_status;
+      std::vector<uint> spent_status;
       std::string status;
       bool untrusted;
 
@@ -1275,7 +1275,7 @@ namespace cryptonote
   {
     struct request_t
     {
-      int8_t level;
+      uint8_t level;
 
       BEGIN_KV_SERIALIZE_MAP()
         KV_SERIALIZE(level)

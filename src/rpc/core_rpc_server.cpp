@@ -1057,7 +1057,7 @@ namespace cryptonote
   bool core_rpc_server::on_set_log_level(const COMMAND_RPC_SET_LOG_LEVEL::request& req, COMMAND_RPC_SET_LOG_LEVEL::response& res, const connection_context *ctx)
   {
     PERF_TIMER(on_set_log_level);
-    if (req.level < 0 || req.level > 4)
+    if (req.level > 4)
     {
       res.status = "Error: log level not valid";
       return true;
