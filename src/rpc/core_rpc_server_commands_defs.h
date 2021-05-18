@@ -439,7 +439,7 @@ namespace cryptonote
 
     struct response_t
     {
-      std::vector<uint> spent_status;
+      std::vector<u_int> spent_status;
       std::string status;
       bool untrusted;
 

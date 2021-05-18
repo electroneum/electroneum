@@ -98,7 +98,7 @@ static const struct {
   { 7, 324500, 0, 1538985600 }, // Estimated July 5th, 8:30AM UTC
   { 8, 589169, 0, 1562547600 },
   { 9, 862866, 0, 1595615809 }, // Estimated July 22th, 2020
-  { 10, 9000000, 0, 10000000000 }, // todo: choose real date
+  { 10, 1069110, 0, 10000000000 }, // todo: choose real date
 };
 static const uint64_t mainnet_hard_fork_version_1_till = 307499;
 

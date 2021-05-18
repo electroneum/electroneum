@@ -559,20 +559,33 @@ private:
       bool error;
     };
 
-    struct is_out_data
+    struct is_out_data //todo: refactor for per version structures
     {
-      crypto::public_key pkey;
-      crypto::key_derivation derivation;
+      crypto::public_key pkey; //transaction public key R
+      crypto::key_derivation derivation; // D-H shared secret aR
       std::vector<boost::optional<cryptonote::subaddress_receive_info>> received;
     };
 
-    struct tx_cache_data
+      // we have none(v2+), one, or many transaction private keys
+      // tx cache_data is a one-per-tx structure and the vectors below hold all
+      // the outputs for each transaction private key or all of the new public outs
+      // but note that a single is_out_data can hold many outputs (received field)
+      // eg: primary holds one is_out_data with multiple received outs inside the received field
+      //     for a miner tx, or tx.vout.size() for a regular tx.
+      struct tx_cache_data
     {
-      std::vector<cryptonote::tx_extra_field> tx_extra_fields;
-      std::vector<is_out_data> primary;
-      std::vector<is_out_data> additional;
+        // V1 ONLY
+        std::vector<is_out_data> primary;
+        std::vector<is_out_data> additional;
 
-      bool empty() const { return tx_extra_fields.empty() && primary.empty() && additional.empty(); }
+        // ALL VERSIONS
+        std::vector<cryptonote::tx_extra_field> tx_extra_fields;
+
+        // V2+ ONLY
+        std::vector<is_out_data> public_outs;
+
+      bool empty() const { return tx_extra_fields.empty() && primary.empty() && additional.empty() && public_outs.empty(); }
+      bool public_only() const { return !public_outs.empty() && primary.empty() && additional.empty(); }
     };
 
     /*!
@@ -1430,6 +1443,7 @@ private:
       std::vector<crypto::public_key> &signers,
       std::unordered_set<crypto::public_key> &pkeys) const;
 
+    // This caches pubkeys (stealths) only and nothing to do with whether we own an output. Typically ran in a new thread whilst the wallet deals with new blocks (and tx) one by one.
     void cache_tx_data(const cryptonote::transaction& tx, const crypto::hash &txid, tx_cache_data &tx_cache_data) const;
     std::shared_ptr<std::map<std::pair<uint64_t, uint64_t>, size_t>> create_output_tracker_cache() const;
 

@@ -285,7 +285,12 @@ namespace cryptonote
     if (use_bootstrap_daemon_if_necessary<COMMAND_RPC_GET_BLOCKS_FAST>(invoke_http_mode::BIN, "/getblocks.bin", req, res, r))
       return r;
 
-    std::vector<std::pair<std::pair<cryptonote::blobdata, crypto::hash>, std::vector<std::pair<crypto::hash, cryptonote::blobdata> > > > bs;
+      //Vector of pairs where each pair is:  item#1) pair<block blob, hash>  item#2)vector of pairs of <tx hash, tx blob>
+    std::vector<
+                std::pair<
+                          std::pair<cryptonote::blobdata, crypto::hash>, std::vector<std::pair<crypto::hash, cryptonote::blobdata> >
+                         >
+    > bs;
 
     if(!m_core.find_blockchain_supplement(req.start_height, req.block_ids, bs, res.current_height, res.start_height, req.prune, !req.no_miner_tx, COMMAND_RPC_GET_BLOCKS_FAST_MAX_COUNT))
     {
@@ -294,12 +299,17 @@ namespace cryptonote
     }
 
     size_t pruned_size = 0, unpruned_size = 0, ntxes = 0;
+
+    // Preallocate space in the RPC result
     res.blocks.reserve(bs.size());
     res.output_indices.reserve(bs.size());
+
+    // Loop over all of the block data and populate the rpc response
+    uint64_t height_counter = res.start_height;
     for(auto& bd: bs)
     {
       res.blocks.resize(res.blocks.size()+1);
-      res.blocks.back().block = bd.first.first;
+      res.blocks.back().block = bd.first.first;  // add block hash to response
       pruned_size += bd.first.first.size();
       unpruned_size += bd.first.first.size();
       res.output_indices.push_back(COMMAND_RPC_GET_BLOCKS_FAST::block_output_indices());
@@ -308,19 +318,23 @@ namespace cryptonote
       if (req.no_miner_tx)
         res.output_indices.back().indices.push_back(COMMAND_RPC_GET_BLOCKS_FAST::tx_output_indices());
       res.blocks.back().txs.reserve(bd.second.size());
+
+      //go over the transactions in bs first
       for (std::vector<std::pair<crypto::hash, cryptonote::blobdata>>::iterator i = bd.second.begin(); i != bd.second.end(); ++i)
       {
         unpruned_size += i->second.size();
-        res.blocks.back().txs.push_back(std::move(i->second));
+        res.blocks.back().txs.push_back(std::move(i->second)); //add a tx blob to rpc response
         i->second.clear();
         i->second.shrink_to_fit();
         pruned_size += res.blocks.back().txs.back().size();
       }
 
-      const size_t n_txes_to_lookup = bd.second.size() + (req.no_miner_tx ? 0 : 1);
+      //no need to look up indexes for v2+ txes
+      const size_t n_txes_to_lookup = height_counter >= 1069110 ? 0 : (bd.second.size() + (req.no_miner_tx ? 0 : 1));
       if (n_txes_to_lookup > 0)
       {
         std::vector<std::vector<uint64_t>> indices;
+        //either pass the first tx hash or the block hash depending on whether it was a miner tx or not
         bool r = m_core.get_tx_outputs_gindexs(req.no_miner_tx ? bd.second.front().first : bd.first.second, n_txes_to_lookup, indices);
         if (!r)
         {
@@ -335,6 +349,7 @@ namespace cryptonote
         for (size_t i = 0; i < indices.size(); ++i)
           res.output_indices.back().indices.push_back({std::move(indices[i])});
       }
+      ++height_counter;
     }
 
     MDEBUG("on_get_blocks: " << bs.size() << " blocks, " << ntxes << " txes, pruned size " << pruned_size << ", unpruned size " << unpruned_size);
