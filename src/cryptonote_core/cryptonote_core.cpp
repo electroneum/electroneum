@@ -1084,10 +1084,10 @@ namespace cryptonote
     get_inputs_etn_amount(tx, amount_in);
     uint64_t amount_out = get_outs_etn_amount(tx);
 
-    if(amount_in <= amount_out)
-    {
-      MERROR_VER("tx with wrong amounts: ins " << amount_in << ", outs " << amount_out << ", rejected for tx id= " << get_transaction_hash(tx));
-      return false;
+    if((tx.version != 2 && amount_in <= amount_out) || (tx.version == 2 && amount_in != amount_out)) {
+        MERROR_VER("tx with wrong amounts: ins " << amount_in << ", outs " << amount_out << ", rejected for tx id= "
+                                             << get_transaction_hash(tx));
+        return false;
     }
     // for version > 1, ringct signatures check verifies amounts match
 

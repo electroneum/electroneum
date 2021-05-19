@@ -9750,7 +9750,7 @@ std::vector<wallet2::pending_tx> wallet2::create_transactions_from(const crypton
   };
   std::vector<TX> txes;
   uint64_t needed_fee, available_for_fee = 0;
-  uint64_t upper_transaction_weight_limit = get_upper_transaction_weight_limit();
+  uint64_t upper_transaction_weight_limit = get_upper_transaction_weight_limit(); //max size of a tx - usually ~ half the block size
   std::vector<std::vector<get_outs_entry>> outs;
 
   const bool use_per_byte_fee = use_fork_rules(HF_VERSION_PER_BYTE_FEE);
@@ -9825,7 +9825,7 @@ std::vector<wallet2::pending_tx> wallet2::create_transactions_from(const crypton
       cryptonote::transaction test_tx;
       pending_tx test_ptx;
 
-      needed_fee = estimate_fee(use_per_byte_fee, use_rct, tx.selected_transfers.size(), fake_outs_count, tx.dsts.size()+1, extra.size(), bulletproof, base_fee, fee_multiplier, fee_quantization_mask);
+      needed_fee = migrate ? 0 : estimate_fee(use_per_byte_fee, use_rct, tx.selected_transfers.size(), fake_outs_count, tx.dsts.size()+1, extra.size(), bulletproof, base_fee, fee_multiplier, fee_quantization_mask);
 
       // add N - 1 outputs for correct initial fee estimation
       for (size_t i = 0; i < ((outputs > 1) ? outputs - 1 : outputs); ++i)
@@ -9838,7 +9838,7 @@ std::vector<wallet2::pending_tx> wallet2::create_transactions_from(const crypton
         detail::digit_split_strategy, tx_dust_policy(::config::DEFAULT_DUST_THRESHOLD), test_tx, test_ptx, migrate);
 
       auto txBlob = t_serializable_object_to_blob(test_ptx.tx);
-      needed_fee = calculate_fee(use_per_byte_fee, test_ptx.tx, txBlob.size(), base_fee, fee_multiplier, fee_quantization_mask);
+      needed_fee = migrate ? 0 : calculate_fee(use_per_byte_fee, test_ptx.tx, txBlob.size(), base_fee, fee_multiplier, fee_quantization_mask);
       available_for_fee = test_ptx.fee + test_ptx.change_dts.amount;
       for (auto &dt: test_ptx.dests)
         available_for_fee += dt.amount;
@@ -9854,7 +9854,7 @@ std::vector<wallet2::pending_tx> wallet2::create_transactions_from(const crypton
       do {
         LOG_PRINT_L2("We made a tx, adjusting fee and saving it");
         // distribute total transferred amount between outputs
-        uint64_t amount_transferred = available_for_fee - needed_fee;
+        uint64_t amount_transferred = available_for_fee - needed_fee; //shouuld be zero for migration transactions
         uint64_t dt_amount = amount_transferred / outputs;
         // residue is distributed as one atomic unit per output until it reaches zero
         uint64_t residue = amount_transferred % outputs;
@@ -9871,7 +9871,7 @@ std::vector<wallet2::pending_tx> wallet2::create_transactions_from(const crypton
         transfer_selected(tx.dsts, tx.selected_transfers, fake_outs_count, outs, unlock_time, needed_fee, extra,
         detail::digit_split_strategy, tx_dust_policy(::config::DEFAULT_DUST_THRESHOLD), test_tx, test_ptx, migrate);
         txBlob = t_serializable_object_to_blob(test_ptx.tx);
-        needed_fee = calculate_fee(use_per_byte_fee, test_ptx.tx, txBlob.size(), base_fee, fee_multiplier, fee_quantization_mask);
+        needed_fee = migrate ? 0 : calculate_fee(use_per_byte_fee, test_ptx.tx, txBlob.size(), base_fee, fee_multiplier, fee_quantization_mask);
         LOG_PRINT_L2("Made an attempt at a final " << get_weight_string(test_ptx.tx, txBlob.size()) << " tx, with " << print_etn(test_ptx.fee) <<
           " fee  and " << print_etn(test_ptx.change_dts.amount) << " change");
       } while (needed_fee > test_ptx.fee);
