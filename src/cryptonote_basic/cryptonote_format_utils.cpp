@@ -852,6 +852,16 @@ namespace cryptonote
     return boost::none;
   }
   //---------------------------------------------------------------
+  boost::optional<subaddress_receive_info> is_out_to_acc_precomp_public(const std::unordered_map<crypto::public_key, subaddress_index>& subaddresses, const cryptonote::account_public_address output_address)
+  {
+      crypto::public_key subaddress_spendkey = output_address.m_spend_public_key;
+      auto found = subaddresses.find(subaddress_spendkey);
+      if (found != subaddresses.end()){
+           return subaddress_receive_info{found->second, {}};
+      }
+      return boost::none;
+  }
+  //---------------------------------------------------------------
   bool lookup_acc_outs(const account_keys& acc, const transaction& tx, std::vector<size_t>& outs, uint64_t& etn_transfered)
   {
     crypto::public_key tx_pub_key = get_tx_pub_key_from_extra(tx);

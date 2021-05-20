@@ -1617,15 +1617,28 @@ bool wallet2::frozen(const transfer_details &td) const
 void wallet2::check_acc_out_precomp(const tx_out &o, const crypto::key_derivation &derivation, const std::vector<crypto::key_derivation> &additional_derivations, size_t i, tx_scan_info_t &tx_scan_info) const
 {
   hw::device &hwdev = m_account.get_device();
-  boost::unique_lock<hw::device> hwdev_lock (hwdev);
+   boost::unique_lock<hw::device> hwdev_lock (hwdev);
   hwdev.set_mode(hw::device::TRANSACTION_PARSE);
-  if (o.target.type() !=  typeid(txout_to_key))
+  if (o.target.type() !=  typeid(txout_to_key) || o.target.type() != typeid(txout_to_key_public))
   {
      tx_scan_info.error = true;
      LOG_ERROR("wrong type id in transaction out");
      return;
   }
-  tx_scan_info.received = is_out_to_acc_precomp(m_subaddresses, boost::get<txout_to_key>(o.target).key, derivation, additional_derivations, i, hwdev);
+  if(o.target.type() !=  typeid(txout_to_key)) {
+      tx_scan_info.received = is_out_to_acc_precomp(m_subaddresses, boost::get<txout_to_key>(o.target).key, derivation,
+                                                    additional_derivations, i, hwdev);
+  }else{
+      //only assign subaddress recipient if view key also matches too as we now spend with combined keys (a+b) and we wont be
+      // doing key image related checks later to check if we can really spend the out (ie checking view key match by proxy)
+      auto out_address = boost::get<txout_to_key_public>(o.target).address;
+      auto receive_info = cryptonote::is_out_to_acc_precomp_public(m_subaddresses, out_address);
+      tx_scan_info.received =
+              (receive_info == boost::none) ?
+              (receive_info) :
+              get_subaddress(receive_info->index).m_view_public_key == out_address.m_view_public_key ?
+              receive_info : boost::none; //todo: refactor with function pointers
+  }
   if(tx_scan_info.received)
   {
     tx_scan_info.etn_transfered = o.amount; // may be 0 for ringct outputs
@@ -1639,6 +1652,7 @@ void wallet2::check_acc_out_precomp(const tx_out &o, const crypto::key_derivatio
 //----------------------------------------------------------------------------------------------------
 void wallet2::check_acc_out_precomp(const tx_out &o, const crypto::key_derivation &derivation, const std::vector<crypto::key_derivation> &additional_derivations, size_t i, const is_out_data *is_out_data, tx_scan_info_t &tx_scan_info) const
 {
+  // if(we're not pointing at a pre cached data member || we're attempting to process a receive entry before it's populated from cache thread)
   if (!is_out_data || i >= is_out_data->received.size())
     return check_acc_out_precomp(o, derivation, additional_derivations, i, tx_scan_info);
 
@@ -1715,7 +1729,7 @@ void wallet2::scan_output(const cryptonote::transaction &tx, bool miner_tx, cons
     tx_scan_info.in_ephemeral.sec = crypto::null_skey;
     tx_scan_info.ki = rct::rct2ki(rct::zero());
   }
-  else
+  else if (tx.version == 1)
   {
     bool r = cryptonote::generate_key_image_helper_precomp(m_account.get_keys(), boost::get<cryptonote::txout_to_key>(tx.vout[i].target).key, tx_scan_info.received->derivation, i, tx_scan_info.received->index, tx_scan_info.in_ephemeral, tx_scan_info.ki, m_account.get_device(), m_account_major_offset);
     THROW_WALLET_EXCEPTION_IF(!r, error::wallet_internal_error, "Failed to generate key image");
@@ -1812,87 +1826,91 @@ void wallet2::process_new_transaction(const crypto::hash &txid, const cryptonote
   std::vector<tx_scan_info_t> tx_scan_info(tx.vout.size());
   std::deque<bool> output_found(tx.vout.size(), false);
   uint64_t total_received_1 = 0;
+
   while (!tx.vout.empty())
   {
-    std::vector<size_t> outs;
-    // if tx.vout is not empty, we loop through all tx pubkeys
+      std::vector<size_t> outs;
 
-    tx_extra_pub_key pub_key_field;
-    if(!find_tx_extra_field_by_type(tx_extra_fields, pub_key_field, pk_index++))
-    {
-      if (pk_index > 1)
-        break;
-      LOG_PRINT_L0("Public key wasn't found in the transaction extra. Skipping transaction " << txid);
-      if(0 != m_callback)
-	m_callback->on_skip_transaction(height, txid, tx);
-      break;
-    }
-    if (!tx_cache_data.primary.empty())
-    {
-      THROW_WALLET_EXCEPTION_IF(tx_cache_data.primary.size() < pk_index || pub_key_field.pub_key != tx_cache_data.primary[pk_index - 1].pkey,
-          error::wallet_internal_error, "tx_cache_data is out of sync");
-    }
-
-    int num_vouts_received = 0;
-    tx_pub_key = pub_key_field.pub_key;
-    tools::threadpool& tpool = tools::threadpool::getInstance();
-    tools::threadpool::waiter waiter;
-    const cryptonote::account_keys& keys = m_account.get_keys();
-    crypto::key_derivation derivation;
-
-    std::vector<crypto::key_derivation> additional_derivations;
-    tx_extra_additional_pub_keys additional_tx_pub_keys;
-    const wallet2::is_out_data *is_out_data_ptr = NULL;
-
-    // THIS IF/ELSE IS PURELY PROCESSING DERIVATIONS (DIFFIE H SHARED SECRETS aR1....aRN) FOR V1 TX
-    if (tx_cache_data.primary.empty())
-    {
-      hw::device &hwdev = m_account.get_device();
-      boost::unique_lock<hw::device> hwdev_lock (hwdev);
-      hw::reset_mode rst(hwdev);
-
-      hwdev.set_mode(hw::device::TRANSACTION_PARSE);
-      if (!hwdev.generate_key_derivation(tx_pub_key, keys.m_view_secret_key, derivation))
-      {
-        MWARNING("Failed to generate key derivation from tx pubkey in " << txid << ", skipping");
-        static_assert(sizeof(derivation) == sizeof(rct::key), "Mismatched sizes of key_derivation and rct::key");
-        memcpy(&derivation, rct::identity().bytes, sizeof(derivation));
-      }
-
-      if (pk_index == 1)
-      {
-        // additional tx pubkeys and derivations for multi-destination transfers involving one or more subaddresses
-        if (find_tx_extra_field_by_type(tx_extra_fields, additional_tx_pub_keys))
-        {
-          for (size_t i = 0; i < additional_tx_pub_keys.data.size(); ++i)
-          {
-            additional_derivations.push_back({});
-            if (!hwdev.generate_key_derivation(additional_tx_pub_keys.data[i], keys.m_view_secret_key, additional_derivations.back()))
-            {
-              MWARNING("Failed to generate key derivation from additional tx pubkey in " << txid << ", skipping");
-              memcpy(&additional_derivations.back(), rct::identity().bytes, sizeof(crypto::key_derivation));
-            }
+      // if tx.vout is not empty, we loop through all tx pubkeys
+      tx_extra_pub_key pub_key_field;
+      if (tx.version == 1) {
+          if (!find_tx_extra_field_by_type(tx_extra_fields, pub_key_field, pk_index++)) {
+              if (pk_index > 1)
+                  break;
+              LOG_PRINT_L0("Public key wasn't found in the transaction extra. Skipping transaction " << txid);
+              if (0 != m_callback)
+                  m_callback->on_skip_transaction(height, txid, tx);
+              break;
           }
-        }
+          if (!tx_cache_data.primary.empty()) {
+              THROW_WALLET_EXCEPTION_IF(tx_cache_data.primary.size() < pk_index ||
+                                        pub_key_field.pub_key != tx_cache_data.primary[pk_index - 1].pkey,
+                                        error::wallet_internal_error, "tx_cache_data is out of sync");
+          }
       }
+      int num_vouts_received = 0;
+      tx_pub_key = pub_key_field.pub_key;
+      tools::threadpool &tpool = tools::threadpool::getInstance();
+      tools::threadpool::waiter waiter;
+      const cryptonote::account_keys &keys = m_account.get_keys();
+      crypto::key_derivation derivation;
+
+      std::vector<crypto::key_derivation> additional_derivations;
+      tx_extra_additional_pub_keys additional_tx_pub_keys;
+
+      const wallet2::is_out_data *is_out_data_ptr = NULL; //will point to pre-cached tx data if data is available
+
+      if (tx.version == 1) {
+          // THIS IF/ELSE IS PURELY PROCESSING DERIVATIONS (DIFFIE H SHARED SECRETS aR1....aRN) FOR V1 TX
+          if (tx_cache_data.primary.empty()) {
+              hw::device &hwdev = m_account.get_device();
+              boost::unique_lock<hw::device> hwdev_lock(hwdev);
+              hw::reset_mode rst(hwdev);
+
+              hwdev.set_mode(hw::device::TRANSACTION_PARSE);
+              if (!hwdev.generate_key_derivation(tx_pub_key, keys.m_view_secret_key, derivation)) {
+                  MWARNING("Failed to generate key derivation from tx pubkey in " << txid << ", skipping");
+                  static_assert(sizeof(derivation) == sizeof(rct::key),
+                                "Mismatched sizes of key_derivation and rct::key");
+                  memcpy(&derivation, rct::identity().bytes, sizeof(derivation));
+              }
+
+              if (pk_index == 1) {
+                  // additional tx pubkeys and derivations for multi-destination transfers involving one or more subaddresses
+                  if (find_tx_extra_field_by_type(tx_extra_fields, additional_tx_pub_keys)) {
+                      for (size_t i = 0; i < additional_tx_pub_keys.data.size(); ++i) {
+                          additional_derivations.push_back({});
+                          if (!hwdev.generate_key_derivation(additional_tx_pub_keys.data[i],
+                                                             keys.m_view_secret_key,
+                                                             additional_derivations.back())) {
+                              MWARNING("Failed to generate key derivation from additional tx pubkey in " << txid
+                                                                                                         << ", skipping");
+                              memcpy(&additional_derivations.back(), rct::identity().bytes,
+                                     sizeof(crypto::key_derivation));
+                          }
+                      }
+                  }
+              }
+          } else {
+              THROW_WALLET_EXCEPTION_IF(pk_index - 1 >= tx_cache_data.primary.size(),
+                                        error::wallet_internal_error, "pk_index out of range of tx_cache_data");
+              is_out_data_ptr = &tx_cache_data.primary[pk_index - 1];
+              derivation = tx_cache_data.primary[pk_index - 1].derivation;
+              if (pk_index == 1) {
+                  for (size_t n = 0; n < tx_cache_data.additional.size(); ++n) {
+                      additional_tx_pub_keys.data.push_back(tx_cache_data.additional[n].pkey);
+                      additional_derivations.push_back(tx_cache_data.additional[n].derivation);
+                  }
+              }
+          }
+      }
+      // END OF DERIVATIONS PROCESSING (V1 ONLY)
+      //  NOW WE BEGIN TO CHECK THE OUTS  //
+
+    //if prior precomp have built the cache, then set is out_data_ptr. Otherwise later thread (check_acc_out_precomp) will find the info itself
+    if(tx.version > 1 && !tx_cache_data.public_outs.empty()){
+        is_out_data_ptr = &tx_cache_data.public_outs[0];
     }
-    else
-    {
-      THROW_WALLET_EXCEPTION_IF(pk_index - 1 >= tx_cache_data.primary.size(),
-          error::wallet_internal_error, "pk_index out of range of tx_cache_data");
-      is_out_data_ptr = &tx_cache_data.primary[pk_index - 1];
-      derivation = tx_cache_data.primary[pk_index - 1].derivation;
-      if (pk_index == 1)
-      {
-        for (size_t n = 0; n < tx_cache_data.additional.size(); ++n)
-        {
-          additional_tx_pub_keys.data.push_back(tx_cache_data.additional[n].pkey);
-          additional_derivations.push_back(tx_cache_data.additional[n].derivation);
-        }
-      }
-    }   // END OF DERIVATIONS PROCESSING
-        //  NOW WE BEGIN            //
-        //  TO CHECK THE OUTPUTS    //
 
     // IGNORE COINBASE
     if (miner_tx && m_refresh_type == RefreshNoCoinbase)
@@ -1902,7 +1920,8 @@ void wallet2::process_new_transaction(const crypto::hash &txid, const cryptonote
     // PROCESS COINBASE
     else if (miner_tx && m_refresh_type == RefreshOptimizeCoinbase)
     {
-       //put amount in the scan info this time and check output it correct type... before (process_parsed_blocks/geniod) we only precomputed whether we owned an output or not.
+     //put amount in the scan info this time and check output it correct type... before (process_parsed_blocks/geniod) we only precomputed whether we owned an output or not.
+     //both tx_scan_info and output_found are populated INSIDE the precomp function only
       check_acc_out_precomp_once(tx.vout[0], derivation, additional_derivations, 0, is_out_data_ptr, tx_scan_info[0], output_found[0]);  //is the miner tx ours?
       THROW_WALLET_EXCEPTION_IF(tx_scan_info[0].error, error::acc_outs_lookup_error, tx, tx_pub_key, m_account.get_keys());
 
@@ -1923,9 +1942,11 @@ void wallet2::process_new_transaction(const crypto::hash &txid, const cryptonote
         for (size_t i = 0; i < tx.vout.size(); ++i)
         {
           THROW_WALLET_EXCEPTION_IF(tx_scan_info[i].error, error::acc_outs_lookup_error, tx, tx_pub_key, m_account.get_keys());
-          if (tx_scan_info[i].received)
+          if (tx_scan_info[i].received) //at this point we are only scanning the entried that we marked as received in precomp
           {
-            hwdev.conceal_derivation(tx_scan_info[i].received->derivation, tx_pub_key, additional_tx_pub_keys.data, derivation, additional_derivations);
+            if(tx.version == 1) {
+               hwdev.conceal_derivation(tx_scan_info[i].received->derivation, tx_pub_key, additional_tx_pub_keys.data, derivation, additional_derivations);
+            }
             scan_output(tx, miner_tx, tx_pub_key, i, tx_scan_info[i], num_vouts_received, tx_etn_got_in_outs, outs, pool);
           }
         }
@@ -1947,11 +1968,14 @@ void wallet2::process_new_transaction(const crypto::hash &txid, const cryptonote
       for (size_t i = 0; i < tx.vout.size(); ++i)
       {
         THROW_WALLET_EXCEPTION_IF(tx_scan_info[i].error, error::acc_outs_lookup_error, tx, tx_pub_key, m_account.get_keys());
-        if (tx_scan_info[i].received)
+        if (tx_scan_info[i].received) //at this point we are only scanning the entried that we marked as received in precomp
         {
             // todo: 4.0.0.0 ledger code only
-          hwdev.conceal_derivation(tx_scan_info[i].received->derivation, tx_pub_key, additional_tx_pub_keys.data, derivation, additional_derivations);
-          scan_output(tx, miner_tx, tx_pub_key, i, tx_scan_info[i], num_vouts_received, tx_etn_got_in_outs, outs, pool);
+            if(tx.version == 1) {
+                hwdev.conceal_derivation(tx_scan_info[i].received->derivation, tx_pub_key, additional_tx_pub_keys.data,
+                                         derivation, additional_derivations);
+            }
+            scan_output(tx, miner_tx, tx_pub_key, i, tx_scan_info[i], num_vouts_received, tx_etn_got_in_outs, outs, pool);
         }
       }
     }
@@ -1962,12 +1986,15 @@ void wallet2::process_new_transaction(const crypto::hash &txid, const cryptonote
       {
         check_acc_out_precomp_once(tx.vout[i], derivation, additional_derivations, i, is_out_data_ptr, tx_scan_info[i], output_found[i]);
         THROW_WALLET_EXCEPTION_IF(tx_scan_info[i].error, error::acc_outs_lookup_error, tx, tx_pub_key, m_account.get_keys());
-        if (tx_scan_info[i].received)
+        if (tx_scan_info[i].received) //at this point we are only scanning the entried that we marked as received in precomp
         {
           hw::device &hwdev = m_account.get_device();
           boost::unique_lock<hw::device> hwdev_lock (hwdev);
           hwdev.set_mode(hw::device::NONE);
-          hwdev.conceal_derivation(tx_scan_info[i].received->derivation, tx_pub_key, additional_tx_pub_keys.data, derivation, additional_derivations);
+          if(tx.version == 1) {
+            hwdev.conceal_derivation(tx_scan_info[i].received->derivation, tx_pub_key, additional_tx_pub_keys.data,
+                                     derivation, additional_derivations);
+          }
           scan_output(tx, miner_tx, tx_pub_key, i, tx_scan_info[i], num_vouts_received, tx_etn_got_in_outs, outs, pool);
         }
       }
@@ -2643,17 +2670,16 @@ void wallet2::process_parsed_blocks(uint64_t start_height, const std::vector<cry
           THROW_WALLET_EXCEPTION_IF(tx_cache_data[txidx].public_outs.size() != 1,
                                     error::wallet_internal_error, "Unexpected received vector size");
           // no loop over l required for public outputs ^
-          auto found = m_subaddresses.find(etn_address.m_spend_public_key);
-          if(found != m_subaddresses.end()){ // if out is to one of our subaddresses, add receive info in tx cache data
-              auto subaddress = get_subaddress(found->second);
-              //we sign with combined key (a+b) now so we must check that the view key also matches
-              if(subaddress.m_view_public_key == etn_address.m_view_public_key){
-                  tx_cache_data[txidx].public_outs[0].received[k] = subaddress_receive_info{found->second, {}};
-                  continue;
-              }
-          }
-          //otherwise add an empty entry
-          tx_cache_data[txidx].public_outs[0].received[k] = boost::none;
+
+          //only assign subaddress recipient if view key also matches too as we now spend with combined keys (a+b) and we wont be
+          // doing key image related checks later to check if we can really spend the out (ie checking view key match by proxy)
+          auto receive_info = cryptonote::is_out_to_acc_precomp_public(m_subaddresses, etn_address);
+          tx_cache_data[txidx].public_outs[0].received[k] =
+                  (receive_info == boost::none) ?
+                  (receive_info) :
+                  get_subaddress(receive_info->index).m_view_public_key == etn_address.m_view_public_key ?
+                  receive_info : boost::none; //todo: refactor with function pointers
+
       }
     }
   };
