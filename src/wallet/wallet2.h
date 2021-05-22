@@ -35,6 +35,8 @@
 
 #include <boost/program_options/options_description.hpp>
 #include <boost/program_options/variables_map.hpp>
+#include <boost/serialization/unordered_map.hpp>
+
 #if BOOST_VERSION >= 107400
   #include <boost/serialization/library_version_type.hpp>
 #endif
@@ -44,6 +46,7 @@
 #include <boost/thread/lock_guard.hpp>
 #include <atomic>
 #include <random>
+#include<utility>
 
 #include "include_base_utils.h"
 #include "cryptonote_basic/account.h"
@@ -295,12 +298,12 @@ private:
       tx_scan_info_t(): amount(0), etn_transfered(0), error(true) {}
     };
 
-    struct transfer_details
+    struct transfer_details // THESE ARE PER OUTPUT AND NOT PER TX
     {
-      uint64_t m_block_height;
+      uint64_t m_block_height; // can be used to distinguish between out versions (txout_to_key & txout_to_key_public) rather than adding a new field
       cryptonote::transaction_prefix m_tx;
-      crypto::hash m_txid;
-      size_t m_internal_output_index;
+      crypto::hash m_txid; // this is to be used in combination with m_internal_output_index for the chainstate indexes used in processing new transctions
+      size_t m_internal_output_index; //this is equivalent the the relative output index in the chainstate index
       uint64_t m_global_output_index;
       bool m_spent;
       bool m_frozen;
@@ -321,6 +324,7 @@ private:
       bool is_rct() const { return m_rct; }
       uint64_t amount() const { return m_amount; }
       const crypto::public_key &get_public_key() const { return boost::get<const cryptonote::txout_to_key>(m_tx.vout[m_internal_output_index].target).key; }
+      const std::pair<crypto::hash, size_t> get_chainstate_index() const { return std::make_pair(m_txid, m_internal_output_index); }
 
       BEGIN_SERIALIZE_OBJECT()
         FIELD(m_block_height)
@@ -1002,6 +1006,8 @@ private:
       if(ver < 28)
         return;
       a & m_cold_key_images;
+      if(ver < 29)
+          a & m_chainstate_indexes;
     }
 
     /*!
@@ -1378,10 +1384,10 @@ private:
      * \param password       Password of wallet file
      */
     bool load_keys(const std::string& keys_file_name, const epee::wipeable_string& password);
-    void process_new_transaction(const crypto::hash &txid, const cryptonote::transaction& tx, const std::vector<uint64_t> &o_indices, uint64_t height, uint64_t ts, bool miner_tx, bool pool, bool double_spend_seen, bool nonexistent_utxo_seen, const tx_cache_data &tx_cache_data, std::map<std::pair<uint64_t, uint64_t>, size_t> *output_tracker_cache = NULL);
+    void process_new_transaction(const crypto::hash &txid, const cryptonote::transaction& tx, const std::vector<uint64_t> &o_indices, uint64_t height, uint64_t ts, bool miner_tx, bool pool, bool double_spend_seen, bool nonexistent_utxo_seen, const tx_cache_data &tx_cache_data, std::pair<std::map<std::pair<uint64_t, uint64_t>, size_t>, std::map<std::pair<std::array<char, 32>, size_t>, size_t>> *output_tracker_cache = NULL);
     bool should_skip_block(const cryptonote::block &b, uint64_t height) const;
-    void process_new_blockchain_entry(const cryptonote::block& b, const cryptonote::block_complete_entry& bche, const parsed_block &parsed_block, const crypto::hash& bl_id, uint64_t height, const std::vector<tx_cache_data> &tx_cache_data, size_t tx_cache_data_offset, std::map<std::pair<uint64_t, uint64_t>, size_t> *output_tracker_cache = NULL);
-    void detach_blockchain(uint64_t height, std::map<std::pair<uint64_t, uint64_t>, size_t> *output_tracker_cache = NULL);
+    void process_new_blockchain_entry(const cryptonote::block& b, const cryptonote::block_complete_entry& bche, const parsed_block &parsed_block, const crypto::hash& bl_id, uint64_t height, const std::vector<tx_cache_data> &tx_cache_data, size_t tx_cache_data_offset, std::pair<std::map<std::pair<uint64_t, uint64_t>, size_t>, std::map<std::pair<std::array<char, 32>, size_t>, size_t>> *output_tracker_cache = NULL);
+    void detach_blockchain(uint64_t height, std::pair<std::map<std::pair<uint64_t, uint64_t>, size_t>, std::map<std::pair<std::array<char, 32>, size_t>, size_t>> *output_tracker_cache = NULL);
     void get_short_chain_history(std::list<crypto::hash>& ids, uint64_t granularity = 1) const;
     bool clear();
     void clear_soft(bool keep_key_images=false);
@@ -1389,7 +1395,7 @@ private:
     void pull_hashes(uint64_t start_height, uint64_t& blocks_start_height, const std::list<crypto::hash> &short_chain_history, std::vector<crypto::hash> &hashes);
     void fast_refresh(uint64_t stop_height, uint64_t &blocks_start_height, std::list<crypto::hash> &short_chain_history, bool force = false);
     void pull_and_parse_next_blocks(uint64_t start_height, uint64_t &blocks_start_height, std::list<crypto::hash> &short_chain_history, const std::vector<cryptonote::block_complete_entry> &prev_blocks, const std::vector<parsed_block> &prev_parsed_blocks, std::vector<cryptonote::block_complete_entry> &blocks, std::vector<parsed_block> &parsed_blocks, bool &error);
-    void process_parsed_blocks(uint64_t start_height, const std::vector<cryptonote::block_complete_entry> &blocks, const std::vector<parsed_block> &parsed_blocks, uint64_t& blocks_added, std::map<std::pair<uint64_t, uint64_t>, size_t> *output_tracker_cache = NULL);
+    void process_parsed_blocks(uint64_t start_height, const std::vector<cryptonote::block_complete_entry> &blocks, const std::vector<parsed_block> &parsed_blocks, uint64_t& blocks_added, std::pair<std::map<std::pair<uint64_t, uint64_t>, size_t>, std::map<std::pair<std::array<char, 32>, size_t>, size_t>> *output_tracker_cache = NULL);
     uint64_t select_transfers(uint64_t needed_etn, std::vector<size_t> unused_transfers_indices, std::vector<size_t>& selected_transfers) const;
     bool prepare_file_names(const std::string& file_path);
     void process_unconfirmed(const crypto::hash &txid, const cryptonote::transaction& tx, uint64_t height);
@@ -1409,8 +1415,8 @@ private:
     uint64_t get_dynamic_base_fee_estimate() const;
     float get_output_relatedness(const transfer_details &td0, const transfer_details &td1) const;
     std::vector<size_t> pick_preferred_rct_inputs(uint64_t needed_etn, uint32_t subaddr_account, const std::set<uint32_t> &subaddr_indices) const;
-    void set_spent(size_t idx, uint64_t height);
-    void set_unspent(size_t idx);
+    void set_spent(size_t idx, uint64_t height, bool public_out = false);
+    void set_unspent(size_t idx, bool public_out = false);
     void get_outs(std::vector<std::vector<get_outs_entry>> &outs, const std::vector<size_t> &selected_transfers, size_t fake_outputs_count);
     bool tx_add_fake_output(std::vector<std::vector<tools::wallet2::get_outs_entry>> &outs, uint64_t global_index, const crypto::public_key& tx_public_key, const rct::key& mask, uint64_t real_index, bool unlocked) const;
     bool should_pick_a_second_output(bool use_rct, size_t n_transfers, const std::vector<size_t> &unused_transfers_indices, const std::vector<size_t> &unused_dust_indices) const;
@@ -1445,7 +1451,8 @@ private:
 
     // This caches pubkeys (stealths) only and nothing to do with whether we own an output. Typically ran in a new thread whilst the wallet deals with new blocks (and tx) one by one.
     void cache_tx_data(const cryptonote::transaction& tx, const crypto::hash &txid, tx_cache_data &tx_cache_data) const;
-    std::shared_ptr<std::map<std::pair<uint64_t, uint64_t>, size_t>> create_output_tracker_cache() const;
+    //it is a pair of maps: one is (amount, global idx):m_transfers index        and the other is (tx hash, relative out index):m_transfers index
+    std::shared_ptr<std::pair<std::map<std::pair<uint64_t, uint64_t>, size_t>, std::map<std::pair<std::array<char, 32>, size_t>, size_t>>> create_output_tracker_cache() const;
 
     void init_type(hw::device::device_type device_type);
     void setup_new_blockchain();
@@ -1485,6 +1492,7 @@ private:
     payment_container m_payments;
     std::unordered_map<crypto::key_image, size_t> m_key_images;
     std::unordered_map<crypto::public_key, size_t> m_pub_keys;
+    std::unordered_map<std::pair<crypto::hash, size_t>, size_t, boost::hash<std::pair<crypto::hash, size_t>>> m_chainstate_indexes; // map of chainstate identifier (txhash, relative out index) to 'm_transfers index'
     cryptonote::account_public_address m_account_public_address;
     std::unordered_map<crypto::public_key, cryptonote::subaddress_index> m_subaddresses;
     std::vector<std::vector<std::string>> m_subaddress_labels;
@@ -1597,7 +1605,7 @@ private:
     uint32_t m_account_major_offset;
   };
 }
-BOOST_CLASS_VERSION(tools::wallet2, 28)
+BOOST_CLASS_VERSION(tools::wallet2, 29)
 BOOST_CLASS_VERSION(tools::wallet2::transfer_details, 12)
 BOOST_CLASS_VERSION(tools::wallet2::multisig_info, 1)
 BOOST_CLASS_VERSION(tools::wallet2::multisig_info::LR, 0)
