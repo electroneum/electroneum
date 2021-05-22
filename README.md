@@ -49,9 +49,6 @@ Our unique mobile miner puts a small amount of ETN into the hands of users every
 
 Our Android app is already fully operational in 20 languages.
 
-Our instant cryptocurrency payment system is planned to go live for users and vendors by the end of the third quarter of 2018.
-
-
 
 ### The Road to Mass Adoption
 
@@ -82,11 +79,9 @@ Price Waterhouse Coopers predicts this market to be as large as USD 3 trillion i
 
 ### Exceptional Viral Growth
 
-Our economic model enables us to inject small amounts of ETN into the hands of the smartphone user. This makes it easier for the user to try making real world digital payments, often for their first time.
-
 Once users see how easy Electroneum is to use, they become part of the community and help drive us forward through recommendation.
 
-We have already attracted over 1.6m registered users by viral growth even while our instant payment API system is still in BETA.
+We currently have over a whopping 4m registered users.
 
 # About this Project
 
@@ -95,6 +90,8 @@ This is the core implementation of Electroneum. It is open source and completely
 The V8 software upgrade (Electroneum v3.0.0.0 release) introduced some fairly radical changes to the Electroneum blockchain, those consisting on a new consensus algorithm we’ve coined as **Proof of Responsibility** and change from a full permission-less blockchain to a **Moderated Blockchain**.
 
 A **Moderated Blockchain**, powered by the **Proof of Responsibility** consensus algorithm, allow Electroneum Ltd to have more control over the blockchain while keeping a good degree of decentralization. This ultimately improves our security while making the blockchain’s commercial & economic model more attractive. Besides these main features, we’ve included a few minor changes that contributes to the blockchain’s operability and scalability.
+
+In 2021, in order to comply with regulations and remove obstacles to the growth of the project, we migrated away from blockchain privacy with our V10 fork, and opted for a completely transparent and public blockchain.
 
 ## Co-Inventor of Blockchain About Electroneum
 
@@ -278,7 +275,7 @@ See [LICENSE](LICENSE).
 
 # Copyright
 
-Copyright (c) 2017-2020, The Electroneum Project
+Copyright (c) 2017-2021, The Electroneum Project
 
 Copyright (c) 2014-2017, The Monero Project
 
