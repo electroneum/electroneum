@@ -2365,7 +2365,7 @@ void wallet2::process_new_transaction(const crypto::hash &txid, const cryptonote
 
           if (!pool && m_track_uses) {
               PERF_TIMER(track_uses);
-              const uint64_t amount = in_to_key.amount;
+              const uint64_t amount = in_to_key.amount; //amount to check against transfer details
               std::vector<uint64_t> offsets = cryptonote::relative_output_offsets_to_absolute(
                       in_to_key.key_offsets); //todo: 4.0.0.0
               if (output_tracker_cache) {
@@ -2379,15 +2379,16 @@ void wallet2::process_new_transaction(const crypto::hash &txid, const cryptonote
                           m_transfers[idx].m_uses.push_back(std::make_pair(height, txid));
                       }
                   }
-              } else
+              } else {
                   //essentially the long way of doing it without a cache - loop over all m_transfers to find a match
                   for (transfer_details &td: m_transfers) {
-                      if (amount != in_to_key.amount)
+                      if (amount != td.m_amount) //need to check against the amounts in the list of transfer details to find the matching amount and global out index
                           continue;
                       for (uint64_t offset: offsets)
                           if (offset == td.m_global_output_index)
                               td.m_uses.push_back(std::make_pair(height, txid));
                   }
+              }
           }
       }else{ // Public inputs (v3)
           if (in.type() != typeid(cryptonote::txin_to_key_public))
