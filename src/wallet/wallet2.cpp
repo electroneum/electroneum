@@ -5474,7 +5474,7 @@ bool wallet2::has_multisig_partial_key_images() const
 bool wallet2::has_unknown_key_images() const
 {
   for (const auto &td: m_transfers)
-    if (!td.m_key_image_known)
+    if (!td.m_key_image_known && td.m_block_height < 1069110)
       return true;
   return false;
 }

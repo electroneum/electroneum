@@ -1009,19 +1009,18 @@ void BlockchainLMDB::remove_transaction_data(const crypto::hash& tx_hash, const 
         throw1(DB_ERROR(lmdb_error("Error adding removal of tx id to db transaction", result).c_str()));
   }
 
-  if (tx.version == 1)
-    remove_tx_outputs(tip->data.tx_id, tx);
-
-  result = mdb_cursor_get(m_cur_tx_outputs, &val_tx_id, NULL, MDB_SET);
-  if (result == MDB_NOTFOUND && tx.version == 1)
-    LOG_PRINT_L1("tx has no outputs to remove: " << tx_hash);
-  else if (result)
-    throw1(DB_ERROR(lmdb_error("Failed to locate tx outputs for removal: ", result).c_str()));
-  if (!result)
-  {
-    result = mdb_cursor_del(m_cur_tx_outputs, 0);
-    if (result)
-      throw1(DB_ERROR(lmdb_error("Failed to add removal of tx outputs to db transaction: ", result).c_str()));
+  if (tx.version == 1) {
+      remove_tx_outputs(tip->data.tx_id, tx);
+      result = mdb_cursor_get(m_cur_tx_outputs, &val_tx_id, NULL, MDB_SET);
+      if (result == MDB_NOTFOUND)
+          LOG_PRINT_L1("tx has no outputs to remove: " << tx_hash);
+      else if (result)
+          throw1(DB_ERROR(lmdb_error("Failed to locate tx outputs for removal: ", result).c_str()));
+      if (!result) {
+          result = mdb_cursor_del(m_cur_tx_outputs, 0);
+          if (result)
+              throw1(DB_ERROR(lmdb_error("Failed to add removal of tx outputs to db transaction: ", result).c_str()));
+      }
   }
 
   // Don't delete the tx_indices entry until the end, after we're done with val_tx_id

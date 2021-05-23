@@ -449,7 +449,9 @@ namespace cryptonote
                 txout_to_key_public tkp;
                 tkp.address.m_view_public_key = dst_entr.addr.m_view_public_key;
                 tkp.address.m_spend_public_key = dst_entr.addr.m_spend_public_key;
-                tkp.m_address_prefix = get_config(nettype).CRYPTONOTE_PUBLIC_ADDRESS_BASE58_PREFIX;
+                tkp.m_address_prefix = dst_entr.is_subaddress ?
+                        get_config(nettype).CRYPTONOTE_PUBLIC_SUBADDRESS_BASE58_PREFIX :
+                                       get_config(nettype).CRYPTONOTE_PUBLIC_ADDRESS_BASE58_PREFIX;
                 out.target = tkp;
                 tx.vout.push_back(out);
                 output_index++;
