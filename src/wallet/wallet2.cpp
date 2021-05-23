@@ -1852,7 +1852,7 @@ void wallet2::process_new_transaction(const crypto::hash &txid, const cryptonote
       tx_extra_pub_key pub_key_field;
       if (tx.version == 1) {
           if (!find_tx_extra_field_by_type(tx_extra_fields, pub_key_field, pk_index++)) {
-              if (pk_index > 1)
+              if (pk_index > 1) // we should find we hit this afer one iteration for v1 transactions
                   break;
               LOG_PRINT_L0("Public key wasn't found in the transaction extra. Skipping transaction " << txid);
               if (0 != m_callback)
@@ -2316,6 +2316,7 @@ void wallet2::process_new_transaction(const crypto::hash &txid, const cryptonote
                   }
               }
           }
+          break; // we don't have to iterate again for v2+ outs becuase there aren't multiple pubkeys (see pk index)
       } //end of v2+ outs processing
   } // end of all outs processing
 
