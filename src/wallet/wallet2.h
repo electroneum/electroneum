@@ -825,16 +825,16 @@ private:
     bool reconnect_device();
 
     // locked & unlocked balance of given or current subaddress account
-    uint64_t balance(uint32_t subaddr_index_major) const;
-    uint64_t unlocked_balance(uint32_t subaddr_index_major, uint64_t *blocks_to_unlock = NULL) const;
+    uint64_t balance(uint32_t subaddr_index_major, bool public_blockchain) const;
+    uint64_t unlocked_balance(uint32_t subaddr_index_major, bool public_blockchain, uint64_t *blocks_to_unlock = NULL) const;
     // total balance (both locked & unlocked) per subaddress of given or current subaddress account
     // returns map of <minor index for account : amount>
-    std::map<uint32_t, uint64_t> balance_per_subaddress(uint32_t subaddr_index_major) const;
+    std::map<uint32_t, uint64_t> balance_per_subaddress(uint32_t subaddr_index_major, bool public_blockchain = false) const;
     // This is a map of : <minor index : < total amount, time entire balance at the minor index is unlocked>
     // where total amount covers all locked & unlocked balances
-    std::map<uint32_t, std::pair<uint64_t, uint64_t>> unlocked_balance_per_subaddress(uint32_t subaddr_index_major) const;
-    uint64_t balance_all() const;
-    uint64_t unlocked_balance_all(uint64_t *blocks_to_unlock = NULL) const;
+    std::map<uint32_t, std::pair<uint64_t, uint64_t>> unlocked_balance_per_subaddress(uint32_t subaddr_index_major, bool public_blockchain = false) const;
+    uint64_t balance_all(bool public_blockchain) const;
+    uint64_t unlocked_balance_all(bool public_blockchain, uint64_t *blocks_to_unlock = NULL) const;
     template<typename T>
     void transfer_selected(const std::vector<cryptonote::tx_destination_entry>& dsts, const std::vector<size_t>& selected_transfers, size_t fake_outputs_count,
       std::vector<std::vector<tools::wallet2::get_outs_entry>> &outs,
@@ -885,6 +885,8 @@ private:
     void get_unconfirmed_payments(std::list<std::pair<crypto::hash,wallet2::pool_payment_details>>& unconfirmed_payments, const boost::optional<uint32_t>& subaddr_account = boost::none, const std::set<uint32_t>& subaddr_indices = {}) const;
 
     uint64_t get_blockchain_current_height() const { return m_light_wallet_blockchain_height ? m_light_wallet_blockchain_height : m_blockchain.size(); }
+    bool synced_to_v10() const {return get_blockchain_current_height() >= 1069110;}
+    bool public_transactions_required() const { return get_blockchain_current_height() >= (1069110 - CRYPTONOTE_LOCKED_TX_ALLOWED_DELTA_BLOCKS);} // prepare v2 tx if the block height is one before the fork block (which contains v2+ tx only)
     void rescan_spent();
     void rescan_blockchain(bool hard, bool refresh = true, bool keep_key_images = false);
     bool is_transfer_unlocked(const transfer_details& td) const;

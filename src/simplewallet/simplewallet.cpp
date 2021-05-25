@@ -5231,31 +5231,83 @@ bool simple_wallet::show_balance_unlocked(bool detailed)
     extra = tr(" (Some owned outputs have partial key images - import_multisig_info needed)");
   else if (m_wallet->has_unknown_key_images())
     extra += tr(" (Some owned outputs have missing key images - import_key_images needed)");
+
   success_msg_writer() << tr("Currently selected account: [") << m_current_subaddress_account << tr("] ") << m_wallet->get_subaddress_label({m_current_subaddress_account, 0});
   const std::string tag = m_wallet->get_account_tags().second[m_current_subaddress_account];
   success_msg_writer() << tr("Tag: ") << (tag.empty() ? std::string{tr("(No tag assigned)")} : tag);
-  uint64_t blocks_to_unlock;
-  uint64_t unlocked_balance = m_wallet->unlocked_balance(m_current_subaddress_account, &blocks_to_unlock);
-  std::string unlock_time_message;
-  if (blocks_to_unlock > 0)
-    unlock_time_message = (boost::format(" (%lu block(s) to unlock)") % blocks_to_unlock).str();
-  success_msg_writer() << tr("Balance: ") << print_etn(m_wallet->balance(m_current_subaddress_account)) << ", "
-    << tr("unlocked balance: ") << print_etn(unlocked_balance) << unlock_time_message << extra;
+
+  uint64_t blocks_to_unlock, blocks_to_unlock_public_chain;
+  uint64_t unlocked_balance = m_wallet->unlocked_balance(m_current_subaddress_account, false, &blocks_to_unlock);
+  uint64_t unlocked_balance_public_chain = m_wallet->unlocked_balance(m_current_subaddress_account, true, &blocks_to_unlock_public_chain);
+  std::string unlock_time_message, unlock_time_message_public_chain;
+
+  if (blocks_to_unlock > 0) {
+      unlock_time_message = (boost::format(" (%lu block(s) to unlock)") % blocks_to_unlock).str();
+  }
+  if (blocks_to_unlock_public_chain > 0) {
+      unlock_time_message_public_chain = (boost::format(" (%lu block(s) to unlock)") % blocks_to_unlock_public_chain).str();
+  }
+
+  if (m_wallet->balance(m_current_subaddress_account, false)) {
+    success_msg_writer() << tr("Pre V10 Balance: ") << print_etn(m_wallet->balance(m_current_subaddress_account, false))
+                         << ", "
+                         << tr("Pre V10 unlocked balance: ") << print_etn(unlocked_balance) << unlock_time_message << extra;
+  }
+  if (m_wallet->balance(m_current_subaddress_account, true)) {
+    success_msg_writer() << tr("Balance: ") << print_etn(m_wallet->balance(m_current_subaddress_account, true))
+                         << ", "
+                         << tr("Unlocked balance: ") << print_etn(unlocked_balance_public_chain) << unlock_time_message_public_chain << extra;
+  }
+
   std::map<uint32_t, uint64_t> balance_per_subaddress = m_wallet->balance_per_subaddress(m_current_subaddress_account);
   std::map<uint32_t, std::pair<uint64_t, uint64_t>> unlocked_balance_per_subaddress = m_wallet->unlocked_balance_per_subaddress(m_current_subaddress_account);
-  if (!detailed || balance_per_subaddress.empty())
-    return true;
-  success_msg_writer() << tr("Balance per address:");
-  success_msg_writer() << boost::format("%15s %21s %21s %7s %21s") % tr("Address") % tr("Balance") % tr("Unlocked balance") % tr("Outputs") % tr("Label");
-  std::vector<tools::wallet2::transfer_details> transfers;
-  m_wallet->get_transfers(transfers);
-  for (const auto& i : balance_per_subaddress)
-  {
-    cryptonote::subaddress_index subaddr_index = {m_current_subaddress_account, i.first};
-    std::string address_str = m_wallet->get_subaddress_as_str(subaddr_index).substr(0, 6);
-    uint64_t num_unspent_outputs = std::count_if(transfers.begin(), transfers.end(), [&subaddr_index](const tools::wallet2::transfer_details& td) { return !td.m_spent && td.m_subaddr_index == subaddr_index; });
-    success_msg_writer() << boost::format(tr("%8u %6s %21s %21s %7u %21s")) % i.first % address_str % print_etn(i.second) % print_etn(unlocked_balance_per_subaddress[i.first].first) % num_unspent_outputs % m_wallet->get_subaddress_label(subaddr_index);
-  }
+  std::map<uint32_t, uint64_t> balance_per_subaddress_public_chain = m_wallet->balance_per_subaddress(m_current_subaddress_account, true);
+  std::map<uint32_t, std::pair<uint64_t, uint64_t>> unlocked_balance_per_subaddress_public_chain = m_wallet->unlocked_balance_per_subaddress(m_current_subaddress_account, true);
+
+    if (!detailed || (balance_per_subaddress.empty() && balance_per_subaddress_public_chain.empty()))
+        return true;
+
+    if (!balance_per_subaddress.empty()) {
+        success_msg_writer() << tr(" Pre V10 Balance per address:");
+        success_msg_writer()
+                << boost::format("%15s %21s %21s %7s %21s") % tr("Address") % tr("Balance") % tr("Unlocked balance") %
+                   tr("Outputs") % tr("Label");
+        std::vector<tools::wallet2::transfer_details> transfers;
+        m_wallet->get_transfers(transfers);
+        for (const auto &i : balance_per_subaddress) {
+            cryptonote::subaddress_index subaddr_index = {m_current_subaddress_account, i.first};
+            std::string address_str = m_wallet->get_subaddress_as_str(subaddr_index).substr(0, 6);
+            uint64_t num_unspent_outputs = std::count_if(transfers.begin(), transfers.end(), [&subaddr_index](
+                    const tools::wallet2::transfer_details &td) {
+                return td.m_tx.version == 1 && !td.m_spent && td.m_subaddr_index == subaddr_index;
+            });
+            success_msg_writer()
+                    << boost::format(tr("%8u %6s %21s %21s %7u %21s")) % i.first % address_str % print_etn(i.second) %
+                       print_etn(unlocked_balance_per_subaddress[i.first].first) % num_unspent_outputs %
+                       m_wallet->get_subaddress_label(subaddr_index);
+        }
+    }
+    if (!balance_per_subaddress_public_chain.empty()) {
+        success_msg_writer() << tr("Balance per address:");
+        success_msg_writer()
+                << boost::format("%15s %21s %21s %7s %21s") % tr("Address") % tr("Balance") % tr("Unlocked balance") %
+                   tr("Outputs") % tr("Label");
+        std::vector<tools::wallet2::transfer_details> transfers;
+        m_wallet->get_transfers(transfers);
+        for (const auto &i : balance_per_subaddress_public_chain) {
+            cryptonote::subaddress_index subaddr_index = {m_current_subaddress_account, i.first};
+            std::string address_str = m_wallet->get_subaddress_as_str(subaddr_index).substr(0, 6);
+            uint64_t num_unspent_outputs = std::count_if(transfers.begin(), transfers.end(), [&subaddr_index](
+                    const tools::wallet2::transfer_details &td) {
+                return td.m_tx.version > 1 && !td.m_spent && td.m_subaddr_index == subaddr_index;
+            });
+            success_msg_writer()
+                    << boost::format(tr("%8u %6s %21s %21s %7u %21s")) % i.first % address_str % print_etn(i.second) %
+                       print_etn(unlocked_balance_per_subaddress_public_chain[i.first].first) % num_unspent_outputs %
+                       m_wallet->get_subaddress_label(subaddr_index);
+        }
+    }
+
   return true;
 }
 //----------------------------------------------------------------------------------------------------
@@ -7557,7 +7609,7 @@ bool simple_wallet::check_spend_proof(const std::vector<std::string> &args)
   return true;
 }
 //----------------------------------------------------------------------------------------------------
-bool simple_wallet::get_reserve_proof(const std::vector<std::string> &args)
+bool simple_wallet::get_reserve_proof(const std::vector<std::string> &args) //todo: reserve proofs including v10 outs (give them the chainstate indexes)
 {
   if (m_wallet->key_on_device())
   {
@@ -8559,9 +8611,16 @@ void simple_wallet::print_accounts()
   if (num_untagged_accounts > 0)
     print_accounts("");
 
-  if (num_untagged_accounts < m_wallet->get_num_subaddress_accounts())
-    success_msg_writer() << tr("\nGrand total:\n  Balance: ") << print_etn(m_wallet->balance_all()) << tr(", unlocked balance: ") << print_etn(m_wallet->unlocked_balance_all());
-}
+  if (num_untagged_accounts < m_wallet->get_num_subaddress_accounts()) {
+      if (m_wallet->balance_all(false)) { //if they still have old outs, let them know
+          success_msg_writer() << tr("\nGrand total:\n  Pre V10 Balance: ") << print_etn(m_wallet->balance_all(false))
+                               << tr(", pre v10 unlocked balance: ")
+                               << print_etn(m_wallet->unlocked_balance_all(false));
+      }
+      success_msg_writer() << tr("\nGrand total:\n  Balance: ") << print_etn(m_wallet->balance_all(true))
+                           << tr(", unlocked balance: ") << print_etn(m_wallet->unlocked_balance_all(true));
+  }
+ }
 //----------------------------------------------------------------------------------------------------
 void simple_wallet::print_accounts(const std::string& tag)
 {
@@ -8580,24 +8639,67 @@ void simple_wallet::print_accounts(const std::string& tag)
     success_msg_writer() << tr("Accounts with tag: ") << tag;
     success_msg_writer() << tr("Tag's description: ") << account_tags.first.find(tag)->second;
   }
-  success_msg_writer() << boost::format("  %15s %21s %21s %21s") % tr("Account") % tr("Balance") % tr("Unlocked balance") % tr("Label");
-  uint64_t total_balance = 0, total_unlocked_balance = 0;
-  for (uint32_t account_index = 0; account_index < m_wallet->get_num_subaddress_accounts(); ++account_index)
-  {
-    if (account_tags.second[account_index] != tag)
-      continue;
-    success_msg_writer() << boost::format(tr(" %c%8u %6s %21s %21s %21s"))
-      % (m_current_subaddress_account == account_index ? '*' : ' ')
-      % account_index
-      % m_wallet->get_subaddress_as_str({account_index, 0}).substr(0, 6)
-      % print_etn(m_wallet->balance(account_index))
-      % print_etn(m_wallet->unlocked_balance(account_index))
-      % m_wallet->get_subaddress_label({account_index, 0});
-    total_balance += m_wallet->balance(account_index);
-    total_unlocked_balance += m_wallet->unlocked_balance(account_index);
-  }
-  success_msg_writer() << tr("----------------------------------------------------------------------------------");
-  success_msg_writer() << boost::format(tr("%15s %21s %21s")) % "Total" % print_etn(total_balance) % print_etn(total_unlocked_balance);
+
+    uint64_t total_balance = 0, total_unlocked_balance = 0, total_balance_public_chain = 0, total_unlocked_balance_public_chain = 0;
+    bool found_old_bal = false;
+    //quick check to see if there is *any* pre v10 balance. todo: Refactor another time for performance.
+    for (uint32_t account_index = 0; account_index < m_wallet->get_num_subaddress_accounts(); ++account_index) {
+        if (account_tags.second[account_index] != tag)
+            continue;
+        if (m_wallet->balance(account_index, false)) {
+            found_old_bal = true;
+            break;
+        }
+    }
+
+    if (found_old_bal) {
+        success_msg_writer() << "Pre V10 Account Balances";
+        success_msg_writer() << boost::format("  %15s %21s %21s %21s") % tr("Account") % tr(" Pre V10 Balance") %
+                                tr("Pre V10 Unlocked balance") % tr("Label");
+        for (uint32_t account_index = 0; account_index < m_wallet->get_num_subaddress_accounts(); ++account_index) {
+            if (account_tags.second[account_index] != tag)
+                continue;
+            success_msg_writer() << boost::format(tr(" %c%8u %6s %21s %21s %21s"))
+                                    % (m_current_subaddress_account == account_index ? '*' : ' ')
+                                    % account_index
+                                    % m_wallet->get_subaddress_as_str({account_index, 0}).substr(0, 6)
+                                    % print_etn(m_wallet->balance(account_index, false))
+                                    % print_etn(m_wallet->unlocked_balance(account_index, false))
+                                    % m_wallet->get_subaddress_label({account_index, 0});
+            total_balance += m_wallet->balance(account_index, false);
+            total_unlocked_balance += m_wallet->unlocked_balance(account_index, false);
+        }
+        success_msg_writer()
+                << tr("----------------------------------------------------------------------------------");
+        success_msg_writer() << boost::format(tr("%15s %21s %21s")) % "Total" % print_etn(total_balance) %
+                                print_etn(total_unlocked_balance);
+        success_msg_writer() << "";
+    }
+
+    //new balances
+    if(m_wallet->synced_to_v10()) {
+        success_msg_writer() << "Account Balances";
+        success_msg_writer() << boost::format("  %15s %21s %21s %21s") % tr("Account") % tr("Balance") %
+                                tr("Unlocked balance") % tr("Label");
+        for (uint32_t account_index = 0; account_index < m_wallet->get_num_subaddress_accounts(); ++account_index) {
+            if (account_tags.second[account_index] != tag)
+                continue;
+            success_msg_writer() << boost::format(tr(" %c%8u %6s %21s %21s %21s"))
+                                    % (m_current_subaddress_account == account_index ? '*' : ' ')
+                                    % account_index
+                                    % m_wallet->get_subaddress_as_str({account_index, 0}).substr(0, 6)
+                                    % print_etn(m_wallet->balance(account_index, true))
+                                    % print_etn(m_wallet->unlocked_balance(account_index, true))
+                                    % m_wallet->get_subaddress_label({account_index, 0});
+            total_balance_public_chain += m_wallet->balance(account_index, true);
+            total_unlocked_balance_public_chain += m_wallet->unlocked_balance(account_index, true);
+        }
+        success_msg_writer()
+                << tr("----------------------------------------------------------------------------------");
+        success_msg_writer() << boost::format(tr("%15s %21s %21s")) % "Total" % print_etn(total_balance_public_chain) %
+                                print_etn(total_unlocked_balance_public_chain);
+    }
+
 }
 //----------------------------------------------------------------------------------------------------
 bool simple_wallet::print_address(const std::vector<std::string> &args/* = std::vector<std::string>()*/)
