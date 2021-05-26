@@ -6752,7 +6752,7 @@ bool wallet2::sign_tx(unsigned_tx_set &exported_txs, std::vector<wallet2::pendin
     // NB no early blocks this time for v3 transactions, as nobody should be sending v3 transactions before their v2 (migration) tx have confirmed. V2 confirmations always take place at, or after, the fork block.
     // todo: 4.0.0.0 Migrate vs send regular tx.
     uint16_t hard_fork_version = use_fork_rules(CURRENT_HARDFORK_VERSION, 0) ? CURRENT_HARDFORK_VERSION : (CURRENT_HARDFORK_VERSION - 1);
-    bool r = cryptonote::construct_tx_and_get_tx_key(m_account.get_keys(), m_subaddresses, sd.sources, sd.splitted_dsts, sd.change_dts.addr, sd.extra, ptx.tx, sd.unlock_time, tx_key, additional_tx_keys, sd.use_rct, rct_config, m_multisig ? &msout : NULL, m_account_major_offset, this->m_nettype, hard_fork_version);
+    bool r = cryptonote::construct_tx_and_get_tx_key(m_account.get_keys(), m_subaddresses, sd.sources, sd.splitted_dsts, sd.change_dts.addr, sd.extra, ptx.tx, sd.unlock_time, tx_key, additional_tx_keys, sd.use_rct, rct_config, m_multisig ? &msout : NULL, m_account_major_offset, this->m_nettype);
     THROW_WALLET_EXCEPTION_IF(!r, error::tx_not_constructed, sd.sources, sd.splitted_dsts, sd.unlock_time, m_nettype);
     // we don't test tx size, because we don't know the current limit, due to not having a blockchain,
     // and it's a bit pointless to fail there anyway, since it'd be a (good) guess only. We sign anyway,
@@ -8557,7 +8557,7 @@ void wallet2::get_outs(std::vector<std::vector<tools::wallet2::get_outs_entry>> 
 template<typename T>
 void wallet2::transfer_selected(const std::vector<cryptonote::tx_destination_entry>& dsts, const std::vector<size_t>& selected_transfers, size_t fake_outputs_count,
   std::vector<std::vector<tools::wallet2::get_outs_entry>> &outs,
-  uint64_t unlock_time, uint64_t fee, const std::vector<uint8_t>& extra, T destination_split_strategy, const tx_dust_policy& dust_policy, cryptonote::transaction& tx, pending_tx &ptx, const bool migrate)
+  uint64_t unlock_time, uint64_t fee, const std::vector<uint8_t>& extra, T destination_split_strategy, const tx_dust_policy& dust_policy, cryptonote::transaction& tx, pending_tx &ptx)
 {
   using namespace cryptonote;
   // throw if attempting a transaction with no destinations
@@ -8670,7 +8670,7 @@ void wallet2::transfer_selected(const std::vector<cryptonote::tx_destination_ent
 
   uint16_t hard_fork_version = use_fork_rules(CURRENT_HARDFORK_VERSION, 0) ? CURRENT_HARDFORK_VERSION : (CURRENT_HARDFORK_VERSION - 1);
   LOG_PRINT_L2("constructing tx");
-  bool r = cryptonote::construct_tx_and_get_tx_key(m_account.get_keys(), m_subaddresses, sources, splitted_dsts, change_dts.addr, extra, tx, unlock_time, tx_key, additional_tx_keys, false, {}, m_multisig ? &msout : NULL, m_account_major_offset, this->m_nettype, hard_fork_version, migrate);
+  bool r = cryptonote::construct_tx_and_get_tx_key(m_account.get_keys(), m_subaddresses, sources, splitted_dsts, change_dts.addr, extra, tx, unlock_time, tx_key, additional_tx_keys, false, {}, m_multisig ? &msout : NULL, m_account_major_offset, this->m_nettype);
   LOG_PRINT_L2("constructed tx, r="<<r);
   THROW_WALLET_EXCEPTION_IF(!r, error::tx_not_constructed, sources, splitted_dsts, unlock_time, m_nettype);
   THROW_WALLET_EXCEPTION_IF(upper_transaction_weight_limit <= get_transaction_weight(tx), error::tx_too_big, tx, upper_transaction_weight_limit);
@@ -9331,6 +9331,7 @@ std::vector<wallet2::pending_tx> wallet2::create_transactions_2(std::vector<cryp
     light_wallet_get_unspent_outs();
   }
 
+  uint8_t tx_version = this->public_transactions_required() ? 3 : 1;
   //vector of pairs of <subaddr minor index : vector<transfer indexes for that subaddr index inside m_transfers>>
   std::vector<std::pair<uint32_t, std::vector<size_t>>> unused_transfers_indices_per_subaddr;
   std::vector<std::pair<uint32_t, std::vector<size_t>>> unused_dust_indices_per_subaddr;
@@ -9424,9 +9425,9 @@ std::vector<wallet2::pending_tx> wallet2::create_transactions_2(std::vector<cryp
 
   // throw if attempting a transaction with no etn
   THROW_WALLET_EXCEPTION_IF(needed_etn == 0, error::zero_destination);
-  bool use_old_blockchain_outs = !(this->public_transactions_required());
-  std::map<uint32_t, std::pair<uint64_t, uint64_t>> unlocked_balance_per_subaddr = unlocked_balance_per_subaddress(subaddr_account, !use_old_blockchain_outs);
-  std::map<uint32_t, uint64_t> balance_per_subaddr = balance_per_subaddress(subaddr_account, !use_old_blockchain_outs);
+
+  std::map<uint32_t, std::pair<uint64_t, uint64_t>> unlocked_balance_per_subaddr = unlocked_balance_per_subaddress(subaddr_account, tx_version >= 3);
+  std::map<uint32_t, uint64_t> balance_per_subaddr = balance_per_subaddress(subaddr_account, tx_version >= 3);
 
   if (subaddr_indices.empty()) // "index=<N1>[,<N2>,...]" wasn't specified -> use all the indices with non-zero unlocked balance
   {
@@ -9479,7 +9480,7 @@ std::vector<wallet2::pending_tx> wallet2::create_transactions_2(std::vector<cryp
     }
     if (!td.m_spent && !td.m_frozen && (!td.m_key_image_partial || td.m_tx.version > 1) && (use_rct ? true : !td.is_rct()) && is_transfer_unlocked(td) && td.m_subaddr_index.major == subaddr_account && subaddr_indices.count(td.m_subaddr_index.minor) == 1)
     {
-      if((use_old_blockchain_outs && td.m_tx.version > 1) || (!use_old_blockchain_outs && td.m_tx.version == 1))
+      if((tx_version < 3 && td.m_tx.version > 1) || (tx_version >= 3 && td.m_tx.version == 1))
           continue;
 
       const uint32_t index_minor = td.m_subaddr_index.minor;
@@ -9607,7 +9608,7 @@ std::vector<wallet2::pending_tx> wallet2::create_transactions_2(std::vector<cryp
     // if we need to spend etn and don't have any left, we fail
     if (unused_dust_indices->empty() && unused_transfers_indices->empty()) {
       LOG_PRINT_L2("No more outputs to choose from");
-      THROW_WALLET_EXCEPTION_IF(1, error::tx_not_possible, unlocked_balance(subaddr_account, !use_old_blockchain_outs), needed_etn, accumulated_fee + needed_fee);
+      THROW_WALLET_EXCEPTION_IF(1, error::tx_not_possible, unlocked_balance(subaddr_account, tx_version >= 3), needed_etn, accumulated_fee + needed_fee);
     }
 
     // get a random unspent output and use it to pay part (or all) of the current destination (and maybe next one, etc)
@@ -9712,6 +9713,7 @@ std::vector<wallet2::pending_tx> wallet2::create_transactions_2(std::vector<cryp
 
     if (try_tx) {
       cryptonote::transaction test_tx;
+      test_tx.version = tx_version;
       pending_tx test_ptx;
 
       needed_fee = estimate_fee(use_per_byte_fee, use_rct ,tx.selected_transfers.size(), fake_outs_count, tx.dsts.size()+1, extra.size(), bulletproof, base_fee, fee_multiplier, fee_quantization_mask);
@@ -9818,7 +9820,7 @@ skip_tx:
   if (adding_fee)
   {
     LOG_PRINT_L1("We ran out of outputs while trying to gather final fee");
-    THROW_WALLET_EXCEPTION_IF(1, error::tx_not_possible, unlocked_balance(subaddr_account, !use_old_blockchain_outs), needed_etn, accumulated_fee + needed_fee);
+    THROW_WALLET_EXCEPTION_IF(1, error::tx_not_possible, unlocked_balance(subaddr_account, tx_version >= 3), needed_etn, accumulated_fee + needed_fee);
   }
 
   LOG_PRINT_L1("Done creating " << txes.size() << " transactions, " << print_etn(accumulated_fee) <<
@@ -9952,8 +9954,8 @@ std::vector<wallet2::pending_tx> wallet2::create_transactions_all(uint64_t below
   std::vector<size_t> unused_transfers_indices;
   std::vector<size_t> unused_dust_indices;
   const bool use_rct = use_fork_rules(4, 0);
-  bool use_old_blockchain_outs = public_transactions_required() ? migrate : true;
-  THROW_WALLET_EXCEPTION_IF(unlocked_balance(subaddr_account, !use_old_blockchain_outs) == 0, error::wallet_internal_error, "No unlocked balance in the entire wallet");
+  uint8_t tx_version = public_transactions_required() ? (migrate ? 2 : 3) : 1;
+  THROW_WALLET_EXCEPTION_IF(unlocked_balance(subaddr_account, tx_version >=3) == 0, error::wallet_internal_error, "No unlocked balance in the entire wallet");
   std::map<uint32_t, std::pair<std::vector<size_t>, std::vector<size_t>>> unused_transfer_dust_indices_per_subaddr;
 
   // gather all dust ***and*** non-dust outputs of specified subaddress (if any) and below specified threshold (if any)
@@ -9962,10 +9964,10 @@ std::vector<wallet2::pending_tx> wallet2::create_transactions_all(uint64_t below
   {
     const transfer_details& td = m_transfers[i];
 
-    if((use_old_blockchain_outs && td.m_tx.version > 1) || (!use_old_blockchain_outs && td.m_tx.version == 1))
+    if((tx_version < 3 && td.m_tx.version > 1) || (tx_version >= 3 && td.m_tx.version == 1))
         continue;
 
-    if (!td.m_spent && !td.m_frozen && (!td.m_key_image_partial || !use_old_blockchain_outs) && (use_rct ? true : !td.is_rct()) && is_transfer_unlocked(td) && td.m_subaddr_index.major == subaddr_account && (subaddr_indices.empty() || subaddr_indices.count(td.m_subaddr_index.minor) == 1))
+    if (!td.m_spent && !td.m_frozen && (!td.m_key_image_partial || tx_version >= 3) && (use_rct ? true : !td.is_rct()) && is_transfer_unlocked(td) && td.m_subaddr_index.major == subaddr_account && (subaddr_indices.empty() || subaddr_indices.count(td.m_subaddr_index.minor) == 1))
     {
       fund_found = true;
       if (below == 0 || td.amount() < below)
@@ -10001,13 +10003,14 @@ std::vector<wallet2::pending_tx> wallet2::create_transactions_all(uint64_t below
     }
   }
 
-  return create_transactions_from(address, is_subaddress, outputs, unused_transfers_indices, unused_dust_indices, fake_outs_count, unlock_time, priority, extra, migrate);
+  return create_transactions_from(address, is_subaddress, outputs, unused_transfers_indices, unused_dust_indices, fake_outs_count, unlock_time, priority, extra, tx_version);
 }
 
 std::vector<wallet2::pending_tx> wallet2::create_transactions_single(const crypto::key_image &ki, const cryptonote::account_public_address &address, bool is_subaddress, const size_t outputs, const size_t fake_outs_count, const uint64_t unlock_time, uint32_t priority, const std::vector<uint8_t>& extra)
 {
   std::vector<size_t> unused_transfers_indices;
   std::vector<size_t> unused_dust_indices;
+  uint8_t tx_version = 1; //todo: 4.0.0.0 leave it as this for now until we update it for sending by chainstate index
   const bool use_rct = use_fork_rules(4, 0);
   // find output with the given key image (
   for (size_t i = 0; i < m_transfers.size(); ++i)
@@ -10023,10 +10026,10 @@ std::vector<wallet2::pending_tx> wallet2::create_transactions_single(const crypt
       break;
     }
   }
-  return create_transactions_from(address, is_subaddress, outputs, unused_transfers_indices, unused_dust_indices, fake_outs_count, unlock_time, priority, extra);
+  return create_transactions_from(address, is_subaddress, outputs, unused_transfers_indices, unused_dust_indices, fake_outs_count, unlock_time, priority, extra, tx_version);
 }
 
-std::vector<wallet2::pending_tx> wallet2::create_transactions_from(const cryptonote::account_public_address &address, bool is_subaddress, const size_t outputs, std::vector<size_t> unused_transfers_indices, std::vector<size_t> unused_dust_indices, const size_t fake_outs_count, const uint64_t unlock_time, uint32_t priority, const std::vector<uint8_t>& extra, const bool migrate)
+std::vector<wallet2::pending_tx> wallet2::create_transactions_from(const cryptonote::account_public_address &address, bool is_subaddress, const size_t outputs, std::vector<size_t> unused_transfers_indices, std::vector<size_t> unused_dust_indices, const size_t fake_outs_count, const uint64_t unlock_time, uint32_t priority, const std::vector<uint8_t>& extra, const uint8_t tx_version)
 {
   //ensure device is let in NONE mode in any case
   hw::device &hwdev = m_account.get_device();
@@ -10120,9 +10123,10 @@ std::vector<wallet2::pending_tx> wallet2::create_transactions_from(const crypton
 
     if (try_tx) {
       cryptonote::transaction test_tx;
+      test_tx.version = tx_version;
       pending_tx test_ptx;
 
-      needed_fee = migrate ? 0 : estimate_fee(use_per_byte_fee, use_rct, tx.selected_transfers.size(), fake_outs_count, tx.dsts.size()+1, extra.size(), bulletproof, base_fee, fee_multiplier, fee_quantization_mask);
+      needed_fee = tx_version == 2 ? 0 : estimate_fee(use_per_byte_fee, use_rct, tx.selected_transfers.size(), fake_outs_count, tx.dsts.size()+1, extra.size(), bulletproof, base_fee, fee_multiplier, fee_quantization_mask);
 
       // add N - 1 outputs for correct initial fee estimation
       for (size_t i = 0; i < ((outputs > 1) ? outputs - 1 : outputs); ++i)
@@ -10132,10 +10136,10 @@ std::vector<wallet2::pending_tx> wallet2::create_transactions_from(const crypton
       tx.selected_transfers.size() << " outputs");
 
       transfer_selected(tx.dsts, tx.selected_transfers, fake_outs_count, outs, unlock_time, needed_fee, extra,
-        detail::digit_split_strategy, tx_dust_policy(::config::DEFAULT_DUST_THRESHOLD), test_tx, test_ptx, migrate);
+        detail::digit_split_strategy, tx_dust_policy(::config::DEFAULT_DUST_THRESHOLD), test_tx, test_ptx);
 
       auto txBlob = t_serializable_object_to_blob(test_ptx.tx);
-      needed_fee = migrate ? 0 : calculate_fee(use_per_byte_fee, test_ptx.tx, txBlob.size(), base_fee, fee_multiplier, fee_quantization_mask);
+      needed_fee = tx_version == 2 ? 0 : calculate_fee(use_per_byte_fee, test_ptx.tx, txBlob.size(), base_fee, fee_multiplier, fee_quantization_mask);
       available_for_fee = test_ptx.fee + test_ptx.change_dts.amount;
       for (auto &dt: test_ptx.dests)
         available_for_fee += dt.amount;
@@ -10166,9 +10170,9 @@ std::vector<wallet2::pending_tx> wallet2::create_transactions_from(const crypton
           dt.amount = dt_amount + dt_residue;
         }
         transfer_selected(tx.dsts, tx.selected_transfers, fake_outs_count, outs, unlock_time, needed_fee, extra,
-        detail::digit_split_strategy, tx_dust_policy(::config::DEFAULT_DUST_THRESHOLD), test_tx, test_ptx, migrate);
+        detail::digit_split_strategy, tx_dust_policy(::config::DEFAULT_DUST_THRESHOLD), test_tx, test_ptx);
         txBlob = t_serializable_object_to_blob(test_ptx.tx);
-        needed_fee = migrate ? 0 : calculate_fee(use_per_byte_fee, test_ptx.tx, txBlob.size(), base_fee, fee_multiplier, fee_quantization_mask);
+        needed_fee = tx_version == 2 ? 0 : calculate_fee(use_per_byte_fee, test_ptx.tx, txBlob.size(), base_fee, fee_multiplier, fee_quantization_mask);
         LOG_PRINT_L2("Made an attempt at a final " << get_weight_string(test_ptx.tx, txBlob.size()) << " tx, with " << print_etn(test_ptx.fee) <<
           " fee  and " << print_etn(test_ptx.change_dts.amount) << " change");
       } while (needed_fee > test_ptx.fee);
@@ -10201,7 +10205,7 @@ std::vector<wallet2::pending_tx> wallet2::create_transactions_from(const crypton
     cryptonote::transaction test_tx;
     pending_tx test_ptx;
     transfer_selected(tx.dsts, tx.selected_transfers, fake_outs_count, tx.outs, unlock_time, tx.needed_fee, extra,
-    detail::digit_split_strategy, tx_dust_policy(::config::DEFAULT_DUST_THRESHOLD), test_tx, test_ptx, migrate);
+    detail::digit_split_strategy, tx_dust_policy(::config::DEFAULT_DUST_THRESHOLD), test_tx, test_ptx);
 
     auto txBlob = t_serializable_object_to_blob(test_ptx.tx);
     tx.tx = test_tx;
@@ -10456,6 +10460,7 @@ std::vector<wallet2::pending_tx> wallet2::create_unmixable_sweep_transactions()
   const bool hf1_rules = use_fork_rules(2, 10); // first hard fork has version 2
   tx_dust_policy dust_policy(hf1_rules ? 0 : ::config::DEFAULT_DUST_THRESHOLD);
 
+  uint8_t tx_version = this->public_transactions_required() ? 3 : 1;
   const uint64_t base_fee  = get_base_fee();
 
   // may throw
@@ -10477,7 +10482,7 @@ std::vector<wallet2::pending_tx> wallet2::create_unmixable_sweep_transactions()
       unmixable_transfer_outputs.push_back(n);
   }
 
-  return create_transactions_from(m_account_public_address, false, 1, unmixable_transfer_outputs, unmixable_dust_outputs, 0 /*fake_outs_count */, 0 /* unlock_time */, 1 /*priority */, std::vector<uint8_t>());
+  return create_transactions_from(m_account_public_address, false, 1, unmixable_transfer_outputs, unmixable_dust_outputs, 0 /*fake_outs_count */, 0 /* unlock_time */, 1 /*priority */, std::vector<uint8_t>(), tx_version);
 }
 //----------------------------------------------------------------------------------------------------
 void wallet2::discard_unmixable_outputs()
