@@ -228,7 +228,7 @@ namespace cryptonote
     }
 
     std::vector<rct::key> amount_keys;
-    tx.set_null();
+    //no need to null transaction before doing work as this is done at the time of instantiation of the tx we're dealing with here.
     amount_keys.clear();
     if (msout)
     {
@@ -311,7 +311,7 @@ namespace cryptonote
     if(tx.version < 3) {
         for (const tx_source_entry &src_entr : sources) {
             ++idx;
-            if (src_entr.real_output >= src_entr.outputs.size()) {
+            if (src_entr.real_output >= src_entr.outputs.size()) {//
                 LOG_ERROR("real_output index (" << src_entr.real_output << ")bigger than output_keys.size()="
                                                 << src_entr.outputs.size());
                 return false;
@@ -322,7 +322,7 @@ namespace cryptonote
             in_contexts.push_back(input_generation_context_data());
             // Tx output private key which gets its value assigned inside generate_key_image_helper
             keypair &in_ephemeral = in_contexts.back().in_ephemeral;
-            crypto::key_image img;
+            crypto::key_image img;//
             const auto &out_key = reinterpret_cast<const crypto::public_key &>(src_entr.outputs[src_entr.real_output].second.dest);
             if (!generate_key_image_helper(sender_account_keys, subaddresses, out_key, src_entr.real_out_tx_key,
                                            src_entr.real_out_additional_tx_keys, src_entr.real_output_in_tx_index,
@@ -388,7 +388,7 @@ namespace cryptonote
             txin_to_key_public input;
             input.amount = src_entr.amount;
             input.tx_hash = src_entr.tx_hash;
-            input.relative_offset = src_entr.relative_out_index;
+            input.relative_offset = src_entr.real_output_in_tx_index;
 
             tx.vin.push_back(input);
         }

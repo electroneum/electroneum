@@ -50,15 +50,14 @@ namespace cryptonote
     size_t real_output;                 //index in outputs vector of real output_entry
     crypto::public_key real_out_tx_key; //incoming real tx public key
     std::vector<crypto::public_key> real_out_additional_tx_keys; //incoming real tx additional public keys
-    size_t real_output_in_tx_index;     //index in transaction outputs vector
+    size_t real_output_in_tx_index;     //relative output index (used for v1,2,3+)
     uint64_t amount;                    //etn
     bool rct;                           //true if the output is rct
     rct::key mask;                      //ringct amount mask
     rct::multisig_kLRki multisig_kLRki; //multisig info
 
-    // NEW ADDITIONS FOR TRANSPARENT BLOCKCHAIN
+    // NEW ADDITION FOR TRANSPARENT BLOCKCHAIN
     crypto::hash tx_hash;
-    uint32_t relative_out_index;
 
     void push_output(uint64_t idx, const crypto::public_key &k, uint64_t amount) { outputs.push_back(std::make_pair(idx, rct::ctkey({rct::pk2rct(k), rct::zeroCommit(amount)}))); }
 
@@ -73,7 +72,6 @@ namespace cryptonote
       FIELD(mask)
       FIELD(multisig_kLRki)
       FIELD(tx_hash);
-      FIELD(relative_out_index);
 
       if (real_output >= outputs.size())
         return false;
@@ -127,7 +125,7 @@ namespace cryptonote
     );
 }
 
-BOOST_CLASS_VERSION(cryptonote::tx_source_entry, 1)
+BOOST_CLASS_VERSION(cryptonote::tx_source_entry, 2)
 BOOST_CLASS_VERSION(cryptonote::tx_destination_entry, 2)
 
 namespace boost
@@ -148,6 +146,9 @@ namespace boost
         return;
       a & x.multisig_kLRki;
       a & x.real_out_additional_tx_keys;
+      if (ver < 2)
+        return;
+      a & x.tx_hash;
     }
 
     template <class Archive>

@@ -7979,7 +7979,7 @@ void wallet2::light_wallet_get_outs(std::vector<std::vector<tools::wallet2::get_
   }
 }
 
-void wallet2::get_outs(std::vector<std::vector<tools::wallet2::get_outs_entry>> &outs, const std::vector<size_t> &selected_transfers, size_t fake_outputs_count)
+void wallet2::get_outs(std::vector<std::vector<tools::wallet2::get_outs_entry>> &outs, const std::vector<size_t> &selected_transfers, size_t fake_outputs_count, const uint8_t tx_version)
 {
   LOG_PRINT_L2("fake_outputs_count: " << fake_outputs_count);
   outs.clear();
@@ -7989,7 +7989,7 @@ void wallet2::get_outs(std::vector<std::vector<tools::wallet2::get_outs_entry>> 
     return;
   }
 
-  if (fake_outputs_count > 0)
+  if (fake_outputs_count > 0) // zero for electroneum, so skip a lot of code
   {
     uint64_t segregation_fork_height = get_segregation_fork_height();
     // check whether we're shortly after the fork
@@ -8529,28 +8529,32 @@ void wallet2::get_outs(std::vector<std::vector<tools::wallet2::get_outs_entry>> 
   }
   else //no fake outs => start reading here
   {
-    for (size_t idx: selected_transfers)
-    {
-      const transfer_details &td = m_transfers[idx];
-      std::vector<get_outs_entry> v;
-      const rct::key mask = td.is_rct() ? rct::commit(td.amount(), td.m_mask) : rct::zeroCommit(td.amount());
-      v.push_back(std::make_tuple(td.m_global_output_index, td.get_public_key(), mask));
-      outs.push_back(v);
-    }
+      if(tx_version < 3) {
+          for (size_t idx: selected_transfers) {
+              const transfer_details &td = m_transfers[idx];
+              std::vector<get_outs_entry> v;
+              const rct::key mask = td.is_rct() ? rct::commit(td.amount(), td.m_mask) : rct::zeroCommit(td.amount());
+              v.push_back(std::make_tuple(td.m_global_output_index, td.get_public_key(),
+                                          mask)); // get pub key is where our error is (wrong get)
+              outs.push_back(v);
+          }
+      }
   }
 
-  // save those outs in the ringdb for reuse
-  for (size_t i = 0; i < selected_transfers.size(); ++i)
-  {
-    const size_t idx = selected_transfers[i];
-    THROW_WALLET_EXCEPTION_IF(idx >= m_transfers.size(), error::wallet_internal_error, "selected_transfers entry out of range");
-    const transfer_details &td = m_transfers[idx];
-    std::vector<uint64_t> ring;
-    ring.reserve(outs[i].size());
-    for (const auto &e: outs[i])
-      ring.push_back(std::get<0>(e));
-    if (!set_ring(td.m_key_image, ring, false))
-      MERROR("Failed to set ring for " << td.m_key_image);
+  if(tx_version < 3) {
+      // save those outs in the ringdb for reuse
+      for (size_t i = 0; i < selected_transfers.size(); ++i) {
+          const size_t idx = selected_transfers[i];
+          THROW_WALLET_EXCEPTION_IF(idx >= m_transfers.size(), error::wallet_internal_error,
+                                    "selected_transfers entry out of range");
+          const transfer_details &td = m_transfers[idx];
+          std::vector<uint64_t> ring;
+          ring.reserve(outs[i].size());
+          for (const auto &e: outs[i])
+              ring.push_back(std::get<0>(e));
+          if (!set_ring(td.m_key_image, ring, false))//
+              MERROR("Failed to set ring for " << td.m_key_image);
+      }
   }
 }
 
@@ -8592,8 +8596,8 @@ void wallet2::transfer_selected(const std::vector<cryptonote::tx_destination_ent
   for (auto i = ++selected_transfers.begin(); i != selected_transfers.end(); ++i)
     THROW_WALLET_EXCEPTION_IF(subaddr_account != m_transfers[*i].m_subaddr_index.major, error::wallet_internal_error, "the tx uses funds from multiple accounts");
 
-  if (outs.empty())
-    get_outs(outs, selected_transfers, fake_outputs_count); // may throw
+  if (outs.empty())//
+    get_outs(outs, selected_transfers, fake_outputs_count, tx.version); // may throw
 
   //prepare inputs
   LOG_PRINT_L2("preparing outputs");
@@ -8607,37 +8611,39 @@ void wallet2::transfer_selected(const std::vector<cryptonote::tx_destination_ent
     const transfer_details& td = m_transfers[idx];
     src.amount = td.amount();
     src.rct = td.is_rct();
-    //paste keys (fake and real)
+    if(tx.version < 3) {
+        //paste keys (fake and real)
+        // adding pairs of global index & stealth address to our vector of source outs (needed forold ins only)
+        for (size_t n = 0; n < fake_outputs_count + 1; ++n) {
+            tx_output_entry oe;
+            oe.first = std::get<0>(outs[out_index][n]);
+            oe.second.dest = rct::pk2rct(std::get<1>(outs[out_index][n]));
+            oe.second.mask = std::get<2>(outs[out_index][n]);
 
-    for (size_t n = 0; n < fake_outputs_count + 1; ++n)
-    {
-      tx_output_entry oe;
-      oe.first = std::get<0>(outs[out_index][n]);
-      oe.second.dest = rct::pk2rct(std::get<1>(outs[out_index][n]));
-      oe.second.mask = std::get<2>(outs[out_index][n]);
+            src.outputs.push_back(oe);
+            ++i;
+        }
 
-      src.outputs.push_back(oe);
-      ++i;
+        //paste real transaction to the random index
+        auto it_to_replace = std::find_if(src.outputs.begin(), src.outputs.end(), [&](const tx_output_entry &a) {
+            return a.first == td.m_global_output_index;
+        });
+        THROW_WALLET_EXCEPTION_IF(it_to_replace == src.outputs.end(), error::wallet_internal_error,
+                                  "real output not found");
+
+        tx_output_entry real_oe;
+        real_oe.first = td.m_global_output_index;
+        real_oe.second.dest = rct::pk2rct(
+                boost::get<txout_to_key>(td.m_tx.vout[td.m_internal_output_index].target).key);
+        real_oe.second.mask = rct::commit(td.amount(), td.m_mask);
+        *it_to_replace = real_oe;
+        src.real_out_tx_key = get_tx_pub_key_from_extra(td.m_tx, td.m_pk_index);
+        src.real_out_additional_tx_keys = get_additional_tx_pub_keys_from_extra(td.m_tx);
+        src.real_output = it_to_replace - src.outputs.begin();
+        src.multisig_kLRki = rct::multisig_kLRki({rct::zero(), rct::zero(), rct::zero(), rct::zero()});
     }
-
-    //paste real transaction to the random index
-    auto it_to_replace = std::find_if(src.outputs.begin(), src.outputs.end(), [&](const tx_output_entry& a)
-    {
-      return a.first == td.m_global_output_index;
-    });
-    THROW_WALLET_EXCEPTION_IF(it_to_replace == src.outputs.end(), error::wallet_internal_error,
-        "real output not found");
-
-    tx_output_entry real_oe;
-    real_oe.first = td.m_global_output_index;
-    real_oe.second.dest = rct::pk2rct(boost::get<txout_to_key>(td.m_tx.vout[td.m_internal_output_index].target).key);
-    real_oe.second.mask = rct::commit(td.amount(), td.m_mask);
-    *it_to_replace = real_oe;
-    src.real_out_tx_key = get_tx_pub_key_from_extra(td.m_tx, td.m_pk_index);
-    src.real_out_additional_tx_keys = get_additional_tx_pub_keys_from_extra(td.m_tx);
-    src.real_output = it_to_replace - src.outputs.begin();
-    src.real_output_in_tx_index = td.m_internal_output_index;
-    src.multisig_kLRki = rct::multisig_kLRki({rct::zero(), rct::zero(), rct::zero(), rct::zero()});
+    src.real_output_in_tx_index = td.m_internal_output_index; // these two are all we really need for v3 sources
+    src.tx_hash = td.m_txid;
     detail::print_source_entry(src);
     ++out_index;
   }
@@ -8668,7 +8674,6 @@ void wallet2::transfer_selected(const std::vector<cryptonote::tx_destination_ent
   std::vector<crypto::secret_key> additional_tx_keys;
   rct::multisig_out msout;
 
-  uint16_t hard_fork_version = use_fork_rules(CURRENT_HARDFORK_VERSION, 0) ? CURRENT_HARDFORK_VERSION : (CURRENT_HARDFORK_VERSION - 1);
   LOG_PRINT_L2("constructing tx");
   bool r = cryptonote::construct_tx_and_get_tx_key(m_account.get_keys(), m_subaddresses, sources, splitted_dsts, change_dts.addr, extra, tx, unlock_time, tx_key, additional_tx_keys, false, {}, m_multisig ? &msout : NULL, m_account_major_offset, this->m_nettype);
   LOG_PRINT_L2("constructed tx, r="<<r);
@@ -8682,7 +8687,13 @@ void wallet2::transfer_selected(const std::vector<cryptonote::tx_destination_ent
     key_images += boost::to_string(in.k_image) + " ";
     return true;
   });
-  THROW_WALLET_EXCEPTION_IF(!all_are_txin_to_key, error::unexpected_txin_type, tx);
+
+  bool all_are_txin_to_key_public = std::all_of(tx.vin.begin(), tx.vin.end(), [&](const txin_v& s_e) -> bool
+  {
+    CHECKED_GET_SPECIFIC_VARIANT(s_e, const txin_to_key_public, in, false);
+    return true;
+  });
+  THROW_WALLET_EXCEPTION_IF(!(tx.version >=3 ? all_are_txin_to_key_public : all_are_txin_to_key), error::unexpected_txin_type, tx);
   
   
   bool dust_sent_elsewhere = (dust_policy.addr_for_dust.m_view_public_key != change_dts.addr.m_view_public_key
