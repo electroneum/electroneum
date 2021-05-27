@@ -429,7 +429,7 @@ namespace hw {
         }
 
         bool device_default::generate_input_signature(const crypto::hash &prefix_hash, const uint32_t input_index, const crypto::secret_key sec_view, const crypto::secret_key sec_spend, crypto::signature& signature){
-            generate_input_signature(prefix_hash, input_index, sec_view, sec_spend, signature);
+            crypto::generate_input_signature(prefix_hash, input_index, sec_view, sec_spend, signature);
             return true;
         }
 

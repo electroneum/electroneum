@@ -8596,7 +8596,7 @@ void wallet2::transfer_selected(const std::vector<cryptonote::tx_destination_ent
   for (auto i = ++selected_transfers.begin(); i != selected_transfers.end(); ++i)
     THROW_WALLET_EXCEPTION_IF(subaddr_account != m_transfers[*i].m_subaddr_index.major, error::wallet_internal_error, "the tx uses funds from multiple accounts");
 
-  if (outs.empty())//
+  if (outs.empty())
     get_outs(outs, selected_transfers, fake_outputs_count, tx.version); // may throw
 
   //prepare inputs
@@ -9842,6 +9842,7 @@ skip_tx:
   {
     TX &tx = *i;
     cryptonote::transaction test_tx;
+    test_tx.version = tx_version;
     pending_tx test_ptx;
     transfer_selected(tx.dsts,
                         tx.selected_transfers,
@@ -10214,6 +10215,7 @@ std::vector<wallet2::pending_tx> wallet2::create_transactions_from(const crypton
   {
     TX &tx = *i;
     cryptonote::transaction test_tx;
+    test_tx.version = tx_version;
     pending_tx test_ptx;
     transfer_selected(tx.dsts, tx.selected_transfers, fake_outs_count, tx.outs, unlock_time, tx.needed_fee, extra,
     detail::digit_split_strategy, tx_dust_policy(::config::DEFAULT_DUST_THRESHOLD), test_tx, test_ptx);
