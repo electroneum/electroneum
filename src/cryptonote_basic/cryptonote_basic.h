@@ -279,6 +279,13 @@ struct txin_to_key_public
       vout.clear();
       extra.clear();
     }
+    void set_null_besides_version()
+    {
+      unlock_time = 0;
+      vin.clear();
+      vout.clear();
+      extra.clear();
+    }
   };
 
   class transaction: public transaction_prefix

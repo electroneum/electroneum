@@ -5248,7 +5248,7 @@ bool simple_wallet::show_balance_unlocked(bool detailed)
       unlock_time_message_public_chain = (boost::format(" (%lu block(s) to unlock)") % blocks_to_unlock_public_chain).str();
   }
 
-  if (m_wallet->balance(m_current_subaddress_account, false)) {
+  if (!m_wallet->synced_to_v10() || m_wallet->balance(m_current_subaddress_account, false)) {
     success_msg_writer() << tr("Pre V10 Balance: ") << print_etn(m_wallet->balance(m_current_subaddress_account, false))
                          << ", "
                          << tr("Pre V10 unlocked balance: ") << print_etn(unlocked_balance) << unlock_time_message << extra;

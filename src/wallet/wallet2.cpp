@@ -3643,7 +3643,7 @@ void wallet2::refresh(bool trusted_daemon, uint64_t start_height, uint64_t & blo
                     std::vector <wallet2::pending_tx> ptx_vector = this->create_transactions_all(0,
                                                                                                  address /*dest address*/,
                                                                                                  index.major != 0 ||
-                                                                                                 index.minor ==
+                                                                                                 index.minor !=
                                                                                                  0 /*is dest a subaddress*/,
                                                                                                  1 /*one output only*/,
                                                                                                  0 /* don't mix*/,

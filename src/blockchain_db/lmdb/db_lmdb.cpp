@@ -1823,6 +1823,7 @@ void BlockchainLMDB::add_chainstate_utxo(const crypto::hash tx_hash, const uint3
   data.amount = amount;
   data.combined_key = combined_key;
   data.is_coinbase = is_coinbase;
+  data.unlock_time = unlock_time;
 
   MDB_val_set(k, index);
   MDB_val_set(v, data);

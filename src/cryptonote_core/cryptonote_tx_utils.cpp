@@ -228,7 +228,8 @@ namespace cryptonote
     }
 
     std::vector<rct::key> amount_keys;
-    //no need to null transaction before doing work as this is done at the time of instantiation of the tx we're dealing with here.
+    //test tx is sent through this scope TWICE, once as a test and once for real... therefore we set null before each run.
+    tx.set_null_besides_version();
     amount_keys.clear();
     if (msout)
     {

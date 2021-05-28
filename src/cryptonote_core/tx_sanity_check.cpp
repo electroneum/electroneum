@@ -70,28 +70,10 @@ bool tx_sanity_check(Blockchain &blockchain, const cryptonote::blobdata &tx_blob
     n_indices += in_to_key.key_offsets.size();
   }
 
-  if (n_indices <= 10)
+  if (tx.version < 3 && n_indices <= 10)
   {
     MERROR("n_indices is only " << n_indices);
     return true;
-  }
-
-  uint64_t n_available = blockchain.get_num_mature_outputs(0);
-  if (n_available < 10000)
-    return true;
-
-  if (rct_indices.size() < n_indices * 8 / 10)
-  {
-    MERROR("unique indices is only " << rct_indices.size() << "/" << n_indices);
-    return false;
-  }
-
-  std::vector<uint64_t> offsets(rct_indices.begin(), rct_indices.end());
-  uint64_t median = epee::misc_utils::median(offsets);
-  if (median < n_available * 6 / 10)
-  {
-    MERROR("median is " << median << "/" << n_available);
-    return false;
   }
 
   return true;
