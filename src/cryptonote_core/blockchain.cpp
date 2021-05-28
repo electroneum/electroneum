@@ -2954,7 +2954,7 @@ bool Blockchain::check_tx_inputs(transaction& tx, tx_verification_context &tvc, 
 
       // check signature
       const txout_to_key_public& out_to_key = boost::get<txout_to_key_public>(parent_tx.vout[in_to_key.relative_offset].target);
-      bool valid = crypto::verify_input_signature(in_to_key.tx_hash, in_to_key.relative_offset, out_to_key.address.m_view_public_key, out_to_key.address.m_spend_public_key, tx.signatures[i][0]);
+      bool valid = crypto::verify_input_signature(tx_prefix_hash, in_to_key.relative_offset, out_to_key.address.m_view_public_key, out_to_key.address.m_spend_public_key, tx.signatures[i][0]);
       if (!valid)
       {
         tvc.m_verification_failed = true;
