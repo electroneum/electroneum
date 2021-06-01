@@ -167,16 +167,11 @@ void BlockchainDB::add_transaction(const crypto::hash& blk_hash, const std::pair
       {
         if (tx_input.type() == typeid(txin_to_key))
         {
-          remove_spent_key(boost::get<txin_to_key>(tx_input).k_image);
+          remove_spent_key(boost::get<txin_to_key>(tx_input).k_image); // inputs are already checked here regardless of version
         }
       }
       return;
     }
-  }
-
-  for(auto utxo: utxos_to_remove)
-  {
-    remove_chainstate_utxo(utxo.first, utxo.second);
   }
 
   if (tx.version == 1)
@@ -209,21 +204,19 @@ void BlockchainDB::add_transaction(const crypto::hash& blk_hash, const std::pair
           {
             remove_spent_key(boost::get<txin_to_key>(tx_input).k_image);
           }
-          else if (tx_input.type() == typeid(txin_to_key_public))
-          {
-            const auto &txin = boost::get<txin_to_key_public>(tx_input);
-            const auto &txout = boost::get<txout_to_key_public>(get_tx(tx.hash).vout[txin.relative_offset].target);
-            add_chainstate_utxo(txin.tx_hash, txin.relative_offset, addKeys(txout.address.m_view_public_key, txout.address.m_spend_public_key), txin.amount, get_tx_unlock_time(txin.tx_hash));
-          }
         }
         return;
+      }// if outs are all of the right type, we're ok to proceed by removing the utxos that are now spent
+
+      for(auto utxo: utxos_to_remove)
+      {
+            remove_chainstate_utxo(utxo.first, utxo.second);
       }
 
       const auto &txout = boost::get<txout_to_key_public>(tx.vout[i].target);
-
       add_chainstate_utxo(tx.hash, i, addKeys(txout.address.m_view_public_key, txout.address.m_spend_public_key) , tx.vout[i].amount, txp.first.unlock_time, miner_tx);
       add_addr_output(tx.hash, i, addKeys(txout.address.m_view_public_key, txout.address.m_spend_public_key), tx.vout[i].amount, txp.first.unlock_time);
-    }
+    }//end of v2+ processing
   }
 }
 
@@ -319,7 +312,8 @@ void BlockchainDB::remove_transaction(const crypto::hash& tx_hash)
       const auto &txin = boost::get<txin_to_key_public>(tx_input); // input being used in the tx to be removed.
       const auto &txout = boost::get<txout_to_key_public>(get_tx(txin.tx_hash).vout[txin.relative_offset].target); //previous tx out that this tx in references
       //reinstate that out as a utxo
-      add_chainstate_utxo(txin.tx_hash, txin.relative_offset, addKeys(txout.address.m_view_public_key, txout.address.m_spend_public_key), txin.amount, get_tx_unlock_time(txin.tx_hash));
+      bool reinstate_coinbase = cryptonote::is_coinbase(get_pruned_tx(txin.tx_hash));
+      add_chainstate_utxo(txin.tx_hash, txin.relative_offset, addKeys(txout.address.m_view_public_key, txout.address.m_spend_public_key), txin.amount, get_tx_unlock_time(txin.tx_hash), reinstate_coinbase);
       remove_tx_input(txin.tx_hash, txin.relative_offset);
     }
   }
