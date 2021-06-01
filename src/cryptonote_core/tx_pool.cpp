@@ -1162,7 +1162,7 @@ namespace cryptonote
     }
 
     //if we here, transaction seems valid, but, anyway, check for key_images collisions with blockchain, just to be sure
-    if(m_blockchain.key_images_already_spent(lazy_tx()))
+    if(tx.version < 3 && m_blockchain.key_images_already_spent(lazy_tx()))
     {
       txd.double_spend_seen = true;
       return false;
