@@ -506,7 +506,7 @@ namespace crypto {
     return sizeof(rs_comm) + pubs_count * sizeof(ec_point_pair);
   }
 
-  void crypto_ops::generate_input_signature(const hash prefix_hash, const uint32_t out_index, const secret_key sec_view, const secret_key sec_spend, signature &sig){
+  void crypto_ops::generate_input_signature(const hash prefix_hash, const uint32_t input_index, const secret_key sec_view, const secret_key sec_spend, signature &sig){
 
     // add the two secret keys and reduce modulo l to get a new valid secret key for signing.
     secret_key sec = addSecretKeys(sec_view, sec_spend);
@@ -523,7 +523,7 @@ namespace crypto {
     ec_scalar k;
     s_comm_3 buf;
     buf.h = prefix_hash;
-    buf.i = out_index;
+    buf.i = input_index;
     buf.key = pub;
     try_again:
     random_scalar(k);
@@ -539,7 +539,7 @@ namespace crypto {
       goto try_again;
   }
 
-  bool crypto_ops::verify_input_signature(const hash &prefix_hash,const uint32_t relative_input_index, const public_key pub_view, const public_key pub_spend, signature sig)
+  bool crypto_ops::verify_input_signature(const hash &prefix_hash,const uint32_t input_index, const public_key pub_view, const public_key pub_spend, signature sig)
   {
     public_key pub = addKeys(pub_view, pub_spend);
 
@@ -549,7 +549,7 @@ namespace crypto {
     s_comm_3 buf;
     assert(check_key(pub));
     buf.h = prefix_hash;
-    buf.i = relative_input_index;
+    buf.i = input_index;
     buf.key = pub;
     if (ge_frombytes_vartime(&tmp3, &pub) != 0) {
       return false;
