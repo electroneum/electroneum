@@ -497,47 +497,54 @@ namespace cryptonote
 
     std::stringstream ss_ring_s;
     size_t i = 0;
-    for(const tx_source_entry& src_entr:  sources)
+    
+    if(tx.version < 3)
     {
-      if(tx.version < 3) {
-          ss_ring_s << "pub_keys:" << ENDL;
-          std::vector<const crypto::public_key *> keys_ptrs;
-          std::vector<crypto::public_key> keys(src_entr.outputs.size());
-          size_t ii = 0;
-          for (const tx_source_entry::output_entry &o: src_entr.outputs) {
-              keys[ii] = rct2pk(o.second.dest);
-              keys_ptrs.push_back(&keys[ii]);
-              ss_ring_s << o.second.dest << ENDL;
-              ++ii;
-          }
+      for(const tx_source_entry& src_entr:  sources)
+      {
+        ss_ring_s << "pub_keys:" << ENDL;
+        std::vector<const crypto::public_key *> keys_ptrs;
+        std::vector<crypto::public_key> keys(src_entr.outputs.size());
+        size_t ii = 0;
+        for (const tx_source_entry::output_entry &o: src_entr.outputs) {
+            keys[ii] = rct2pk(o.second.dest);
+            keys_ptrs.push_back(&keys[ii]);
+            ss_ring_s << o.second.dest << ENDL;
+            ++ii;
+        }
 
-          tx.signatures.push_back(std::vector<crypto::signature>());
-          std::vector<crypto::signature> &sigs = tx.signatures.back();
-          sigs.resize(src_entr.outputs.size());
-          if (!zero_secret_key)
-              hwdev.generate_ring_signature(tx_prefix_hash, boost::get<txin_to_key>(tx.vin[i]).k_image, keys_ptrs,
-                                            in_contexts[i].in_ephemeral.sec, src_entr.real_output, sigs.data());
-          ss_ring_s << "signatures:" << ENDL;
-          std::for_each(sigs.begin(), sigs.end(), [&](const crypto::signature &s) { ss_ring_s << s << ENDL; });
-          ss_ring_s << "prefix_hash:" << tx_prefix_hash << ENDL << "in_ephemeral_key: "
-                    << in_contexts[i].in_ephemeral.sec << ENDL << "real_output: " << src_entr.real_output << ENDL;
-          i++;
+        tx.signatures.push_back(std::vector<crypto::signature>());
+        std::vector<crypto::signature> &sigs = tx.signatures.back();
+        sigs.resize(src_entr.outputs.size());
+        if (!zero_secret_key)
+            hwdev.generate_ring_signature(tx_prefix_hash, boost::get<txin_to_key>(tx.vin[i]).k_image, keys_ptrs,
+                                          in_contexts[i].in_ephemeral.sec, src_entr.real_output, sigs.data());
+        ss_ring_s << "signatures:" << ENDL;
+        std::for_each(sigs.begin(), sigs.end(), [&](const crypto::signature &s) { ss_ring_s << s << ENDL; });
+        ss_ring_s << "prefix_hash:" << tx_prefix_hash << ENDL << "in_ephemeral_key: "
+                  << in_contexts[i].in_ephemeral.sec << ENDL << "real_output: " << src_entr.real_output << ENDL;
+        i++;
 
-          MCINFO("construct_tx",
-                 "transaction_created: " << get_transaction_hash(tx) << ENDL << obj_to_json_str(tx) << ENDL
-                                         << ss_ring_s.str());
-      }else{ //new public signatures for v3 onwards
-          for(uint64_t i = 0; i< tx.vin.size(); i++) {
-              crypto::signature signature;
-              std::vector<crypto::signature> signature_vec;
-              hwdev.generate_input_signature(tx_prefix_hash, i, sender_account_keys.m_view_secret_key,
-                                             sender_account_keys.m_spend_secret_key, signature);
-              signature_vec.push_back(signature);
-              tx.signatures.push_back(signature_vec);
-          }
+        MCINFO("construct_tx",
+              "transaction_created: " << get_transaction_hash(tx) << ENDL << obj_to_json_str(tx) << ENDL
+                                      << ss_ring_s.str());
       }
     }
+    else
+    { //new public signatures for v3 onwards
+      for(uint64_t i = 0; i< tx.vin.size(); i++) {
+        crypto::signature signature;
+        std::vector<crypto::signature> signature_vec;
+        hwdev.generate_input_signature(tx_prefix_hash, i, sender_account_keys.m_view_secret_key,
+                                      sender_account_keys.m_spend_secret_key, signature);
+        signature_vec.push_back(signature);
+        tx.signatures.push_back(signature_vec);
+      }
 
+      MCINFO("construct_tx",
+              "transaction_created (v3): " << get_transaction_hash(tx) << ENDL << obj_to_json_str(tx));
+    }
+    
     tx.invalidate_hashes();
 
     return true;
