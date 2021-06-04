@@ -1637,13 +1637,13 @@ void wallet2::check_acc_out_precomp(const tx_out &o, const crypto::key_derivatio
   hw::device &hwdev = m_account.get_device();
    boost::unique_lock<hw::device> hwdev_lock (hwdev);
   hwdev.set_mode(hw::device::TRANSACTION_PARSE);
-  if (o.target.type() !=  typeid(txout_to_key) || o.target.type() != typeid(txout_to_key_public))
+  if (o.target.type() !=  typeid(txout_to_key) && o.target.type() != typeid(txout_to_key_public))
   {
      tx_scan_info.error = true;
      LOG_ERROR("wrong type id in transaction out");
      return;
   }
-  if(o.target.type() !=  typeid(txout_to_key)) {
+  if(o.target.type() !=  typeid(txout_to_key_public)) {
       tx_scan_info.received = is_out_to_acc_precomp(m_subaddresses, boost::get<txout_to_key>(o.target).key, derivation,
                                                     additional_derivations, i, hwdev);
   }else{
