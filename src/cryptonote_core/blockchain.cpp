@@ -2833,9 +2833,12 @@ bool Blockchain::key_images_already_spent(const transaction &tx) const
 
     for (const txin_v& in: tx.vin)
     {
-        CHECKED_GET_SPECIFIC_VARIANT(in, const txin_to_key, in_to_key, true);
+      if(in.type() == typeid(txin_to_key))
+      {
+        const auto &in_to_key = boost::get<txin_to_key>(in);
         if(have_tx_keyimg_as_spent(in_to_key.k_image))
             return true;
+      }
     }
 
     return false;
@@ -2847,9 +2850,12 @@ bool Blockchain::utxo_nonexistent(const transaction &tx) const
 
     for (const txin_v& in: tx.vin)
     {
-        CHECKED_GET_SPECIFIC_VARIANT(in, const txin_to_key_public, in_to_key, true);
-        if(!m_db->check_chainstate_utxo(in_to_key.tx_hash, in_to_key.relative_offset))
-            return true;
+        if(in.type() == typeid(txin_to_key_public))
+        {
+          const auto &in_to_key = boost::get<txin_to_key_public>(in);
+          if(!m_db->check_chainstate_utxo(in_to_key.tx_hash, in_to_key.relative_offset))
+              return true;
+        }
     }
 
     return false;
