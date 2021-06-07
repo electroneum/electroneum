@@ -108,8 +108,8 @@ public:
     ConnectionStatus connected() const override;
     void setTrustedDaemon(bool arg) override;
     bool trustedDaemon() const override;
-    uint64_t balance(uint32_t accountIndex = 0) const override;
-    uint64_t unlockedBalance(uint32_t accountIndex = 0) const override;
+    uint64_t balance(uint32_t accountIndex = 0, bool public_blockchain = false) const override;
+    uint64_t unlockedBalance(uint32_t accountIndex = 0, bool public_blockchain = false) const override;
     uint64_t blockChainHeight() const override;
     uint64_t approximateBlockChainHeight() const override;
     uint64_t estimateBlockChainHeight() const override;

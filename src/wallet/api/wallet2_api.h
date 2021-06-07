@@ -285,12 +285,14 @@ struct Subaddress
 
 struct SubaddressAccountRow {
 public:
-    SubaddressAccountRow(std::size_t _rowId, const std::string &_address, const std::string &_label, const std::string &_balance, const std::string &_unlockedBalance):
+    SubaddressAccountRow(std::size_t _rowId, const std::string &_address, const std::string &_label, const std::string &_balance, const std::string &_unlockedBalance, const std::string &_old_balance, const std::string &_old_unlocked_balance):
         m_rowId(_rowId),
         m_address(_address),
         m_label(_label),
         m_balance(_balance),
-        m_unlockedBalance(_unlockedBalance) {}
+        m_unlockedBalance(_unlockedBalance),
+        m_old_balance(_old_balance),
+        m_old_unlocked_balance(_old_unlocked_balance){}
 
 private:
     std::size_t m_rowId;
@@ -298,12 +300,16 @@ private:
     std::string m_label;
     std::string m_balance;
     std::string m_unlockedBalance;
+    std::string m_old_balance;
+    std::string m_old_unlocked_balance;
 public:
     std::string extra;
     std::string getAddress() const {return m_address;}
     std::string getLabel() const {return m_label;}
     std::string getBalance() const {return m_balance;}
     std::string getUnlockedBalance() const {return m_unlockedBalance;}
+    std::string getOldBalance() const {return m_old_balance;}
+    std::string getOldUnlockedBalance() const {return m_old_unlocked_balance;}
     std::size_t getRowId() const {return m_rowId;}
 };
 
@@ -594,18 +600,18 @@ struct Wallet
     virtual ConnectionStatus connected() const = 0;
     virtual void setTrustedDaemon(bool arg) = 0;
     virtual bool trustedDaemon() const = 0;
-    virtual uint64_t balance(uint32_t accountIndex = 0) const = 0;
-    uint64_t balanceAll() const {
+    virtual uint64_t balance(uint32_t accountIndex = 0, bool public_blockchain = false) const = 0;
+    uint64_t balanceAll(bool public_blockchain) const {
         uint64_t result = 0;
         for (uint32_t i = 0; i < numSubaddressAccounts(); ++i)
-            result += balance(i);
+            result += balance(i, public_blockchain);
         return result;
     }
-    virtual uint64_t unlockedBalance(uint32_t accountIndex = 0) const = 0;
-    uint64_t unlockedBalanceAll() const {
+    virtual uint64_t unlockedBalance(uint32_t accountIndex = 0, bool public_blockchain = false) const = 0;
+    uint64_t unlockedBalanceAll(bool public_blockchain) const {
         uint64_t result = 0;
         for (uint32_t i = 0; i < numSubaddressAccounts(); ++i)
-            result += unlockedBalance(i);
+            result += unlockedBalance(i, public_blockchain);
         return result;
     }
 
