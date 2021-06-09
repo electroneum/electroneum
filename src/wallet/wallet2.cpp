@@ -8702,19 +8702,21 @@ void wallet2::transfer_selected(const std::vector<cryptonote::tx_destination_ent
   THROW_WALLET_EXCEPTION_IF(upper_transaction_weight_limit <= get_transaction_weight(tx), error::tx_too_big, tx, upper_transaction_weight_limit);
 
   std::string key_images;
-  bool all_are_txin_to_key = std::all_of(tx.vin.begin(), tx.vin.end(), [&](const txin_v& s_e) -> bool
-  {
-    CHECKED_GET_SPECIFIC_VARIANT(s_e, const txin_to_key, in, false);
-    key_images += boost::to_string(in.k_image) + " ";
-    return true;
-  });
+  bool are_ins_correct_type = tx.version >= 3 ?
+                                  std::all_of(tx.vin.begin(), tx.vin.end(), [&](const txin_v& s_e) -> bool
+                                  {
+                                      CHECKED_GET_SPECIFIC_VARIANT(s_e, const txin_to_key_public, in, false);
+                                      return true;
+                                  })
+                                  :
+                                  std::all_of(tx.vin.begin(), tx.vin.end(), [&](const txin_v& s_e) -> bool
+                                  {
+                                      CHECKED_GET_SPECIFIC_VARIANT(s_e, const txin_to_key, in, false);
+                                      key_images += boost::to_string(in.k_image) + " ";
+                                      return true;
+                                  });
 
-  bool all_are_txin_to_key_public = std::all_of(tx.vin.begin(), tx.vin.end(), [&](const txin_v& s_e) -> bool
-  {
-    CHECKED_GET_SPECIFIC_VARIANT(s_e, const txin_to_key_public, in, false);
-    return true;
-  });
-  THROW_WALLET_EXCEPTION_IF(!(tx.version >=3 ? all_are_txin_to_key_public : all_are_txin_to_key), error::unexpected_txin_type, tx);
+  THROW_WALLET_EXCEPTION_IF(!are_ins_correct_type, error::unexpected_txin_type, tx);
   
   
   bool dust_sent_elsewhere = (dust_policy.addr_for_dust.m_view_public_key != change_dts.addr.m_view_public_key
