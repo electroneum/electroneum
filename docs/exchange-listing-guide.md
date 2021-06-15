@@ -36,15 +36,13 @@ Enabling the Electroneum Ecosystem
 
 The Mobile Cryptocurrency
 
-Electroneum has coined the phrase 'enablement currency' as it is going to enable a new 3 trillion-dollar market (Price Waterhouse Coopers predicts this market to be as large as USD 3 trillion in their 2017 Global Fintech Report) by allowing over 350m smartphone users in the developing world to enter the digital market for the first time.
+Electroneum has coined the phrase 'enablement cryptocurrency' as it is going to enable a new 3 trillion-dollar market (Price Waterhouse Coopers predicts this market to be as large as USD 3 trillion in their 2017 Global Fintech Report) by allowing over 350m smartphone users in the developing world to enter the digital market for the first time.
 
 With immediate benefits to the mobile operators in those regions, including meaningful transactional cost savings, there are operators who could take us to well over 100 million users and many more operators in negotiation.
 
-Our unique mobile miner puts a small amount of ETN into the hands of users every day, providing market liquidity and driving viral growth. With over 1.6 million registered users, we have a faster viral growth than both Facebook and Twitter over the same time period.
-
 Our Android app is already fully operational in 20 languages.
 
-Our instant cryptocurrency payment system is planned to go live for users and vendors by the end of the third quarter of 2018.
+Our instant cryptocurrency payment system gives users instant payment notifications on their smartphone.
 
 
 
@@ -61,7 +59,7 @@ It's common for cryptocurrencies to talk about seeking mass adoption. It's far l
 
 We have a global patent pending on a technology that allows instant cryptocurrency payments. Instant payments will initially be in ETN but our patent also covers Bitcoin and other cryptocurrencies.
 
-The ability to SPEND ETN instantly is only half the equation. We are developing an API that will allow easy integration to ACCEPT ETN instantly. This means it will be simple to allow an ecommerce system to give instant check out, and even allow easy integration into ePOS systems (electronic point of sales systems or tills).
+The ability to SPEND ETN instantly is only half the equation. We have built an API that will allow easy integration to ACCEPT ETN instantly. This means it is simple to allow an ecommerce system to give instant check out, and even allow easy integration into ePOS systems (electronic point of sales systems or tills).
 
 
 
@@ -77,15 +75,15 @@ Price Waterhouse Coopers predicts this market to be as large as USD 3 trillion i
 
 ### Exceptional Viral Growth
 
-Our economic model enables us to inject small amounts of ETN into the hands of the smartphone user. This makes it easier for the user to try making real world digital payments, often for their first time.
+We have put the ability to send and receive ETN into the hands of the smartphone user. This makes it easier for the user to try making real world digital payments, often for their first time.
 
-Once users see how easy Electroneum is to use, they become part of the community and help drive us forward through recommendation.
+Once users see how easy Electroneum is to use, they become part of the community and help drive us forward through recommendation. 
 
-We have already attracted over 1.6m registered users by viral growth even while our instant payment API system is still in BETA.
+We have already attracted over 3m registered users.
 
 ## Blockchain Technical Background
 
-Electroneum blockchain is based on the Monero/CryptoNote open-source projects.
+Electroneum blockchain was originally based on the Monero/CryptoNote open-source projects, but we have since removed the privacy features. 
 
 ### The CryptoNote Protocol
 
@@ -93,29 +91,17 @@ Electroneum blockchain was built on top of the CryptoNote Protocol, an open-sour
 
 **Double-Spending Proof**
 
-Nobody is able to spend the same ETN twice — even if all his signatures are anonymous. Every signature contains a key image — a kind of fingerprint of the secret key. It is based on a one-way cryptographic function; this implies that given only the key image it is impossible to restore the corresponding secret key. These key images are used to prevent double-spending.
+We have a database driven UTXO book-keeping, meaning that nobody is able to spend the same ETN twice
 
-Source: [cryptonote.org](https://cryptonote.org/inside#double-spend-proof)
+**Proof of Responsibility**
 
-**Egalitarian Proof of Work**
-
-The proof of work mechanism acts as a voting system. Thus, it is crucial that during the voting process all the participants have equal voting privileges. CryptoNote brings this equality with its egalitarian proof of work, utilizing built-in CPU instructions, which are very hard and too expensive to implement in special purpose devices, but perfectly suitable for ordinary PCs.
-
-Source: [cryptonote.org](https://cryptonote.org/inside#equal-proof-of-work)
-
-
-**Adaptive Parameters**
-
-A decentralized payment system must not depend on a single person's decisions, even if this person is a developer. CryptoNote has no hard-coded constants; magic numbers in the code are designed to be re-calculated based on the previous state of the network. Thus, they always change adaptively and independently, allowing the network to develop on its own.
-
-Source: [cryptonote.org](https://cryptonote.org/inside#adaptive-limits)
-
+Our block validation is permissioned, and those entities that are permissioned to validate blocks are contracted and monitored based on both their responsibility using the proceeds of their validations, and their good natured participation in our network. We have a number of charities who are using the proceeds to help developing nations and other people in need.
 
 ### Electroneum Blockchain
 
 Although Electroneum was forked from Monero project on November of 2017, we have been implementing several unique and essential changes to the protocol, being steps closer to become the mass adopted mobile cryptocurrency.
 
-Some of the major features we have introduced enables higher transaction throughput in the blockchain and KYC & AML (Know Your Customer & Anti-Money Laundry) processes through the removal of some privacy features present in Monero.
+Some of the major features we have introduced enables higher transaction throughput in the blockchain and KYC & AML (Know Your Customer & Anti-Money Laundry) processes through the removal of all of the privacy features present in Monero.
 
 We recommend reading the [**Daemon RPC**](https://github.com/electroneum/electroneum/blob/develop/docs/daemon-rpc-documentation.md) & [**Wallet RPC**](https://github.com/electroneum/electroneum/blob/develop/docs/wallet-rpc-documentation.md) documentation before integrating Electroneum into your exchange.
 
