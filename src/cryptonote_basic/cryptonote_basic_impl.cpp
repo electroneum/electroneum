@@ -122,7 +122,7 @@ namespace cryptonote {
           V9_BLOCK_HEIGHT = 39000;
       }
 
-      base_reward = 400 * COIN;
+      base_reward = version >= 10 ? 100 * COIN : 400 * COIN;
       uint8_t halvings = (current_block_height - V9_BLOCK_HEIGHT) / 1051200; // Every 4 years
 
       // Tail emission after 2nd halving
