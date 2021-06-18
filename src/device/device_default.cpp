@@ -195,7 +195,7 @@ namespace hw {
             return address;
         }
 
-        crypto::secret_key  device_default::get_subaddress_secret_key(const crypto::secret_key &a, const cryptonote::subaddress_index &index) {
+        crypto::secret_key device_default::get_subaddress_secret_key(const crypto::secret_key &a, const cryptonote::subaddress_index &index) {
             const char prefix[] = "SubAddr";
             char data[sizeof(prefix) + sizeof(crypto::secret_key) + 2 * sizeof(uint32_t)];
             memcpy(data, prefix, sizeof(prefix));
@@ -207,6 +207,25 @@ namespace hw {
             crypto::secret_key m;
             crypto::hash_to_scalar(data, sizeof(data), m);
             return m;
+        }
+
+        // subaddress pub spend is D = B + mG where m is the subaddress secret key, B is the main wallet public spend key
+        // Alternatively write D = bG + mG === (b+m)G
+        // therefore priv spend d = b+m
+        crypto::secret_key device_default::get_subaddress_private_spendkey(const cryptonote::account_keys& keys, const cryptonote::subaddress_index &subaddr_index){
+            crypto::secret_key subaddr_secret_key = get_subaddress_secret_key(keys.m_view_secret_key, subaddr_index);
+            crypto::secret_key subaddr_private_spendkey;
+            sc_secret_add(subaddr_private_spendkey, subaddr_secret_key, keys.m_spend_secret_key);
+            return subaddr_private_spendkey;
+        }
+
+        // subaddress pub view is C = aD where 'a' is the main wallet private view key
+        // Alternatively write C = a*dG === a*(b+m)G
+        // therefore priv view c = a(b+m)
+        crypto::secret_key device_default::get_subaddress_private_viewkey(const crypto::secret_key &main_wallet_sec_view, crypto::secret_key &subaddress_sec_spend){
+            crypto::secret_key subaddr_private_viewkey;
+            sc_mul(&subaddr_private_viewkey, &main_wallet_sec_view, &subaddress_sec_spend);
+            return subaddr_private_viewkey;
         }
 
         /* ======================================================================= */

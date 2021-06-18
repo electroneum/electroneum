@@ -814,6 +814,14 @@ namespace hw {
         return sub_sec;
     }
 
+    crypto::secret_key device_ledger::get_subaddress_private_spendkey(const cryptonote::account_keys& keys, const cryptonote::subaddress_index &subaddr_index){
+        return boost::value_initialized<crypto::secret_key>(); //todo
+    }
+
+    crypto::secret_key device_ledger::get_subaddress_private_viewkey(const crypto::secret_key &main_wallet_sec_view, crypto::secret_key &subaddress_sec_spend) {
+     return boost::value_initialized<crypto::secret_key>(); //todo
+    }
+
     /* ======================================================================= */
     /*                            DERIVATION & KEY                             */
     /* ======================================================================= */

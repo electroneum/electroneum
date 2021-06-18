@@ -535,11 +535,30 @@ namespace cryptonote
       for(uint64_t i = 0; i< tx.vin.size(); i++) {
         crypto::signature signature;
         std::vector<crypto::signature> signature_vec;
-        
-        if (!zero_secret_key)
-          hwdev.generate_input_signature(tx_prefix_hash, i, sender_account_keys.m_view_secret_key,
-                                      sender_account_keys.m_spend_secret_key, signature);
+          if (!zero_secret_key) {
 
+              subaddress_index input_subaddress_index = sources[i].subaddr_index;
+              crypto::secret_key private_view_for_sig;
+              crypto::secret_key private_spend_for_sig;
+
+              if (input_subaddress_index.major == 0 && input_subaddress_index.minor == 0) {
+                  private_view_for_sig = sender_account_keys.m_view_secret_key;
+                  private_spend_for_sig = sender_account_keys.m_spend_secret_key;
+              } else {
+                  private_spend_for_sig = hwdev.get_subaddress_private_spendkey(sender_account_keys,
+                                                                                input_subaddress_index);
+                  private_view_for_sig = hwdev.get_subaddress_private_viewkey(sender_account_keys.m_view_secret_key,
+                                                                              private_spend_for_sig);
+              }
+
+              hwdev.generate_input_signature(
+                      tx_prefix_hash,
+                      i,
+                      private_view_for_sig,
+                      private_spend_for_sig,
+                      signature
+              );
+          }
         signature_vec.push_back(signature);
         tx.signatures.push_back(signature_vec);
       }

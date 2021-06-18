@@ -8665,6 +8665,7 @@ void wallet2::transfer_selected(const std::vector<cryptonote::tx_destination_ent
     }
     src.real_output_in_tx_index = td.m_internal_output_index; // these two are all we really need for v3 sources
     src.tx_hash = td.m_txid;
+    src.subaddr_index = td.m_subaddr_index;
     detail::print_source_entry(src);
     ++out_index;
   }

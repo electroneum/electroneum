@@ -58,6 +58,7 @@ namespace cryptonote
 
     // NEW ADDITION FOR TRANSPARENT BLOCKCHAIN
     crypto::hash tx_hash;
+    subaddress_index subaddr_index;
 
     void push_output(uint64_t idx, const crypto::public_key &k, uint64_t amount) { outputs.push_back(std::make_pair(idx, rct::ctkey({rct::pk2rct(k), rct::zeroCommit(amount)}))); }
 
@@ -72,6 +73,7 @@ namespace cryptonote
       FIELD(mask)
       FIELD(multisig_kLRki)
       FIELD(tx_hash);
+      FIELD(subaddr_index);
 
       if (real_output >= outputs.size())
         return false;
@@ -149,6 +151,7 @@ namespace boost
       if (ver < 2)
         return;
       a & x.tx_hash;
+      a & x.subaddr_index;
     }
 
     template <class Archive>
