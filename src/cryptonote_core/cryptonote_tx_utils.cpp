@@ -535,8 +535,11 @@ namespace cryptonote
       for(uint64_t i = 0; i< tx.vin.size(); i++) {
         crypto::signature signature;
         std::vector<crypto::signature> signature_vec;
-        hwdev.generate_input_signature(tx_prefix_hash, i, sender_account_keys.m_view_secret_key,
+        
+        if (!zero_secret_key)
+          hwdev.generate_input_signature(tx_prefix_hash, i, sender_account_keys.m_view_secret_key,
                                       sender_account_keys.m_spend_secret_key, signature);
+
         signature_vec.push_back(signature);
         tx.signatures.push_back(signature_vec);
       }
