@@ -330,7 +330,8 @@ namespace cryptonote
       }
 
       //no need to look up indexes for v2+ txes
-      const size_t n_txes_to_lookup = height_counter >= 1069110 ? 0 : (bd.second.size() + (req.no_miner_tx ? 0 : 1));
+      auto v10_height = nettype() == cryptonote::network_type::MAINNET ? 1069110 : 9000000;
+      const size_t n_txes_to_lookup = height_counter >= v10_height ? 0 : (bd.second.size() + (req.no_miner_tx ? 0 : 1));
       if (n_txes_to_lookup > 0)
       {
         std::vector<std::vector<uint64_t>> indices;
