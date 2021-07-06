@@ -310,7 +310,9 @@ void BlockchainDB::remove_transaction(const crypto::hash& tx_hash)
     else if (tx_input.type() == typeid(txin_to_key_public))
     {
       const auto &txin = boost::get<txin_to_key_public>(tx_input); // input being used in the tx to be removed.
-      const auto &txout = boost::get<txout_to_key_public>(get_tx(txin.tx_hash).vout[txin.relative_offset].target); //previous tx out that this tx in references
+
+      transaction parent_tx = get_tx(txin.tx_hash);
+      const auto &txout = boost::get<txout_to_key_public>(parent_tx.vout[txin.relative_offset].target); //previous tx out that this tx in references
       //reinstate that out as a utxo
       bool reinstate_coinbase = cryptonote::is_coinbase(get_pruned_tx(txin.tx_hash));
       add_chainstate_utxo(txin.tx_hash, txin.relative_offset, addKeys(txout.address.m_view_public_key, txout.address.m_spend_public_key), txin.amount, get_tx_unlock_time(txin.tx_hash), reinstate_coinbase);

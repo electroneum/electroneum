@@ -2026,6 +2026,7 @@ void BlockchainLMDB::add_addr_output(const crypto::hash tx_hash, const uint32_t 
   acc.amount = amount;
   acc.unlock_time = unlock_time;
 
+  k = {sizeof(combined_key), (void *)&combined_key};
   MDB_val acc_v = {sizeof(acc), (void *)&acc};
 
   result = mdb_cursor_put(m_cur_addr_outputs, &k, &acc_v, MDB_APPENDDUP);
@@ -2191,6 +2192,7 @@ void BlockchainLMDB::remove_addr_output(const crypto::hash tx_hash, const uint32
 
   MDB_cursor_op op = MDB_LAST_DUP;
   while (1) {
+    k = {sizeof(combined_key), (void *)&combined_key};
     int ret = mdb_cursor_get(m_cur_addr_outputs, &k, &v, op);
     op = MDB_PREV_DUP;
     if (ret == MDB_NOTFOUND)
