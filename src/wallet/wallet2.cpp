@@ -1553,11 +1553,11 @@ void wallet2::set_spent(size_t idx, uint64_t height, bool public_out)
 
   if(public_out){
       LOG_PRINT_L2("Setting SPENT at "
-      << height << ": ki " << td.m_key_image
+      << height << ": chainstate index  " << td.m_txid << ":" << td.m_internal_output_index
       << ", amount " << print_etn(td.m_amount));
   }else{
       LOG_PRINT_L2("Setting SPENT at "
-      << height << ": chainstate index  " << td.m_txid << ":" << td.m_internal_output_index
+      << height << ": ki " << td.m_key_image
       << ", amount " << print_etn(td.m_amount));
   }
 
