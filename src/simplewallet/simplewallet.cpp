@@ -2153,19 +2153,9 @@ bool simple_wallet::net_stats(const std::vector<std::string> &args)
 
 bool simple_wallet::welcome(const std::vector<std::string> &args)
 {
-  message_writer() << tr("Welcome to Electroneum, the cryptocurrency for the masses.");
+  message_writer() << tr("Welcome to Electroneum; the global, humanitarian cryptocurrency for the masses.");
   message_writer() << "";
-  message_writer() << tr("Electroneum, like Bitcoin, is a cryptocurrency. That is, it is digital token.");
-  message_writer() << tr("Unlike Bitcoin, your Electroneum transactions and balance stay private, and not visible to the world by default.");
-  message_writer() << tr("However, you have the option of making those available to select parties, if you choose to.");
-  message_writer() << "";
-  message_writer() << tr("Electroneum protects your privacy on the blockchain, and while Electroneum strives to improve all the time,");
-  message_writer() << tr("no privacy technology can be 100% perfect, Electroneum included.");
-  message_writer() << tr("Electroneum cannot protect you from malware, and it may not be as effective as we hope against powerful adversaries.");
-  message_writer() << tr("Flaws in Electroneum may be discovered in the future, and attacks may be developed to peek under some");
-  message_writer() << tr("of the layers of privacy Electroneum provides. Be safe and practice defense in depth.");
-  message_writer() << "";
-  message_writer() << tr("Welcome to Electroneum and financial privacy. For more information, see https://electroneum.com/");
+  message_writer() << tr("For more information, see https://electroneum.com/");
   return true;
 }
 

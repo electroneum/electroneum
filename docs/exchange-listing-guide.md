@@ -295,9 +295,9 @@ curl -X POST http://localhost:28071/json_rpc -d '{"jsonrpc":"2.0","id":"0","meth
 
 ### Optimizing wallet transaction times
 
-Over time the transaction speed of your **DEPOSIT WALLET** and **WITHDRAWAL WALLETS** will start to slow down. It's important to note that the reason the wallet slows down over time is that as a privacy coin there is a lot more going on mathematically than with Bitcoin or Ethereum. There is nothing wrong with the wallet, it is just having to process too much information.
+Over time, the transaction speed of highly active wallets **DEPOSIT WALLET** and **WITHDRAWAL WALLETS** will start to decrease. This is due to the UTXO model of outputs used for the blockchain and wallet, which accumulates outputs in the wallet cache over time, thereby increasing the wallet size and the extent of balance fragmentation, which can degrade performance in a number of ways. 
 
-To optimize your wallet transaction time, we recommend the following process being run on a monthly basis (this shouldn't take any longer than 1-2 hours per month).
+In order to negate this and optimize your wallet transaction time, we recommend the following housekeeping process to be run on a monthly basis (this shouldn't take any longer than 1-2 hours per month). You can view this process as being akin to defragmenting a hard drive.
 
 This process can be done from **WITHDRAWAL WALLET 1** to **WITHDRAWAL WALLET 2** (and vice-versa) and/or from **DEPOSIT WALLET** to **COLD STORAGE WALLET**, significantly improving performance leading to virtually no delay in response.
 
