@@ -1009,7 +1009,8 @@ private:
         return;
       a & m_cold_key_images;
       if(ver < 29)
-          a & m_chainstate_indexes;
+          return;
+      a & m_chainstate_indexes;
     }
 
     /*!
