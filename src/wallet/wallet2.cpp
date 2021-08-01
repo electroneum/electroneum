@@ -2220,6 +2220,7 @@ void wallet2::process_new_transaction(const crypto::hash &txid, const cryptonote
                           td.m_rct = false;
                           td.m_frozen = false;
                           set_unspent(m_transfers.size() - 1, true);
+                          m_chainstate_indexes[std::make_pair(txid, o)] = m_transfers.size() - 1;
                           if (output_tracker_cache) {
                               std::array<char, 32> transaction_id;
                               std::copy(std::begin(td.m_txid.data), std::end(td.m_txid.data), transaction_id.begin());
