@@ -6025,28 +6025,33 @@ std::map<uint32_t, uint64_t> wallet2::balance_per_subaddress(uint32_t index_majo
           continue;
 
       if (utx.second.m_state != wallet2::unconfirmed_transfer_details::failed) {
-          //REGULAR OUTS IF LOOPBACK
-          for (const cryptonote::tx_out &out : utx.second.m_tx.vout) {
-              if (out.target.type() == typeid(txout_to_key_public)) {
-                  // check whether this out is to one of our subaddresses
-                  auto target = boost::get<cryptonote::txout_to_key_public>(out.target);
-                  auto subaddr_found = m_subaddresses.find(target.address.m_spend_public_key);
-                  // if this out is to us and the view key part of the destination matches that of our our subaddress
-                  // and the major index of this subaddress corresponds to the current account we're getting balance for,
-                  // then add amount to balance
-                  if (subaddr_found != m_subaddresses.end() && get_subaddress(subaddr_found->second).m_view_public_key == target.address.m_view_public_key && subaddr_found->second.major == index_major) {
-                      auto found = amount_per_subaddr.find(subaddr_found->second.minor);
-                      if (found == amount_per_subaddr.end())
-                          amount_per_subaddr[subaddr_found->second.minor] = out.amount;
-                      else
-                          found->second += out.amount;
-                  } else {
-                      continue;
+          //HANDLE LOOPBACK OUTS INCLUDING CHANGE
+          if(utx.second.m_tx.version > 1){
+              for (const cryptonote::tx_out &out : utx.second.m_tx.vout) {
+                  if (out.target.type() == typeid(txout_to_key_public)) {
+                      // check whether this out is to one of our subaddresses
+                      auto target = boost::get<cryptonote::txout_to_key_public>(out.target);
+                      auto subaddr_found = m_subaddresses.find(target.address.m_spend_public_key);
+                      // if this out is to us
+                      // and the view key part of the destination matches that of our our subaddress,
+                      // and the major index of this subaddress corresponds to the current account we're getting balance for,
+                      // then add amount to balance
+                      if (subaddr_found != m_subaddresses.end() && get_subaddress(subaddr_found->second).m_view_public_key == target.address.m_view_public_key && subaddr_found->second.major == index_major) {
+                          auto found = amount_per_subaddr.find(subaddr_found->second.minor);
+                          if (found == amount_per_subaddr.end())
+                              amount_per_subaddr[subaddr_found->second.minor] = out.amount;
+                          else
+                              found->second += out.amount;
+                      } else {
+                          continue;
+                      }
                   }
               }
           }
-          // CHANGE
-          if (utx.second.m_subaddr_account == index_major) {
+          // CHANGE HANDLING FOR V1 TX
+          // (NB LOOPBACK OUTS APART FROM CHANGE AREN'T FACTORED INTO BAL WHILST TX IS UNCONFIRMED
+          // and there is no need to fix this (monero) issue as we've migrated to a transparent chain)
+          if (utx.second.m_tx.version == 1 && utx.second.m_subaddr_account == index_major) {
               // all changes go to 0-th subaddress (in the current subaddress account)
               auto found = amount_per_subaddr.find(0);
               if (found == amount_per_subaddr.end())
