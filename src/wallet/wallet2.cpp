@@ -2452,9 +2452,15 @@ void wallet2::process_new_transaction(const crypto::hash &txid, const cryptonote
           }
       }
   }
-  
-  //TODO: Public
-  uint64_t fee = miner_tx ? 0 : tx_etn_spent_in_ins - get_outs_etn_amount(tx);
+
+  uint64_t fee;
+  if(miner_tx){
+      fee = 0;
+  }else{
+      uint64_t tx_etn_total_inputs;
+      get_inputs_etn_amount(tx, tx_etn_total_inputs);
+      fee = tx_etn_total_inputs - get_outs_etn_amount(tx); //it doesn't matter if we personally spent ins, fee is alwasys total ins minus total outs
+  }
 
   if (tx_etn_spent_in_ins > 0 && !pool)
   {
