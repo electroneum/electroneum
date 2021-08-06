@@ -2189,7 +2189,7 @@ void wallet2::process_new_transaction(const crypto::hash &txid, const cryptonote
                                             "wrong out in transaction: internal index=" +
                                             std::to_string(o) + ", total_outs=" + std::to_string(tx.vout.size()));
 
-                  auto kit = m_chainstate_indexes.find(std::make_pair(tx.hash, o));
+                  auto kit = m_chainstate_indexes.find(std::make_pair(txid, o));
                   // Chainstate index already exists in a transfer entry or we have more chainstate indexes than transfers for some unkown reason
                   THROW_WALLET_EXCEPTION_IF(kit != m_chainstate_indexes.end() && kit->second >= m_transfers.size(),
                                             error::wallet_internal_error,
@@ -2302,7 +2302,7 @@ void wallet2::process_new_transaction(const crypto::hash &txid, const cryptonote
                               update_multisig_rescan_info(*m_multisig_rescan_k, *m_multisig_rescan_info,
                                                           m_transfers.size() - 1);
                           }
-                          THROW_WALLET_EXCEPTION_IF(td.get_chainstate_index() != std::make_pair(tx.hash, o),
+                          THROW_WALLET_EXCEPTION_IF(td.get_chainstate_index() != std::make_pair(txid, o),
                                                     error::wallet_internal_error, "Inconsistent public keys");
                           THROW_WALLET_EXCEPTION_IF(td.m_spent, error::wallet_internal_error,
                                                     "Inconsistent spent status");
