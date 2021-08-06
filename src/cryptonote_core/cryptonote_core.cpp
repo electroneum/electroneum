@@ -738,6 +738,8 @@ namespace cryptonote
       return false;
     }
 
+    check_updates_level = UPDATES_DISABLED;
+
     r = m_miner.init(vm, m_nettype, m_fallback_to_pow);
     CHECK_AND_ASSERT_MES(r, false, "Failed to initialize miner instance");
 
