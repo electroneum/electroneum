@@ -2464,6 +2464,7 @@ void wallet2::process_new_transaction(const crypto::hash &txid, const cryptonote
 
   if (tx_etn_spent_in_ins > 0 && !pool)
   {
+    // only used for v1. refactor later
     uint64_t self_received = std::accumulate<decltype(tx_etn_got_in_outs.begin()), uint64_t>(tx_etn_got_in_outs.begin(), tx_etn_got_in_outs.end(), 0,
       [&subaddr_account] (uint64_t acc, const std::pair<cryptonote::subaddress_index, uint64_t>& p)
       {
@@ -2476,7 +2477,8 @@ void wallet2::process_new_transaction(const crypto::hash &txid, const cryptonote
       auto i = m_confirmed_txs.find(txid);
       THROW_WALLET_EXCEPTION_IF(i == m_confirmed_txs.end(), error::wallet_internal_error,
         "confirmed tx wasn't found: " + string_tools::pod_to_hex(txid));
-      i->second.m_change = self_received;
+      if(tx.version == 1)
+        i->second.m_change = self_received;
     }
   }
 
@@ -2614,7 +2616,8 @@ void wallet2::process_outgoing(const crypto::hash &txid, const cryptonote::trans
     // we only see 0 input amounts, so have to deduce amount out from other parameters.
     entry.first->second.m_amount_in = spent;
     entry.first->second.m_amount_out = get_outs_etn_amount(tx);
-    entry.first->second.m_change = received;
+    if(tx.version == 1)
+        entry.first->second.m_change = received;
 
     std::vector<tx_extra_field> tx_extra_fields;
     parse_tx_extra(tx.extra, tx_extra_fields); // ok if partially parsed
@@ -2641,6 +2644,68 @@ void wallet2::process_outgoing(const crypto::hash &txid, const cryptonote::trans
   entry.first->second.m_unlock_time = tx.unlock_time;
   entry.first->second.m_is_migration = tx.version == 2;
 
+
+  if(tx.version > 1){
+      // grab the input owner keys/address by using the subaddr indicies used for the transaction
+      std::vector<account_public_address> input_addresses;
+      for (auto minor_index : subaddr_indices) {
+          cryptonote::subaddress_index index{subaddr_account, minor_index};
+          input_addresses.push_back(get_subaddress(index));
+      }
+
+      //build list of potential change outputs - NB if *ALL* outs go to input addresses, then we DON'T conside them change; the transaction is a looped sweep.
+      // If one or more outs do not go to an input address, we consider ALL other outputs as change outputs
+      std::unordered_set<uint32_t> change_indexes;
+      for (size_t i = 0; i < tx.vout.size(); ++i) {
+          for (auto input_address : input_addresses) {
+              if (boost::get<txout_to_key_public>(tx.vout[i].target).address == input_address) {
+                  change_indexes.insert(i);
+                  continue;
+              }
+          }
+      }
+
+      // if this is true we have a sweep tx so clear all change out indexes
+      if (change_indexes.size() == tx.vout.size()) {
+          change_indexes.clear();
+      }
+
+      int64_t total_change = 0;
+      for (auto &change_index : change_indexes)
+          total_change += tx.vout[change_index].amount;
+      entry.first->second.m_change = total_change;
+
+      // For V2+ tx, we can repopulate tx destinations in the wallet cache during a rescan by simply reading them from the transactions
+      //todo: optimise
+      if (entry.first->second.m_dests.empty()) {
+
+          // fill destinations
+          for (size_t i = 0; i < tx.vout.size(); ++i) {
+              if (change_indexes.find(i) == change_indexes.end()) { // only include non-change outs as dests
+                  auto output = boost::get<txout_to_key_public>(tx.vout[i].target); // grab output from the tx
+                  //predicate for comparison later on
+                  auto pred = [output](const tx_destination_entry &destination) {
+                      return destination.addr == output.address;
+                  };
+
+                  //search our working list of destinations in entry, and either add output amount to the
+                  // running total in the case of a match, or add a new destination otherwise
+                  auto dest_ptr = std::find_if(std::begin(entry.first->second.m_dests),
+                                               std::end(entry.first->second.m_dests), pred);
+                  if (dest_ptr != std::end(entry.first->second.m_dests)) {
+                      dest_ptr->amount += tx.vout[i].amount;
+                  } else {
+                      entry.first->second.m_dests.push_back(tx_destination_entry(
+                              tx.vout[i].amount,
+                              output.address,
+                              output.m_address_prefix ==
+                              get_config(this->m_nettype).CRYPTONOTE_PUBLIC_SUBADDRESS_BASE58_PREFIX ? true : false
+                              ));
+                  }
+              }
+          }
+      }
+  }
   add_rings(tx);
 }
 //----------------------------------------------------------------------------------------------------
@@ -6501,13 +6566,77 @@ void wallet2::add_unconfirmed_tx(const cryptonote::transaction& tx, uint64_t amo
   unconfirmed_transfer_details& utd = m_unconfirmed_txs[cryptonote::get_transaction_hash(tx)];
   utd.m_amount_in = amount_in;
   utd.m_amount_out = 0;
-  for (const auto &d: dests)
-    utd.m_amount_out += d.amount;
-  utd.m_amount_out += change_amount; // dests does not contain change
-  utd.m_change = change_amount;
-  utd.m_sent_time = time(NULL);
+
+  if(tx.version == 1){
+      for (const auto &d: dests)
+          utd.m_amount_out += d.amount;
+      utd.m_amount_out += change_amount; // dests does not contain change
+      utd.m_change = change_amount;
+      utd.m_dests = dests;
+  } else {
+      // grab the input owner keys/address by using the subaddr indicies used for the transaction
+      std::vector<account_public_address> input_addresses;
+      for (auto minor_index : subaddr_indices) {
+          cryptonote::subaddress_index index{subaddr_account, minor_index};
+          input_addresses.push_back(get_subaddress(index));
+      }
+
+      //build list of potential change outputs - NB if *ALL* outs go to input addresses, then we DON'T conside them change; the transaction is a looped sweep.
+      // If one or more outs do not go to an input address, we consider ALL other outputs as change outputs
+      std::unordered_set<uint32_t> change_indexes;
+      for (size_t i = 0; i < tx.vout.size(); ++i) {
+          for (auto input_address : input_addresses) {
+              if (boost::get<txout_to_key_public>(tx.vout[i].target).address == input_address) {
+                  change_indexes.insert(i);
+                  continue;
+              }
+          }
+      }
+
+      // if this is true we have a sweep tx so clear all change out indexes
+      if (change_indexes.size() == tx.vout.size()) {
+          change_indexes.clear();
+      }
+
+      int64_t total_change = 0;
+      for (auto &change_index : change_indexes)
+          total_change += tx.vout[change_index].amount;
+      utd.m_change = total_change;
+
+      //todo: optimise & refactor
+      // fill destinations
+      for (size_t i = 0; i < tx.vout.size(); ++i) {
+          if (change_indexes.find(i) == change_indexes.end()) { // only include non-change outs as dests
+              auto output = boost::get<txout_to_key_public>(tx.vout[i].target); // grab output from the tx
+              //predicate for comparison later on
+              auto pred = [output](const tx_destination_entry &destination) {
+                  return destination.addr == output.address;
+              };
+
+              //search our working list of destinations in entry, and either add output amount to the
+              // running total in the case of a match, or add a new destination otherwise
+              auto dest_ptr = std::find_if(std::begin(utd.m_dests),
+                                           std::end(utd.m_dests), pred);
+              if (dest_ptr != std::end(utd.m_dests)) {
+                  dest_ptr->amount += tx.vout[i].amount;
+              } else {
+                  utd.m_dests.push_back(tx_destination_entry(
+                          tx.vout[i].amount,
+                          output.address,
+                          output.m_address_prefix ==
+                          get_config(this->m_nettype).CRYPTONOTE_PUBLIC_SUBADDRESS_BASE58_PREFIX ? true : false
+                  ));
+              }
+          }
+      }
+      //amount out is the sum of destinations and change (if loopback tx change = 0 so this still checks out)
+      for (const auto &d: utd.m_dests)
+          utd.m_amount_out += d.amount;
+      utd.m_amount_out += total_change;
+  }
+
   utd.m_tx = (const cryptonote::transaction_prefix&)tx;
-  utd.m_dests = dests;
+  utd.m_sent_time = time(NULL);
   utd.m_payment_id = payment_id;
   utd.m_state = wallet2::unconfirmed_transfer_details::pending;
   utd.m_timestamp = time(NULL);
@@ -8704,8 +8833,10 @@ void wallet2::transfer_selected(const std::vector<cryptonote::tx_destination_ent
   cryptonote::tx_destination_entry change_dts = AUTO_VAL_INIT(change_dts);
   if (needed_etn < found_etn)
   {
-    change_dts.addr = get_subaddress({subaddr_account, 0});
-    change_dts.is_subaddress = subaddr_account != 0;
+    // send change to the first input's address for v3+ tx
+    uint32_t change_subaddress_minor = tx.version > 2 ? sources.front().subaddr_index.minor : 0;
+    change_dts.addr = get_subaddress({subaddr_account, change_subaddress_minor});
+    change_dts.is_subaddress = (subaddr_account != 0 || change_subaddress_minor != 0);
     change_dts.amount = found_etn - needed_etn;
   }
 
