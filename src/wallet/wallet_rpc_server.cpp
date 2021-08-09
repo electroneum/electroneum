@@ -354,15 +354,14 @@ namespace tools
     entry.amount = pd.m_is_migration ? pd.m_amount_out : pd.m_amount_in - change - entry.fee;
     entry.note = m_wallet->get_tx_note(txid);
 
-    if(!pd.m_is_migration)
-    {
-      for (const auto &d: pd.m_dests) {
+
+    for (const auto &d: pd.m_dests) {
         entry.destinations.push_back(wallet_rpc::transfer_destination());
         wallet_rpc::transfer_destination &td = entry.destinations.back();
         td.amount = d.amount;
         td.address = d.original.empty() ? get_account_address_as_str(m_wallet->nettype(), d.is_subaddress, d.addr) : d.original;
-      }
-    }    
+    }
+
 
     entry.type = pd.m_is_migration ? "migration" : "out";
     entry.subaddr_index = { pd.m_subaddr_account, 0 };
