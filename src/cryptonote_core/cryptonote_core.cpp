@@ -1204,7 +1204,7 @@ namespace cryptonote
     for(const auto& in: tx.vin)
     {
       CHECKED_GET_SPECIFIC_VARIANT(in, const txin_to_key_public, tokey_in, false);
-      if(!ins.insert(std::string(tokey_in.tx_hash.data) + std::to_string(tokey_in.relative_offset)).second)
+      if(!ins.insert(std::string(tokey_in.tx_hash.data, 32) + std::to_string(tokey_in.relative_offset)).second)
         return false;
     }
     return true;

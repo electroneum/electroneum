@@ -2907,7 +2907,7 @@ bool Blockchain::check_tx_inputs(transaction& tx, tx_verification_context &tvc, 
     for(const auto& in: tx.vin)
     {
       CHECKED_GET_SPECIFIC_VARIANT(in, const txin_to_key_public, tokey_in, false);
-      if(!ins.insert(std::string(tokey_in.tx_hash.data) + std::to_string(tokey_in.relative_offset)).second)
+      if(!ins.insert(std::string(tokey_in.tx_hash.data, 32) + std::to_string(tokey_in.relative_offset)).second)
       {
         tvc.m_invalid_input = true;
         tvc.m_verification_failed = true;
