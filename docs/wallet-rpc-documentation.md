@@ -317,6 +317,7 @@ Alias:  *None* .
 
 Inputs:
 
+* *account_index* - string; (Optional) Index for filtering accounts.
 * *tag*  - string; (Optional) Tag for filtering accounts.
 
 Outputs:
