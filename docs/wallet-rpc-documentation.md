@@ -1710,6 +1710,9 @@ Outputs:
   * *address*  - string; Public address of the transfer.
   * *amount*  - unsigned int; Amount transferred.
   * *confirmations*  - unsigned int; Number of block mined since the block containing this transaction (or block height at which the transaction should be added to a block if not yet confirmed).
+  * *destinations*  - array of output destinations and amounts:
+    * *address*  - string; the destination Electroneum address
+    * *amount*  - unsigned int; the amount sent to that address
   * *double_spend_seen*  - boolean; True if the key image(s) for the transfer have been seen before.
   * *fee*  - unsigned int; Transaction fee for this transfer.
   * *height*  - unsigned int; Height of the first block that confirmed this transfer (0 if not mined yet).
@@ -1777,9 +1780,9 @@ Outputs:
   * *address*  - string; Address that transferred the funds. Base58 representation of the public keys.
   * *amount*  - unsigned int; Amount of this transfer.
   * *confirmations*  - unsigned int; Number of block mined since the block containing this transaction (or block height at which the transaction should be added to a block if not yet confirmed).
-  * *destinations*  - array of JSON objects containing transfer destinations:
-    * *amount*  - unsigned int; Amount transferred to this destination.
-    * *address*  - string; Address for this destination. Base58 representation of the public keys.
+  * *destinations*  - array of output destinations and amounts:
+    * *address*  - string; the destination Electroneum address
+    * *amount*  - unsigned int; the amount sent to that address
   * *double_spend_seen*  - boolean; True if the key image(s) for the transfer have been seen before.
   * *nonexistent_utxo_seen*  - boolean; States if the transaction contains a nonexistent utxo; a potential double spend ( `true` ) or not ( `false` )
   * *fee*  - unsigned int; Transaction fee for this transfer.

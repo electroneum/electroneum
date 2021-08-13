@@ -41,7 +41,7 @@ To ensure full regulatory compliance, Electroneum has opted to become a fully pu
 
 ### The Mobile Cryptocurrency
 
-Electroneum has coined the phrase 'enablement currency' as it is going to enable a new 3 trillion-dollar market (Price Waterhouse Coopers predicts this market to be as large as USD 3 trillion in their 2017 Global Fintech Report) by allowing over 350m smartphone users in the developing world to enter the digital market for the first time.
+Electroneum has coined the phrase 'enablement cryptocurrency' as it is going to enable a new 3 trillion-dollar market (Price Waterhouse Coopers predicts this market to be as large as USD 3 trillion in their 2017 Global Fintech Report) by allowing over 350m smartphone users in the developing world to enter the digital market for the first time.
 
 With immediate benefits to the mobile operators in those regions, including meaningful transactional cost savings, there are operators who could take us to well over 100 million users and many more operators in negotiation.
 
@@ -247,7 +247,7 @@ See [Build & Run Documentation](docs/build-and-run.md).
 | 324500                         | 2018-07-05 | v7                | v2.1.0.0              | v2.1.0.0                  | Enable ASIC         |
 | 589169                         | 2019-07-08 | v8                | v3.0.0.0              | v3.0.0.0                  | Migration to our next generation moderated blockchain with Proof of Responsbility. 300kB Blocks : Increased TPS. Improved Unlock Time (5 Blocks), Many Security Improvements, HackerOne Fixes, Reduced Block Reward By 75% (A Double Halvening)|
 | 862866                         | 2020-07-22 | v9                | v3.3.0.0              | v3.3.0.0                  | Block Reward reduction and future halving scheduling (halving every 4 years, minimum 50etn until max supply. 25etn emission per block after reaching max supply).
-| XXXXXX                         | XXXX-XX-XX | vX                | vX.X.X.X              | vX.X.X.X                  | X                                                                                                                                                                                                                                               |             
+| 1175315                        | 2021-08-30 | v10               | v4.0.0.0              | v4.0.0.0                  | Migration to a transparent blockchain: Electroneum Aurora                                                                                                                                                                                                                                                |             
 
 X's indicate that these details have not been determined as of commit date.
 
