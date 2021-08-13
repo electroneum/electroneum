@@ -1,4 +1,4 @@
-# Copyright (c) 2017-2020, The Electroneum Project
+# Copyright (c) 2017-2021, The Electroneum Project
 # Copyright (c) 2014-2019, The Monero Project
 #
 # All rights reserved.
@@ -843,8 +843,6 @@ else()
 
   set(DEBUG_FLAGS "-g3")
   if(CMAKE_C_COMPILER_ID STREQUAL "GNU" AND NOT (CMAKE_C_COMPILER_VERSION VERSION_LESS 4.8))
-    set(DEBUG_FLAGS "${DEBUG_FLAGS} -Og ")
-  else()
     set(DEBUG_FLAGS "${DEBUG_FLAGS} -O0 ")
   endif()
 

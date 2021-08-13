@@ -1,4 +1,4 @@
-// Copyrights(c) 2017-2020, The Electroneum Project
+// Copyrights(c) 2017-2021, The Electroneum Project
 // Copyrights(c) 2014-2019, The Monero Project
 // 
 // All rights reserved.
@@ -51,6 +51,7 @@ namespace tools
     //     wallet_runtime_error *
     //       wallet_internal_error
     //         unexpected_txin_type
+    //         unexpected_txout_type
     //         wallet_not_initialized
     //       multisig_export_needed
     //       multisig_import_needed
@@ -188,6 +189,28 @@ namespace tools
       cryptonote::transaction m_tx;
     };
     //----------------------------------------------------------------------------------------------------
+    struct unexpected_txout_type : public wallet_internal_error
+    {
+        explicit unexpected_txout_type(std::string&& loc, const cryptonote::transaction& tx)
+                : wallet_internal_error(std::move(loc), "one of tx outputs has unexpected type")
+                , m_tx(tx)
+        {
+        }
+
+        const cryptonote::transaction& tx() const { return m_tx; }
+
+        std::string to_string() const
+        {
+            std::ostringstream ss;
+            cryptonote::transaction tx = m_tx;
+            ss << wallet_internal_error::to_string() << ", tx:\n" << cryptonote::obj_to_json_str(tx);
+            return ss.str();
+        }
+
+    private:
+        cryptonote::transaction m_tx;
+    };
+      //----------------------------------------------------------------------------------------------------
     struct wallet_not_initialized : public wallet_internal_error
     {
       explicit wallet_not_initialized(std::string&& loc)

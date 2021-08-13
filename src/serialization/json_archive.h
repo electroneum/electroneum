@@ -1,4 +1,4 @@
-// Copyrights(c) 2017-2020, The Electroneum Project
+// Copyrights(c) 2017-2021, The Electroneum Project
 // Copyrights(c) 2014-2019, The Monero Project
 // 
 // All rights reserved.
@@ -136,6 +136,12 @@ struct json_archive<true> : public json_archive_base<std::ostream, true>
       unsigned char c = ((unsigned char *)buf)[i];
       stream_ << std::hex << std::setw(2) << std::setfill('0') << (int)c;
     }
+    end_string(delimiter);
+  }
+
+  void serialize_string(std::string str, const char *delimiter="\"") {
+    begin_string(delimiter);
+    stream_ << str;
     end_string(delimiter);
   }
 

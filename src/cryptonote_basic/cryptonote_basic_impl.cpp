@@ -1,4 +1,4 @@
-// Copyrights(c) 2017-2020, The Electroneum Project
+// Copyrights(c) 2017-2021, The Electroneum Project
 // Copyrights(c) 2014-2019, The Monero Project
 //
 // All rights reserved.
@@ -78,7 +78,9 @@ namespace cryptonote {
       return CRYPTONOTE_BLOCK_GRANTED_FULL_REWARD_ZONE_V2;
     if (version < 8)
       return CRYPTONOTE_BLOCK_GRANTED_FULL_REWARD_ZONE_V5;
-    return CRYPTONOTE_BLOCK_GRANTED_FULL_REWARD_ZONE_V8;
+    if (version < 10)
+      return CRYPTONOTE_BLOCK_GRANTED_FULL_REWARD_ZONE_V8;
+    return CRYPTONOTE_BLOCK_GRANTED_FULL_REWARD_ZONE_V10;
   }
   //-----------------------------------------------------------------------------------------------
   size_t get_max_tx_size()
@@ -118,16 +120,18 @@ namespace cryptonote {
         case STAGENET:
           V9_BLOCK_HEIGHT = 39000;
           break;
+        default:
+          V9_BLOCK_HEIGHT = 39000;
       }
 
-      base_reward = 400 * COIN;
+      base_reward = version >= 10 ? 100 * COIN : 400 * COIN;
       uint8_t halvings = (current_block_height - V9_BLOCK_HEIGHT) / 1051200; // Every 4 years
 
       // Tail emission after 2nd halving
       if (halvings > 2) {
 
         //Force 2x tail emission after 2nd halving if circulating supply < max supply
-        base_reward = (ETN_SUPPLY - already_generated_coins >= 0) ? FINAL_SUBSIDY_PER_MINUTE * 2 : FINAL_SUBSIDY_PER_MINUTE;
+        base_reward = (already_generated_coins >= ETN_SUPPLY) ? FINAL_SUBSIDY_PER_MINUTE : FINAL_SUBSIDY_PER_MINUTE * 2;
 
       } else {
         base_reward >>= halvings;

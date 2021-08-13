@@ -1,4 +1,4 @@
-// Copyrights(c) 2017-2020, The Electroneum Project
+// Copyrights(c) 2017-2021, The Electroneum Project
 // Copyrights(c) 2014-2019, The Monero Project
 //
 // All rights reserved.
@@ -222,7 +222,7 @@ int check_flush(cryptonote::core &core, std::vector<block_complete_entry> &block
     {
       tx_verification_context tvc = AUTO_VAL_INIT(tvc);
       core.handle_incoming_tx(tx_blob, tvc, true, true, false);
-      if(tvc.m_verifivation_failed)
+      if(tvc.m_verification_failed)
       {
         MERROR("transaction verification failed, tx_id = "
             << epee::string_tools::pod_to_hex(get_blob_hash(tx_blob)));
@@ -237,7 +237,7 @@ int check_flush(cryptonote::core &core, std::vector<block_complete_entry> &block
 
     core.handle_incoming_block(block_entry.block, pblocks.empty() ? NULL : &pblocks[blockidx++], bvc, false); // <--- process block
 
-    if(bvc.m_verifivation_failed)
+    if(bvc.m_verification_failed)
     {
       MERROR("Block verification failed, id = "
           << epee::string_tools::pod_to_hex(get_blob_hash(block_entry.block)));

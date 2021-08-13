@@ -1,4 +1,4 @@
-// Copyrights(c) 2017-2020, The Electroneum Project
+// Copyrights(c) 2017-2021, The Electroneum Project
 // Copyrights(c) 2014-2019, The Monero Project
 //
 // All rights reserved.
@@ -738,6 +738,8 @@ namespace cryptonote
       return false;
     }
 
+    check_updates_level = UPDATES_DISABLED;
+
     r = m_miner.init(vm, m_nettype, m_fallback_to_pow);
     CHECK_AND_ASSERT_MES(r, false, "Failed to initialize miner instance");
 
@@ -819,7 +821,7 @@ namespace cryptonote
     if(tx_blob.size() > get_max_tx_size())
     {
       LOG_PRINT_L1("WRONG TRANSACTION BLOB, too big size " << tx_blob.size() << ", rejected");
-      tvc.m_verifivation_failed = true;
+      tvc.m_verification_failed = true;
       tvc.m_too_big = true;
       return false;
     }
@@ -829,7 +831,7 @@ namespace cryptonote
     if(!parse_tx_from_blob(tx, tx_hash, tx_blob))
     {
       LOG_PRINT_L1("WRONG TRANSACTION BLOB, Failed to parse, rejected");
-      tvc.m_verifivation_failed = true;
+      tvc.m_verification_failed = true;
       return false;
     }
     //std::cout << "!"<< tx.vin.size() << std::endl;
@@ -841,18 +843,26 @@ namespace cryptonote
       {
         bad_semantics_txes_lock.unlock();
         LOG_PRINT_L1("Transaction already seen with bad semantics, rejected");
-        tvc.m_verifivation_failed = true;
+        tvc.m_verification_failed = true;
         return false;
       }
     }
     bad_semantics_txes_lock.unlock();
 
     uint8_t version = m_blockchain_storage.get_current_hard_fork_version();
-    const size_t max_tx_version = version < HF_VERSION_ENABLE_RCT ? 1 : 2;
+
+    const size_t max_tx_version = version < HF_VERSION_PUBLIC_TX ? 1 : 3;
     if (tx.version == 0 || tx.version > max_tx_version)
     {
       // v2 is the latest one we know
-      tvc.m_verifivation_failed = true;
+      tvc.m_verification_failed = true;
+      return false;
+    }
+
+    const size_t min_tx_version = version >= HF_VERSION_PUBLIC_TX ? 2 : 1;
+    if (tx.version < min_tx_version)
+    {
+      tvc.m_verification_failed = true;
       return false;
     }
 
@@ -864,7 +874,7 @@ namespace cryptonote
     if(!check_tx_syntax(tx))
     {
       LOG_PRINT_L1("WRONG TRANSACTION BLOB, Failed to check tx " << tx_hash << " syntax, rejected");
-      tvc.m_verifivation_failed = true;
+      tvc.m_verification_failed = true;
       return false;
     }
 
@@ -884,16 +894,6 @@ namespace cryptonote
     bad_semantics_txes_lock.unlock();
   }
   //-----------------------------------------------------------------------------------------------
-  static bool is_canonical_bulletproof_layout(const std::vector<rct::Bulletproof> &proofs)
-  {
-    if (proofs.size() != 1)
-      return false;
-    const size_t sz = proofs[0].V.size();
-    if (sz == 0 || sz > BULLETPROOF_MAX_OUTPUTS)
-      return false;
-    return true;
-  }
-  //-----------------------------------------------------------------------------------------------
   bool core::handle_incoming_tx_accumulated_batch(std::vector<tx_verification_batch_info> &tx_info, bool keeped_by_block)
   {
     bool ret = true;
@@ -909,60 +909,9 @@ namespace cryptonote
       if (!check_tx_semantic(*tx_info[n].tx, keeped_by_block))
       {
         set_semantics_failed(tx_info[n].tx_hash);
-        tx_info[n].tvc.m_verifivation_failed = true;
+        tx_info[n].tvc.m_verification_failed = true;
         tx_info[n].result = false;
         continue;
-      }
-
-      if (tx_info[n].tx->version < 2)
-        continue;
-      const rct::rctSig &rv = tx_info[n].tx->rct_signatures;
-      switch (rv.type) {
-        case rct::RCTTypeNull:
-          // coinbase should not come here, so we reject for all other types
-          MERROR_VER("Unexpected Null rctSig type");
-          set_semantics_failed(tx_info[n].tx_hash);
-          tx_info[n].tvc.m_verifivation_failed = true;
-          tx_info[n].result = false;
-          break;
-        case rct::RCTTypeSimple:
-          if (!rct::verRctSemanticsSimple(rv))
-          {
-            MERROR_VER("rct signature semantics check failed");
-            set_semantics_failed(tx_info[n].tx_hash);
-            tx_info[n].tvc.m_verifivation_failed = true;
-            tx_info[n].result = false;
-            break;
-          }
-          break;
-        case rct::RCTTypeFull:
-          if (!rct::verRct(rv, true))
-          {
-            MERROR_VER("rct signature semantics check failed");
-            set_semantics_failed(tx_info[n].tx_hash);
-            tx_info[n].tvc.m_verifivation_failed = true;
-            tx_info[n].result = false;
-            break;
-          }
-          break;
-        case rct::RCTTypeBulletproof:
-        case rct::RCTTypeBulletproof2:
-          if (!is_canonical_bulletproof_layout(rv.p.bulletproofs))
-          {
-            MERROR_VER("Bulletproof does not have canonical form");
-            set_semantics_failed(tx_info[n].tx_hash);
-            tx_info[n].tvc.m_verifivation_failed = true;
-            tx_info[n].result = false;
-            break;
-          }
-          rvv.push_back(&rv); // delayed batch verification
-          break;
-        default:
-          MERROR_VER("Unknown rct type: " << rv.type);
-          set_semantics_failed(tx_info[n].tx_hash);
-          tx_info[n].tvc.m_verifivation_failed = true;
-          tx_info[n].result = false;
-          break;
       }
     }
     if (!rvv.empty() && !rct::verRctSemanticsSimple(rvv))
@@ -979,7 +928,7 @@ namespace cryptonote
         if (assumed_bad || !rct::verRctSemanticsSimple(tx_info[n].tx->rct_signatures))
         {
           set_semantics_failed(tx_info[n].tx_hash);
-          tx_info[n].tvc.m_verifivation_failed = true;
+          tx_info[n].tvc.m_verification_failed = true;
           tx_info[n].result = false;
         }
       }
@@ -1009,7 +958,7 @@ namespace cryptonote
         catch (const std::exception &e)
         {
           MERROR_VER("Exception in handle_incoming_tx_pre: " << e.what());
-          tvc[i].m_verifivation_failed = true;
+          tvc[i].m_verification_failed = true;
           results[i].res = false;
         }
       });
@@ -1040,7 +989,7 @@ namespace cryptonote
           catch (const std::exception &e)
           {
             MERROR_VER("Exception in handle_incoming_tx_post: " << e.what());
-            tvc[i].m_verifivation_failed = true;
+            tvc[i].m_verification_failed = true;
             results[i].res = false;
           }
         });
@@ -1073,9 +1022,9 @@ namespace cryptonote
 
       const size_t weight = get_transaction_weight(results[i].tx, it->size());
       ok &= add_new_tx(results[i].tx, results[i].hash, tx_blobs[i], weight, tvc[i], keeped_by_block, relayed, do_not_relay);
-      if(tvc[i].m_verifivation_failed)
+      if(tvc[i].m_verification_failed)
       {MERROR_VER("Transaction verification failed: " << results[i].hash);}
-      else if(tvc[i].m_verifivation_impossible)
+      else if(tvc[i].m_verification_impossible)
       {MERROR_VER("Transaction verification impossible: " << results[i].hash);}
 
       if(tvc[i].m_added_to_pool)
@@ -1126,14 +1075,6 @@ namespace cryptonote
       MERROR_VER("tx with invalid outputs, rejected for tx id= " << get_transaction_hash(tx));
       return false;
     }
-    if (tx.version > 1)
-    {
-      if (tx.rct_signatures.outPk.size() != tx.vout.size())
-      {
-        MERROR_VER("tx with mismatched vout/outPk count, rejected for tx id= " << get_transaction_hash(tx));
-        return false;
-      }
-    }
 
     if(!check_etn_overflow(tx))
     {
@@ -1141,17 +1082,14 @@ namespace cryptonote
       return false;
     }
 
-    if (tx.version == 1)
-    {
-      uint64_t amount_in = 0;
-      get_inputs_etn_amount(tx, amount_in);
-      uint64_t amount_out = get_outs_etn_amount(tx);
+    uint64_t amount_in = 0;
+    get_inputs_etn_amount(tx, amount_in);
+    uint64_t amount_out = get_outs_etn_amount(tx);
 
-      if(amount_in <= amount_out)
-      {
-        MERROR_VER("tx with wrong amounts: ins " << amount_in << ", outs " << amount_out << ", rejected for tx id= " << get_transaction_hash(tx));
+    if((tx.version != 2 && amount_in <= amount_out) || (tx.version == 2 && amount_in != amount_out)) {
+        MERROR_VER("tx with wrong amounts: ins " << amount_in << ", outs " << amount_out << ", rejected for tx id= "
+                                             << get_transaction_hash(tx));
         return false;
-      }
     }
     // for version > 1, ringct signatures check verifies amounts match
 
@@ -1161,23 +1099,29 @@ namespace cryptonote
       return false;
     }
 
-    //check if tx use different key images
-    if(!check_tx_inputs_keyimages_diff(tx))
+    if(tx.version >= 3)
     {
-      MERROR_VER("tx uses a single key image more than once");
-      return false;
+      //check if tx use different utxos
+      if(!check_tx_inputs_utxos_diff(tx))
+      {
+        MERROR_VER("tx uses a single utxo more than once");
+        return false;
+      }
     }
-
-    if (!check_tx_inputs_ring_members_diff(tx))
+    else
     {
-      MERROR_VER("tx uses duplicate ring members");
-      return false;
-    }
+      //check if tx use different key images
+      if(!check_tx_inputs_keyimages_diff(tx))
+      {
+        MERROR_VER("tx uses a single key image more than once");
+        return false;
+      }
 
-    if (!check_tx_inputs_keyimages_domain(tx))
-    {
-      MERROR_VER("tx uses key image not in the valid domain");
-      return false;
+      if (!check_tx_inputs_keyimages_domain(tx))
+      {
+        MERROR_VER("tx uses key image not in the valid domain");
+        return false;
+      }
     }
 
     return true;
@@ -1211,7 +1155,6 @@ namespace cryptonote
   bool core::are_key_images_spent_in_pool(const std::vector<crypto::key_image>& key_im, std::vector<bool> &spent) const
   {
     spent.clear();
-
     return m_mempool.check_for_key_images(key_im, spent);
   }
   //-----------------------------------------------------------------------------------------------
@@ -1250,6 +1193,18 @@ namespace cryptonote
     {
       CHECKED_GET_SPECIFIC_VARIANT(in, const txin_to_key, tokey_in, false);
       if(!ki.insert(tokey_in.k_image).second)
+        return false;
+    }
+    return true;
+  }
+  //-----------------------------------------------------------------------------------------------
+  bool core::check_tx_inputs_utxos_diff(const transaction& tx) const
+  {
+    std::unordered_set<std::string> ins;
+    for(const auto& in: tx.vin)
+    {
+      CHECKED_GET_SPECIFIC_VARIANT(in, const txin_to_key_public, tokey_in, false);
+      if(!ins.insert(std::string(tokey_in.tx_hash.data, 32) + std::to_string(tokey_in.relative_offset)).second)
         return false;
     }
     return true;
@@ -1436,7 +1391,7 @@ namespace cryptonote
     m_blockchain_storage.add_new_block(b, bvc);
     cleanup_handle_incoming_blocks(true);
 
-    CHECK_AND_ASSERT_MES(!bvc.m_verifivation_failed, false, "Mined block failed verification");
+    CHECK_AND_ASSERT_MES(!bvc.m_verification_failed, false, "Mined block failed verification");
     if(bvc.m_added_to_main_chain)
     {
       cryptonote_connection_context exclude_context = boost::value_initialized<cryptonote_connection_context>();
@@ -1518,7 +1473,7 @@ namespace cryptonote
 
     if (!check_incoming_block_size(block_blob))
     {
-      bvc.m_verifivation_failed = true;
+      bvc.m_verification_failed = true;
       return false;
     }
 
@@ -1536,7 +1491,7 @@ namespace cryptonote
       if(!parse_and_validate_block_from_blob(block_blob, lb, block_hash))
       {
         LOG_PRINT_L1("Failed to parse and validate new block");
-        bvc.m_verifivation_failed = true;
+        bvc.m_verification_failed = true;
         return false;
       }
       b = &lb;
@@ -2052,6 +2007,18 @@ namespace cryptonote
   std::string core::sign_message(std::string sk, std::string msg) {
     std::string b_str = crypto::sign_message(msg, sk);
     return boost::algorithm::hex(b_str);
+  }
+  //-----------------------------------------------------------------------------------------------
+  uint64_t core::get_balance(const address_parse_info &addr)
+  {
+    crypto::public_key combined_key = crypto::addKeys(addr.address.m_view_public_key, addr.address.m_spend_public_key);
+    return m_blockchain_storage.get_db().get_balance(combined_key);
+  }
+  //-----------------------------------------------------------------------------------------------
+  std::vector<address_outputs> core::get_address_batch_history(const address_parse_info &addr, const uint64_t &start_tx_id, const uint64_t &batch_size, bool desc)
+  {
+    crypto::public_key combined_key = crypto::addKeys(addr.address.m_view_public_key, addr.address.m_spend_public_key);
+    return m_blockchain_storage.get_db().get_addr_output_batch(combined_key, start_tx_id, batch_size, desc);
   }
   //-----------------------------------------------------------------------------------------------
   void core::graceful_exit()

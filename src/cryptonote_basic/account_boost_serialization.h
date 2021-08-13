@@ -1,4 +1,4 @@
-// Copyrights(c) 2017-2020, The Electroneum Project
+// Copyrights(c) 2017-2021, The Electroneum Project
 // Copyrights(c) 2014-2019, The Monero Project
 // 
 // All rights reserved.
@@ -46,13 +46,5 @@ namespace boost
       a & x.m_spend_secret_key;
       a & x.m_view_secret_key;
     }
-
-    template <class Archive>
-    inline void serialize(Archive &a, cryptonote::account_public_address &x, const boost::serialization::version_type ver)
-    {
-      a & x.m_spend_public_key;
-      a & x.m_view_public_key;
-    }
-
   }
 }

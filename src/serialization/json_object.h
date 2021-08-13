@@ -203,6 +203,9 @@ void fromJsonValue(const rapidjson::Value& val, cryptonote::txin_to_scripthash& 
 void toJsonValue(rapidjson::Document& doc, const cryptonote::txin_to_key& txin, rapidjson::Value& val);
 void fromJsonValue(const rapidjson::Value& val, cryptonote::txin_to_key& txin);
 
+void toJsonValue(rapidjson::Document& doc, const cryptonote::txin_to_key_public& txin, rapidjson::Value& val);
+void fromJsonValue(const rapidjson::Value& val, cryptonote::txin_to_key_public& txin);
+
 void toJsonValue(rapidjson::Document& doc, const cryptonote::txout_target_v& txout, rapidjson::Value& val);
 void fromJsonValue(const rapidjson::Value& val, cryptonote::txout_target_v& txout);
 
@@ -214,6 +217,9 @@ void fromJsonValue(const rapidjson::Value& val, cryptonote::txout_to_scripthash&
 
 void toJsonValue(rapidjson::Document& doc, const cryptonote::txout_to_key& txout, rapidjson::Value& val);
 void fromJsonValue(const rapidjson::Value& val, cryptonote::txout_to_key& txout);
+
+void toJsonValue(rapidjson::Document& doc, const cryptonote::txout_to_key_public& txout, rapidjson::Value& val);
+void fromJsonValue(const rapidjson::Value& val, cryptonote::txout_to_key_public& txout);
 
 void toJsonValue(rapidjson::Document& doc, const cryptonote::tx_out& txout, rapidjson::Value& val);
 void fromJsonValue(const rapidjson::Value& val, cryptonote::tx_out& txout);

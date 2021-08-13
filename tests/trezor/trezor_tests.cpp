@@ -457,10 +457,14 @@ static tools::wallet2::tx_construction_data get_construction_data_with_decrypted
     remove_field_from_tx_extra(construction_data.extra, typeid(cryptonote::tx_extra_nonce));
     // Add decrypted
     std::string extra_nonce;
-    set_encrypted_payment_id_to_tx_extra_nonce(extra_nonce, payment_id);
+    crypto::hash payment_id = null_hash;
+    memcpy(payment_id.data, info.payment_id.data, 8); // convert short pid to regular
+    memset(payment_id.data + 8, 0, 24); // merely a sanity check
+
+    set_payment_id_to_tx_extra_nonce(extra_nonce, payment_id);
     THROW_WALLET_EXCEPTION_IF(!add_extra_nonce_to_tx_extra(construction_data.extra, extra_nonce),
-                              tools::error::wallet_internal_error, "Failed to add decrypted payment id to tx extra");
-    MDEBUG("Decrypted payment ID: " << payment_id);
+                              tools::error::wallet_internal_error, "Failed to add payment id to tx extra");
+    MDEBUG("Payment ID: " << payment_id);
   }
   return construction_data;
 }
@@ -477,7 +481,10 @@ static std::string get_payment_id(const std::vector<uint8_t> &tx_extra)
     ::crypto::hash8 payment_id8{};
     if(cryptonote::get_encrypted_payment_id_from_tx_extra_nonce(extra_nonce.nonce, payment_id8))
     {
-      return std::string(payment_id8.data, 8);
+      crypto::hash payment_id = crypto::null_hash;
+      memcpy(payment_id.data, payment_id8.data, 8); // convert short pid to regular
+      memset(payment_id.data + 8, 0, 24); // merely a sanity chec
+      return std::string(payment_id.data, 32);
     }
     else if (cryptonote::get_payment_id_from_tx_extra_nonce(extra_nonce.nonce, payment_id))
     {
@@ -509,15 +516,18 @@ static std::vector<uint8_t> build_payment_id_extra(const std::string & payment_i
 
   if (payment_id.size() == 8) {
     std::string extra_nonce;
-    set_encrypted_payment_id_to_tx_extra_nonce(extra_nonce, to_short_payment_id(payment_id));
-    THROW_WALLET_EXCEPTION_IF(!add_extra_nonce_to_tx_extra(res, extra_nonce),
-                              tools::error::wallet_internal_error, "Failed to add decrypted payment id to tx extra");
+    crypto::hash payment_id = null_hash;
+    memcpy(payment_id.data, info.payment_id.data, 8); // convert short pid to regular
+    memset(payment_id.data + 8, 0, 24); // merely a sanity check
 
+    set_payment_id_to_tx_extra_nonce(extra_nonce, payment_id);
+    THROW_WALLET_EXCEPTION_IF(!add_extra_nonce_to_tx_extra(res, extra_nonce),
+                              tools::error::wallet_internal_error, "Failed to add payment id to tx extra");
   } else if (payment_id.size() == 32){
     std::string extra_nonce;
     set_payment_id_to_tx_extra_nonce(extra_nonce, to_long_payment_id(payment_id));
     THROW_WALLET_EXCEPTION_IF(!add_extra_nonce_to_tx_extra(res, extra_nonce),
-                              tools::error::wallet_internal_error, "Failed to add decrypted payment id to tx extra");
+                              tools::error::wallet_internal_error, "Failed to add payment id to tx extra");
   }
 
   return res;

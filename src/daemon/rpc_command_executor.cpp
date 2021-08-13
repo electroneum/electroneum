@@ -1,4 +1,4 @@
-// Copyrights(c) 2017-2020, The Electroneum Project
+// Copyrights(c) 2017-2021, The Electroneum Project
 // Copyrights(c) 2014-2019, The Monero Project
 // 
 // All rights reserved.
@@ -1057,14 +1057,11 @@ bool t_rpc_command_executor::print_transaction_pool_long() {
                           << "do_not_relay: " << (tx_info.do_not_relay ? 'T' : 'F')  << std::endl
                           << "kept_by_block: " << (tx_info.kept_by_block ? 'T' : 'F') << std::endl
                           << "double_spend_seen: " << (tx_info.double_spend_seen ? 'T' : 'F')  << std::endl
+                          << "nonexistent_utxo_seen: " << (tx_info.nonexistent_utxo_seen ? 'T' : 'F')  << std::endl
                           << "max_used_block_height: " << tx_info.max_used_block_height << std::endl
                           << "max_used_block_id: " << tx_info.max_used_block_id_hash << std::endl
                           << "last_failed_height: " << tx_info.last_failed_height << std::endl
                           << "last_failed_id: " << tx_info.last_failed_id_hash << std::endl;
-    }
-    if (res.spent_key_images.empty())
-    {
-      tools::msg_writer() << "WARNING: Inconsistent pool state - no spent key images";
     }
   }
   if (! res.spent_key_images.empty())
@@ -1141,6 +1138,7 @@ bool t_rpc_command_executor::print_transaction_pool_short() {
                           << "do_not_relay: " << (tx_info.do_not_relay ? 'T' : 'F')  << std::endl
                           << "kept_by_block: " << (tx_info.kept_by_block ? 'T' : 'F') << std::endl
                           << "double_spend_seen: " << (tx_info.double_spend_seen ? 'T' : 'F') << std::endl
+                          << "nonexistent_utxo_seen: " << (tx_info.nonexistent_utxo_seen ? 'T' : 'F') << std::endl
                           << "max_used_block_height: " << tx_info.max_used_block_height << std::endl
                           << "max_used_block_id: " << tx_info.max_used_block_id_hash << std::endl
                           << "last_failed_height: " << tx_info.last_failed_height << std::endl

@@ -1,4 +1,4 @@
-// Copyrights(c) 2017-2020, The Electroneum Project
+// Copyrights(c) 2017-2021, The Electroneum Project
 // Copyrights(c) 2014-2019, The Monero Project
 //
 // All rights reserved.
@@ -140,10 +140,11 @@ namespace cryptonote
      * @param relayed return-by-reference was transaction relayed to us by the network?
      * @param do_not_relay return-by-reference is transaction not to be relayed to the network?
      * @param double_spend_seen return-by-reference was a double spend seen for that transaction?
+     * @param nonexistent_utxo_seen return-by-reference was a nonexistent utxo seen for that transaction?
      *
      * @return true unless the transaction cannot be found in the pool
      */
-    bool take_tx(const crypto::hash &id, transaction &tx, cryptonote::blobdata &txblob, size_t& tx_weight, uint64_t& fee, bool &relayed, bool &do_not_relay, bool &double_spend_seen);
+    bool take_tx(const crypto::hash &id, transaction &tx, cryptonote::blobdata &txblob, size_t& tx_weight, uint64_t& fee, bool &relayed, bool &do_not_relay, bool &double_spend_seen, bool &nonexistent_utxo_seen);
 
     /**
      * @brief checks if the pool has a transaction with the given hash
@@ -427,6 +428,7 @@ namespace cryptonote
       bool do_not_relay; //!< to avoid relay this transaction to the network
 
       bool double_spend_seen; //!< true iff another tx was seen double spending this one
+      bool nonexistent_utxo_seen;
     };
 
   private:
@@ -437,6 +439,8 @@ namespace cryptonote
      * @return true on success, false on error
      */
     bool insert_key_images(const transaction_prefix &tx, const crypto::hash &txid, bool kept_by_block);
+
+    bool insert_utxos(const transaction_prefix &tx, const crypto::hash &id, bool kept_by_block);
 
     /**
      * @brief remove old transactions from the pool
@@ -458,6 +462,8 @@ namespace cryptonote
      */
     bool have_tx_keyimg_as_spent(const crypto::key_image& key_im) const;
 
+    bool have_tx_utxo_as_spent(const txin_to_key_public& in) const;
+
     /**
      * @brief check if any spent key image in a transaction is in the pool
      *
@@ -470,7 +476,19 @@ namespace cryptonote
      *
      * @return true if any spent key images are present in the pool, otherwise false
      */
-    bool have_tx_keyimges_as_spent(const transaction& tx) const;
+
+    bool key_images_already_spent(const transaction &tx) const;
+
+    /**
+    * @brief check if any utxo in a transaction has already been spent  (v3 tx onwards)
+    *
+    * @param tx the transaction to check
+    *
+    * @return true if any utxo is nonexistent, else false
+    */
+
+    bool utxo_nonexistent(const transaction &tx) const;
+
 
     /**
      * @brief forget a transaction's spent key images
@@ -484,6 +502,8 @@ namespace cryptonote
      *
      * @return false if any key images to be removed cannot be found, otherwise true
      */
+
+
     bool remove_transaction_keyimages(const transaction_prefix& tx, const crypto::hash &txid);
 
     /**
@@ -496,6 +516,8 @@ namespace cryptonote
      */
     static bool have_key_images(const std::unordered_set<crypto::key_image>& kic, const transaction_prefix& tx);
 
+    static bool have_utxos(const std::unordered_set<std::string>& utxos, const transaction_prefix& tx);
+
     /**
      * @brief append the key images from a transaction to the given set
      *
@@ -505,6 +527,8 @@ namespace cryptonote
      * @return false if any append fails, otherwise true
      */
     static bool append_key_images(std::unordered_set<crypto::key_image>& kic, const transaction_prefix& tx);
+
+    static bool append_utxos(std::unordered_set<std::string>& utxos, const transaction_prefix& tx);
 
     /**
      * @brief check if a transaction is a valid candidate for inclusion in a block
@@ -521,7 +545,7 @@ namespace cryptonote
     /**
      * @brief mark all transactions double spending the one passed
      */
-    void mark_double_spend(const transaction &tx);
+    void mark_double_spend_or_nonexistent_utxo(const transaction &tx);
 
     /**
      * @brief prune lowest fee/byte txes till we're not above bytes
@@ -541,6 +565,8 @@ namespace cryptonote
      */
     typedef std::unordered_map<crypto::key_image, std::unordered_set<crypto::hash> > key_images_container;
 
+    typedef std::unordered_map<std::string, std::unordered_set<crypto::hash> > utxos_container;
+
 #if defined(DEBUG_CREATE_BLOCK_TEMPLATE)
 public:
 #endif
@@ -550,9 +576,12 @@ private:
 #endif
 
     //! container for spent key images from the transactions in the pool
-    key_images_container m_spent_key_images;  
+    key_images_container m_spent_key_images;
 
-    //TODO: this time should be a named constant somewhere, not hard-coded
+    //! container for spent utxos from the transactions in the pool
+    utxos_container m_spent_utxos;
+
+      //TODO: this time should be a named constant somewhere, not hard-coded
     //! interval on which to check for stale/"stuck" transactions
     epee::math_helper::once_a_time_seconds<30> m_remove_stuck_tx_interval;
 

@@ -1,4 +1,4 @@
-// Copyrights(c) 2017-2020, The Electroneum Project
+// Copyrights(c) 2017-2021, The Electroneum Project
 // Copyrights(c) 2014-2019, The Monero Project
 // 
 // All rights reserved.
@@ -44,15 +44,21 @@ namespace cryptonote
   {
     typedef std::pair<uint64_t, rct::ctkey> output_entry;
 
+    // OLD BLOCKCHAIN
+    //Todo: Makes more sense to label these as inputs as that's what they are
     std::vector<output_entry> outputs;  //index + key + optional ringct commitment
     size_t real_output;                 //index in outputs vector of real output_entry
     crypto::public_key real_out_tx_key; //incoming real tx public key
     std::vector<crypto::public_key> real_out_additional_tx_keys; //incoming real tx additional public keys
-    size_t real_output_in_tx_index;     //index in transaction outputs vector
+    size_t real_output_in_tx_index;     //relative output index (used for v1,2,3+)
     uint64_t amount;                    //etn
     bool rct;                           //true if the output is rct
     rct::key mask;                      //ringct amount mask
     rct::multisig_kLRki multisig_kLRki; //multisig info
+
+    // NEW ADDITION FOR TRANSPARENT BLOCKCHAIN
+    crypto::hash tx_hash;
+    subaddress_index subaddr_index;
 
     void push_output(uint64_t idx, const crypto::public_key &k, uint64_t amount) { outputs.push_back(std::make_pair(idx, rct::ctkey({rct::pk2rct(k), rct::zeroCommit(amount)}))); }
 
@@ -66,6 +72,8 @@ namespace cryptonote
       FIELD(rct)
       FIELD(mask)
       FIELD(multisig_kLRki)
+      FIELD(tx_hash);
+      FIELD(subaddr_index);
 
       if (real_output >= outputs.size())
         return false;
@@ -96,8 +104,8 @@ namespace cryptonote
   //---------------------------------------------------------------
   crypto::public_key get_destination_view_key_pub(const std::vector<tx_destination_entry> &destinations, const boost::optional<cryptonote::account_public_address>& change_addr);
   bool construct_tx(const account_keys& sender_account_keys, std::vector<tx_source_entry> &sources, const std::vector<tx_destination_entry>& destinations, const boost::optional<cryptonote::account_public_address>& change_addr, const std::vector<uint8_t> &extra, transaction& tx, uint64_t unlock_time);
-  bool construct_tx_with_tx_key(const account_keys& sender_account_keys, const std::unordered_map<crypto::public_key, subaddress_index>& subaddresses, std::vector<tx_source_entry>& sources, std::vector<tx_destination_entry>& destinations, const boost::optional<cryptonote::account_public_address>& change_addr, const std::vector<uint8_t> &extra, transaction& tx, uint64_t unlock_time, const crypto::secret_key &tx_key, const std::vector<crypto::secret_key> &additional_tx_keys, bool rct = false, const rct::RCTConfig &rct_config = { rct::RangeProofBorromean, 0 }, rct::multisig_out *msout = NULL, bool shuffle_outs = true, uint32_t account_major_offset = 0);
-  bool construct_tx_and_get_tx_key(const account_keys& sender_account_keys, const std::unordered_map<crypto::public_key, subaddress_index>& subaddresses, std::vector<tx_source_entry>& sources, std::vector<tx_destination_entry>& destinations, const boost::optional<cryptonote::account_public_address>& change_addr, const std::vector<uint8_t> &extra, transaction& tx, uint64_t unlock_time, crypto::secret_key &tx_key, std::vector<crypto::secret_key> &additional_tx_keys, bool rct = false, const rct::RCTConfig &rct_config = { rct::RangeProofBorromean, 0 }, rct::multisig_out *msout = NULL, uint32_t account_major_offset = 0);
+  bool construct_tx_with_tx_key(const account_keys& sender_account_keys, const std::unordered_map<crypto::public_key, subaddress_index>& subaddresses, std::vector<tx_source_entry>& sources, std::vector<tx_destination_entry>& destinations, const boost::optional<cryptonote::account_public_address>& change_addr, const std::vector<uint8_t> &extra, transaction& tx, uint64_t unlock_time, const crypto::secret_key &tx_key, const std::vector<crypto::secret_key> &additional_tx_keys, bool rct = false, const rct::RCTConfig &rct_config = { rct::RangeProofBorromean, 0 }, rct::multisig_out *msout = NULL, bool shuffle_outs = true, const uint32_t account_major_offset = 0, const cryptonote::network_type = MAINNET);
+  bool construct_tx_and_get_tx_key(const account_keys& sender_account_keys, const std::unordered_map<crypto::public_key, subaddress_index>& subaddresses, std::vector<tx_source_entry>& sources, std::vector<tx_destination_entry>& destinations, const boost::optional<cryptonote::account_public_address>& change_addr, const std::vector<uint8_t> &extra, transaction& tx, uint64_t unlock_time, crypto::secret_key &tx_key, std::vector<crypto::secret_key> &additional_tx_keys, bool rct = false, const rct::RCTConfig &rct_config = { rct::RangeProofBorromean, 0 }, rct::multisig_out *msout = NULL, uint32_t account_major_offset = 0, const cryptonote::network_type = MAINNET);
   bool generate_output_ephemeral_keys(const size_t tx_version, const cryptonote::account_keys &sender_account_keys, const crypto::public_key &txkey_pub,  const crypto::secret_key &tx_key,
                                       const cryptonote::tx_destination_entry &dst_entr, const boost::optional<cryptonote::account_public_address> &change_addr, const size_t output_index,
                                       const bool &need_additional_txkeys, const std::vector<crypto::secret_key> &additional_tx_keys,
@@ -117,10 +125,9 @@ namespace cryptonote
     , std::string const & genesis_tx
     , uint32_t nonce
     );
-
 }
 
-BOOST_CLASS_VERSION(cryptonote::tx_source_entry, 1)
+BOOST_CLASS_VERSION(cryptonote::tx_source_entry, 2)
 BOOST_CLASS_VERSION(cryptonote::tx_destination_entry, 2)
 
 namespace boost
@@ -141,6 +148,10 @@ namespace boost
         return;
       a & x.multisig_kLRki;
       a & x.real_out_additional_tx_keys;
+      if (ver < 2)
+        return;
+      a & x.tx_hash;
+      a & x.subaddr_index;
     }
 
     template <class Archive>

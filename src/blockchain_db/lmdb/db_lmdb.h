@@ -1,4 +1,4 @@
-// Copyrights(c) 2017-2020, The Electroneum Project
+// Copyrights(c) 2017-2021, The Electroneum Project
 // Copyrights(c) 2014-2019, The Monero Project
 // All rights reserved.
 //
@@ -72,6 +72,9 @@ typedef struct mdb_txn_cursors
 
   MDB_cursor *m_txc_properties;
   MDB_cursor *m_txc_validators;
+  MDB_cursor *m_txc_utxos;
+  MDB_cursor *m_txc_addr_outputs;
+  MDB_cursor *m_txc_tx_inputs;
 } mdb_txn_cursors;
 
 #define m_cur_blocks	m_cursors->m_txc_blocks
@@ -92,6 +95,9 @@ typedef struct mdb_txn_cursors
 #define m_cur_hf_versions	m_cursors->m_txc_hf_versions
 #define m_cur_properties	m_cursors->m_txc_properties
 #define m_cur_validators	m_cursors->m_txc_validators
+#define m_cur_utxos	        m_cursors->m_txc_utxos
+#define m_cur_addr_outputs	m_cursors->m_txc_addr_outputs
+#define m_cur_tx_inputs     m_cursors->m_txc_tx_inputs
 
 typedef struct mdb_rflags
 {
@@ -114,6 +120,9 @@ typedef struct mdb_rflags
   bool m_rf_hf_versions;
   bool m_rf_properties;
   bool m_rf_validators;
+  bool m_rf_utxos;
+  bool m_rf_addr_outputs;
+  bool m_rf_tx_inputs;
 } mdb_rflags;
 
 typedef struct mdb_threadinfo
@@ -343,10 +352,17 @@ public:
 
   bool get_output_distribution(uint64_t amount, uint64_t from_height, uint64_t to_height, std::vector<uint64_t> &distribution, uint64_t &base) const;
 
+  virtual std::vector<address_outputs> get_addr_output_all(const crypto::public_key& combined_key);
+  virtual std::vector<address_outputs> get_addr_output_batch(const crypto::public_key& combined_key, uint64_t start_db_index = 0, uint64_t batch_size = 100, bool desc = false);
+  virtual uint64_t get_balance(const crypto::public_key& combined_key);
+  virtual tx_input_t get_tx_input(const crypto::hash tx_hash, const uint32_t relative_out_index);
+
   // helper functions
   static int compare_uint64(const MDB_val *a, const MDB_val *b);
   static int compare_hash32(const MDB_val *a, const MDB_val *b);
   static int compare_string(const MDB_val *a, const MDB_val *b);
+  static int compare_data(const MDB_val *a, const MDB_val *b);
+  static int compare_publickey(const MDB_val *a, const MDB_val *b);
 
 private:
   void do_resize(uint64_t size_increase=0);
@@ -424,6 +440,17 @@ private:
   blobdata output_to_blob(const tx_out& output) const;
   tx_out output_from_blob(const blobdata& blob) const;
 
+  virtual void add_chainstate_utxo(const crypto::hash tx_hash, const uint32_t relative_out_index, const crypto::public_key combined_key, uint64_t amount, uint64_t unlock_time, bool is_coinbase = false);
+  virtual bool check_chainstate_utxo(const crypto::hash tx_hash, const uint32_t relative_out_index);
+  virtual uint64_t get_utxo_unlock_time(const crypto::hash tx_hash, const uint32_t relative_out_index);
+  virtual void remove_chainstate_utxo(const crypto::hash tx_hash, const uint32_t relative_out_index);
+
+  virtual void add_addr_output(const crypto::hash tx_hash, const uint32_t relative_out_index, const crypto::public_key& combined_key, uint64_t amount, uint64_t unlock_time);
+  virtual void remove_addr_output(const crypto::hash tx_hash, const uint32_t relative_out_index, const crypto::public_key& combined_key, uint64_t amount, uint64_t unlock_time);
+
+  virtual void add_tx_input(const crypto::hash tx_hash, const uint32_t relative_out_index, const crypto::hash parent_tx_hash, const uint64_t in_index);
+  virtual void remove_tx_input(const crypto::hash tx_hash, const uint32_t relative_out_index);
+
   // migrate from older DB version to current
   void migrate(const uint32_t oldversion);
 
@@ -471,6 +498,9 @@ private:
   MDB_dbi m_hf_versions;
 
   MDB_dbi m_validators;
+  MDB_dbi m_utxos;
+  MDB_dbi m_addr_outputs;
+  MDB_dbi m_tx_inputs;
 
   MDB_dbi m_properties;
 

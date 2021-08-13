@@ -35,11 +35,53 @@
 
 # Introduction
 
-Electroneum uses a cryptographically sound system to allow you to send and receive your tokens without your transactions being easily revealed on the blockchain. This ensures that all token transfers remain absolutely private by default, but if necessary, can be proven to a third party by providing specific keys.
+Electroneum uses a cryptographically sound system to allow you to send and receive your tokens effortlessly.
 
-**Security:** Using the power of a distributed peer-to-peer consensus network, every transaction on the network is cryptographically secured. Individual wallets have a 25 word mnemonic seed that is only displayed once, and can be written down to backup the wallet. Wallet files are encrypted with a passphrase to ensure they are useless if stolen.
+To ensure full regulatory compliance, Electroneum has opted to become a fully public and transparent blockchain.
 
-Electroneum (and its group companies) have separately developed proprietary software which can be used in conjunction with this project. This software is subject to separate terms and conditions which are available at https://electroneum.com .
+### The Mobile Cryptocurrency
+
+Electroneum has coined the phrase 'enablement cryptocurrency' as it is going to enable a new 3 trillion-dollar market (Price Waterhouse Coopers predicts this market to be as large as USD 3 trillion in their 2017 Global Fintech Report) by allowing over 350m smartphone users in the developing world to enter the digital market for the first time.
+
+With immediate benefits to the mobile operators in those regions, including meaningful transactional cost savings, there are operators who could take us to well over 100 million users and many more operators in negotiation.
+
+Our unique mobile miner puts a small amount of ETN into the hands of users every day, providing market liquidity and driving viral growth. With over 1.6 million registered users, we have a faster viral growth than both Facebook and Twitter over the same time period.
+
+Our Android app is already fully operational in 20 languages.
+
+
+### The Road to Mass Adoption
+
+It's common for cryptocurrencies to talk about seeking mass adoption. It's far less common for them to make tangible progress towards that goal.
+
+<p align="center">
+    <img src="https://imgur.com/X7Q56YO.png">
+</p>
+
+
+### Instant Cryptocurrency Payments
+
+We have a global patent pending on a technology that allows instant cryptocurrency payments. Instant payments will initially be in ETN but our patent also covers Bitcoin and other cryptocurrencies.
+
+The ability to SPEND ETN instantly is only half the equation. We are developing an API that will allow easy integration to ACCEPT ETN instantly. This means it will be simple to allow an ecommerce system to give instant check out, and even allow easy integration into ePOS systems (electronic point of sales systems or tills).
+
+
+
+### USD 3 Trillion Opportunity
+
+By giving access to the 'gig economy' for the first time to over 350 million unbanked smartphone users in the developing world we are giving them access to the vast resources of the Western economies. We are not providing banking facilities but making digital earnings accessible for these users as they embrace the digital payment sector.
+
+At the same time, the Western economies gain access to a community of competitively priced, millennial entrepreneurs, who can grow and learn a new digital skillset, in the knowledge that they can sell their new skills via a global digital payment method.
+
+Price Waterhouse Coopers predicts this market to be as large as USD 3 trillion in their 2017 Global Fintech Report
+
+
+
+### Exceptional Viral Growth
+
+Once users see how easy Electroneum is to use, they become part of the community and help drive us forward through recommendation.
+
+We currently have over a whopping 4m registered users.
 
 # About this Project
 
@@ -48,6 +90,8 @@ This is the core implementation of Electroneum. It is open source and completely
 The V8 software upgrade (Electroneum v3.0.0.0 release) introduced some fairly radical changes to the Electroneum blockchain, those consisting on a new consensus algorithm we’ve coined as **Proof of Responsibility** and change from a full permission-less blockchain to a **Moderated Blockchain**.
 
 A **Moderated Blockchain**, powered by the **Proof of Responsibility** consensus algorithm, allow Electroneum Ltd to have more control over the blockchain while keeping a good degree of decentralization. This ultimately improves our security while making the blockchain’s commercial & economic model more attractive. Besides these main features, we’ve included a few minor changes that contributes to the blockchain’s operability and scalability.
+
+In 2021, in order to comply with regulations and remove obstacles to the growth of the project, we migrated away from blockchain privacy with our V10 fork, and opted for a completely transparent and public blockchain.
 
 ## Co-Inventor of Blockchain About Electroneum
 
@@ -203,7 +247,7 @@ See [Build & Run Documentation](docs/build-and-run.md).
 | 324500                         | 2018-07-05 | v7                | v2.1.0.0              | v2.1.0.0                  | Enable ASIC         |
 | 589169                         | 2019-07-08 | v8                | v3.0.0.0              | v3.0.0.0                  | Migration to our next generation moderated blockchain with Proof of Responsbility. 300kB Blocks : Increased TPS. Improved Unlock Time (5 Blocks), Many Security Improvements, HackerOne Fixes, Reduced Block Reward By 75% (A Double Halvening)|
 | 862866                         | 2020-07-22 | v9                | v3.3.0.0              | v3.3.0.0                  | Block Reward reduction and future halving scheduling (halving every 4 years, minimum 50etn until max supply. 25etn emission per block after reaching max supply).
-| XXXXXX                         | XXXX-XX-XX | vX                | vX.X.X.X              | vX.X.X.X                  | X                                                                                                                                                                                                                                               |             
+| 1175315                        | 2021-08-30 | v10               | v4.0.0.0              | v4.0.0.0                  | Migration to a transparent blockchain: Electroneum Aurora                                                                                                                                                                                                                                                |             
 
 X's indicate that these details have not been determined as of commit date.
 
@@ -231,7 +275,7 @@ See [LICENSE](LICENSE).
 
 # Copyright
 
-Copyright (c) 2017-2020, The Electroneum Project
+Copyright (c) 2017-2021, The Electroneum Project
 
 Copyright (c) 2014-2017, The Monero Project
 

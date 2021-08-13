@@ -64,8 +64,10 @@ void SubaddressAccountImpl::refresh()
       i,
       m_wallet->m_wallet->get_subaddress_as_str({i,0}),
       m_wallet->m_wallet->get_subaddress_label({i,0}),
-      cryptonote::print_etn(m_wallet->m_wallet->balance(i)),
-      cryptonote::print_etn(m_wallet->m_wallet->unlocked_balance(i))
+      cryptonote::print_etn(m_wallet->m_wallet->balance(i, false)),
+      cryptonote::print_etn(m_wallet->m_wallet->unlocked_balance(i, false)),
+      cryptonote::print_etn(m_wallet->m_wallet->balance(i, true)),
+      cryptonote::print_etn(m_wallet->m_wallet->unlocked_balance(i, true))
     ));
   }
 }

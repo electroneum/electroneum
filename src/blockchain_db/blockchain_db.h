@@ -1,4 +1,4 @@
-// Copyrights(c) 2017-2020, The Electroneum Project
+// Copyrights(c) 2017-2021, The Electroneum Project
 // Copyrights(c) 2014-2019, The Monero Project
 //
 // All rights reserved.
@@ -95,6 +95,8 @@
  *   OUTPUT_DNE
  *   OUTPUT_EXISTS
  *   KEY_IMAGE_EXISTS
+ *   UTXO_EXISTS
+ *   ADDR_OUTPUT_EXISTS
  */
 
 namespace cryptonote
@@ -149,8 +151,31 @@ struct txpool_tx_meta_t
   uint8_t do_not_relay;
   uint8_t double_spend_seen: 1;
   uint8_t bf_padding: 7;
+  uint8_t utxo_nonexistent_seen;
 
-  uint8_t padding[76]; // till 192 bytes
+  uint8_t padding[68]; // till 192 bytes
+};
+
+struct chainstate_key_t
+{
+  crypto::hash tx_hash;
+  uint32_t relative_out_index;
+};
+
+struct chainstate_value_t
+{
+  crypto::public_key combined_key;
+  uint64_t amount;
+  bool is_coinbase;
+  uint64_t unlock_time;
+};
+
+struct tx_input_t
+{
+  crypto::hash tx_hash;
+  uint64_t in_index;
+
+  tx_input_t() : tx_hash(crypto::null_hash), in_index(0) { }
 };
 
 #define DBF_SAFE       1
@@ -323,6 +348,26 @@ class KEY_IMAGE_EXISTS : public DB_EXCEPTION
     KEY_IMAGE_EXISTS(const char* s) : DB_EXCEPTION(s) { }
 };
 
+/**
+ * @brief thrown when a utxo already exists, but shouldn't, namely when adding a block
+ */
+class UTXO_EXISTS : public DB_EXCEPTION
+{
+public:
+    UTXO_EXISTS() : DB_EXCEPTION("The utxo to be added already exists!") { }
+    UTXO_EXISTS(const char* s) : DB_EXCEPTION(s) { }
+};
+
+/**
+ * @brief thrown when an output record for an address already exists, but shouldn't, namely when adding a block
+ */
+class ADDR_OUTPUT_EXISTS : public DB_EXCEPTION
+{
+public:
+    ADDR_OUTPUT_EXISTS() : DB_EXCEPTION("The output record for this address already exists!") { }
+    ADDR_OUTPUT_EXISTS(const char* s) : DB_EXCEPTION(s) { }
+};
+
 /***********************************
  * End of Exception Definitions
  ***********************************/
@@ -467,6 +512,13 @@ private:
    * @param amount_output_indices the amount output indices of the transaction
    */
   virtual void add_tx_amount_output_indices(const uint64_t tx_id, const std::vector<uint64_t>& amount_output_indices) = 0;
+
+  virtual void add_chainstate_utxo(const crypto::hash tx_hash, const uint32_t relative_out_index, const crypto::public_key combined_key, uint64_t amount, uint64_t unlock_time, bool is_coinbase = false) = 0;
+  virtual void remove_chainstate_utxo(const crypto::hash tx_hash, const uint32_t relative_out_index) = 0;
+  virtual void add_addr_output(const crypto::hash tx_hash, const uint32_t relative_out_index, const crypto::public_key& combined_key, uint64_t amount, uint64_t unlock_time) = 0;
+  virtual void remove_addr_output(const crypto::hash tx_hash, const uint32_t relative_out_index, const crypto::public_key& combined_key, uint64_t amount, uint64_t unlock_time) = 0;
+  virtual void add_tx_input(const crypto::hash tx_hash, const uint32_t relative_out_index, const crypto::hash parent_tx_hash, const uint64_t in_index) = 0;
+  virtual void remove_tx_input(const crypto::hash tx_hash, const uint32_t relative_out_index) = 0;
 
   /**
    * @brief store a spent key
@@ -1731,8 +1783,15 @@ public:
    */
   void set_auto_remove_logs(bool auto_remove) { m_auto_remove_logs = auto_remove; }
 
+  virtual bool check_chainstate_utxo(const crypto::hash tx_hash, const uint32_t relative_out_index) = 0;
+  virtual uint64_t get_utxo_unlock_time(const crypto::hash tx_hash, const uint32_t relative_out_index) = 0;
   bool m_open;  //!< Whether or not the BlockchainDB is open/ready for use
   mutable epee::critical_section m_synchronization_lock;  //!< A lock, currently for when BlockchainLMDB needs to resize the backing db file
+
+  virtual std::vector<address_outputs> get_addr_output_all(const crypto::public_key& combined_key) = 0;
+  virtual std::vector<address_outputs> get_addr_output_batch(const crypto::public_key& combined_key, uint64_t start_db_index = 0, uint64_t batch_size = 100, bool desc = false) = 0;
+  virtual uint64_t get_balance(const crypto::public_key& combined_key) = 0;
+  virtual tx_input_t get_tx_input(const crypto::hash tx_hash, const uint32_t relative_out_index) = 0;
 
 };  // class BlockchainDB
 

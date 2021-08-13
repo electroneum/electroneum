@@ -290,6 +290,10 @@ void toJsonValue(rapidjson::Document& doc, const cryptonote::txin_v& txin, rapid
     {
       INSERT_INTO_JSON_OBJECT(val, doc, to_key, input);
     }
+    void operator()(cryptonote::txin_to_key_public const& input) const
+    {
+      INSERT_INTO_JSON_OBJECT(val, doc, to_key, input);
+    }
     void operator()(cryptonote::txin_gen const& input) const
     {
       INSERT_INTO_JSON_OBJECT(val, doc, gen, input);
@@ -421,6 +425,14 @@ void toJsonValue(rapidjson::Document& doc, const cryptonote::txin_to_key& txin, 
   INSERT_INTO_JSON_OBJECT(val, doc, key_image, txin.k_image);
 }
 
+void toJsonValue(rapidjson::Document& doc, const cryptonote::txin_to_key_public& txin, rapidjson::Value& val)
+{
+    val.SetObject();
+
+    INSERT_INTO_JSON_OBJECT(val, doc, amount, txin.amount);
+    INSERT_INTO_JSON_OBJECT(val, doc, tx_hash, txin.tx_hash);
+    INSERT_INTO_JSON_OBJECT(val, doc, relative_offset, txin.relative_offset);
+}
 
 void fromJsonValue(const rapidjson::Value& val, cryptonote::txin_to_key& txin)
 {
@@ -432,6 +444,18 @@ void fromJsonValue(const rapidjson::Value& val, cryptonote::txin_to_key& txin)
   GET_FROM_JSON_OBJECT(val, txin.amount, amount);
   GET_FROM_JSON_OBJECT(val, txin.key_offsets, key_offsets);
   GET_FROM_JSON_OBJECT(val, txin.k_image, key_image);
+}
+
+void fromJsonValue(const rapidjson::Value& val, cryptonote::txin_to_key_public& txin)
+{
+    if (!val.IsObject())
+    {
+        throw WRONG_TYPE("json object");
+    }
+
+    GET_FROM_JSON_OBJECT(val, txin.amount, amount);
+    GET_FROM_JSON_OBJECT(val, txin.tx_hash, tx_hash);
+    GET_FROM_JSON_OBJECT(val, txin.relative_offset, relative_offset);
 }
 
 void toJsonValue(rapidjson::Document& doc, const cryptonote::txout_to_script& txout, rapidjson::Value& val)
@@ -479,6 +503,24 @@ void toJsonValue(rapidjson::Document& doc, const cryptonote::txout_to_key& txout
   INSERT_INTO_JSON_OBJECT(val, doc, key, txout.key);
 }
 
+void fromJsonValue(const rapidjson::Value& val, cryptonote::txout_to_key_public& txout)
+{
+  if (!val.IsObject())
+  {
+    throw WRONG_TYPE("json object");
+  }
+
+  GET_FROM_JSON_OBJECT(val, txout.m_address_prefix, prefix);
+  GET_FROM_JSON_OBJECT(val, txout.address, address);
+}
+
+void toJsonValue(rapidjson::Document& doc, const cryptonote::txout_to_key_public& txout, rapidjson::Value& val)
+{
+  val.SetObject();
+
+  INSERT_INTO_JSON_OBJECT(val, doc, prefix, txout.m_address_prefix);
+  INSERT_INTO_JSON_OBJECT(val, doc, address, txout.address);
+}
 
 void fromJsonValue(const rapidjson::Value& val, cryptonote::txout_to_key& txout)
 {
@@ -506,6 +548,10 @@ void toJsonValue(rapidjson::Document& doc, const cryptonote::tx_out& txout, rapi
     void operator()(cryptonote::txout_to_key const& output) const
     {
       INSERT_INTO_JSON_OBJECT(val, doc, to_key, output);
+    }
+    void operator()(cryptonote::txout_to_key_public const& output) const
+    {
+      INSERT_INTO_JSON_OBJECT(val, doc, to_key_public, output);
     }
     void operator()(cryptonote::txout_to_script const& output) const
     {
@@ -541,6 +587,12 @@ void fromJsonValue(const rapidjson::Value& val, cryptonote::tx_out& txout)
     if (elem.name == "to_key")
     {
       cryptonote::txout_to_key tmpVal;
+      fromJsonValue(elem.value, tmpVal);
+      txout.target = std::move(tmpVal);
+    }
+    else if (elem.name == "to_key_public")
+    {
+      cryptonote::txout_to_key_public tmpVal;
       fromJsonValue(elem.value, tmpVal);
       txout.target = std::move(tmpVal);
     }
@@ -774,6 +826,7 @@ void toJsonValue(rapidjson::Document& doc, const cryptonote::rpc::tx_in_pool& tx
   INSERT_INTO_JSON_OBJECT(val, doc, relayed, tx.relayed);
   INSERT_INTO_JSON_OBJECT(val, doc, do_not_relay, tx.do_not_relay);
   INSERT_INTO_JSON_OBJECT(val, doc, double_spend_seen, tx.double_spend_seen);
+  INSERT_INTO_JSON_OBJECT(val, doc, nonexistent_utxo_seen, tx.nonexistent_utxo_seen);
 }
 
 
@@ -798,6 +851,7 @@ void fromJsonValue(const rapidjson::Value& val, cryptonote::rpc::tx_in_pool& tx)
   GET_FROM_JSON_OBJECT(val, tx.relayed, relayed);
   GET_FROM_JSON_OBJECT(val, tx.do_not_relay, do_not_relay);
   GET_FROM_JSON_OBJECT(val, tx.double_spend_seen, double_spend_seen);
+  GET_FROM_JSON_OBJECT(val, tx.nonexistent_utxo_seen, nonexistent_utxo_seen);
 }
 
 void toJsonValue(rapidjson::Document& doc, const cryptonote::rpc::hard_fork_info& info, rapidjson::Value& val)

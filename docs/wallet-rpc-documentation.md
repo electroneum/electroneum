@@ -317,6 +317,7 @@ Alias:  *None* .
 
 Inputs:
 
+* *account_index* - string; (Optional) Index for filtering accounts.
 * *tag*  - string; (Optional) Tag for filtering accounts.
 
 Outputs:
@@ -1696,6 +1697,7 @@ Inputs:
 * *pending*  - boolean; (defaults to false) Include pending transfers.
 * *failed*  - boolean; (defaults to false) Include failed transfers.
 * *pool*  - boolean; (defaults to false) Include transfers from the daemon's transaction pool.
+* *migration* - boolean; (defaults to false) Include migration transfers.
 * *filter_by_height*  - boolean; (Optional) Filter transfers by block height.
 * *min_height*  - unsigned int; (Optional) Minimum block height to scan for transfers, if filtering by height is enabled.
 * *max_height*  - unsigned int; (Optional) Maximum block height to scan for transfers, if filtering by height is enabled (defaults to max block height).
@@ -1708,6 +1710,9 @@ Outputs:
   * *address*  - string; Public address of the transfer.
   * *amount*  - unsigned int; Amount transferred.
   * *confirmations*  - unsigned int; Number of block mined since the block containing this transaction (or block height at which the transaction should be added to a block if not yet confirmed).
+  * *destinations*  - array of output destinations and amounts:
+    * *address*  - string; the destination Electroneum address
+    * *amount*  - unsigned int; the amount sent to that address
   * *double_spend_seen*  - boolean; True if the key image(s) for the transfer have been seen before.
   * *fee*  - unsigned int; Transaction fee for this transfer.
   * *height*  - unsigned int; Height of the first block that confirmed this transfer (0 if not mined yet).
@@ -1719,12 +1724,13 @@ Outputs:
   * *suggested_confirmations_threshold*  - unsigned int; Estimation of the confirmations needed for the transaction to be included in a block.
   * *timestamp*  - unsigned int; POSIX timestamp for when this transfer was first confirmed in a block (or timestamp submission if not mined yet).
   * *txid*  - string; Transaction ID for this transfer.
-  * *type*  - string; Transfer type: "in"
+  * *type*  - string; Type of transfer, one of the following: "in", "out", "migration", "pending", "failed", "pool"
   * *unlock_time*  - unsigned int; Number of blocks until transfer is safely spendable.
 * *out*  array of transfers (see above).
 * *pending*  array of transfers (see above).
 * *failed*  array of transfers (see above).
 * *pool*  array of transfers (see above).
+* *migration*  array of transfers (see above).
 
 Example:
 
@@ -1774,10 +1780,11 @@ Outputs:
   * *address*  - string; Address that transferred the funds. Base58 representation of the public keys.
   * *amount*  - unsigned int; Amount of this transfer.
   * *confirmations*  - unsigned int; Number of block mined since the block containing this transaction (or block height at which the transaction should be added to a block if not yet confirmed).
-  * *destinations*  - array of JSON objects containing transfer destinations:
-    * *amount*  - unsigned int; Amount transferred to this destination.
-    * *address*  - string; Address for this destination. Base58 representation of the public keys.
+  * *destinations*  - array of output destinations and amounts:
+    * *address*  - string; the destination Electroneum address
+    * *amount*  - unsigned int; the amount sent to that address
   * *double_spend_seen*  - boolean; True if the key image(s) for the transfer have been seen before.
+  * *nonexistent_utxo_seen*  - boolean; States if the transaction contains a nonexistent utxo; a potential double spend ( `true` ) or not ( `false` )
   * *fee*  - unsigned int; Transaction fee for this transfer.
   * *height*  - unsigned int; Height of the first block that confirmed this transfer.
   * *note*  - string; Note about this transfer.
@@ -1788,7 +1795,7 @@ Outputs:
   * *suggested_confirmations_threshold*  - unsigned int; Estimation of the confirmations needed for the transaction to be included in a block.
   * *timestamp*  - unsigned int; POSIX timestamp for the block that confirmed this transfer (or timestamp submission if not mined yet).
   * *txid*  - string; Transaction ID of this transfer (same as input TXID).
-  * *type*  - string; Type of transfer, one of the following: "in", "out", "pending", "failed", "pool"
+  * *type*  - string; Type of transfer, one of the following: "in", "out", "migration", "pending", "failed", "pool"
   * *unlock_time*  - unsigned int; Number of blocks until transfer is safely spendable.
 
 Example:
@@ -1811,6 +1818,7 @@ $ curl -X POST http://localhost:40000/json_rpc -d '{"jsonrpc":"2.0","id":"0","me
         "amount": 20000
       }],
       "double_spend_seen": false,
+      "nonexistent_utxo_seen": false,
       "fee": 10,
       "height": 153624,
       "note": "",

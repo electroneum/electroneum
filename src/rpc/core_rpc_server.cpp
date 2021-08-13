@@ -1,4 +1,4 @@
-// Copyrights(c) 2017-2020, The Electroneum Project
+// Copyrights(c) 2017-2021, The Electroneum Project
 // Copyrights(c) 2014-2019, The Monero Project
 // 
 // All rights reserved.
@@ -285,7 +285,12 @@ namespace cryptonote
     if (use_bootstrap_daemon_if_necessary<COMMAND_RPC_GET_BLOCKS_FAST>(invoke_http_mode::BIN, "/getblocks.bin", req, res, r))
       return r;
 
-    std::vector<std::pair<std::pair<cryptonote::blobdata, crypto::hash>, std::vector<std::pair<crypto::hash, cryptonote::blobdata> > > > bs;
+      //Vector of pairs where each pair is:  item#1) pair<block blob, hash>  item#2)vector of pairs of <tx hash, tx blob>
+    std::vector<
+                std::pair<
+                          std::pair<cryptonote::blobdata, crypto::hash>, std::vector<std::pair<crypto::hash, cryptonote::blobdata> >
+                         >
+    > bs;
 
     if(!m_core.find_blockchain_supplement(req.start_height, req.block_ids, bs, res.current_height, res.start_height, req.prune, !req.no_miner_tx, COMMAND_RPC_GET_BLOCKS_FAST_MAX_COUNT))
     {
@@ -294,12 +299,17 @@ namespace cryptonote
     }
 
     size_t pruned_size = 0, unpruned_size = 0, ntxes = 0;
+
+    // Preallocate space in the RPC result
     res.blocks.reserve(bs.size());
     res.output_indices.reserve(bs.size());
+
+    // Loop over all of the block data and populate the rpc response
+    uint64_t height_counter = res.start_height;
     for(auto& bd: bs)
     {
       res.blocks.resize(res.blocks.size()+1);
-      res.blocks.back().block = bd.first.first;
+      res.blocks.back().block = bd.first.first;  // add block hash to response
       pruned_size += bd.first.first.size();
       unpruned_size += bd.first.first.size();
       res.output_indices.push_back(COMMAND_RPC_GET_BLOCKS_FAST::block_output_indices());
@@ -308,19 +318,24 @@ namespace cryptonote
       if (req.no_miner_tx)
         res.output_indices.back().indices.push_back(COMMAND_RPC_GET_BLOCKS_FAST::tx_output_indices());
       res.blocks.back().txs.reserve(bd.second.size());
+
+      //go over the transactions in bs first
       for (std::vector<std::pair<crypto::hash, cryptonote::blobdata>>::iterator i = bd.second.begin(); i != bd.second.end(); ++i)
       {
         unpruned_size += i->second.size();
-        res.blocks.back().txs.push_back(std::move(i->second));
+        res.blocks.back().txs.push_back(std::move(i->second)); //add a tx blob to rpc response
         i->second.clear();
         i->second.shrink_to_fit();
         pruned_size += res.blocks.back().txs.back().size();
       }
 
-      const size_t n_txes_to_lookup = bd.second.size() + (req.no_miner_tx ? 0 : 1);
+      //no need to look up indexes for v2+ txes
+      auto v10_height = nettype() == cryptonote::network_type::MAINNET ? 1175315 : 1165235;
+      const size_t n_txes_to_lookup = height_counter >= v10_height ? 0 : (bd.second.size() + (req.no_miner_tx ? 0 : 1));
       if (n_txes_to_lookup > 0)
       {
         std::vector<std::vector<uint64_t>> indices;
+        //either pass the first tx hash or the block hash depending on whether it was a miner tx or not
         bool r = m_core.get_tx_outputs_gindexs(req.no_miner_tx ? bd.second.front().first : bd.first.second, n_txes_to_lookup, indices);
         if (!r)
         {
@@ -335,6 +350,7 @@ namespace cryptonote
         for (size_t i = 0; i < indices.size(); ++i)
           res.output_indices.back().indices.push_back({std::move(indices[i])});
       }
+      ++height_counter;
     }
 
     MDEBUG("on_get_blocks: " << bs.size() << " blocks, " << ntxes << " txes, pruned size " << pruned_size << ", unpruned size " << unpruned_size);
@@ -592,9 +608,9 @@ namespace cryptonote
               res.status = "Failed to serialize transaction base";
               return true;
             }
+            //TODO: Public
             const cryptonote::blobdata pruned = ss.str();
-            const crypto::hash prunable_hash = tx.version == 1 ? crypto::null_hash : get_transaction_prunable_hash(tx);
-            sorted_txs.push_back(std::make_tuple(h, pruned, prunable_hash, std::string(i->tx_blob, pruned.size())));
+            sorted_txs.push_back(std::make_tuple(h, pruned, crypto::null_hash, std::string(i->tx_blob, pruned.size())));
             missed_txs.erase(std::find(missed_txs.begin(), missed_txs.end(), h));
             pool_tx_hashes.insert(h);
             const std::string hash_string = epee::string_tools::pod_to_hex(h);
@@ -692,12 +708,14 @@ namespace cryptonote
         if (it != per_tx_pool_tx_info.end())
         {
           e.double_spend_seen = it->second.double_spend_seen;
+          e.nonexistent_utxo_seen = it->second.nonexistent_utxo_seen;
           e.relayed = it->second.relayed;
         }
         else
         {
           MERROR("Failed to determine pool info for " << tx_hash);
           e.double_spend_seen = false;
+          e.nonexistent_utxo_seen = false;
           e.relayed = false;
         }
       }
@@ -833,7 +851,7 @@ namespace cryptonote
 
     cryptonote_connection_context fake_context = AUTO_VAL_INIT(fake_context);
     tx_verification_context tvc = AUTO_VAL_INIT(tvc);
-    if(!m_core.handle_incoming_tx(tx_blob, tvc, false, false, req.do_not_relay) || tvc.m_verifivation_failed)
+    if(!m_core.handle_incoming_tx(tx_blob, tvc, false, false, req.do_not_relay) || tvc.m_verification_failed)
     {
       res.status = "Failed";
       std::string reason = "";
@@ -841,6 +859,8 @@ namespace cryptonote
         add_reason(reason, "bad ring size");
       if ((res.double_spend = tvc.m_double_spend))
         add_reason(reason, "double spend");
+      if ((res.double_spend = tvc.m_utxo_nonexistent))
+        add_reason(reason, "utxo has been spent already or doesn't exist");
       if ((res.invalid_input = tvc.m_invalid_input))
         add_reason(reason, "invalid input");
       if ((res.invalid_output = tvc.m_invalid_output))
@@ -854,7 +874,7 @@ namespace cryptonote
       if ((res.not_rct = tvc.m_not_rct))
         add_reason(reason, "tx is not ringct");
       const std::string punctuation = reason.empty() ? "" : ": ";
-      if (tvc.m_verifivation_failed)
+      if (tvc.m_verification_failed)
       {
         LOG_PRINT_L0("[on_send_raw_tx]: tx verification failed" << punctuation << reason);
       }
@@ -1053,7 +1073,7 @@ namespace cryptonote
   bool core_rpc_server::on_set_log_level(const COMMAND_RPC_SET_LOG_LEVEL::request& req, COMMAND_RPC_SET_LOG_LEVEL::response& res, const connection_context *ctx)
   {
     PERF_TIMER(on_set_log_level);
-    if (req.level < 0 || req.level > 4)
+    if (req.level > 4)
     {
       res.status = "Error: log level not valid";
       return true;
@@ -1740,12 +1760,81 @@ namespace cryptonote
     }
     res.blob = string_tools::buff_to_hex_nodelimer(t_serializable_object_to_blob(blk));
     res.json = obj_to_json_str(blk);
-    //bool v8 = !blk.signatory.empty() && !blk.signature.empty();
-    //size_t p1 = std::distance(res.json.begin(), boost::find_nth(res.json, "signatory", 0).begin());
-    //res.json.erase(p1 + 12, v8 ? 1 : 1);
-    //size_t p2 = std::distance(res.json.begin(), boost::find_nth(res.json, "signature", 1).begin());
-    //res.json.erase(p2 + 12, v8 ? 1 : 1);
     res.status = CORE_RPC_STATUS_OK;
+    
+    return true;
+  }
+  //------------------------------------------------------------------------------------------------------------------------------
+  bool core_rpc_server::on_get_balance(const COMMAND_RPC_GET_BALANCE::request& req, COMMAND_RPC_GET_BALANCE::response& res, const connection_context *ctx)
+  {
+    PERF_TIMER(on_get_balance);
+
+    CHECK_CORE_READY();
+
+    if (req.etn_address.empty())
+    {
+      res.status = "Failed: Request attribute <etn_address> is mandatory.";
+      return true;
+    }
+
+    address_parse_info addr_info;
+    if(!get_account_address_from_str(addr_info, nettype(), req.etn_address))
+    {
+      res.status = "Failed: can't parse address from <etn_address> = " + req.etn_address;
+      return true;
+    }
+
+    res.balance = m_core.get_balance(addr_info);
+    res.status = "OK";
+
+    return true;
+  }
+  //------------------------------------------------------------------------------------------------------------------------------
+  bool core_rpc_server::on_get_address_batch_history(const COMMAND_RPC_GET_ADDRESS_BATCH_HISTORY::request& req, COMMAND_RPC_GET_ADDRESS_BATCH_HISTORY::response& res, const connection_context *ctx)
+  {
+    PERF_TIMER(on_get_address_batch_history);
+    CHECK_CORE_READY();
+
+    if (req.etn_address.empty())
+    {
+      res.status = "Failed: Request attribute <etn_address> is mandatory.";
+      return true;
+    }
+
+    address_parse_info addr_info;
+    if(!get_account_address_from_str(addr_info, nettype(), req.etn_address))
+    {
+      res.status = "Failed: can't parse address from <etn_address> = " + req.etn_address;
+      return true;
+    }
+
+    try
+    {
+      std::vector<address_outputs> outs = m_core.get_address_batch_history(addr_info, req.start_out_id, req.batch_size, req.desc);
+      if(!outs.empty() && outs.size() > req.batch_size) 
+      {
+        res.next_out_id = outs.at(outs.size() - 1).out_id;
+        res.last_page = false;
+        outs.pop_back();
+      }
+      else
+      {
+        res.last_page = true;
+      }
+
+      for(auto out: outs)
+      {
+        res.txs.push_back(epee::string_tools::pod_to_hex(out.tx_hash));
+      }
+
+      res.status = "OK";
+    }
+    catch(const std::exception& e)
+    {
+      res.status = "Failed: " + std::string(e.what());
+      return true;
+    }
+    
     return true;
   }
   //------------------------------------------------------------------------------------------------------------------------------
@@ -2343,8 +2432,8 @@ namespace cryptonote
 
         res.signature = v;
     }
-
-    catch(std::exception){
+    catch(const std::exception &e)
+    {
         error_resp.code = CORE_RPC_ERROR_CODE_INTERNAL_ERROR;
         error_resp.message = "Failed to sign message. Please check that you are using a valid private key.";
         return false;

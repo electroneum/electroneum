@@ -1,4 +1,4 @@
-// Copyrights(c) 2017-2020, The Electroneum Project
+// Copyrights(c) 2017-2021, The Electroneum Project
 // Copyrights(c) 2014-2019, The Monero Project
 // 
 // All rights reserved.
@@ -127,53 +127,6 @@ namespace cryptonote
   //---------------------------------------------------------------
   bool expand_transaction_1(transaction &tx, bool base_only)
   {
-    if (tx.version >= 2 && !is_coinbase(tx))
-    {
-      rct::rctSig &rv = tx.rct_signatures;
-      if (rv.outPk.size() != tx.vout.size())
-      {
-        LOG_PRINT_L1("Failed to parse transaction from blob, bad outPk size in tx " << get_transaction_hash(tx));
-        return false;
-      }
-      for (size_t n = 0; n < tx.rct_signatures.outPk.size(); ++n)
-      {
-        if (tx.vout[n].target.type() != typeid(txout_to_key))
-        {
-          LOG_PRINT_L1("Unsupported output type in tx " << get_transaction_hash(tx));
-          return false;
-        }
-        rv.outPk[n].dest = rct::pk2rct(boost::get<txout_to_key>(tx.vout[n].target).key);
-      }
-
-      if (!base_only)
-      {
-        const bool bulletproof = rct::is_rct_bulletproof(rv.type);
-        if (bulletproof)
-        {
-          if (rv.p.bulletproofs.size() != 1)
-          {
-            LOG_PRINT_L1("Failed to parse transaction from blob, bad bulletproofs size in tx " << get_transaction_hash(tx));
-            return false;
-          }
-          if (rv.p.bulletproofs[0].L.size() < 6)
-          {
-            LOG_PRINT_L1("Failed to parse transaction from blob, bad bulletproofs L size in tx " << get_transaction_hash(tx));
-            return false;
-          }
-          const size_t max_outputs = 1 << (rv.p.bulletproofs[0].L.size() - 6);
-          if (max_outputs < tx.vout.size())
-          {
-            LOG_PRINT_L1("Failed to parse transaction from blob, bad bulletproofs max outputs in tx " << get_transaction_hash(tx));
-            return false;
-          }
-          const size_t n_amounts = tx.vout.size();
-          CHECK_AND_ASSERT_MES(n_amounts == rv.outPk.size(), false, "Internal error filling out V");
-          rv.p.bulletproofs[0].V.resize(n_amounts);
-          for (size_t i = 0; i < n_amounts; ++i)
-            rv.p.bulletproofs[0].V[i] = rct::scalarmultKey(rv.outPk[i].mask, rct::INV_EIGHT);
-        }
-      }
-    }
     return true;
   }
   //---------------------------------------------------------------
@@ -236,13 +189,15 @@ namespace cryptonote
   //---------------------------------------------------------------
   bool is_v1_tx(const blobdata_ref& tx_blob)
   {
+    //TODO: Public - assure return true. Build logic for prunable v2/v3 tx data later.
+    return true;
+
     uint64_t version;
     const char* begin = static_cast<const char*>(tx_blob.data());
     const char* end = begin + tx_blob.size();
     int read = tools::read_varint(begin, end, version);
     if (read <= 0)
       throw std::runtime_error("Internal error getting transaction version");
-    return version <= 1;
   }
   //---------------------------------------------------------------
   bool is_v1_tx(const blobdata& tx_blob)
@@ -391,25 +346,7 @@ namespace cryptonote
   //---------------------------------------------------------------
   uint64_t get_transaction_weight(const transaction &tx, size_t blob_size)
   {
-    if (tx.version < 2)
-      return blob_size;
-    const rct::rctSig &rv = tx.rct_signatures;
-    if (!rct::is_rct_bulletproof(rv.type))
-      return blob_size;
-    const size_t n_outputs = tx.vout.size();
-    if (n_outputs <= 2)
-      return blob_size;
-    const uint64_t bp_base = 368;
-    const size_t n_padded_outputs = rct::n_bulletproof_max_amounts(rv.p.bulletproofs);
-    size_t nlr = 0;
-    for (const auto &bp: rv.p.bulletproofs)
-      nlr += bp.L.size() * 2;
-    const size_t bp_size = 32 * (9 + nlr);
-    CHECK_AND_ASSERT_THROW_MES_L1(n_outputs <= BULLETPROOF_MAX_OUTPUTS, "maximum number of outputs is " + std::to_string(BULLETPROOF_MAX_OUTPUTS) + " per transaction");
-    CHECK_AND_ASSERT_THROW_MES_L1(bp_base * n_padded_outputs >= bp_size, "Invalid bulletproof clawback");
-    const uint64_t bp_clawback = (bp_base * n_padded_outputs - bp_size) * 4 / 5;
-    CHECK_AND_ASSERT_THROW_MES_L1(bp_clawback <= std::numeric_limits<uint64_t>::max() - blob_size, "Weight overflow");
-    return blob_size + bp_clawback;
+    return blob_size;
   }
   //---------------------------------------------------------------
   uint64_t get_transaction_weight(const transaction &tx)
@@ -431,17 +368,20 @@ namespace cryptonote
   //---------------------------------------------------------------
   bool get_tx_fee(const transaction& tx, uint64_t & fee)
   {
-    if (tx.version > 1)
-    {
-      fee = tx.rct_signatures.txnFee;
-      return true;
-    }
     uint64_t amount_in = 0;
     uint64_t amount_out = 0;
     for(auto& in: tx.vin)
     {
-      CHECK_AND_ASSERT_MES(in.type() == typeid(txin_to_key), 0, "unexpected type id in transaction");
-      amount_in += boost::get<txin_to_key>(in).amount;
+      CHECK_AND_ASSERT_MES(in.type() == typeid(txin_to_key) || in.type() == typeid(txin_to_key_public), 0, "unexpected type id in transaction");
+
+      if(tx.version == 1 || tx.version == 2)
+      {
+        amount_in += boost::get<txin_to_key>(in).amount;
+      }
+      else
+      {
+        amount_in += boost::get<txin_to_key_public>(in).amount;
+      }
     }
     for(auto& o: tx.vout)
       amount_out += o.amount;
@@ -732,11 +672,22 @@ namespace cryptonote
   bool get_inputs_etn_amount(const transaction& tx, uint64_t& etn)
   {
     etn = 0;
-    for(const auto& in: tx.vin)
-    {
-      CHECKED_GET_SPECIFIC_VARIANT(in, const txin_to_key, tokey_in, false);
-      etn += tokey_in.amount;
+    if(tx.version == 1 || tx.version == 2) {
+      for(const auto& in: tx.vin)
+      {
+        CHECKED_GET_SPECIFIC_VARIANT(in, const txin_to_key, tokey_in, false);
+        etn += tokey_in.amount;
+      }
     }
+    else //tx.version >= 3 (public transactions: can spend only new inputs)
+    {
+      for(const auto& in: tx.vin)
+      {
+        CHECKED_GET_SPECIFIC_VARIANT(in, const txin_to_key_public, tokey_in, false);
+        etn += tokey_in.amount;
+      }
+    }
+
     return true;
   }
   //---------------------------------------------------------------
@@ -751,10 +702,18 @@ namespace cryptonote
   {
     for(const auto& in: tx.vin)
     {
-      CHECK_AND_ASSERT_MES(in.type() == typeid(txin_to_key), false, "wrong variant type: "
-        << in.type().name() << ", expected " << typeid(txin_to_key).name()
-        << ", in transaction id=" << get_transaction_hash(tx));
-
+      if (tx.version == 1 || tx.version == 2)
+      {
+        CHECK_AND_ASSERT_MES(in.type() == typeid(txin_to_key), false, "wrong variant type: "
+                << in.type().name() << ", expected " << typeid(txin_to_key).name()
+                << ", in transaction id=" << get_transaction_hash(tx));
+      }
+      else //tx.version >= 3 (public transactions: can spend only new inputs)
+      {
+        CHECK_AND_ASSERT_MES(in.type() == typeid(txin_to_key_public), false, "wrong variant type: "
+                << in.type().name() << ", expected " << typeid(txin_to_key_public).name()
+                << ", in transaction id=" << get_transaction_hash(tx));
+      }
     }
     return true;
   }
@@ -763,17 +722,30 @@ namespace cryptonote
   {
     for(const tx_out& out: tx.vout)
     {
-      CHECK_AND_ASSERT_MES(out.target.type() == typeid(txout_to_key), false, "wrong variant type: "
-        << out.target.type().name() << ", expected " << typeid(txout_to_key).name()
-        << ", in transaction id=" << get_transaction_hash(tx));
-
       if (tx.version == 1)
       {
+        CHECK_AND_ASSERT_MES(out.target.type() == typeid(txout_to_key), false, "wrong variant type: "
+                << out.target.type().name() << ", expected " << typeid(txout_to_key).name()
+                << ", in transaction id=" << get_transaction_hash(tx));
+
         CHECK_AND_NO_ASSERT_MES(0 < out.amount, false, "zero amount output in transaction id=" << get_transaction_hash(tx));
+
+        if(!check_key(boost::get<txout_to_key>(out.target).key))
+          return false;
+      }
+      else //tx.version >= 2 (public transactions: only new public outputs are allowed)
+      {
+        CHECK_AND_ASSERT_MES(out.target.type() == typeid(txout_to_key_public), false, "wrong variant type: "
+                << out.target.type().name() << ", expected " << typeid(txout_to_key_public).name()
+                << ", in transaction id=" << get_transaction_hash(tx));
+
+        CHECK_AND_NO_ASSERT_MES(0 < out.amount, false, "zero amount output in transaction id=" << get_transaction_hash(tx));
+
+        if(!check_key(boost::get<txout_to_key_public>(out.target).address.m_spend_public_key) ||
+                !check_key(boost::get<txout_to_key_public>(out.target).address.m_view_public_key))
+          return false;
       }
 
-      if(!check_key(boost::get<txout_to_key>(out.target).key))
-        return false;
     }
     return true;
   }
@@ -786,6 +758,18 @@ namespace cryptonote
   bool check_inputs_overflow(const transaction& tx)
   {
     uint64_t etn = 0;
+    if(tx.version >= 3)
+    {
+      for(const auto& in: tx.vin)
+      {
+        CHECKED_GET_SPECIFIC_VARIANT(in, const txin_to_key_public, tokey_in, false);
+        if(etn > tokey_in.amount + etn)
+          return false;
+        etn += tokey_in.amount;
+      }
+      return true;
+    }
+
     for(const auto& in: tx.vin)
     {
       CHECKED_GET_SPECIFIC_VARIANT(in, const txin_to_key, tokey_in, false);
@@ -866,6 +850,16 @@ namespace cryptonote
         return subaddress_receive_info{ found->second, additional_derivations[output_index] };
     }
     return boost::none;
+  }
+  //---------------------------------------------------------------
+  boost::optional<subaddress_receive_info> is_out_to_acc_precomp_public(const std::unordered_map<crypto::public_key, subaddress_index>& subaddresses, const cryptonote::account_public_address output_address)
+  {
+      crypto::public_key subaddress_spendkey = output_address.m_spend_public_key;
+      auto found = subaddresses.find(subaddress_spendkey);
+      if (found != subaddresses.end()){
+           return subaddress_receive_info{found->second, {}};
+      }
+      return boost::none;
   }
   //---------------------------------------------------------------
   bool lookup_acc_outs(const account_keys& acc, const transaction& tx, std::vector<size_t>& outs, uint64_t& etn_transfered)

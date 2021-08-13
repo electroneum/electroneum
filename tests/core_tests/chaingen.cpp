@@ -1,4 +1,4 @@
-// Copyrights(c) 2017-2020, The Electroneum Project
+// Copyrights(c) 2017-2021, The Electroneum Project
 // Copyrights(c) 2014-2019, The Monero Project
 // 
 // All rights reserved.
@@ -304,7 +304,7 @@ bool init_output_indices(map_output_idx_t& outs, std::map<uint64_t, std::vector<
                 const tx_out &out = tx.vout[j];
 
                 output_index oi(out.target, out.amount, boost::get<txin_gen>(*blk.miner_tx.vin.begin()).height, i, j, &blk, vtx[i]);
-                oi.set_rct(tx.version == 2);
+                oi.set_rct(tx.version == 4);
                 oi.unlock_time = tx.unlock_time;
                 oi.is_coin_base = i == 0;
 
@@ -1152,18 +1152,18 @@ bool test_chain_unit_base::verify(const std::string& cb_name, cryptonote::core& 
 
 bool test_chain_unit_base::check_block_verification_context(const cryptonote::block_verification_context& bvc, size_t event_idx, const cryptonote::block& /*blk*/)
 {
-  return !bvc.m_verifivation_failed;
+  return !bvc.m_verification_failed;
 }
 
 bool test_chain_unit_base::check_tx_verification_context(const cryptonote::tx_verification_context& tvc, bool /*tx_added*/, size_t /*event_index*/, const cryptonote::transaction& /*tx*/)
 {
-  return !tvc.m_verifivation_failed;
+  return !tvc.m_verification_failed;
 }
 
 bool test_chain_unit_base::check_tx_verification_context_array(const std::vector<cryptonote::tx_verification_context>& tvcs, size_t /*tx_added*/, size_t /*event_index*/, const std::vector<cryptonote::transaction>& /*txs*/)
 {
   for (const cryptonote::tx_verification_context &tvc: tvcs)
-    if (tvc.m_verifivation_failed)
+    if (tvc.m_verification_failed)
       return false;
   return true;
 }

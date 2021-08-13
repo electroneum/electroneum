@@ -173,7 +173,7 @@ bool transactions_flow_test(std::string& working_folder,
 
   //wait for etn, until balance will have enough etn
   w1.refresh(true, blocks_fetched, received_etn, ok);
-  while(w1.unlocked_balance(0) < amount_to_transfer)
+  while(w1.unlocked_balance(0, false) < amount_to_transfer)
   {
     misc_utils::sleep_no_w(1000);
     w1.refresh(true, blocks_fetched, received_etn, ok);
@@ -186,7 +186,7 @@ bool transactions_flow_test(std::string& working_folder,
   {
     tools::wallet2::transfer_container incoming_transfers;
     w1.get_transfers(incoming_transfers);
-    if(incoming_transfers.size() > FIRST_N_TRANSFERS && get_etn_in_first_transfers(incoming_transfers, FIRST_N_TRANSFERS) < w1.unlocked_balance(0) )
+    if(incoming_transfers.size() > FIRST_N_TRANSFERS && get_etn_in_first_transfers(incoming_transfers, FIRST_N_TRANSFERS) < w1.unlocked_balance(0, false) )
     {
       //lets go!
       size_t count = 0;
@@ -221,7 +221,7 @@ bool transactions_flow_test(std::string& working_folder,
   for(i = 0; i != transactions_count; i++)
   {
     uint64_t amount_to_tx = (amount_to_transfer - transfered_etn) > transfer_size ? transfer_size: (amount_to_transfer - transfered_etn);
-    while(w1.unlocked_balance(0) < amount_to_tx + TEST_FEE)
+    while(w1.unlocked_balance(0, false) < amount_to_tx + TEST_FEE)
     {
       misc_utils::sleep_no_w(1000);
       LOG_PRINT_L0("not enough ETN, waiting for cashback or mining");
@@ -270,7 +270,7 @@ bool transactions_flow_test(std::string& working_folder,
     misc_utils::sleep_no_w(DIFFICULTY_BLOCKS_ESTIMATE_TIMESPAN*1000);//wait two blocks before sync on another wallet on another daemon
   }
 
-  uint64_t etn_2 = w2.balance(0);
+  uint64_t etn_2 = w2.balance(0, false);
   if(etn_2 == transfered_etn)
   {
     MGINFO_GREEN("-----------------------FINISHING TRANSACTIONS FLOW TEST OK-----------------------");

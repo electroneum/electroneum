@@ -1,4 +1,4 @@
-// Copyrights(c) 2017-2020, The Electroneum Project
+// Copyrights(c) 2017-2021, The Electroneum Project
 // Copyrights(c) 2014-2019, The Monero Project
 // 
 // All rights reserved.
@@ -109,6 +109,7 @@ namespace crypto {
     ec_scalar c, r;
     friend class crypto_ops;
   };
+
 #pragma pack(pop)
 
   void hash_to_scalar(const void *data, size_t length, ec_scalar &res);
@@ -127,6 +128,7 @@ namespace crypto {
     POP_WARNINGS
 
   void hash_to_ec(const public_key &key, ge_p3 &res);
+  void hash_to_ec(const hash& h, ge_p3 &res);
 
   static_assert(sizeof(ec_point) == 32 && sizeof(ec_scalar) == 32 &&
     sizeof(public_key) == 32 && sizeof(secret_key) == 32 &&
@@ -165,6 +167,14 @@ namespace crypto {
     friend bool check_tx_proof(const hash &, const public_key &, const public_key &, const boost::optional<public_key> &, const public_key &, const signature &);
     static void generate_key_image(const public_key &, const secret_key &, key_image &);
     friend void generate_key_image(const public_key &, const secret_key &, key_image &);
+    static void generate_input_signature(const hash prefix_hash, const uint32_t input_index, const secret_key sec_view, const secret_key sec_spend, signature &sig);
+    friend void generate_input_signature(const hash prefix_hash, const uint32_t input_index, const secret_key sec_view, const secret_key sec_spend, signature &sig);
+    static bool verify_input_signature(const hash &prefix_hash,const uint32_t input_index, const public_key pub_view, const public_key pub_spend, signature sig);
+    friend bool verify_input_signature(const hash &prefix_hash,const uint32_t input_index, const public_key pub_view, const public_key pub_spend, signature sig);
+    static public_key addKeys(const public_key &A, const public_key &B);
+    friend public_key addKeys(const public_key &A, const public_key &B);
+    static secret_key addSecretKeys(const secret_key &A, const secret_key &B);
+    friend secret_key addSecretKeys(const secret_key &A, const secret_key &B);
     static void generate_ring_signature(const hash &, const key_image &,
       const public_key *const *, std::size_t, const secret_key &, std::size_t, signature *);
     friend void generate_ring_signature(const hash &, const key_image &,
@@ -284,6 +294,14 @@ namespace crypto {
     return crypto_ops::check_signature(prefix_hash, pub, sig);
   }
 
+  inline void generate_input_signature(const hash prefix_hash, const uint32_t input_index, const secret_key sec_view, const secret_key sec_spend, signature &sig){
+    return crypto_ops::generate_input_signature(prefix_hash, input_index, sec_view, sec_spend, sig);
+  }
+
+  inline bool verify_input_signature(const hash &prefix_hash,const uint32_t input_index, const public_key pub_view, const public_key pub_spend, signature sig) {
+    return crypto_ops::verify_input_signature(prefix_hash, input_index, pub_view, pub_spend, sig);
+  }
+
   /* Generation and checking of a tx proof; given a tx pubkey R, the recipient's view pubkey A, and the key 
    * derivation D, the signature proves the knowledge of the tx secret key r such that R=r*G and D=r*A
    * When the recipient's address is a subaddress, the tx pubkey R is defined as R=r*B where B is the recipient's spend pubkey
@@ -314,6 +332,10 @@ namespace crypto {
     const public_key *const *pubs, std::size_t pubs_count,
     const signature *sig) {
     return crypto_ops::check_ring_signature(prefix_hash, image, pubs, pubs_count, sig);
+  }
+
+  inline public_key addKeys(const public_key &A, const public_key &B) {
+    return crypto_ops::addKeys(A, B);
   }
 
   /* Variants with vector<const public_key *> parameters.

@@ -1,4 +1,4 @@
-// Copyrights(c) 2017-2020, The Electroneum Project
+// Copyrights(c) 2017-2021, The Electroneum Project
 // Copyrights(c) 2014-2019, The Monero Project
 //
 // All rights reserved.
@@ -45,6 +45,7 @@
 #include <boost/format.hpp>
 #include <sstream>
 #include <unordered_map>
+#include <string>
 
 #ifdef WIN32
 #include <boost/locale.hpp>
@@ -992,14 +993,14 @@ void WalletImpl::setSubaddressLookahead(uint32_t major, uint32_t minor)
     m_wallet->set_subaddress_lookahead(major, minor);
 }
 
-uint64_t WalletImpl::balance(uint32_t accountIndex) const
+uint64_t WalletImpl::balance(uint32_t accountIndex, bool public_blockchain) const
 {
-    return m_wallet->balance(accountIndex);
+    return m_wallet->balance(accountIndex, public_blockchain);
 }
 
-uint64_t WalletImpl::unlockedBalance(uint32_t accountIndex) const
+uint64_t WalletImpl::unlockedBalance(uint32_t accountIndex, bool public_blockchain) const
 {
-    return m_wallet->unlocked_balance(accountIndex);
+    return m_wallet->unlocked_balance(accountIndex, public_blockchain);
 }
 
 uint64_t WalletImpl::blockChainHeight() const
@@ -1451,7 +1452,11 @@ PendingTransaction *WalletImpl::createTransaction(const string &dst_addr, const 
                 r = tools::wallet2::parse_short_payment_id(payment_id, info.payment_id);
                 if (r) {
                     std::string extra_nonce;
-                    set_encrypted_payment_id_to_tx_extra_nonce(extra_nonce, info.payment_id);
+                    crypto::hash payment_id = crypto::null_hash;
+                    memcpy(payment_id.data, info.payment_id.data, 8); // convert short pid to regular
+                    memset(payment_id.data + 8, 0, 24); // merely a sanity check
+
+                    set_payment_id_to_tx_extra_nonce(extra_nonce, payment_id);
                     r = add_extra_nonce_to_tx_extra(extra, extra_nonce);
                 }
             }
@@ -1463,7 +1468,11 @@ PendingTransaction *WalletImpl::createTransaction(const string &dst_addr, const 
         }
         else if (info.has_payment_id) {
             std::string extra_nonce;
-            set_encrypted_payment_id_to_tx_extra_nonce(extra_nonce, info.payment_id);
+            crypto::hash payment_id = crypto::null_hash;
+            memcpy(payment_id.data, info.payment_id.data, 8); // convert short pid to regular
+            memset(payment_id.data + 8, 0, 24); // merely a sanity check
+
+            set_payment_id_to_tx_extra_nonce(extra_nonce, payment_id);
             bool r = add_extra_nonce_to_tx_extra(extra, extra_nonce);
             if (!r) {
                 setStatusError(tr("Failed to add short payment id: ") + epee::string_tools::pod_to_hex(info.payment_id));

@@ -1,4 +1,4 @@
-// Copyrights(c) 2017-2020, The Electroneum Project
+// Copyrights(c) 2017-2021, The Electroneum Project
 // Copyrights(c) 2014-2019, The Monero Project
 // 
 // All rights reserved.
@@ -257,6 +257,13 @@ namespace crypto {
     ec_point Y;
   };
 
+  struct s_comm_3 {
+      hash h;
+      uint32_t i;
+      ec_point key;
+      ec_point comm;
+  };
+
   void crypto_ops::generate_signature(const hash &prefix_hash, const public_key &pub, const secret_key &sec, signature &sig) {
     ge_p3 tmp3;
     ec_scalar k;
@@ -478,6 +485,13 @@ namespace crypto {
     ge_mul8(&point2, &point);
     ge_p1p1_to_p3(&res, &point2);
   }
+  void hash_to_ec(const hash& h, ge_p3 &res) {
+    ge_p2 point;
+    ge_p1p1 point2;
+    ge_fromfe_frombytes_vartime(&point, reinterpret_cast<const unsigned char *>(&h));
+    ge_mul8(&point2, &point);
+    ge_p1p1_to_p3(&res, &point2);
+  }
 
   void crypto_ops::generate_key_image(const public_key &pub, const secret_key &sec, key_image &image) {
     ge_p3 point;
@@ -490,6 +504,91 @@ namespace crypto {
 
   size_t rs_comm_size(size_t pubs_count) {
     return sizeof(rs_comm) + pubs_count * sizeof(ec_point_pair);
+  }
+
+  void crypto_ops::generate_input_signature(const hash prefix_hash, const uint32_t input_index, const secret_key sec_view, const secret_key sec_spend, signature &sig){
+
+    // add the two secret keys and reduce modulo l to get a new valid secret key for signing.
+    secret_key sec = addSecretKeys(sec_view, sec_spend);
+
+    //corresponding public key for the combined secret key
+    public_key pub;
+    ge_p3 t;
+    assert(sc_check(&sec) == 0);
+    ge_scalarmult_base(&t, &sec);
+    ge_p3_tobytes(&pub, &t);
+
+    //generate signature
+    ge_p3 tmp3;
+    ec_scalar k;
+    s_comm_3 buf;
+    buf.h = prefix_hash;
+    buf.i = input_index;
+    buf.key = pub;
+    try_again:
+    random_scalar(k);
+    if (((const uint32_t*)(&k))[7] == 0) // we don't want tiny numbers here
+      goto try_again;
+    ge_scalarmult_base(&tmp3, &k);
+    ge_p3_tobytes(&buf.comm, &tmp3);
+    hash_to_scalar(&buf, sizeof(s_comm_3), sig.c);
+    if (!sc_isnonzero((const unsigned char*)sig.c.data))
+      goto try_again;
+    sc_mulsub(&sig.r, &sig.c, &unwrap(sec), &k);
+    if (!sc_isnonzero((const unsigned char*)sig.r.data))
+      goto try_again;
+  }
+
+  bool crypto_ops::verify_input_signature(const hash &prefix_hash,const uint32_t input_index, const public_key pub_view, const public_key pub_spend, signature sig)
+  {
+    public_key pub = addKeys(pub_view, pub_spend);
+
+    ge_p2 tmp2;
+    ge_p3 tmp3;
+    ec_scalar c;
+    s_comm_3 buf;
+    assert(check_key(pub));
+    buf.h = prefix_hash;
+    buf.i = input_index;
+    buf.key = pub;
+    if (ge_frombytes_vartime(&tmp3, &pub) != 0) {
+      return false;
+    }
+    if (sc_check(&sig.c) != 0 || sc_check(&sig.r) != 0 || !sc_isnonzero(&sig.c)) {
+      return false;
+    }
+    ge_double_scalarmult_base_vartime(&tmp2, &sig.c, &tmp3, &sig.r);
+    ge_tobytes(&buf.comm, &tmp2);
+    static const ec_point infinity = {{ 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}};
+    if (memcmp(&buf.comm, &infinity, 32) == 0)
+      return false;
+    hash_to_scalar(&buf, sizeof(s_comm_3), c);
+    sc_sub(&c, &c, &sig.c);
+    return sc_isnonzero(&c) == 0;
+  }
+
+  //for curve points: AB = A + B
+  public_key crypto_ops::addKeys(const public_key &A, const public_key &B) {
+    public_key AB;
+    ge_p3 B2, A2;
+    assert(ge_frombytes_vartime(&B2, &B) == 0 && ge_frombytes_vartime(&A2, &A) == 0);
+    ge_cached tmp2;
+    ge_p3_to_cached(&tmp2, &B2);
+    ge_p1p1 tmp3;
+    ge_add(&tmp3, &A2, &tmp2);
+    ge_p1p1_to_p3(&A2, &tmp3);
+    ge_p3_tobytes(&AB, &A2);
+
+    return AB;
+  }
+
+  secret_key crypto_ops::addSecretKeys(const secret_key& a, const secret_key& b){
+      assert(sc_check(&a) == 0);
+      assert(sc_check(&b) == 0);
+      secret_key d;
+      sc_add(&unwrap(d), &unwrap(a), &unwrap(b));
+      sc_reduce32(&d);
+      return d;
   }
 
   void crypto_ops::generate_ring_signature(const hash &prefix_hash, const key_image &image,
@@ -583,6 +682,7 @@ namespace crypto {
     boost::shared_ptr<rs_comm> buf(reinterpret_cast<rs_comm *>(malloc(rs_comm_size(pubs_count))), free);
     if (!buf)
       return false;
+
 #if !defined(NDEBUG)
     for (i = 0; i < pubs_count; i++) {
       assert(check_key(*pubs[i]));

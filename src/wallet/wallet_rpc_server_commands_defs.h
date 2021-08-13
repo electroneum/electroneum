@@ -1,4 +1,4 @@
-// Copyrights(c) 2017-2020, The Electroneum Project
+// Copyrights(c) 2017-2021, The Electroneum Project
 // Copyrights(c) 2014-2019, The Monero Project
 // 
 // All rights reserved.
@@ -750,6 +750,7 @@ namespace wallet_rpc
       std::string address;
       uint32_t account_index;
       std::set<uint32_t> subaddr_indices;
+      bool subaddr_indices_all;
       uint32_t priority;
       uint64_t ring_size;
       uint64_t outputs;
@@ -765,6 +766,7 @@ namespace wallet_rpc
         KV_SERIALIZE(address)
         KV_SERIALIZE(account_index)
         KV_SERIALIZE(subaddr_indices)
+        KV_SERIALIZE_OPT(subaddr_indices_all, false)
         KV_SERIALIZE(priority)
         KV_SERIALIZE_OPT(ring_size, (uint64_t)0)
         KV_SERIALIZE_OPT(outputs, (uint64_t)1)
@@ -1373,6 +1375,7 @@ namespace wallet_rpc
     bool double_spend_seen;
     uint64_t confirmations;
     uint64_t suggested_confirmations_threshold;
+    bool nonexistent_utxo_seen;
 
     BEGIN_KV_SERIALIZE_MAP()
       KV_SERIALIZE(txid);
@@ -1391,6 +1394,7 @@ namespace wallet_rpc
       KV_SERIALIZE(double_spend_seen)
       KV_SERIALIZE_OPT(confirmations, (uint64_t)0)
       KV_SERIALIZE_OPT(suggested_confirmations_threshold, (uint64_t)0)
+      KV_SERIALIZE(nonexistent_utxo_seen)
     END_KV_SERIALIZE_MAP()
   };
 
@@ -1515,6 +1519,7 @@ namespace wallet_rpc
       bool pending;
       bool failed;
       bool pool;
+      bool migration;
 
       bool filter_by_height;
       uint64_t min_height;
@@ -1529,6 +1534,7 @@ namespace wallet_rpc
         KV_SERIALIZE(pending);
         KV_SERIALIZE(failed);
         KV_SERIALIZE(pool);
+        KV_SERIALIZE(migration);
         KV_SERIALIZE(filter_by_height);
         KV_SERIALIZE(min_height);
         KV_SERIALIZE_OPT(max_height, (uint64_t)CRYPTONOTE_MAX_BLOCK_NUMBER);
@@ -1546,6 +1552,7 @@ namespace wallet_rpc
       std::list<transfer_entry> pending;
       std::list<transfer_entry> failed;
       std::list<transfer_entry> pool;
+      std::list<transfer_entry> migration;
 
       BEGIN_KV_SERIALIZE_MAP()
         KV_SERIALIZE(in);
@@ -1553,6 +1560,7 @@ namespace wallet_rpc
         KV_SERIALIZE(pending);
         KV_SERIALIZE(failed);
         KV_SERIALIZE(pool);
+        KV_SERIALIZE(migration);
       END_KV_SERIALIZE_MAP()
     };
     typedef epee::misc_utils::struct_init<response_t> response;

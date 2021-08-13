@@ -1,4 +1,4 @@
-// Copyrights(c) 2017-2020, The Electroneum Project
+// Copyrights(c) 2017-2021, The Electroneum Project
 // Copyrights(c) 2014-2019, The Monero Project
 // 
 // All rights reserved.
@@ -366,6 +366,7 @@ namespace cryptonote
       uint64_t block_timestamp;
       std::vector<uint64_t> output_indices;
       bool relayed;
+      bool nonexistent_utxo_seen;
 
       BEGIN_KV_SERIALIZE_MAP()
         KV_SERIALIZE(tx_hash)
@@ -386,6 +387,7 @@ namespace cryptonote
         {
           KV_SERIALIZE(relayed)
         }
+        KV_SERIALIZE(nonexistent_utxo_seen)
       END_KV_SERIALIZE_MAP()
     };
 
@@ -437,7 +439,7 @@ namespace cryptonote
 
     struct response_t
     {
-      std::vector<int> spent_status;
+      std::vector<u_int> spent_status;
       std::string status;
       bool untrusted;
 
@@ -1273,7 +1275,7 @@ namespace cryptonote
   {
     struct request_t
     {
-      int8_t level;
+      uint8_t level;
 
       BEGIN_KV_SERIALIZE_MAP()
         KV_SERIALIZE(level)
@@ -1334,6 +1336,7 @@ namespace cryptonote
     bool do_not_relay;
     bool double_spend_seen;
     std::string tx_blob;
+    bool nonexistent_utxo_seen;
 
     BEGIN_KV_SERIALIZE_MAP()
       KV_SERIALIZE(id_hash)
@@ -1352,6 +1355,7 @@ namespace cryptonote
       KV_SERIALIZE(do_not_relay)
       KV_SERIALIZE(double_spend_seen)
       KV_SERIALIZE(tx_blob)
+      KV_SERIALIZE(nonexistent_utxo_seen)
     END_KV_SERIALIZE_MAP()
   };
 
@@ -1497,8 +1501,9 @@ namespace cryptonote
     uint64_t histo_98pc;
     std::vector<txpool_histo> histo;
     uint32_t num_double_spends;
+    uint32_t num_nonexistent_utxos;
 
-    txpool_stats(): bytes_total(0), bytes_min(0), bytes_max(0), bytes_med(0), fee_total(0), oldest(0), txs_total(0), num_failing(0), num_10m(0), num_not_relayed(0), histo_98pc(0), num_double_spends(0) {}
+    txpool_stats(): bytes_total(0), bytes_min(0), bytes_max(0), bytes_med(0), fee_total(0), oldest(0), txs_total(0), num_failing(0), num_10m(0), num_not_relayed(0), histo_98pc(0), num_double_spends(0), num_nonexistent_utxos(0) {}
 
     BEGIN_KV_SERIALIZE_MAP()
       KV_SERIALIZE(bytes_total)
@@ -1514,6 +1519,7 @@ namespace cryptonote
       KV_SERIALIZE(histo_98pc)
       KV_SERIALIZE_CONTAINER_POD_AS_BLOB(histo)
       KV_SERIALIZE(num_double_spends)
+      KV_SERIALIZE(num_nonexistent_utxos)
     END_KV_SERIALIZE_MAP()
   };
 
@@ -1536,6 +1542,64 @@ namespace cryptonote
         KV_SERIALIZE(status)
         KV_SERIALIZE(pool_stats)
         KV_SERIALIZE(untrusted)
+      END_KV_SERIALIZE_MAP()
+    };
+    typedef epee::misc_utils::struct_init<response_t> response;
+  };
+
+  struct COMMAND_RPC_GET_BALANCE
+  {
+    struct request_t
+    {
+      std::string etn_address;
+      BEGIN_KV_SERIALIZE_MAP()
+        KV_SERIALIZE(etn_address)
+      END_KV_SERIALIZE_MAP()
+    };
+    typedef epee::misc_utils::struct_init<request_t> request;
+
+    struct response_t
+    {
+      uint64_t balance;
+      std::string status;
+      
+      BEGIN_KV_SERIALIZE_MAP()
+        KV_SERIALIZE(balance)
+        KV_SERIALIZE(status)
+      END_KV_SERIALIZE_MAP()
+    };
+    typedef epee::misc_utils::struct_init<response_t> response;
+  };
+
+  struct COMMAND_RPC_GET_ADDRESS_BATCH_HISTORY
+  {
+    struct request_t
+    {
+      std::string etn_address;
+      uint64_t start_out_id;
+      uint64_t batch_size;
+      bool desc;
+      BEGIN_KV_SERIALIZE_MAP()
+        KV_SERIALIZE(etn_address)
+        KV_SERIALIZE(start_out_id)
+        KV_SERIALIZE(batch_size)
+        KV_SERIALIZE_OPT(desc, false);
+      END_KV_SERIALIZE_MAP()
+    };
+    typedef epee::misc_utils::struct_init<request_t> request;
+
+    struct response_t
+    {
+      std::string status;
+      uint64_t next_out_id;
+      bool last_page;
+      std::vector<std::string> txs;
+      
+      BEGIN_KV_SERIALIZE_MAP()
+        KV_SERIALIZE(status)
+        KV_SERIALIZE(next_out_id)
+        KV_SERIALIZE(last_page)
+        KV_SERIALIZE(txs)
       END_KV_SERIALIZE_MAP()
     };
     typedef epee::misc_utils::struct_init<response_t> response;

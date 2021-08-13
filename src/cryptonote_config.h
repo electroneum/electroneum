@@ -1,4 +1,4 @@
-// Copyrights(c) 2017-2020, The Electroneum Project
+// Copyrights(c) 2017-2021, The Electroneum Project
 // Copyrights(c) 2014-2019, The Monero Project
 // 
 // All rights reserved.
@@ -35,7 +35,7 @@
 #include <string>
 #include <boost/uuid/uuid.hpp>
 
-#define CRYPTONOTE_DNS_TIMEOUT_MS                       20000
+#define CRYPTONOTE_DNS_TIMEOUT_MS                       60000
 
 #define CRYPTONOTE_MAX_BLOCK_NUMBER                     500000000
 #define CRYPTONOTE_GETBLOCKTEMPLATE_MAX_BLOCK_SIZE	    196608 //size of block (bytes) that is the maximum that miners will produce
@@ -44,7 +44,7 @@
 #define CRYPTONOTE_PUBLIC_ADDRESS_TEXTBLOB_VER          0
 #define CRYPTONOTE_MINED_ETN_UNLOCK_WINDOW            18
 #define ETN_MINED_ETN_UNLOCK_WINDOW_V8                5
-#define CURRENT_TRANSACTION_VERSION                     2
+#define CURRENT_TRANSACTION_VERSION                     3
 #define CURRENT_BLOCK_MAJOR_VERSION                     1
 #define CURRENT_BLOCK_MINOR_VERSION                     0
 #define CRYPTONOTE_BLOCK_FUTURE_TIME_LIMIT              60*60*2
@@ -65,6 +65,7 @@
 #define CRYPTONOTE_BLOCK_GRANTED_FULL_REWARD_ZONE_V1    20000 //size of block (bytes) after which reward for block calculated using block size - before first fork
 #define CRYPTONOTE_BLOCK_GRANTED_FULL_REWARD_ZONE_V5    150000 //size of block (bytes) after which reward for block calculated using block size - second change, from v5
 #define CRYPTONOTE_BLOCK_GRANTED_FULL_REWARD_ZONE_V8    300000 //size of block (bytes) after which reward for block calculated using block size - third change, from v8
+#define CRYPTONOTE_BLOCK_GRANTED_FULL_REWARD_ZONE_V10   500000 //size of block (bytes) after which reward for block calculated using block size - fourth change, from v10
 #define CRYPTONOTE_LONG_TERM_BLOCK_WEIGHT_WINDOW_SIZE   100000 // size in blocks of the long term block weight median window
 #define CRYPTONOTE_SHORT_TERM_BLOCK_WEIGHT_SURGE_FACTOR 50
 #define CRYPTONOTE_COINBASE_BLOB_RESERVED_SIZE          600
@@ -153,7 +154,7 @@
 
 #define THREAD_STACK_SIZE                       5 * 1024 * 1024
 
-#define CURRENT_HARDFORK_VERSION                  8
+#define CURRENT_HARDFORK_VERSION                  10
 #define HF_VERSION_FORBID_DUST_OUTPUTS            2
 #define HF_VERSION_FORBID_INVALID_PUBKEYS         4
 #define HF_VERSION_ENFORCE_0_DECOY_TXS            6
@@ -172,6 +173,7 @@
 #define HF_VERSION_ORDERED_TX_INPUTS              100
 #define HF_VERSION_ALLOW_BULLETPROOF              100
 #define HF_VERSION_FORBIT_BORROMEAN_RANGE_PROOFS  HF_VERSION_ALLOW_BULLETPROOF + 1
+#define HF_VERSION_PUBLIC_TX                      10
 
 
 #define PER_KB_FEE_QUANTIZATION_DECIMALS        2

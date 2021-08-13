@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2020, The Electroneum Project
+// Copyright (c) 2017-2021, The Electroneum Project
 //
 // All rights reserved.
 //
@@ -492,7 +492,7 @@ namespace tx {
     auto & tsx_data = m_ct.tsx_data;
     auto & tx = cur_tx();
 
-    m_ct.tx.version = 2;
+    m_ct.tx.version = 4;
     m_ct.tx.unlock_time = tx.unlock_time;
     m_client_version = (m_aux_data->client_version ? m_aux_data->client_version.get() : 1);
 
