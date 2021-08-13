@@ -98,7 +98,7 @@ static const struct {
   { 7, 324500, 0, 1538985600 }, // Estimated July 5th, 8:30AM UTC
   { 8, 589169, 0, 1562547600 },
   { 9, 862866, 0, 1595615809 }, // Estimated July 22th, 2020
-  { 10, 1069110, 0, 10000000000 }, // todo: choose real date
+  { 10, 1175315, 0, 1632999041 }, // todo: choose real date
 };
 static const uint64_t mainnet_hard_fork_version_1_till = 307499;
 
@@ -114,7 +114,7 @@ static const struct {
   { 7, 215000, 0, 1530615600 },
   { 8, 446674, 0, 1562889600 },
   { 9, 707121, 0, 1595615809 },
-  { 10, 9000000, 0, 10000000000 }, // todo: choose real date
+  { 10, 1165235, 0, 1631789441 }, // todo: choose real date
 };
 static const uint64_t testnet_hard_fork_version_1_till = 190059;
 
@@ -136,7 +136,7 @@ static const struct {
   { 7, 37000, 0, 1521600000 },
   { 8, 38000, 0, 1521800000 },
   { 9, 39000, 0, 1522000000 },
-  { 10, 9000000, 0, 10000000000 }, // todo: choose real date
+  { 10, 1165235, 0, 1631789441 }, // todo: choose real date
 };
 
 //------------------------------------------------------------------

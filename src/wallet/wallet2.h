@@ -888,8 +888,8 @@ private:
     void get_unconfirmed_payments(std::list<std::pair<crypto::hash,wallet2::pool_payment_details>>& unconfirmed_payments, const boost::optional<uint32_t>& subaddr_account = boost::none, const std::set<uint32_t>& subaddr_indices = {}) const;
 
     uint64_t get_blockchain_current_height() const { return m_light_wallet_blockchain_height ? m_light_wallet_blockchain_height : m_blockchain.size(); }
-    bool synced_to_v10() const {return nettype() == cryptonote::network_type::MAINNET ? get_blockchain_current_height() >= 1069110 : get_blockchain_current_height() >= 9000000;}
-    bool public_transactions_required() const { return nettype() == cryptonote::network_type::MAINNET ? get_blockchain_current_height() >= (1069110 - CRYPTONOTE_LOCKED_TX_ALLOWED_DELTA_BLOCKS) : get_blockchain_current_height() >= (9000000 - CRYPTONOTE_LOCKED_TX_ALLOWED_DELTA_BLOCKS);} // prepare v2 tx if the block height is one before the fork block (which contains v2+ tx only)
+    bool synced_to_v10() const {return nettype() == cryptonote::network_type::MAINNET ? get_blockchain_current_height() >= 1175315 : get_blockchain_current_height() >= 1165235;}
+    bool public_transactions_required() const { return nettype() == cryptonote::network_type::MAINNET ? get_blockchain_current_height() >= (1175315 - CRYPTONOTE_LOCKED_TX_ALLOWED_DELTA_BLOCKS) : get_blockchain_current_height() >= (1165235 - CRYPTONOTE_LOCKED_TX_ALLOWED_DELTA_BLOCKS);} // prepare v2 tx if the block height is one before the fork block (which contains v2+ tx only)
     void rescan_spent();
     void rescan_blockchain(bool hard, bool refresh = true, bool keep_key_images = false);
     bool is_transfer_unlocked(const transfer_details& td) const;
