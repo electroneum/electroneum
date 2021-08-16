@@ -1,4 +1,4 @@
-// Copyrights(c) 2017-2020, The Electroneum Project
+// Copyrights(c) 2017-2021, The Electroneum Project
 // Copyrights(c) 2014-2019, The Monero Project
 // 
 // All rights reserved.
@@ -75,7 +75,7 @@ bool gen_double_spend_in_different_chains::check_double_spend(cryptonote::core& 
   DEFINE_TESTS_ERROR_CONTEXT("gen_double_spend_in_different_chains::check_double_spend");
 
   std::vector<block> block_list;
-  bool r = c.get_blocks(0, 100 + 2 * CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW, block_list);
+  bool r = c.get_blocks(0, 100 + 2 * CRYPTONOTE_MINED_ETN_UNLOCK_WINDOW, block_list);
   CHECK_TEST_CONDITION(r);
 
   std::vector<block> blocks(block_list.begin(), block_list.end());

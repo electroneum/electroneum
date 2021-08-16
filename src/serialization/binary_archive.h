@@ -136,6 +136,11 @@ struct binary_archive<false> : public binary_archive_base<std::istream, false>
       stream_.read((char *)buf, len);
     }
 
+    void serialize_string(std::string str, const char *delimiter="")
+    {
+      stream_.read((char *)str.c_str(), str.size());
+    }
+
     template <class T>
     void serialize_varint(T &v)
     {
@@ -199,6 +204,11 @@ struct binary_archive<true> : public binary_archive_base<std::ostream, true>
     void serialize_blob(void *buf, size_t len, const char *delimiter="")
     {
       stream_.write((char *)buf, len);
+    }
+
+    void serialize_string(std::string str, const char *delimiter="")
+    {
+      stream_.write((char *)str.c_str(), str.size());
     }
 
     template <class T>

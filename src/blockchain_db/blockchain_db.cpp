@@ -1,4 +1,4 @@
-// Copyrights(c) 2017-2020, The Electroneum Project
+// Copyrights(c) 2017-2021, The Electroneum Project
 // Copyrights(c) 2014-2019, The Monero Project
 // 
 // All rights reserved.
@@ -138,19 +138,22 @@ void BlockchainDB::add_transaction(const crypto::hash& blk_hash, const std::pair
   {
     tx_hash = *tx_hash_ptr;
   }
-  if (tx.version >= 2)
-  {
-    if (!tx_prunable_hash_ptr)
-      tx_prunable_hash = get_transaction_prunable_hash(tx, &txp.second);
-    else
-      tx_prunable_hash = *tx_prunable_hash_ptr;
-  }
 
-  for (const txin_v& tx_input : tx.vin)
+  std::vector<std::pair<crypto::hash, uint64_t>> utxos_to_remove;
+
+  // Sanity check on supported input types
+  for (size_t i = 0; i < tx.vin.size(); ++i)
   {
+    const txin_v& tx_input = tx.vin[i];
     if (tx_input.type() == typeid(txin_to_key))
     {
       add_spent_key(boost::get<txin_to_key>(tx_input).k_image);
+    }
+    else if (tx_input.type() == typeid(txin_to_key_public))
+    {
+      const auto &txin = boost::get<txin_to_key_public>(tx_input);
+      utxos_to_remove.push_back({txin.tx_hash, txin.relative_offset});
+      add_tx_input(txin.tx_hash, txin.relative_offset, tx.hash, i);
     }
     else if (tx_input.type() == typeid(txin_gen))
     {
@@ -164,38 +167,57 @@ void BlockchainDB::add_transaction(const crypto::hash& blk_hash, const std::pair
       {
         if (tx_input.type() == typeid(txin_to_key))
         {
-          remove_spent_key(boost::get<txin_to_key>(tx_input).k_image);
+          remove_spent_key(boost::get<txin_to_key>(tx_input).k_image); // inputs are already checked here regardless of version
         }
       }
       return;
     }
   }
 
-  uint64_t tx_id = add_transaction_data(blk_hash, txp, tx_hash, tx_prunable_hash);
-
-  std::vector<uint64_t> amount_output_indices(tx.vout.size());
-
-  // iterate tx.vout using indices instead of C++11 foreach syntax because
-  // we need the index
-  for (uint64_t i = 0; i < tx.vout.size(); ++i)
+  if (tx.version == 1)
   {
-    // miner v2 txes have their coinbase output in one single out to save space,
-    // and we store them as rct outputs with an identity mask
-    if (miner_tx && tx.version == 2)
+    uint64_t tx_id = add_transaction_data(blk_hash, txp, tx_hash, tx_prunable_hash);
+
+    std::vector<uint64_t> amount_output_indices(tx.vout.size());
+
+    // iterate tx.vout using indices instead of C++11 foreach syntax because
+    // we need the index
+    for (uint64_t i = 0; i < tx.vout.size(); ++i)
     {
-      cryptonote::tx_out vout = tx.vout[i];
-      rct::key commitment = rct::zeroCommit(vout.amount);
-      vout.amount = 0;
-      amount_output_indices[i] = add_output(tx_hash, vout, i, tx.unlock_time,
-        &commitment);
+      amount_output_indices[i] = add_output(tx_hash, tx.vout[i], i, tx.unlock_time, NULL);
     }
-    else
-    {
-      amount_output_indices[i] = add_output(tx_hash, tx.vout[i], i, tx.unlock_time,
-        tx.version > 1 ? &tx.rct_signatures.outPk[i].mask : NULL);
-    }
+    add_tx_amount_output_indices(tx_id, amount_output_indices);
   }
-  add_tx_amount_output_indices(tx_id, amount_output_indices);
+  else if (tx.version >= 2)
+  {
+    add_transaction_data(blk_hash, txp, tx_hash, tx_prunable_hash);
+
+    // Sanity check on supported output types
+    for (uint64_t i = 0; i < tx.vout.size(); ++i)
+    {
+      if(tx.vout[i].target.type() != typeid(txout_to_key_public))
+      {
+        LOG_PRINT_L1("Unsupported output type, reinstating UTXOs, removing key images and aborting transaction addition");
+        for (const txin_v& tx_input : tx.vin)
+        {
+          if (tx_input.type() == typeid(txin_to_key))
+          {
+            remove_spent_key(boost::get<txin_to_key>(tx_input).k_image);
+          }
+        }
+        return;
+      }// if outs are all of the right type, we're ok to proceed by removing the utxos that are now spent
+
+      for(auto utxo: utxos_to_remove)
+      {
+            remove_chainstate_utxo(utxo.first, utxo.second);
+      }
+
+      const auto &txout = boost::get<txout_to_key_public>(tx.vout[i].target);
+      add_chainstate_utxo(tx.hash, i, addKeys(txout.address.m_view_public_key, txout.address.m_spend_public_key) , tx.vout[i].amount, txp.first.unlock_time, miner_tx);
+      add_addr_output(tx.hash, i, addKeys(txout.address.m_view_public_key, txout.address.m_spend_public_key), tx.vout[i].amount, txp.first.unlock_time);
+    }//end of v2+ processing
+  }
 }
 
 uint64_t BlockchainDB::add_block( const std::pair<block, blobdata>& blck
@@ -223,21 +245,13 @@ uint64_t BlockchainDB::add_block( const std::pair<block, blobdata>& blck
 
   time1 = epee::misc_utils::get_tick_count();
 
-  uint64_t num_rct_outs = 0;
   add_transaction(blk_hash, std::make_pair(blk.miner_tx, tx_to_blob(blk.miner_tx)));
-  if (blk.miner_tx.version == 2)
-    num_rct_outs += blk.miner_tx.vout.size();
   int tx_i = 0;
   crypto::hash tx_hash = crypto::null_hash;
   for (const std::pair<transaction, blobdata>& tx : txs)
   {
     tx_hash = blk.tx_hashes[tx_i];
     add_transaction(blk_hash, tx, &tx_hash);
-    for (const auto &vout: tx.first.vout)
-    {
-      if (vout.amount == 0)
-        ++num_rct_outs;
-    }
     ++tx_i;
   }
   TIME_MEASURE_FINISH(time1);
@@ -245,10 +259,10 @@ uint64_t BlockchainDB::add_block( const std::pair<block, blobdata>& blck
 
   // call out to subclass implementation to add the block & metadata
   time1 = epee::misc_utils::get_tick_count();
-  add_block(blk, block_weight, long_term_block_weight, cumulative_difficulty, coins_generated, num_rct_outs, blk_hash);
+  add_block(blk, block_weight, long_term_block_weight, cumulative_difficulty, coins_generated, 0, blk_hash);
   TIME_MEASURE_FINISH(time1);
   time_add_block1 += time1;
-
+  //voting mechanism
   m_hardfork->add(blk, prev_height);
 
   ++num_calls;
@@ -292,6 +306,28 @@ void BlockchainDB::remove_transaction(const crypto::hash& tx_hash)
     if (tx_input.type() == typeid(txin_to_key))
     {
       remove_spent_key(boost::get<txin_to_key>(tx_input).k_image);
+    }
+    else if (tx_input.type() == typeid(txin_to_key_public))
+    {
+      const auto &txin = boost::get<txin_to_key_public>(tx_input); // input being used in the tx to be removed.
+
+      transaction parent_tx = get_tx(txin.tx_hash);
+      const auto &txout = boost::get<txout_to_key_public>(parent_tx.vout[txin.relative_offset].target); //previous tx out that this tx in references
+      //reinstate that out as a utxo
+      bool reinstate_coinbase = cryptonote::is_coinbase(get_pruned_tx(txin.tx_hash));
+      add_chainstate_utxo(txin.tx_hash, txin.relative_offset, addKeys(txout.address.m_view_public_key, txout.address.m_spend_public_key), txin.amount, get_tx_unlock_time(txin.tx_hash), reinstate_coinbase);
+      remove_tx_input(txin.tx_hash, txin.relative_offset);
+    }
+  }
+
+  if (tx.version >= 2)
+  {
+    for (uint64_t i = 0; i < tx.vout.size(); ++i)
+    {
+      const auto &txout = boost::get<txout_to_key_public>(tx.vout[i].target);
+
+      remove_chainstate_utxo(tx.hash, i);
+      remove_addr_output(tx_hash, i, addKeys(txout.address.m_view_public_key, txout.address.m_spend_public_key), tx.vout[i].amount, tx.unlock_time);
     }
   }
 

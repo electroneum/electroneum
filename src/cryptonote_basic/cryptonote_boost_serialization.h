@@ -1,4 +1,4 @@
-// Copyrights(c) 2017-2020, The Electroneum Project
+// Copyrights(c) 2017-2021, The Electroneum Project
 // Copyrights(c) 2014-2019, The Monero Project
 // 
 // All rights reserved.
@@ -80,6 +80,7 @@ namespace boost
   {
     a & reinterpret_cast<char (&)[sizeof(crypto::signature)]>(x);
   }
+
   template <class Archive>
   inline void serialize(Archive &a, crypto::hash &x, const boost::serialization::version_type ver)
   {
@@ -103,6 +104,20 @@ namespace boost
   inline void serialize(Archive &a, cryptonote::txout_to_key &x, const boost::serialization::version_type ver)
   {
     a & x.key;
+  }
+
+  template <class Archive>
+  inline void serialize(Archive &a, cryptonote::txout_to_key_public &x, const boost::serialization::version_type ver)
+  {
+    a & x.m_address_prefix;
+    a & x.address;
+  }
+
+  template <class Archive>
+  inline void serialize(Archive &a, cryptonote::account_public_address &x, const boost::serialization::version_type ver)
+  {
+    a & x.m_spend_public_key;
+    a & x.m_view_public_key;
   }
 
   template <class Archive>
@@ -140,6 +155,14 @@ namespace boost
     a & x.amount;
     a & x.key_offsets;
     a & x.k_image;
+  }
+
+  template <class Archive>
+  inline void serialize(Archive &a, cryptonote::txin_to_key_public &x, const boost::serialization::version_type ver)
+  {
+      a & x.amount;
+      a & x.relative_offset;
+      a & x.tx_hash;
   }
 
   template <class Archive>

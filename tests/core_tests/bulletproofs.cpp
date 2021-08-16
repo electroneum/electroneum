@@ -54,7 +54,7 @@ bool gen_bp_tx_validation_base::generate_with(std::vector<test_event_entry>& eve
   // create 12 miner accounts, and have them mine the next 12 blocks
   cryptonote::account_base miner_accounts[12];
   const cryptonote::block *prev_block = &blk_0;
-  cryptonote::block blocks[12 + CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW];
+  cryptonote::block blocks[12 + CRYPTONOTE_MINED_ETN_UNLOCK_WINDOW];
   for (size_t n = 0; n < 12; ++n) {
     miner_accounts[n].generate();
     CHECK_AND_ASSERT_MES(generator.construct_block_manually(blocks[n], *prev_block, miner_accounts[n],
@@ -71,7 +71,7 @@ bool gen_bp_tx_validation_base::generate_with(std::vector<test_event_entry>& eve
   cryptonote::block blk_r, blk_last;
   {
     blk_last = blocks[11];
-    for (size_t i = 0; i < CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW; ++i)
+    for (size_t i = 0; i < CRYPTONOTE_MINED_ETN_UNLOCK_WINDOW; ++i)
     {
       CHECK_AND_ASSERT_MES(generator.construct_block_manually(blocks[12+i], blk_last, miner_account,
           test_generator::bf_major_ver | test_generator::bf_minor_ver | test_generator::bf_timestamp | test_generator::bf_hf_version,
@@ -188,7 +188,7 @@ bool gen_bp_tx_validation_base::generate_with(std::vector<test_event_entry>& eve
 bool gen_bp_tx_validation_base::check_bp(const cryptonote::transaction &tx, size_t tx_idx, const size_t *sizes, const char *context) const
 {
   DEFINE_TESTS_ERROR_CONTEXT(context);
-  CHECK_TEST_CONDITION(tx.version >= 2);
+  CHECK_TEST_CONDITION(tx.version >= 4);
   CHECK_TEST_CONDITION(rct::is_rct_bulletproof(tx.rct_signatures.type));
   size_t n_sizes = 0, n_amounts = 0;
   for (size_t n = 0; n < tx_idx; ++n)

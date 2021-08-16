@@ -1,4 +1,4 @@
-// Copyrights(c) 2017-2020, The Electroneum Project
+// Copyrights(c) 2017-2021, The Electroneum Project
 // Copyrights(c) 2014-2019, The Monero Project
 //
 // All rights reserved.
@@ -866,6 +866,10 @@ namespace cryptonote
 
      std::string sign_message(std::string sk, std::string msg);
 
+     uint64_t get_balance(const address_parse_info &addr);
+
+     std::vector<address_outputs> get_address_batch_history(const address_parse_info &addr, const uint64_t &start_tx_id = 0, const uint64_t &batch_size = 100, bool desc = false);
+
    private:
 
      /**
@@ -982,6 +986,8 @@ namespace cryptonote
       * @return false if any key image is repeated, otherwise true
       */
      bool check_tx_inputs_keyimages_diff(const transaction& tx) const;
+
+     bool check_tx_inputs_utxos_diff(const transaction& tx) const;
 
      /**
       * @brief verify that each ring uses distinct members

@@ -44,16 +44,16 @@ struct gen_bp_tx_validation_base : public test_chain_unit_base
   bool check_tx_verification_context(const cryptonote::tx_verification_context& tvc, bool tx_added, size_t event_idx, const cryptonote::transaction& /*tx*/)
   {
     if (m_invalid_tx_index == event_idx)
-      return tvc.m_verifivation_failed;
+      return tvc.m_verification_failed;
     else
-      return !tvc.m_verifivation_failed && tx_added;
+      return !tvc.m_verification_failed && tx_added;
   }
 
   bool check_tx_verification_context_array(const std::vector<cryptonote::tx_verification_context>& tvcs, size_t tx_added, size_t event_idx, const std::vector<cryptonote::transaction>& /*txs*/)
   {
     size_t failed = 0;
     for (const cryptonote::tx_verification_context &tvc: tvcs)
-      if (tvc.m_verifivation_failed)
+      if (tvc.m_verification_failed)
         ++failed;
     if (m_invalid_tx_index == event_idx)
       return failed > 0;
@@ -64,9 +64,9 @@ struct gen_bp_tx_validation_base : public test_chain_unit_base
   bool check_block_verification_context(const cryptonote::block_verification_context& bvc, size_t event_idx, const cryptonote::block& /*block*/)
   {
     if (m_invalid_block_index == event_idx)
-      return bvc.m_verifivation_failed;
+      return bvc.m_verification_failed;
     else
-      return !bvc.m_verifivation_failed;
+      return !bvc.m_verification_failed;
   }
 
   bool mark_invalid_block(cryptonote::core& /*c*/, size_t ev_index, const std::vector<test_event_entry>& /*events*/)

@@ -729,7 +729,7 @@ int main(int argc, char* argv[])
     MINFO("Ancestry for " << start_txid << ": " << get_deduplicated_ancestry(ancestry) << " / " << get_full_ancestry(ancestry));
     for (const auto &i: ancestry)
     {
-      MINFO(cryptonote::print_money(i.first.amount) << "/" << i.first.offset << ": " << i.second);
+      MINFO(cryptonote::print_etn(i.first.amount) << "/" << i.first.offset << ": " << i.second);
     }
   }
 

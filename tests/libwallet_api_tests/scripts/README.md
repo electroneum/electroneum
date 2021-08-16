@@ -20,5 +20,5 @@
 
 * ```mining_start.sh``` and ```mining_stop.sh``` - helper scripts to start and stop mining on miner wallet
 
-* ```send_funds.sh``` - script for seeding test wallets. Please run this script when you have enough money on miner wallet
+* ```send_funds.sh``` - script for seeding test wallets. Please run this script when you have enough ETN on miner wallet
 

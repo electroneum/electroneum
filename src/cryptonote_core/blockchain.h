@@ -1,4 +1,4 @@
-// Copyrights(c) 2017-2020, The Electroneum Project
+// Copyrights(c) 2017-2021, The Electroneum Project
 // Copyrights(c) 2014-2019, The Monero Project
 //
 // All rights reserved.
@@ -31,6 +31,9 @@
 
 #pragma once
 #include <boost/asio/io_service.hpp>
+#if BOOST_VERSION >= 107400
+  #include <boost/serialization/library_version_type.hpp>
+#endif
 #include <boost/serialization/serialization.hpp>
 #include <boost/serialization/version.hpp>
 #include <boost/serialization/list.hpp>
@@ -265,7 +268,18 @@ namespace cryptonote
      *
      * @return true if any key image is already spent in the blockchain, else false
      */
-    bool have_tx_keyimges_as_spent(const transaction &tx) const;
+
+      bool key_images_already_spent(const transaction &tx) const;
+
+      /**
+      * @brief check if any utxo in a transaction has already been spent  (v3 tx onwards)
+      *
+      * @param tx the transaction to check
+      *
+      * @return true if any utxo is nonexistent, else false
+      */
+
+      bool utxo_nonexistent(const transaction &tx) const;
 
     /**
      * @brief check if a key image is already spent on the blockchain

@@ -814,6 +814,14 @@ namespace hw {
         return sub_sec;
     }
 
+    crypto::secret_key device_ledger::get_subaddress_private_spendkey(const cryptonote::account_keys& keys, const cryptonote::subaddress_index &subaddr_index){
+        return boost::value_initialized<crypto::secret_key>(); //todo
+    }
+
+    crypto::secret_key device_ledger::get_subaddress_private_viewkey(const crypto::secret_key &main_wallet_sec_view, crypto::secret_key &subaddress_sec_spend) {
+     return boost::value_initialized<crypto::secret_key>(); //todo
+    }
+
     /* ======================================================================= */
     /*                            DERIVATION & KEY                             */
     /* ======================================================================= */
@@ -2328,6 +2336,11 @@ namespace hw {
         this->mulsub_eqx(sig[sec_index].r, sig[sec_index].c, unwrap(sec), unwrap(q_s));
         return true;
     }
+
+    bool device_ledger::generate_input_signature(const crypto::hash &prefix_hash, const uint32_t input_index, const crypto::secret_key sec_view, const crypto::secret_key sec_spend, crypto::signature& signature){
+        return true;// todo: 4.0.0.0
+    }
+
 
     /* ---------------------------------------------------------- */
 

@@ -1,4 +1,4 @@
-// Copyrights(c) 2017-2020, The Electroneum Project
+// Copyrights(c) 2017-2021, The Electroneum Project
 // Copyrights(c) 2014-2019, The Monero Project
 // 
 // All rights reserved.
@@ -585,7 +585,7 @@ public:
       m_c.cleanup_handle_incoming_blocks();
     }
     else
-      bvc.m_verifivation_failed = true;
+      bvc.m_verification_failed = true;
     bool r = m_validator.check_block_verification_context(bvc, m_ev_index, b);
     CHECK_AND_NO_ASSERT_MES(r, false, "block verification context check failed");
     return r;
@@ -615,7 +615,7 @@ public:
       m_c.cleanup_handle_incoming_blocks();
     }
     else
-      bvc.m_verifivation_failed = true;
+      bvc.m_verification_failed = true;
 
     cryptonote::block blk;
     std::stringstream ss;
@@ -825,10 +825,10 @@ inline bool do_replay_file(const std::string& filename)
 }
 
 #define REGISTER_CALLBACK(CB_NAME, CLBACK) \
-  register_callback(CB_NAME, boost::bind(&CLBACK, this, _1, _2, _3));
+  register_callback(CB_NAME, std::bind(&CLBACK, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
 
 #define REGISTER_CALLBACK_METHOD(CLASS, METHOD) \
-  register_callback(#METHOD, boost::bind(&CLASS::METHOD, this, _1, _2, _3));
+  register_callback(#METHOD, std::bind(&CLASS::METHOD, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
 
 #define MAKE_GENESIS_BLOCK(VEC_EVENTS, BLK_NAME, MINER_ACC, TS)                       \
   test_generator generator;                                                           \
@@ -887,8 +887,8 @@ inline bool do_replay_file(const std::string& filename)
   }
 
 #define REWIND_BLOCKS_N(VEC_EVENTS, BLK_NAME, PREV_BLOCK, MINER_ACC, COUNT) REWIND_BLOCKS_N_HF(VEC_EVENTS, BLK_NAME, PREV_BLOCK, MINER_ACC, COUNT, boost::none)
-#define REWIND_BLOCKS(VEC_EVENTS, BLK_NAME, PREV_BLOCK, MINER_ACC) REWIND_BLOCKS_N(VEC_EVENTS, BLK_NAME, PREV_BLOCK, MINER_ACC, CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW)
-#define REWIND_BLOCKS_HF(VEC_EVENTS, BLK_NAME, PREV_BLOCK, MINER_ACC, HF) REWIND_BLOCKS_N_HF(VEC_EVENTS, BLK_NAME, PREV_BLOCK, MINER_ACC, CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW, HF)
+#define REWIND_BLOCKS(VEC_EVENTS, BLK_NAME, PREV_BLOCK, MINER_ACC) REWIND_BLOCKS_N(VEC_EVENTS, BLK_NAME, PREV_BLOCK, MINER_ACC, CRYPTONOTE_MINED_ETN_UNLOCK_WINDOW)
+#define REWIND_BLOCKS_HF(VEC_EVENTS, BLK_NAME, PREV_BLOCK, MINER_ACC, HF) REWIND_BLOCKS_N_HF(VEC_EVENTS, BLK_NAME, PREV_BLOCK, MINER_ACC, CRYPTONOTE_MINED_ETN_UNLOCK_WINDOW, HF)
 
 #define MAKE_TX_MIX(VEC_EVENTS, TX_NAME, FROM, TO, AMOUNT, NMIX, HEAD)                       \
   cryptonote::transaction TX_NAME;                                                             \

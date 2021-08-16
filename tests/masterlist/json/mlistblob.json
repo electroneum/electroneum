@@ -1,0 +1,25 @@
+{
+  "validators":[
+    {"validation_public_key":"01CAC4D3784CBFCB6B5A4456318D76E2817ABACD1CBF3FF84CF603235B49EA86", "valid_from_height":0, "valid_to_height":0 },
+    {"validation_public_key":"C79AEA533BAE33987DDCA651613A1773372905015D38A82521804F68E0EC7963", "valid_from_height":0, "valid_to_height":0 },
+    {"validation_public_key":"09308D9E07711C09472769AFBF1D9DAC005B76975A246D87C61C9BEE65EC7328", "valid_from_height":0, "valid_to_height":0 },
+    {"validation_public_key":"A9C388310848260413CF8CF32745DE1F773EBF95B9E3F469BCD0E155FF455C3A", "valid_from_height":0, "valid_to_height":0 },
+    {"validation_public_key":"9CDA5BD532C6EC710BA66BAFA76510E7F88577A66118C91776D0F48037C3E13E", "valid_from_height":0, "valid_to_height":0 },
+    {"validation_public_key":"336EE28D5BECEDB3C181BF7D9E64D2E77E26DE029D81E33B7FEACD0B097EBB33", "valid_from_height":0, "valid_to_height":0 },
+    {"validation_public_key":"08D2F37493A2584642CFC96EF146F4AF8804E75293656A10DC5C8414806A7352", "valid_from_height":0, "valid_to_height":0 },
+    {"validation_public_key":"BB906CE0FCE9194C5E2331626F0C51C51FB8C7A0F105C4319F42B4B8CCB45954", "valid_from_height":0, "valid_to_height":0 },
+    {"validation_public_key":"6F8DAFF999BCBCC23201D9D436C5FEFA17B203944EF333BC6416E79A843880CB", "valid_from_height":0, "valid_to_height":0 },
+    {"validation_public_key":"5C13682B531B20B213BBDBE8155850CB8DC252685E0314F06715A516DDFE8442", "valid_from_height":0, "valid_to_height":0 },
+    {"validation_public_key":"904AE8C904F4219261D420CB4C7D51536A160E15ADF8F99ACCD4CAA0F063F755", "valid_from_height":0, "valid_to_height":0 },
+    {"validation_public_key":"8D1AB8FBC01C2229F13FB7E14CA41988533B48C4CD52677D34BEA64CB171C5B1", "valid_from_height":0, "valid_to_height":0 },
+    {"validation_public_key":"05DBB045EEDA872862C329B02EDD6A3FA6B70FCB63BA8ABB10005A7CF87086A9", "valid_from_height":0, "valid_to_height":0 },
+    {"validation_public_key":"2158CE50967F43E1629F676A46D80521F587F8FAFBDD00C1665F8417A568DEDE", "valid_from_height":0, "valid_to_height":0 },
+    {"validation_public_key":"5FD08A668A643ABBE47CDAAA53D26BC1C2D42EB31A0FE4D4FB3EECAF7FA8432A", "valid_from_height":0, "valid_to_height":0 },
+    {"validation_public_key":"454A85BA1C02FCBD29AAA6D0074B4D52DBCD5445C3B93A6F9A6BA6A08A7368F5", "valid_from_height":0, "valid_to_height":0 },
+    {"validation_public_key":"A1974AE001DFD5C7A1756E6D3679E990F8C3FD6EFC5A40A12F2CBB4847D63D25", "valid_from_height":0, "valid_to_height":0 },
+    {"validation_public_key":"E63C9F1E98CE56303F9DC49CD05BF10CA0BCFA3CD703F5248699C36DDD12B56E", "valid_from_height":0, "valid_to_height":0 },
+    {"validation_public_key":"88D7081A283A4E0E6AFCB6EDFDAA90BF90CD4CB843E250EA41B1CEDC39607338", "valid_from_height":0, "valid_to_height":0 },
+    {"validation_public_key":"ACD082F768C49BD0DE628DCD826D67A9666E0300078108888CCEAC47C9BF7945", "valid_from_height":0, "valid_to_height":0 }
+  ],
+  "list_timestamp":1559638396
+}

@@ -2,7 +2,7 @@
 /// @author rfree (current maintainer/user in electroneum.cc project - most of code is from CryptoNote)
 /// @brief This is the orginal cryptonote protocol network-events handler, modified by us
 
-// Copyrights(c) 2017-2020, The Electroneum Project
+// Copyrights(c) 2017-2021, The Electroneum Project
 // Copyrights(c) 2014-2019, The Monero Project
 //
 // All rights reserved.
@@ -474,7 +474,7 @@ namespace cryptonote
     {
       cryptonote::tx_verification_context tvc = AUTO_VAL_INIT(tvc);
       m_core.handle_incoming_tx(*tx_blob_it, tvc, true, true, false);
-      if(tvc.m_verifivation_failed)
+      if(tvc.m_verification_failed)
       {
         LOG_PRINT_CCONTEXT_L1("Block verification failed: transaction verification failed, dropping connection");
         drop_connection(context, false, false);
@@ -493,7 +493,7 @@ namespace cryptonote
       return 1;
     }
     m_core.resume_mine();
-    if(bvc.m_verifivation_failed)
+    if(bvc.m_verification_failed)
     {
       LOG_PRINT_CCONTEXT_L0("Block verification failed, dropping connection");
       drop_connection(context, true, false);
@@ -736,7 +736,7 @@ namespace cryptonote
           {
             MDEBUG("Incoming tx " << tx_hash << " not in pool, adding");
             cryptonote::tx_verification_context tvc = AUTO_VAL_INIT(tvc);                        
-            if(!m_core.handle_incoming_tx(tx_blob, tvc, true, true, false) || tvc.m_verifivation_failed)
+            if(!m_core.handle_incoming_tx(tx_blob, tvc, true, true, false) || tvc.m_verification_failed)
             {
               LOG_PRINT_CCONTEXT_L1("Block verification failed: transaction verification failed, dropping connection");
               drop_connection(context, false, false);
@@ -866,7 +866,7 @@ namespace cryptonote
         }
         m_core.resume_mine();
         
-        if( bvc.m_verifivation_failed )
+        if( bvc.m_verification_failed )
         {
           LOG_PRINT_CCONTEXT_L0("Block verification failed, dropping connection");
           drop_connection(context, true, false);
@@ -1027,7 +1027,7 @@ namespace cryptonote
     {
       cryptonote::tx_verification_context tvc = AUTO_VAL_INIT(tvc);
       m_core.handle_incoming_tx(arg.txs[i], tvc, false, true, false);
-      if(tvc.m_verifivation_failed)
+      if(tvc.m_verification_failed)
       {
         LOG_PRINT_CCONTEXT_L1("Tx verification failed, dropping connection");
         drop_connection(context, false, false);
@@ -1396,7 +1396,7 @@ namespace cryptonote
             std::vector<blobdata>::const_iterator it = block_entry.txs.begin();
             for (size_t i = 0; i < tvc.size(); ++i, ++it)
             {
-              if(tvc[i].m_verifivation_failed)
+              if(tvc[i].m_verification_failed)
               {
                 if (!m_p2p->for_connection(span_connection_id, [&](cryptonote_connection_context& context, nodetool::peerid_type peer_id, uint32_t f)->bool{
                   cryptonote::transaction tx;
@@ -1428,7 +1428,7 @@ namespace cryptonote
 
             m_core.handle_incoming_block(block_entry.block, pblocks.empty() ? NULL : &pblocks[blockidx], bvc, false); // <--- process block
 
-            if(bvc.m_verifivation_failed)
+            if(bvc.m_verification_failed)
             {
               if (!m_p2p->for_connection(span_connection_id, [&](cryptonote_connection_context& context, nodetool::peerid_type peer_id, uint32_t f)->bool{
                 LOG_PRINT_CCONTEXT_L1("Block verification failed, dropping connection");

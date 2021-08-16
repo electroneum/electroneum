@@ -209,7 +209,8 @@ namespace hw {
         std::vector<crypto::public_key>  get_subaddress_spend_public_keys(const cryptonote::account_keys &keys, uint32_t account, uint32_t begin, uint32_t end) override;
         cryptonote::account_public_address  get_subaddress(const cryptonote::account_keys& keys, const cryptonote::subaddress_index &index) override;
         crypto::secret_key  get_subaddress_secret_key(const crypto::secret_key &sec, const cryptonote::subaddress_index &index) override;
-
+        crypto::secret_key get_subaddress_private_spendkey(const cryptonote::account_keys& keys, const cryptonote::subaddress_index &subaddr_index) override;
+        crypto::secret_key get_subaddress_private_viewkey(const crypto::secret_key &main_wallet_sec_view, crypto::secret_key &subaddress_sec_spend) override;
         /* ======================================================================= */
         /*                            DERIVATION & KEY                             */
         /* ======================================================================= */
@@ -264,6 +265,7 @@ namespace hw {
                                          const std::vector<const crypto::public_key *> &pubsvector,
                                          const crypto::secret_key &sec, std::size_t sec_index,
                                          crypto::signature *sig) override;
+        bool generate_input_signature(const crypto::hash &prefix_hash, const uint32_t input_index, const crypto::secret_key sec_view, const crypto::secret_key sec_spend, crypto::signature& signature) override;
         bool hash_to_scalar(boost::shared_ptr<crypto::rs_comm> buf, size_t length, crypto::ec_scalar &res) override;
 
     };

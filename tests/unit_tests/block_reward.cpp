@@ -1,4 +1,4 @@
-// Copyrights(c) 2017-2020, The Electroneum Project
+// Copyrights(c) 2017-2021, The Electroneum Project
 // Copyrights(c) 2014-2019, The Monero Project
 // 
 // All rights reserved.
@@ -70,16 +70,16 @@ namespace
 
   TEST_F(block_reward_and_already_generated_coins, correctly_steps_from_2_to_1)
   {
-    TEST_ALREADY_GENERATED_COINS(MONEY_SUPPLY - ((2 << 20) + 1), FINAL_SUBSIDY_PER_MINUTE);
-    TEST_ALREADY_GENERATED_COINS(MONEY_SUPPLY -  (2 << 20)     , FINAL_SUBSIDY_PER_MINUTE);
-    TEST_ALREADY_GENERATED_COINS(MONEY_SUPPLY - ((2 << 20) - 1), FINAL_SUBSIDY_PER_MINUTE);
+    TEST_ALREADY_GENERATED_COINS(ETN_SUPPLY - ((2 << 20) + 1), FINAL_SUBSIDY_PER_MINUTE);
+    TEST_ALREADY_GENERATED_COINS(ETN_SUPPLY -  (2 << 20)     , FINAL_SUBSIDY_PER_MINUTE);
+    TEST_ALREADY_GENERATED_COINS(ETN_SUPPLY - ((2 << 20) - 1), FINAL_SUBSIDY_PER_MINUTE);
   }
 
   TEST_F(block_reward_and_already_generated_coins, handles_max)
   {
-    TEST_ALREADY_GENERATED_COINS(MONEY_SUPPLY - ((1 << 20) + 1), FINAL_SUBSIDY_PER_MINUTE);
-    TEST_ALREADY_GENERATED_COINS(MONEY_SUPPLY -  (1 << 20)     , FINAL_SUBSIDY_PER_MINUTE);
-    TEST_ALREADY_GENERATED_COINS(MONEY_SUPPLY - ((1 << 20) - 1), FINAL_SUBSIDY_PER_MINUTE);
+    TEST_ALREADY_GENERATED_COINS(ETN_SUPPLY - ((1 << 20) + 1), FINAL_SUBSIDY_PER_MINUTE);
+    TEST_ALREADY_GENERATED_COINS(ETN_SUPPLY -  (1 << 20)     , FINAL_SUBSIDY_PER_MINUTE);
+    TEST_ALREADY_GENERATED_COINS(ETN_SUPPLY - ((1 << 20) - 1), FINAL_SUBSIDY_PER_MINUTE);
   }
 
   //--------------------------------------------------------------------------------------------------------------------

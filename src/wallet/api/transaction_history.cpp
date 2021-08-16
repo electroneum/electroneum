@@ -1,4 +1,4 @@
-// Copyrights(c) 2017-2020, The Electroneum Project
+// Copyrights(c) 2017-2021, The Electroneum Project
 // Copyrights(c) 2014-2019, The Monero Project
 //
 // All rights reserved.
@@ -142,7 +142,7 @@ void TransactionHistoryImpl::refresh()
     }
 
     // confirmed output transactions
-    // one output transaction may contain more than one money transfer, e.g.
+    // one output transaction may contain more than one etn transfer, e.g.
     // <transaction_id>:
     //    transfer1: 100ETN to <address_1>
     //    transfer2: 50ETN  to <address_2>

@@ -1,4 +1,4 @@
-// Copyrights(c) 2017-2020, The Electroneum Project
+// Copyrights(c) 2017-2021, The Electroneum Project
 // Copyrights(c) 2014-2019, The Monero Project
 // 
 // All rights reserved.
@@ -127,53 +127,6 @@ namespace cryptonote
   //---------------------------------------------------------------
   bool expand_transaction_1(transaction &tx, bool base_only)
   {
-    if (tx.version >= 2 && !is_coinbase(tx))
-    {
-      rct::rctSig &rv = tx.rct_signatures;
-      if (rv.outPk.size() != tx.vout.size())
-      {
-        LOG_PRINT_L1("Failed to parse transaction from blob, bad outPk size in tx " << get_transaction_hash(tx));
-        return false;
-      }
-      for (size_t n = 0; n < tx.rct_signatures.outPk.size(); ++n)
-      {
-        if (tx.vout[n].target.type() != typeid(txout_to_key))
-        {
-          LOG_PRINT_L1("Unsupported output type in tx " << get_transaction_hash(tx));
-          return false;
-        }
-        rv.outPk[n].dest = rct::pk2rct(boost::get<txout_to_key>(tx.vout[n].target).key);
-      }
-
-      if (!base_only)
-      {
-        const bool bulletproof = rct::is_rct_bulletproof(rv.type);
-        if (bulletproof)
-        {
-          if (rv.p.bulletproofs.size() != 1)
-          {
-            LOG_PRINT_L1("Failed to parse transaction from blob, bad bulletproofs size in tx " << get_transaction_hash(tx));
-            return false;
-          }
-          if (rv.p.bulletproofs[0].L.size() < 6)
-          {
-            LOG_PRINT_L1("Failed to parse transaction from blob, bad bulletproofs L size in tx " << get_transaction_hash(tx));
-            return false;
-          }
-          const size_t max_outputs = 1 << (rv.p.bulletproofs[0].L.size() - 6);
-          if (max_outputs < tx.vout.size())
-          {
-            LOG_PRINT_L1("Failed to parse transaction from blob, bad bulletproofs max outputs in tx " << get_transaction_hash(tx));
-            return false;
-          }
-          const size_t n_amounts = tx.vout.size();
-          CHECK_AND_ASSERT_MES(n_amounts == rv.outPk.size(), false, "Internal error filling out V");
-          rv.p.bulletproofs[0].V.resize(n_amounts);
-          for (size_t i = 0; i < n_amounts; ++i)
-            rv.p.bulletproofs[0].V[i] = rct::scalarmultKey(rv.outPk[i].mask, rct::INV_EIGHT);
-        }
-      }
-    }
     return true;
   }
   //---------------------------------------------------------------
@@ -236,13 +189,15 @@ namespace cryptonote
   //---------------------------------------------------------------
   bool is_v1_tx(const blobdata_ref& tx_blob)
   {
+    //TODO: Public - assure return true. Build logic for prunable v2/v3 tx data later.
+    return true;
+
     uint64_t version;
     const char* begin = static_cast<const char*>(tx_blob.data());
     const char* end = begin + tx_blob.size();
     int read = tools::read_varint(begin, end, version);
     if (read <= 0)
       throw std::runtime_error("Internal error getting transaction version");
-    return version <= 1;
   }
   //---------------------------------------------------------------
   bool is_v1_tx(const blobdata& tx_blob)
@@ -250,7 +205,7 @@ namespace cryptonote
     return is_v1_tx(blobdata_ref{tx_blob.data(), tx_blob.size()});
   }
   //---------------------------------------------------------------
-  bool generate_key_image_helper(const account_keys& ack, const std::unordered_map<crypto::public_key, subaddress_index>& subaddresses, const crypto::public_key& out_key, const crypto::public_key& tx_public_key, const std::vector<crypto::public_key>& additional_tx_public_keys, size_t real_output_index, keypair& in_ephemeral, crypto::key_image& ki, hw::device &hwdev)
+  bool generate_key_image_helper(const account_keys& ack, const std::unordered_map<crypto::public_key, subaddress_index>& subaddresses, const crypto::public_key& out_key, const crypto::public_key& tx_public_key, const std::vector<crypto::public_key>& additional_tx_public_keys, size_t real_output_index, keypair& in_ephemeral, crypto::key_image& ki, hw::device &hwdev, const uint32_t account_major_offset)
   {
     crypto::key_derivation recv_derivation = AUTO_VAL_INIT(recv_derivation);
     bool r = hwdev.generate_key_derivation(tx_public_key, ack.m_view_secret_key, recv_derivation);
@@ -278,12 +233,15 @@ namespace cryptonote
     boost::optional<subaddress_receive_info> subaddr_recv_info = is_out_to_acc_precomp(subaddresses, out_key, recv_derivation, additional_recv_derivations, real_output_index,hwdev);
     CHECK_AND_ASSERT_MES(subaddr_recv_info, false, "key image helper: given output pubkey doesn't seem to belong to this address");
 
-    return generate_key_image_helper_precomp(ack, out_key, subaddr_recv_info->derivation, real_output_index, subaddr_recv_info->index, in_ephemeral, ki, hwdev);
+    return generate_key_image_helper_precomp(ack, out_key, subaddr_recv_info->derivation, real_output_index, subaddr_recv_info->index, in_ephemeral, ki, hwdev, account_major_offset);
   }
   //---------------------------------------------------------------
-  bool generate_key_image_helper_precomp(const account_keys& ack, const crypto::public_key& out_key, const crypto::key_derivation& recv_derivation, size_t real_output_index, const subaddress_index& received_index, keypair& in_ephemeral, crypto::key_image& ki, hw::device &hwdev)
+  bool generate_key_image_helper_precomp(const account_keys& ack, const crypto::public_key& out_key, const crypto::key_derivation& recv_derivation, size_t real_output_index, const subaddress_index& received_index, keypair& in_ephemeral, crypto::key_image& ki, hw::device &hwdev, const uint32_t account_major_offset)
   {
-    if (hwdev.compute_key_image(ack, out_key, recv_derivation, real_output_index, received_index, in_ephemeral, ki))
+    uint32_t major_index_offset_based = received_index.major + (received_index.major != 0 ? account_major_offset : 0);
+    cryptonote::subaddress_index recv_index = {major_index_offset_based, received_index.minor};
+
+    if (hwdev.compute_key_image(ack, out_key, recv_derivation, real_output_index, recv_index, in_ephemeral, ki))
     {
       return true;
     }
@@ -303,13 +261,13 @@ namespace cryptonote
       // step 2: add Hs(a || index_major || index_minor)
       crypto::secret_key subaddr_sk;
       crypto::secret_key scalar_step2;
-      if (received_index.is_zero())
+      if (recv_index.is_zero())
       {
         scalar_step2 = scalar_step1;    // treat index=(0,0) as a special case representing the main address
       }
       else
       {
-        subaddr_sk = hwdev.get_subaddress_secret_key(ack.m_view_secret_key, received_index);
+        subaddr_sk = hwdev.get_subaddress_secret_key(ack.m_view_secret_key, recv_index);
         hwdev.sc_secret_add(scalar_step2, scalar_step1,subaddr_sk);
       }
 
@@ -325,7 +283,7 @@ namespace cryptonote
         // when in multisig, we only know the partial spend secret key. but we do know the full spend public key, so the output pubkey can be obtained by using the standard CN key derivation
         CHECK_AND_ASSERT_MES(hwdev.derive_public_key(recv_derivation, real_output_index, ack.m_account_address.m_spend_public_key, in_ephemeral.pub), false, "Failed to derive public key");
         // and don't forget to add the contribution from the subaddress part
-        if (!received_index.is_zero())
+        if (!recv_index.is_zero())
         {
           crypto::public_key subaddr_pk;
           CHECK_AND_ASSERT_MES(hwdev.secret_key_to_public_key(subaddr_sk, subaddr_pk), false, "Failed to derive public key");
@@ -388,25 +346,7 @@ namespace cryptonote
   //---------------------------------------------------------------
   uint64_t get_transaction_weight(const transaction &tx, size_t blob_size)
   {
-    if (tx.version < 2)
-      return blob_size;
-    const rct::rctSig &rv = tx.rct_signatures;
-    if (!rct::is_rct_bulletproof(rv.type))
-      return blob_size;
-    const size_t n_outputs = tx.vout.size();
-    if (n_outputs <= 2)
-      return blob_size;
-    const uint64_t bp_base = 368;
-    const size_t n_padded_outputs = rct::n_bulletproof_max_amounts(rv.p.bulletproofs);
-    size_t nlr = 0;
-    for (const auto &bp: rv.p.bulletproofs)
-      nlr += bp.L.size() * 2;
-    const size_t bp_size = 32 * (9 + nlr);
-    CHECK_AND_ASSERT_THROW_MES_L1(n_outputs <= BULLETPROOF_MAX_OUTPUTS, "maximum number of outputs is " + std::to_string(BULLETPROOF_MAX_OUTPUTS) + " per transaction");
-    CHECK_AND_ASSERT_THROW_MES_L1(bp_base * n_padded_outputs >= bp_size, "Invalid bulletproof clawback");
-    const uint64_t bp_clawback = (bp_base * n_padded_outputs - bp_size) * 4 / 5;
-    CHECK_AND_ASSERT_THROW_MES_L1(bp_clawback <= std::numeric_limits<uint64_t>::max() - blob_size, "Weight overflow");
-    return blob_size + bp_clawback;
+    return blob_size;
   }
   //---------------------------------------------------------------
   uint64_t get_transaction_weight(const transaction &tx)
@@ -428,17 +368,20 @@ namespace cryptonote
   //---------------------------------------------------------------
   bool get_tx_fee(const transaction& tx, uint64_t & fee)
   {
-    if (tx.version > 1)
-    {
-      fee = tx.rct_signatures.txnFee;
-      return true;
-    }
     uint64_t amount_in = 0;
     uint64_t amount_out = 0;
     for(auto& in: tx.vin)
     {
-      CHECK_AND_ASSERT_MES(in.type() == typeid(txin_to_key), 0, "unexpected type id in transaction");
-      amount_in += boost::get<txin_to_key>(in).amount;
+      CHECK_AND_ASSERT_MES(in.type() == typeid(txin_to_key) || in.type() == typeid(txin_to_key_public), 0, "unexpected type id in transaction");
+
+      if(tx.version == 1 || tx.version == 2)
+      {
+        amount_in += boost::get<txin_to_key>(in).amount;
+      }
+      else
+      {
+        amount_in += boost::get<txin_to_key_public>(in).amount;
+      }
     }
     for(auto& o: tx.vout)
       amount_out += o.amount;
@@ -726,14 +669,25 @@ namespace cryptonote
     return true;
   }
   //---------------------------------------------------------------
-  bool get_inputs_money_amount(const transaction& tx, uint64_t& money)
+  bool get_inputs_etn_amount(const transaction& tx, uint64_t& etn)
   {
-    money = 0;
-    for(const auto& in: tx.vin)
-    {
-      CHECKED_GET_SPECIFIC_VARIANT(in, const txin_to_key, tokey_in, false);
-      money += tokey_in.amount;
+    etn = 0;
+    if(tx.version == 1 || tx.version == 2) {
+      for(const auto& in: tx.vin)
+      {
+        CHECKED_GET_SPECIFIC_VARIANT(in, const txin_to_key, tokey_in, false);
+        etn += tokey_in.amount;
+      }
     }
+    else //tx.version >= 3 (public transactions: can spend only new inputs)
+    {
+      for(const auto& in: tx.vin)
+      {
+        CHECKED_GET_SPECIFIC_VARIANT(in, const txin_to_key_public, tokey_in, false);
+        etn += tokey_in.amount;
+      }
+    }
+
     return true;
   }
   //---------------------------------------------------------------
@@ -748,10 +702,18 @@ namespace cryptonote
   {
     for(const auto& in: tx.vin)
     {
-      CHECK_AND_ASSERT_MES(in.type() == typeid(txin_to_key), false, "wrong variant type: "
-        << in.type().name() << ", expected " << typeid(txin_to_key).name()
-        << ", in transaction id=" << get_transaction_hash(tx));
-
+      if (tx.version == 1 || tx.version == 2)
+      {
+        CHECK_AND_ASSERT_MES(in.type() == typeid(txin_to_key), false, "wrong variant type: "
+                << in.type().name() << ", expected " << typeid(txin_to_key).name()
+                << ", in transaction id=" << get_transaction_hash(tx));
+      }
+      else //tx.version >= 3 (public transactions: can spend only new inputs)
+      {
+        CHECK_AND_ASSERT_MES(in.type() == typeid(txin_to_key_public), false, "wrong variant type: "
+                << in.type().name() << ", expected " << typeid(txin_to_key_public).name()
+                << ", in transaction id=" << get_transaction_hash(tx));
+      }
     }
     return true;
   }
@@ -760,52 +722,77 @@ namespace cryptonote
   {
     for(const tx_out& out: tx.vout)
     {
-      CHECK_AND_ASSERT_MES(out.target.type() == typeid(txout_to_key), false, "wrong variant type: "
-        << out.target.type().name() << ", expected " << typeid(txout_to_key).name()
-        << ", in transaction id=" << get_transaction_hash(tx));
-
       if (tx.version == 1)
       {
+        CHECK_AND_ASSERT_MES(out.target.type() == typeid(txout_to_key), false, "wrong variant type: "
+                << out.target.type().name() << ", expected " << typeid(txout_to_key).name()
+                << ", in transaction id=" << get_transaction_hash(tx));
+
         CHECK_AND_NO_ASSERT_MES(0 < out.amount, false, "zero amount output in transaction id=" << get_transaction_hash(tx));
+
+        if(!check_key(boost::get<txout_to_key>(out.target).key))
+          return false;
+      }
+      else //tx.version >= 2 (public transactions: only new public outputs are allowed)
+      {
+        CHECK_AND_ASSERT_MES(out.target.type() == typeid(txout_to_key_public), false, "wrong variant type: "
+                << out.target.type().name() << ", expected " << typeid(txout_to_key_public).name()
+                << ", in transaction id=" << get_transaction_hash(tx));
+
+        CHECK_AND_NO_ASSERT_MES(0 < out.amount, false, "zero amount output in transaction id=" << get_transaction_hash(tx));
+
+        if(!check_key(boost::get<txout_to_key_public>(out.target).address.m_spend_public_key) ||
+                !check_key(boost::get<txout_to_key_public>(out.target).address.m_view_public_key))
+          return false;
       }
 
-      if(!check_key(boost::get<txout_to_key>(out.target).key))
-        return false;
     }
     return true;
   }
   //-----------------------------------------------------------------------------------------------
-  bool check_money_overflow(const transaction& tx)
+  bool check_etn_overflow(const transaction& tx)
   {
     return check_inputs_overflow(tx) && check_outs_overflow(tx);
   }
   //---------------------------------------------------------------
   bool check_inputs_overflow(const transaction& tx)
   {
-    uint64_t money = 0;
+    uint64_t etn = 0;
+    if(tx.version >= 3)
+    {
+      for(const auto& in: tx.vin)
+      {
+        CHECKED_GET_SPECIFIC_VARIANT(in, const txin_to_key_public, tokey_in, false);
+        if(etn > tokey_in.amount + etn)
+          return false;
+        etn += tokey_in.amount;
+      }
+      return true;
+    }
+
     for(const auto& in: tx.vin)
     {
       CHECKED_GET_SPECIFIC_VARIANT(in, const txin_to_key, tokey_in, false);
-      if(money > tokey_in.amount + money)
+      if(etn > tokey_in.amount + etn)
         return false;
-      money += tokey_in.amount;
+      etn += tokey_in.amount;
     }
     return true;
   }
   //---------------------------------------------------------------
   bool check_outs_overflow(const transaction& tx)
   {
-    uint64_t money = 0;
+    uint64_t etn = 0;
     for(const auto& o: tx.vout)
     {
-      if(money > o.amount + money)
+      if(etn > o.amount + etn)
         return false;
-      money += o.amount;
+      etn += o.amount;
     }
     return true;
   }
   //---------------------------------------------------------------
-  uint64_t get_outs_money_amount(const transaction& tx)
+  uint64_t get_outs_etn_amount(const transaction& tx)
   {
     uint64_t outputs_amount = 0;
     for(const auto& o: tx.vout)
@@ -865,19 +852,29 @@ namespace cryptonote
     return boost::none;
   }
   //---------------------------------------------------------------
-  bool lookup_acc_outs(const account_keys& acc, const transaction& tx, std::vector<size_t>& outs, uint64_t& money_transfered)
+  boost::optional<subaddress_receive_info> is_out_to_acc_precomp_public(const std::unordered_map<crypto::public_key, subaddress_index>& subaddresses, const cryptonote::account_public_address output_address)
+  {
+      crypto::public_key subaddress_spendkey = output_address.m_spend_public_key;
+      auto found = subaddresses.find(subaddress_spendkey);
+      if (found != subaddresses.end()){
+           return subaddress_receive_info{found->second, {}};
+      }
+      return boost::none;
+  }
+  //---------------------------------------------------------------
+  bool lookup_acc_outs(const account_keys& acc, const transaction& tx, std::vector<size_t>& outs, uint64_t& etn_transfered)
   {
     crypto::public_key tx_pub_key = get_tx_pub_key_from_extra(tx);
     if(null_pkey == tx_pub_key)
       return false;
     std::vector<crypto::public_key> additional_tx_pub_keys = get_additional_tx_pub_keys_from_extra(tx);
-    return lookup_acc_outs(acc, tx, tx_pub_key, additional_tx_pub_keys, outs, money_transfered);
+    return lookup_acc_outs(acc, tx, tx_pub_key, additional_tx_pub_keys, outs, etn_transfered);
   }
   //---------------------------------------------------------------
-  bool lookup_acc_outs(const account_keys& acc, const transaction& tx, const crypto::public_key& tx_pub_key, const std::vector<crypto::public_key>& additional_tx_pub_keys, std::vector<size_t>& outs, uint64_t& money_transfered)
+  bool lookup_acc_outs(const account_keys& acc, const transaction& tx, const crypto::public_key& tx_pub_key, const std::vector<crypto::public_key>& additional_tx_pub_keys, std::vector<size_t>& outs, uint64_t& etn_transfered)
   {
     CHECK_AND_ASSERT_MES(additional_tx_pub_keys.empty() || additional_tx_pub_keys.size() == tx.vout.size(), false, "wrong number of additional pubkeys" );
-    money_transfered = 0;
+    etn_transfered = 0;
     size_t i = 0;
     for(const tx_out& o:  tx.vout)
     {
@@ -885,7 +882,7 @@ namespace cryptonote
       if(is_out_to_acc(acc, boost::get<txout_to_key>(o.target), tx_pub_key, additional_tx_pub_keys, i))
       {
         outs.push_back(i);
-        money_transfered += o.amount;
+        etn_transfered += o.amount;
       }
       i++;
     }
@@ -934,7 +931,7 @@ namespace cryptonote
     }
   }
   //---------------------------------------------------------------
-  std::string print_money(uint64_t amount, unsigned int decimal_point)
+  std::string print_etn(uint64_t amount, unsigned int decimal_point)
   {
     if (decimal_point == (unsigned int)-1)
       decimal_point = default_decimal_point;

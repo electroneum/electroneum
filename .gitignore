@@ -20,6 +20,9 @@ cscope.out
 cscope.in.out
 cscope.po.out
 
+Makefile
+external/miniupnp
+external/db_drivers/liblmdb/Makefile
 external/miniupnpc/Makefile
 miniupnpcstrings.h
 version/

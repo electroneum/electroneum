@@ -159,7 +159,7 @@
     <message>
         <location filename="../src/wallet/api/wallet.cpp" line="994"/>
         <location filename="../src/wallet/api/wallet.cpp" line="1088"/>
-        <source>not enough money to transfer, available only %s, sent amount %s</source>
+        <source>not enough ETN to transfer, available only %s, sent amount %s</source>
         <translation>pas assez de fonds pour le transfert, montant disponible %s, montant envoyé %s</translation>
     </message>
     <message>
@@ -240,7 +240,7 @@
     <message>
         <location filename="../src/wallet/api/wallet.cpp" line="1003"/>
         <location filename="../src/wallet/api/wallet.cpp" line="1097"/>
-        <source>not enough money to transfer, available only %s, transaction amount %s = %s + %s (fee)</source>
+        <source>not enough ETN to transfer, available only %s, transaction amount %s = %s + %s (fee)</source>
         <translation>pas assez de fonds pour le transfert, montant disponible %s, montant envoyé %s = %s + %s (frais)</translation>
     </message>
     <message>
@@ -835,7 +835,7 @@ Cette transaction sera déverrouillée au bloc %llu, dans approximativement %s j
         <location filename="../src/simplewallet/simplewallet.cpp" line="2583"/>
         <location filename="../src/simplewallet/simplewallet.cpp" line="2844"/>
         <location filename="../src/simplewallet/simplewallet.cpp" line="3157"/>
-        <source>Not enough money in unlocked balance</source>
+        <source>Not enough ETN in unlocked balance</source>
         <translation>Pas assez de fonds dans le solde débloqué</translation>
     </message>
     <message>
@@ -843,7 +843,7 @@ Cette transaction sera déverrouillée au bloc %llu, dans approximativement %s j
         <location filename="../src/simplewallet/simplewallet.cpp" line="2592"/>
         <location filename="../src/simplewallet/simplewallet.cpp" line="2853"/>
         <location filename="../src/simplewallet/simplewallet.cpp" line="3166"/>
-        <source>Failed to find a way to create transactions. This is usually due to dust which is so small it cannot pay for itself in fees, or trying to send more money than the unlocked balance, or not leaving enough for fees</source>
+        <source>Failed to find a way to create transactions. This is usually due to dust which is so small it cannot pay for itself in fees, or trying to send more ETN than the unlocked balance, or not leaving enough for fees</source>
         <translation>Échec de la recherche d&apos;une façon de créer les transactions. Ceci est généralement dû à de la poussière si petite qu&apos;elle de peut pas payer ses propre frais, à une tentative d&apos;envoi d&apos;un montant supérieur au solde débloqué, ou parce qu&apos;il n&apos;en reste pas assez pour les frais de transaction</translation>
     </message>
     <message>
@@ -1371,7 +1371,7 @@ Attention : Certaines clés d&apos;entrées étant dépensées sont issues de <
     </message>
     <message>
         <location filename="../src/simplewallet/simplewallet.cpp" line="706"/>
-        <source>transfer [&lt;priority&gt;] [&lt;mixin_count&gt;] &lt;address&gt; &lt;amount&gt; [&lt;payment_id&gt;] - Transfer &lt;amount&gt; to &lt;address&gt;. &lt;priority&gt; is the priority of the transaction. The higher the priority, the higher the fee of the transaction. Valid values in priority order (from lowest to highest) are: unimportant, normal, elevated, priority. If omitted, the default value (see the command &quot;set priority&quot;) is used. &lt;mixin_count&gt; is the number of extra inputs to include for untraceability. Multiple payments can be made at once by adding &lt;address_2&gt; &lt;amount_2&gt; etcetera (before the payment ID, if it&apos;s included)</source>
+        <source>transfer [&lt;priority&gt;] [&lt;mixin_count&gt;] &lt;address&gt; &lt;amount&gt; [&lt;payment_id&gt;] - Transfer &lt;amount&gt; to &lt;address&gt;. &lt;priority&gt; is the priority of the transaction. The higher the priority, the higher the fee of the transaction. Valid values in priority order (from lowest to highest) are: unimportant, normal, elevated, priority. If omitted, the default value (see the command &quot;set priority&quot;) is used. &lt;mixin_count&gt; is the number of extra outputs to mix with your input. Multiple payments can be made at once by adding &lt;address_2&gt; &lt;amount_2&gt; etcetera (before the payment ID, if it&apos;s included)</source>
         <translation>transfer [&lt;priorité&gt;] [&lt;mixin&gt;] &lt;adresse&gt; &lt;montant&gt; [&lt;ID_paiement&gt;] - Transférer &lt;montant&gt; à &lt;adresse&gt;. &lt;priorité&gt; est la priorité de la transaction. Plus la priorité est élevée, plues les frais de transaction seront élévés. Les valeurs de priorité valies sont dans l&apos;ordre (de la plus basse à la plus élevée) : unimportant, normal, elevated, priority. Si ce paramètre est omis, la valeur par défaut (voir la commande &quot;set priority&quot;) est utilisée. &lt;mixin&gt; est le nombre d&apos;entrées supplémentaires à inclure pour l&apos;intraçabilité. De multiples paiements peuvent être effectués d&apos;un coup en ajoutant &lt;adresse_2&gt; &lt;montant_2&gt; et cetera (avant l&apos;ID de paiement, s&apos;il est inclus)</translation>
     </message>
     <message>
@@ -2009,7 +2009,7 @@ votre portefeuille à nouveau (mais les clés de votre portefeuille ne risquent 
     </message>
     <message>
         <location filename="../src/simplewallet/simplewallet.cpp" line="2378"/>
-        <source>Money successfully sent, transaction </source>
+        <source>ETN successfully sent, transaction </source>
         <translation>Fonds envoyés avec succès, transaction </translation>
     </message>
     <message>
@@ -2092,7 +2092,7 @@ votre portefeuille à nouveau (mais les clés de votre portefeuille ne risquent 
         <location filename="../src/simplewallet/simplewallet.cpp" line="2555"/>
         <location filename="../src/simplewallet/simplewallet.cpp" line="2816"/>
         <location filename="../src/simplewallet/simplewallet.cpp" line="3129"/>
-        <source>Money successfully sent, transaction: </source>
+        <source>ETN successfully sent, transaction: </source>
         <translation>Fonds envoyés avec succès, transaction : </translation>
     </message>
     <message>

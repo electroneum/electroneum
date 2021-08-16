@@ -1,4 +1,4 @@
-// Copyrights(c) 2017-2020, The Electroneum Project
+// Copyrights(c) 2017-2021, The Electroneum Project
 // Copyrights(c) 2014-2019, The Monero Project
 // 
 // All rights reserved.
@@ -646,6 +646,10 @@ TEST(Serialization, portability_wallet)
     std::unordered_map<crypto::hash, std::string>                   m_tx_notes
     std::unordered_map<crypto::hash, payment_details>               m_unconfirmed_payments
     std::unordered_map<crypto::public_key, size_t>                  m_pub_keys
+
+    std::unordered_map<std::pair<crypto::hash, size_t>, size_t,     m_chainstate_indexes
+    boost::hash<std::pair<crypto::hash, size_t>>>
+
     std::vector<tools::wallet2::address_book_row>                   m_address_book
   */
   // blockchain

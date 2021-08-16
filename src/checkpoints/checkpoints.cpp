@@ -1,4 +1,4 @@
-// Copyrights(c) 2017-2020, The Electroneum Project
+// Copyrights(c) 2017-2021, The Electroneum Project
 // Copyrights(c) 2014-2019, The Monero Project
 //
 // All rights reserved.
@@ -182,9 +182,12 @@ namespace cryptonote
       ADD_CHECKPOINT(500000, "c2f37b178f4e1cf3460bcefd6eaf14eeaf4258ee67b97e6146b171766bd8101d");
       ADD_CHECKPOINT(600000, "e8eeceec76ea9718ebf7fac34250403f586d01224b343c6e122baa0799023a4f");
       ADD_CHECKPOINT(700000, "09af67f7f5b01219dd18c59a424a7570cadfe3c50408180fcaf12cec205155f7");
-      return true;
+      ADD_CHECKPOINT(800000, "748bfc3c736ac106a8c731114648b8c11c0c2bc3d6b9ab074bbbfc8cc1914a3f");
+      ADD_CHECKPOINT(900000, "e0fce3c156932d38d8bde4e21fabbf2a8208e96fb1b0848cc796d7338a70f7de");
+      ADD_CHECKPOINT(1000000, "26da34bde63cfb6447e0dcc190b00e4db04127e2673d48316e63e64c661ab19c");
+      ADD_CHECKPOINT(1100000, "d9d9637c9468c3d8a3a552cef38e52effbe79d0f140b0a0551d5c15f61e07a08");
     }
-
+    return true;
   }
 
   bool checkpoints::load_checkpoints_from_json(const std::string &json_hashfile_fullpath)

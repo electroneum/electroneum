@@ -1,4 +1,4 @@
-// Copyrights(c) 2017-2020, The Electroneum Project
+// Copyrights(c) 2017-2021, The Electroneum Project
 // Copyrights(c) 2014-2019, The Monero Project
 //
 // All rights reserved.
@@ -123,8 +123,12 @@ bool UnsignedTransactionImpl::checkLoadedTx(const std::function<size_t()> get_nu
         {
           if (!payment_id_string.empty())
             payment_id_string += ", ";
-          payment_id_string = std::string("encrypted payment ID ") + epee::string_tools::pod_to_hex(payment_id8);
-          has_encrypted_payment_id = true;
+
+          crypto::hash payment_id = crypto::null_hash;
+          memcpy(payment_id.data, payment_id8.data, 8); // convert short pid to regular
+          memset(payment_id.data + 8, 0, 24); // merely a sanity check
+          payment_id_string = std::string("unencrypted payment ID ") + epee::string_tools::pod_to_hex(payment_id);
+
         }
         else if (cryptonote::get_payment_id_from_tx_extra_nonce(extra_nonce.nonce, payment_id))
         {
@@ -195,7 +199,7 @@ bool UnsignedTransactionImpl::checkLoadedTx(const std::function<size_t()> get_nu
   std::string dest_string;
   for (auto i = dests.begin(); i != dests.end(); )
   {
-    dest_string += (boost::format(tr("sending %s to %s")) % cryptonote::print_money(i->second.second) % i->second.first).str();
+    dest_string += (boost::format(tr("sending %s to %s")) % cryptonote::print_etn(i->second.second) % i->second.first).str();
     ++i;
     if (i != dests.end())
       dest_string += ", ";
@@ -207,12 +211,12 @@ bool UnsignedTransactionImpl::checkLoadedTx(const std::function<size_t()> get_nu
   if (change > 0)
   {
     std::string address = get_account_address_as_str(m_wallet.m_wallet->nettype(), get_tx(0).subaddr_account > 0, get_tx(0).change_dts.addr);
-    change_string += (boost::format(tr("%s change to %s")) % cryptonote::print_money(change) % address).str();
+    change_string += (boost::format(tr("%s change to %s")) % cryptonote::print_etn(change) % address).str();
   }
   else
     change_string += tr("no change");
   uint64_t fee = amount - amount_to_dests;
-  m_confirmationMessage = (boost::format(tr("Loaded %lu transactions, for %s, fee %s, %s, %s, with min ring size %lu. %s")) % (unsigned long)get_num_txes() % cryptonote::print_money(amount) % cryptonote::print_money(fee) % dest_string % change_string % (unsigned long)min_ring_size % extra_message).str();
+  m_confirmationMessage = (boost::format(tr("Loaded %lu transactions, for %s, fee %s, %s, %s, with min ring size %lu. %s")) % (unsigned long)get_num_txes() % cryptonote::print_etn(amount) % cryptonote::print_etn(fee) % dest_string % change_string % (unsigned long)min_ring_size % extra_message).str();
   return true;
 }
 

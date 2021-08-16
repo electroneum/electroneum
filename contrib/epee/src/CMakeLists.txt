@@ -1,4 +1,4 @@
-# Copyright (c) 2017-2020, The Electroneum Project
+# Copyright (c) 2017-2021, The Electroneum Project
 # Copyright (c) 2014-2019, The Monero Project
 # 
 # All rights reserved.
@@ -30,7 +30,7 @@
 add_library(epee STATIC hex.cpp http_auth.cpp mlog.cpp net_helper.cpp net_utils_base.cpp string_tools.cpp wipeable_string.cpp memwipe.c
     connection_basic.cpp network_throttle.cpp network_throttle-detail.cpp mlocker.cpp buffer.cpp net_ssl.cpp)
 
-if (USE_READLINE AND GNU_READLINE_FOUND)
+if (USE_READLINE AND (GNU_READLINE_FOUND OR DEPENDS AND NOT MINGW))
   add_library(epee_readline STATIC readline_buffer.cpp)
 endif()
 
@@ -63,7 +63,7 @@ target_link_libraries(epee
     ${OPENSSL_LIBRARIES}
     ${EXTRA_LIBRARIES})
 
-if (USE_READLINE AND GNU_READLINE_FOUND)
+if (USE_READLINE AND (GNU_READLINE_FOUND OR DEPENDS AND NOT MINGW))
   target_link_libraries(epee_readline
     PUBLIC
       easylogging

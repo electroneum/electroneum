@@ -1,4 +1,4 @@
-# Copyright (c) 2017-2020, The Electroneum Project
+# Copyright (c) 2017-2021, The Electroneum Project
 # Copyright (c) 2014-2019, The Monero Project
 #
 # All rights reserved.
@@ -821,6 +821,13 @@ else()
 
   endif(ARM)
 
+  #Build UNIX with position independent code
+  if(UNIX)
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
+  endif()
+
   if(ANDROID AND NOT BUILD_GUI_DEPS STREQUAL "ON" OR IOS)
     #From Android 5: "only position independent executables (PIE) are supported" 
     message(STATUS "Enabling PIE executable")
@@ -836,8 +843,6 @@ else()
 
   set(DEBUG_FLAGS "-g3")
   if(CMAKE_C_COMPILER_ID STREQUAL "GNU" AND NOT (CMAKE_C_COMPILER_VERSION VERSION_LESS 4.8))
-    set(DEBUG_FLAGS "${DEBUG_FLAGS} -Og ")
-  else()
     set(DEBUG_FLAGS "${DEBUG_FLAGS} -O0 ")
   endif()
 
@@ -900,10 +905,8 @@ endif()
 
 set(OLD_LIB_SUFFIXES ${CMAKE_FIND_LIBRARY_SUFFIXES})
 if(STATIC)
-  if(MINGW)
-    set(CMAKE_FIND_LIBRARY_SUFFIXES .a)
-    set(Boost_NO_BOOST_CMAKE ON)
-  endif()
+  set(CMAKE_FIND_LIBRARY_SUFFIXES .a)
+  set(Boost_NO_BOOST_CMAKE ON)
 
   set(Boost_USE_STATIC_LIBS ON)
   set(Boost_USE_STATIC_RUNTIME ON)
@@ -970,7 +973,7 @@ if (HIDAPI_FOUND OR LibUSB_COMPILE_TEST_PASSED)
 endif()
 
 option(USE_READLINE "Build with GNU readline support." ON)
-if(USE_READLINE)
+if(USE_READLINE AND NOT DEPENDS)
   find_package(Readline)
   if(READLINE_FOUND AND GNU_READLINE_FOUND)
     add_definitions(-DHAVE_READLINE)
@@ -980,6 +983,14 @@ if(USE_READLINE)
   else()
     message(STATUS "Could not find GNU readline library so building without readline support")
   endif()
+  elseif(USE_READLINE AND DEPENDS AND NOT MINGW)
+  find_path(Readline_INCLUDE_PATH readline/readline.h)
+  find_library(Readline_LIBRARY readline)
+  find_library(Terminfo_LIBRARY tinfo)
+  set(Readline_LIBRARY "${Readline_LIBRARY};${Terminfo_LIBRARY}")
+  set(GNU_READLINE_LIBRARY ${Readline_LIBRARY})
+  add_definitions(-DHAVE_READLINE)
+  set(EPEE_READLINE epee_readline)
 endif()
 
 if(ANDROID)
@@ -999,6 +1010,7 @@ find_library(PGM_LIBRARY pgm)
 find_library(NORM_LIBRARY norm)
 find_library(PROTOLIB_LIBRARY protolib)
 find_library(SODIUM_LIBRARY sodium)
+find_library(GSSAPI_LIBRARY gssapi_krb5)
 
 if(NOT ZMQ_INCLUDE_PATH)
   message(FATAL_ERROR "Could not find required header zmq.h")
@@ -1017,6 +1029,9 @@ if(PROTOLIB_LIBRARY)
 endif()
 if(SODIUM_LIBRARY)
   set(ZMQ_LIB "${ZMQ_LIB};${SODIUM_LIBRARY}")
+endif()
+if(GSSAPI_LIBRARY)
+  set(ZMQ_LIB "${ZMQ_LIB};${GSSAPI_LIBRARY}")
 endif()
 
 add_subdirectory(contrib)

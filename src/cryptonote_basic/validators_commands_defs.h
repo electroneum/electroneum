@@ -1,4 +1,4 @@
-// Copyrights(c) 2017-2020, The Electroneum Project
+// Copyrights(c) 2017-2021, The Electroneum Project
 //
 // All rights reserved.
 //
@@ -72,7 +72,7 @@ namespace electroneum {
         struct v_list_struct {
 
             std::string blob;
-            int version = 0;
+            uint64_t version = 0;
             std::vector<std::string> signatures;
             std::vector<std::string> pubkeys;
 

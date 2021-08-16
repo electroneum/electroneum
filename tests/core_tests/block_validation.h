@@ -1,4 +1,4 @@
-// Copyrights(c) 2017-2020, The Electroneum Project
+// Copyrights(c) 2017-2021, The Electroneum Project
 // Copyrights(c) 2014-2019, The Monero Project
 // 
 // All rights reserved.
@@ -44,9 +44,9 @@ public:
   bool check_block_verification_context(const cryptonote::block_verification_context& bvc, size_t event_idx, const cryptonote::block& /*blk*/)
   {
     if (invalid_block_idx == event_idx)
-      return bvc.m_verifivation_failed;
+      return bvc.m_verification_failed;
     else
-      return !bvc.m_verifivation_failed;
+      return !bvc.m_verification_failed;
   }
 
   bool check_block_purged(cryptonote::core& c, size_t ev_index, const std::vector<test_event_entry>& events)
@@ -156,12 +156,12 @@ struct gen_block_miner_tx_has_2_tx_gen_in : public gen_block_verification_base<1
   bool generate(std::vector<test_event_entry>& events) const;
 };
 
-struct gen_block_miner_tx_has_2_in : public gen_block_verification_base<CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW + 1>
+struct gen_block_miner_tx_has_2_in : public gen_block_verification_base<CRYPTONOTE_MINED_ETN_UNLOCK_WINDOW + 1>
 {
   bool generate(std::vector<test_event_entry>& events) const;
 };
 
-struct gen_block_miner_tx_with_txin_to_key : public gen_block_verification_base<CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW + 2>
+struct gen_block_miner_tx_with_txin_to_key : public gen_block_verification_base<CRYPTONOTE_MINED_ETN_UNLOCK_WINDOW + 2>
 {
   bool generate(std::vector<test_event_entry>& events) const;
 };

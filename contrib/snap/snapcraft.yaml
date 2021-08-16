@@ -1,10 +1,9 @@
 name: electroneum
 version: 0.11.1.0
-summary: "Electroneum: the secure, private, untraceable cryptocurrency https://electroneum.com"
+summary: "Electroneum: the secure, public, decentralised cryptocurrency https://electroneum.com"
 description: |
-    Electroneum is a private, secure, untraceable, decentralised digital currency.
-    You are your bank, you control your funds, and nobody can trace your transfers
-    unless you allow them to do so.
+    Electroneum is a secure, public, decentralised digital currency.
+    You are your bank and you control your funds.
 grade: devel
 confinement: strict
 

@@ -181,7 +181,7 @@
     <message>
         <location filename="../src/wallet/api/wallet.cpp" line="1520"/>
         <location filename="../src/wallet/api/wallet.cpp" line="1603"/>
-        <source>not enough money to transfer, available only %s, sent amount %s</source>
+        <source>not enough ETN to transfer, available only %s, sent amount %s</source>
         <translation>non hai abbastanza fondi da trasferire, sono disponibili solo %s, ammontare inviato %s</translation>
     </message>
     <message>
@@ -344,13 +344,13 @@
     <message>
         <location filename="../src/wallet/api/wallet.cpp" line="1527"/>
         <location filename="../src/wallet/api/wallet.cpp" line="1611"/>
-        <source>not enough money to transfer, overall balance only %s, sent amount %s</source>
+        <source>not enough ETN to transfer, overall balance only %s, sent amount %s</source>
         <translation>fondi non sufficienti per il trasferimento, saldo totale %s, importo inviato %s</translation>
     </message>
     <message>
         <location filename="../src/wallet/api/wallet.cpp" line="1534"/>
         <location filename="../src/wallet/api/wallet.cpp" line="1619"/>
-        <source>not enough money to transfer, available only %s, transaction amount %s = %s + %s (fee)</source>
+        <source>not enough ETN to transfer, available only %s, transaction amount %s = %s + %s (fee)</source>
         <translation>fondi non sufficienti per il trasferimento, disponibili solo %s, ammontare transazione %s = %s + %s (commissione)</translation>
     </message>
     <message>
@@ -936,7 +936,7 @@
     </message>
     <message>
         <location filename="../src/simplewallet/simplewallet.cpp" line="6180"/>
-        <source>Not enough money in unlocked balance</source>
+        <source>Not enough ETN in unlocked balance</source>
         <translation>Fondi insufficienti in saldo sbloccato</translation>
     </message>
     <message>
@@ -1435,7 +1435,7 @@
     </message>
     <message>
         <location filename="../src/simplewallet/simplewallet.cpp" line="2147"/>
-        <source>Electroneum, like Bitcoin, is a cryptocurrency. That is, it is digital money.</source>
+        <source>Electroneum, like Bitcoin, is a cryptocurrency. That is, it is digital token.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -2894,17 +2894,17 @@ This transaction (including %s change) will unlock on block %llu, in approximate
     </message>
     <message>
         <location filename="../src/simplewallet/simplewallet.cpp" line="2771"/>
-        <source>Transfer &lt;amount&gt; to &lt;address&gt;. If the parameter &quot;index=&lt;N1&gt;[,&lt;N2&gt;,...]&quot; is specified, the wallet uses outputs received by addresses of those indices. If omitted, the wallet randomly chooses address indices to be used. In any case, it tries its best not to combine outputs across multiple addresses. &lt;priority&gt; is the priority of the transaction. The higher the priority, the higher the transaction fee. Valid values in priority order (from lowest to highest) are: unimportant, normal, elevated, priority. If omitted, the default value (see the command &quot;set priority&quot;) is used. &lt;ring_size&gt; is the number of inputs to include for untraceability. Multiple payments can be made at once by adding URI_2 or &lt;address_2&gt; &lt;amount_2&gt; etcetera (before the payment ID, if it&apos;s included)</source>
+        <source>Transfer &lt;amount&gt; to &lt;address&gt;. If the parameter &quot;index=&lt;N1&gt;[,&lt;N2&gt;,...]&quot; is specified, the wallet uses outputs received by addresses of those indices. If omitted, the wallet randomly chooses address indices to be used. In any case, it tries its best not to combine outputs across multiple addresses. &lt;priority&gt; is the priority of the transaction. The higher the priority, the higher the transaction fee. Valid values in priority order (from lowest to highest) are: unimportant, normal, elevated, priority. If omitted, the default value (see the command &quot;set priority&quot;) is used. &lt;ring_size&gt; is the number of outputs mixed with your input. Multiple payments can be made at once by adding URI_2 or &lt;address_2&gt; &lt;amount_2&gt; etcetera (before the payment ID, if it&apos;s included)</source>
         <translation>Trasferisci &lt;amount&gt; in &lt;address&gt;. Se viene specificato il parametro &quot;index=&lt;N1&gt;[,&lt;N2&gt;,...]&quot; il portafoglio utilizza le uscite ricevute dagli indirizzi di tali indici. Se omesso, il portafoglio sceglie casualmente gli indici dell&apos;indirizzo da utilizzare. In ogni caso, fa del suo meglio per non combinare gli output su più indirizzi. &lt;priority&gt; è la priorità della transazione. Maggiore è la priorità, maggiore è la commissione di transazione. I valori validi in ordine di priorità (dal più basso al più alto) sono: non importante, normale, elevata, priorità. Se omesso, viene utilizzato il valore predefinito (consultare il comando &quot;set priority&quot;). &lt;ring_size&gt; è il numero di input da includere per la non tracciabilità. È possibile effettuare pagamenti multipli contemporaneamente aggiungendo URI_2 o &lt;address_2&gt; &lt;amount_2&gt; eccetera (prima dell&apos;ID pagamento, se questo è incluso)</translation>
     </message>
     <message>
         <location filename="../src/simplewallet/simplewallet.cpp" line="2775"/>
-        <source>Transfer &lt;amount&gt; to &lt;address&gt; and lock it for &lt;lockblocks&gt; (max. 1000000). If the parameter &quot;index=&lt;N1&gt;[,&lt;N2&gt;,...]&quot; is specified, the wallet uses outputs received by addresses of those indices. If omitted, the wallet randomly chooses address indices to be used. In any case, it tries its best not to combine outputs across multiple addresses. &lt;priority&gt; is the priority of the transaction. The higher the priority, the higher the transaction fee. Valid values in priority order (from lowest to highest) are: unimportant, normal, elevated, priority. If omitted, the default value (see the command &quot;set priority&quot;) is used. &lt;ring_size&gt; is the number of inputs to include for untraceability. Multiple payments can be made at once by adding URI_2 or &lt;address_2&gt; &lt;amount_2&gt; etcetera (before the payment ID, if it&apos;s included)</source>
+        <source>Transfer &lt;amount&gt; to &lt;address&gt; and lock it for &lt;lockblocks&gt; (max. 1000000). If the parameter &quot;index=&lt;N1&gt;[,&lt;N2&gt;,...]&quot; is specified, the wallet uses outputs received by addresses of those indices. If omitted, the wallet randomly chooses address indices to be used. In any case, it tries its best not to combine outputs across multiple addresses. &lt;priority&gt; is the priority of the transaction. The higher the priority, the higher the transaction fee. Valid values in priority order (from lowest to highest) are: unimportant, normal, elevated, priority. If omitted, the default value (see the command &quot;set priority&quot;) is used. &lt;ring_size&gt; is the number of outputs mixed with your input. Multiple payments can be made at once by adding URI_2 or &lt;address_2&gt; &lt;amount_2&gt; etcetera (before the payment ID, if it&apos;s included)</source>
         <translation>Trasferisci &lt;amount&gt; in &lt;address&gt; e bloccalo per &lt;lockblocks&gt; (massimo 1000000). Se viene specificato il parametro &quot;index=&lt;N1&gt;[,&lt;N2&gt;,...]&quot;, il portafoglio utilizza le uscite ricevute dagli indirizzi di tali indici. Se omesso, il portafoglio sceglie casualmente gli indici dell&apos;indirizzo da utilizzare. In ogni caso, fa del suo meglio per non combinare gli output su più indirizzi. &lt;priority&gt; è la priorità della transazione. Maggiore è la priorità, maggiore è la commissione di transazione. I valori validi in ordine di priorità (dal più basso al più alto) sono: non importante, normale, elevata, priorità. Se omesso, viene utilizzato il valore predefinito (consultare il comando &quot;set priority&quot;). &lt;ring_size&gt; è il numero di input da includere per la non tracciabilità. È possibile effettuare pagamenti multipli contemporaneamente aggiungendo URI_2 o &lt;address_2&gt; &lt;amount_2&gt; eccetera (prima dell&apos;ID pagamento, se questo è incluso)</translation>
     </message>
     <message>
         <location filename="../src/simplewallet/simplewallet.cpp" line="2779"/>
-        <source>Send all unlocked balance to an address and lock it for &lt;lockblocks&gt; (max. 1000000). If the parameter &quot;index&lt;N1&gt;[,&lt;N2&gt;,...]&quot; is specified, the wallet sweeps outputs received by those address indices. If omitted, the wallet randomly chooses an address index to be used. &lt;priority&gt; is the priority of the sweep. The higher the priority, the higher the transaction fee. Valid values in priority order (from lowest to highest) are: unimportant, normal, elevated, priority. If omitted, the default value (see the command &quot;set priority&quot;) is used. &lt;ring_size&gt; is the number of inputs to include for untraceability.</source>
+        <source>Send all unlocked balance to an address and lock it for &lt;lockblocks&gt; (max. 1000000). If the parameter &quot;index&lt;N1&gt;[,&lt;N2&gt;,...]&quot; is specified, the wallet sweeps outputs received by those address indices. If omitted, the wallet randomly chooses an address index to be used. &lt;priority&gt; is the priority of the sweep. The higher the priority, the higher the transaction fee. Valid values in priority order (from lowest to highest) are: unimportant, normal, elevated, priority. If omitted, the default value (see the command &quot;set priority&quot;) is used. &lt;ring_size&gt; is the number of outputs mixed with your input.</source>
         <translation>Invia tutto il saldo sbloccato a un indirizzo e bloccalo per &lt;lockblocks&gt; (massimo 1000000). Se viene specificato il parametro &quot;index&lt;N1&gt;[,&lt;N2&gt;,...]&quot;, le uscite sweep del portafoglio vengono ricevute da tali indici dell&apos;indirizzo. Se omesso, il portafoglio sceglie casualmente un indice dell&apos;indirizzo da utilizzare. &lt;priority&gt; è la priorità dello sweep. Maggiore è la priorità, maggiore è la commissione di transazione. I valori validi in ordine di priorità (dal più basso al più alto) sono: non importante, normale, elevata, priorità. Se omesso, viene utilizzato il valore predefinito (consultare il comando &quot;set priority&quot;). &lt;ring_size&gt; è il numero di input da includere per la non tracciabilità.</translation>
     </message>
     <message>
@@ -3464,7 +3464,7 @@ Key Image, &quot;absolute&quot;, list of rings</source>
     </message>
     <message>
         <location filename="../src/simplewallet/simplewallet.cpp" line="5059"/>
-        <source>The first refresh has finished for the HW-based wallet with received money. hw_key_images_sync is needed. </source>
+        <source>The first refresh has finished for the HW-based wallet with received ETN. hw_key_images_sync is needed. </source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -4518,7 +4518,7 @@ Grand total:
     </message>
     <message>
         <location filename="../src/simplewallet/simplewallet.cpp" line="6742"/>
-        <source>Money successfully sent, transaction: </source>
+        <source>ETN successfully sent, transaction: </source>
         <translation>Fondi inviati con successo, transazione: </translation>
     </message>
     <message>
@@ -5131,12 +5131,12 @@ Use &quot;mms note&quot; to display the waiting notes</source>
     <message>
         <location filename="../src/simplewallet/simplewallet.cpp" line="526"/>
         <location filename="../src/simplewallet/simplewallet.cpp" line="534"/>
-        <source>Not enough money in unlocked balance</source>
+        <source>Not enough ETN in unlocked balance</source>
         <translation type="unfinished">Fondi insufficienti in saldo sbloccato</translation>
     </message>
     <message>
         <location filename="../src/simplewallet/simplewallet.cpp" line="544"/>
-        <source>Failed to find a way to create transactions. This is usually due to dust which is so small it cannot pay for itself in fees, or trying to send more money than the unlocked balance, or not leaving enough for fees</source>
+        <source>Failed to find a way to create transactions. This is usually due to dust which is so small it cannot pay for itself in fees, or trying to send more ETN than the unlocked balance, or not leaving enough for fees</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
