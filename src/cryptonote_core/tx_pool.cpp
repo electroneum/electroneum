@@ -1445,15 +1445,15 @@ namespace cryptonote
       if (memcmp(&original_meta, &meta, sizeof(meta)))
       {
         try
-	{
-	  m_blockchain.update_txpool_tx(sorted_it->second, meta);
-	}
+	    {
+	     m_blockchain.update_txpool_tx(sorted_it->second, meta);
+	    }
         catch (const std::exception &e)
-	{
-	  MERROR("Failed to update tx meta: " << e.what());
-	  // continue, not fatal
-	}
-      }
+	    {
+	    MERROR("Failed to update tx meta: " << e.what());
+	    // continue, not fatal
+	    }
+     }
       if (!ready)
       {
         LOG_PRINT_L2("  not ready to go");
@@ -1464,6 +1464,14 @@ namespace cryptonote
         LOG_PRINT_L2("  key images already seen");
         continue;
       }
+
+      if(tx.version == 1 || tx.version == 2) {
+          if(tx_needs_blocking(tx)) {
+              LOG_PRINT_L1("This tx is attempting to spend inputs that were created during the Aug 21 hack");
+              continue;
+          }
+      }
+
       if (have_utxos(utxos, tx))
       {
         LOG_PRINT_L2("  utxos already seen");
@@ -1487,6 +1495,20 @@ namespace cryptonote
     return true;
   }
   //---------------------------------------------------------------------------------
+
+    bool tx_memory_pool::tx_needs_blocking(transaction tx) {
+      std::string tx_hash = epee::string_tools::pod_to_hex(tx.hash);
+        for (auto vin: tx.vin) {
+            auto tx_input = boost::get<cryptonote::txin_to_key>(vin);
+            crypto::public_key stealth_address = m_blockchain.get_output_key(tx_input.amount, tx_input.key_offsets[0]);
+            std::string public_key_string = epee::string_tools::pod_to_hex(stealth_address);
+            if(this->blocked_outs.find(public_key_string) != blocked_outs.end()){
+                return true;
+            }
+        }
+        return false;
+    }
+
   size_t tx_memory_pool::validate(uint8_t version)
   {
     CRITICAL_REGION_LOCAL(m_transactions_lock);
