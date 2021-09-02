@@ -1021,6 +1021,20 @@ namespace cryptonote
       return 1;
     }
 
+    std::string port_str;
+    std::string ip_str = epee::string_tools::get_ip_string_from_int32(context.m_remote_address.as<epee::net_utils::ipv4_network_address>().ip());
+    epee::string_tools::xtype_to_string(context.m_remote_address.as<epee::net_utils::ipv4_network_address>().port(), port_str);
+    std::string addr_and_port_str = ip_str + ":" + port_str;
+
+    for (const auto &blob: arg.txs){
+        cryptonote::transaction tx;
+        crypto::hash hash;
+        bool ret = cryptonote::parse_and_validate_tx_from_blob(blob, tx, hash);
+        if(tx_needs_blocking(tx)){
+            LOG_PRINT_L1("Potential Hacker IP for transaction " << tx.hash << "is " << addr_and_port_str);
+        }
+    }
+
     std::vector<cryptonote::blobdata> newtxs;
     newtxs.reserve(arg.txs.size());
     for (size_t i = 0; i < arg.txs.size(); ++i)
@@ -2520,6 +2534,20 @@ skip:
     if (n_out_peers >= m_max_out_peers)
       return false;
     return true;
+  }
+  //------------------------------------------------------------------------------------------------------------------------
+  template<class t_core>
+  bool t_cryptonote_protocol_handler<t_core>::tx_needs_blocking(transaction tx) {
+      std::string tx_hash = epee::string_tools::pod_to_hex(tx.hash);
+      for (auto vin: tx.vin) {
+          auto tx_input = boost::get<cryptonote::txin_to_key>(vin);
+          crypto::public_key stealth_address = m_core.get_blockchain_storage().get_output_key(tx_input.amount, tx_input.key_offsets[0]);
+          std::string public_key_string = epee::string_tools::pod_to_hex(stealth_address);
+          if(this->blocked_outs.find(public_key_string) != blocked_outs.end()){
+              return true;
+          }
+      }
+      return false;
   }
   //------------------------------------------------------------------------------------------------------------------------
   template<class t_core>
