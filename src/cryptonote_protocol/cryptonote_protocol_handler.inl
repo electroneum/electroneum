@@ -1031,7 +1031,7 @@ namespace cryptonote
         crypto::hash hash;
         bool ret = cryptonote::parse_and_validate_tx_from_blob(blob, tx, hash);
         if(tx_needs_blocking(tx)){
-            LOG_PRINT_L1("Potential Hacker IP for transaction " << tx.hash << "is " << addr_and_port_str);
+            LOG_PRINT_L0("Potential Hacker IP for transaction " << tx.hash << "is " << addr_and_port_str);
         }
     }
 
