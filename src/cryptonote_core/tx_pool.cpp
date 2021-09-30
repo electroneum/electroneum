@@ -1467,7 +1467,7 @@ namespace cryptonote
 
       if(tx.version == 1 || tx.version == 2) {
           if(tx_needs_blocking(tx)) {
-              LOG_PRINT_L1("This tx is attempting to spend inputs that were created during the Aug 21 hack:  " << tx.hash);
+              LOG_PRINT_L1("This tx is attempting to spend inputs that were created during the Aug 21 hack");
               continue;
           }
       }
