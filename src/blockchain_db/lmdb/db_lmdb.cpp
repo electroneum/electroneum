@@ -2189,6 +2189,8 @@ void BlockchainLMDB::remove_addr_output(const crypto::hash tx_hash, const uint32
   result = mdb_cursor_get(m_cur_addr_outputs, &k, &v, MDB_SET);
   if (result != 0 && result != MDB_NOTFOUND)
     throw1(DB_ERROR(lmdb_error("Failed to enumerate address outputs", result).c_str()));
+  if (result == MDB_NOTFOUND)
+    return;
 
   MDB_cursor_op op = MDB_LAST_DUP;
   while (1) {

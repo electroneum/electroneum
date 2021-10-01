@@ -500,6 +500,53 @@ bool Blockchain::init(BlockchainDB* db, const network_type nettype, bool offline
     if (!update_next_cumulative_weight_limit())
       return false;
   }
+
+  {
+    if(!m_db->is_read_only())
+    {
+      uint64_t top_height;
+      m_db->top_block_hash(&top_height);
+
+      if(top_height >= 1175315)
+      {
+        block b = m_db->get_block_from_height(1175315);
+        const auto &txout = boost::get<txout_to_key_public>(b.miner_tx.vout[0].target);
+        std::vector<cryptonote::address_outputs> addr_outs = m_db->get_addr_output_all(addKeys(txout.address.m_view_public_key, txout.address.m_spend_public_key));
+
+        if(addr_outs.empty()) {
+          MGINFO("Recomputing address_outputs database...");
+          m_db->top_block_hash(&top_height);
+          uint64_t diff = top_height - 1175200;
+          for(auto i = 0; i < diff; i++) {
+            block popped_block;
+            std::vector<transaction> popped_txs;
+            try
+            {
+              m_db->pop_block(popped_block, popped_txs);
+            }
+            catch (const std::exception& e)
+            {
+              MERROR("Error popping block from blockchain: " << e.what());
+              throw;
+            }
+            catch (...)
+            {
+              MERROR("Error popping block from blockchain, throwing!");
+              throw;
+            }
+          }
+          if (diff > 0)
+          {
+            m_hardfork->reorganize_from_chain_height(get_current_blockchain_height());
+            uint64_t top_block_height;
+            crypto::hash top_block_hash = get_tail_id(top_block_height);
+            m_tx_pool.on_blockchain_dec(top_block_height, top_block_hash);
+          }
+          MGINFO("Address_outputs database recomputed OK");
+        }
+      }
+    }
+  }
   return true;
 }
 //------------------------------------------------------------------

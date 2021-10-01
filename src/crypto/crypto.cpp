@@ -571,7 +571,11 @@ namespace crypto {
   public_key crypto_ops::addKeys(const public_key &A, const public_key &B) {
     public_key AB;
     ge_p3 B2, A2;
-    assert(ge_frombytes_vartime(&B2, &B) == 0 && ge_frombytes_vartime(&A2, &A) == 0);
+    
+    if (ge_frombytes_vartime(&B2, &B) != 0 || ge_frombytes_vartime(&A2, &A) != 0) {
+      local_abort("addKeys: issue converting a public key to a curve point");
+    }
+    
     ge_cached tmp2;
     ge_p3_to_cached(&tmp2, &B2);
     ge_p1p1 tmp3;
