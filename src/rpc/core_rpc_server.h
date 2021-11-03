@@ -168,10 +168,10 @@ namespace cryptonote
         MAP_JON_RPC_WE("get_txpool_backlog",     on_get_txpool_backlog,         COMMAND_RPC_GET_TRANSACTION_POOL_BACKLOG)
         MAP_JON_RPC_WE("get_output_distribution", on_get_output_distribution, COMMAND_RPC_GET_OUTPUT_DISTRIBUTION)
         MAP_JON_RPC_WE_IF("prune_blockchain",    on_prune_blockchain,           COMMAND_RPC_PRUNE_BLOCKCHAIN, !m_restricted)
-        MAP_JON_RPC_WE("set_validator_key",      on_set_validator_key,          COMMAND_RPC_SET_VALIDATOR_KEY)
+        MAP_JON_RPC_WE_IF("set_validator_key",      on_set_validator_key,          COMMAND_RPC_SET_VALIDATOR_KEY, !m_restricted)
         MAP_JON_RPC_WE("generate_ed25519_keypair",      on_generate_ed25519_keypair,          COMMAND_RPC_GENERATE_ED25519_KEYPAIR)
         MAP_JON_RPC_WE("sign_message",           on_sign_message,               COMMAND_RPC_SIGN_MESSAGE)
-        MAP_JON_RPC_WE("inject_emergency_vlist",     on_inject_emergency_vlist,      COMMAND_RPC_INJECT_EMERGENCY_VLIST)
+        MAP_JON_RPC_WE_IF("inject_emergency_vlist",     on_inject_emergency_vlist,      COMMAND_RPC_INJECT_EMERGENCY_VLIST, !m_restricted)
       END_JSON_RPC_MAP()
     END_URI_MAP2()
 
