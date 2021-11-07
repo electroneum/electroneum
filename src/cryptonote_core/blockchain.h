@@ -1034,6 +1034,21 @@ namespace cryptonote
     void pop_blocks(uint64_t nblocks);
 
     /**
+     * @brief Digitally sign the block
+     *
+     * @param b the block to be digitally signed
+     * @param privateKey key to generate the signature
+     */
+    void sign_block(block& b, std::string privateKey);
+
+    /**
+     * @brief Verify block's digital signature
+     *
+     * @param b block to be verified
+     */
+    bool verify_block_signature(const block& b);
+
+      /**
      * @brief set validator key
      */
     void set_validator_key(std::string key) { m_validator_key = boost::algorithm::unhex(key); }
@@ -1534,21 +1549,6 @@ namespace cryptonote
      * At some point, may be used to push an update to miners
      */
     void cache_block_template(const block &b, const cryptonote::account_public_address &address, const blobdata &nonce, const difficulty_type &diff, uint64_t height, uint64_t expected_reward, uint64_t pool_cookie);
-    
-    /**
-     * @brief Digitally sign the block
-     *
-     * @param b the block to be digitally signed
-     * @param privateKey key to generate the signature
-     */
-    void sign_block(block& b, std::string privateKey);
-
-    /**
-     * @brief Verify block's digital signature
-     *
-     * @param b block to be verified
-     */
-    bool verify_block_signature(const block& b);
 
   };
 }  // namespace cryptonote
