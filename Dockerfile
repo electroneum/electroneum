@@ -34,7 +34,7 @@ ARG CMAKE_VERSION_DOT=v3.14
 ARG CMAKE_HASH=4e8ea11cabe459308671b476469eace1622e770317a15951d7b55a82ccaaccb9
 RUN set -ex \
     && curl -s -O https://cmake.org/files/${CMAKE_VERSION_DOT}/cmake-${CMAKE_VERSION}.tar.gz \
-    #&& echo "${CMAKE_HASH}  cmake-${CMAKE_VERSION}.tar.gz" | sha256sum -c \
+    && echo "${CMAKE_HASH}  cmake-${CMAKE_VERSION}.tar.gz" | sha256sum -c \
     && tar -xzf cmake-${CMAKE_VERSION}.tar.gz \
     && cd cmake-${CMAKE_VERSION} \
     && ./configure \
