@@ -3694,7 +3694,7 @@ void wallet2::refresh(bool trusted_daemon, uint64_t start_height, uint64_t & blo
     // V9-->V10 PUBLIC MIGRATIONS
     // check that the local blockchain height is at least the v10 fork height + 5 blocks (so we know we don't need to scan for any more v1 outputs and they have all have 5 confs)
     //todo: write function for wallet that gets the b.major version for a given *local* blockchain height, to save hardcoding heights.
-    uint64_t migration_minheight = this->nettype() == TESTNET ? 1165235 + 5 : 1175315 + 5;
+    uint64_t migration_minheight = this->nettype() == TESTNET ? 1086402 + 5 : 1175315 + 5;
     if (this->get_blockchain_current_height() > migration_minheight && this->unlocked_balance_all(false) != 0) {
         LOG_PRINT_L0("You are now on the transparent version of Electroneum and so we're giving you the chance to migrate your funds via a sweep transaction back to your address.\n Don't worry, this migration is completely free of charge. Please follow the prompts to continue.");
         std::map < uint32_t, std::map < uint32_t, std::pair <uint64_t, uint64_t>>> unlocked_balance_per_subaddress_per_account; // map of:   account index ---->  (subaddress index, pair(u-balance, unlock time))

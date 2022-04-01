@@ -330,7 +330,7 @@ namespace cryptonote
       }
 
       //no need to look up indexes for v2+ txes
-      auto v10_height = nettype() == cryptonote::network_type::MAINNET ? 1175315 : 1165235;
+      auto v10_height = nettype() == cryptonote::network_type::MAINNET ? 1175315 : 1086402;
       const size_t n_txes_to_lookup = height_counter >= v10_height ? 0 : (bd.second.size() + (req.no_miner_tx ? 0 : 1));
       if (n_txes_to_lookup > 0)
       {
