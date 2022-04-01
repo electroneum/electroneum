@@ -450,8 +450,8 @@ namespace nodetool
     if (nettype == cryptonote::TESTNET)
     {
       // Add testnet nodes here
-      full_addrs.insert("18.216.159.199:34567");
-      full_addrs.insert("18.216.237.214:34567");
+      full_addrs.insert("54.146.49.178:34567");
+      full_addrs.insert("13.228.250.11:34567");
     }
     else if (nettype == cryptonote::STAGENET)
     {
