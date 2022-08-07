@@ -40,6 +40,8 @@
 #include "cryptonote_core/cryptonote_core.h"
 #include "p2p/net_node.h"
 #include "cryptonote_protocol/cryptonote_protocol_handler.h"
+#include "common/i18n.h"
+
 
 #undef ELECTRONEUM_DEFAULT_LOG_CATEGORY
 #define ELECTRONEUM_DEFAULT_LOG_CATEGORY "daemon.rpc"
@@ -133,6 +135,7 @@ namespace cryptonote
       MAP_URI_AUTO_JON2("/get_balance", on_get_balance, COMMAND_RPC_GET_BALANCE)
       MAP_URI_AUTO_JON2("/get_address_batch_history", on_get_address_batch_history, COMMAND_RPC_GET_ADDRESS_BATCH_HISTORY)
       BEGIN_JSON_RPC_MAP("/json_rpc")
+        MAP_JON_RPC("get_tax_data",            on_get_tax_data,                COMMAND_RPC_GET_TAX_DATA)
         MAP_JON_RPC("get_block_count",           on_getblockcount,              COMMAND_RPC_GETBLOCKCOUNT)
         MAP_JON_RPC("getblockcount",             on_getblockcount,              COMMAND_RPC_GETBLOCKCOUNT)
         MAP_JON_RPC_WE("on_get_block_hash",      on_getblockhash,               COMMAND_RPC_GETBLOCKHASH)
@@ -214,6 +217,7 @@ namespace cryptonote
     bool on_get_address_batch_history(const COMMAND_RPC_GET_ADDRESS_BATCH_HISTORY::request& req, COMMAND_RPC_GET_ADDRESS_BATCH_HISTORY::response& res, const connection_context *ctx = NULL);
 
     //json_rpc
+    bool on_get_tax_data(const COMMAND_RPC_GET_TAX_DATA::request& req, COMMAND_RPC_GET_TAX_DATA::response& res, const connection_context *ctx = NULL);
     bool on_getblockcount(const COMMAND_RPC_GETBLOCKCOUNT::request& req, COMMAND_RPC_GETBLOCKCOUNT::response& res, const connection_context *ctx = NULL);
     bool on_getblockhash(const COMMAND_RPC_GETBLOCKHASH::request& req, COMMAND_RPC_GETBLOCKHASH::response& res, epee::json_rpc::error& error_resp, const connection_context *ctx = NULL);
     bool on_getblocktemplate(const COMMAND_RPC_GETBLOCKTEMPLATE::request& req, COMMAND_RPC_GETBLOCKTEMPLATE::response& res, epee::json_rpc::error& error_resp, const connection_context *ctx = NULL);

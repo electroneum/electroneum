@@ -32,6 +32,10 @@
 #include <boost/preprocessor/stringize.hpp>
 #include "include_base_utils.h"
 #include "string_tools.h"
+#include <boost/format.hpp>
+#include <numeric>
+#include <stdio.h>
+#include <time.h>
 using namespace epee;
 
 #include "core_rpc_server.h"
@@ -2296,6 +2300,69 @@ namespace cryptonote
     return true;
   }
   //------------------------------------------------------------------------------------------------------------------------------
+  bool core_rpc_server::on_get_tax_data(const COMMAND_RPC_GET_TAX_DATA::request &req,
+                                        COMMAND_RPC_GET_TAX_DATA::response &res, const connection_context *ctx) {
+      PERF_TIMER(on_get_tax_data);
+      std::string filename =
+              "taxes-" + std::to_string(req.start_height) + "-" + std::to_string(req.end_height) + ".csv";
+      std::ofstream file(filename);
+      // header
+      file <<
+           boost::format("%64.64s,%64.64s,%64.64s,%64.64s,%64.64s") %
+           tr("height") % tr("timestamp") % tr("txid") % tr("fee") % tr("amount")
+           << std::endl;
+
+      auto formatter = boost::format("%64.64s,%64.64s,%64.64s,%64.64s,%64.64s");
+
+      std::vector<std::pair<cryptonote::blobdata, block>> blocks;
+      size_t num_blocks = req.end_height - req.start_height;
+      m_core.get_blocks(req.start_height, num_blocks, blocks);
+
+      uint64_t current_height = req.start_height;
+      for (auto block: blocks) {
+          std::vector<cryptonote::transaction> found_txs_vec;
+          std::vector<crypto::hash> missed_vec;
+          uint64_t tx_hash_counter = 0; //needed because of some weird compiler bug
+          for(auto hash : block.second.tx_hashes){
+            found_txs_vec.push_back(m_core.get_blockchain_storage().get_db().get_tx(hash));
+          }
+         // m_core.get_transactions(block.second.tx_hashes, found_txs_vec, missed_vec);
+          for (transaction tx: found_txs_vec) {
+              uint64_t fee = 0;
+              if(tx.vin[0].type() == typeid(txin_to_key)){continue;}
+              get_tx_fee(tx, fee);
+              time_t time_date_stamp = time_t(block.second.timestamp);
+              std::stringstream transTime;
+              transTime << std::put_time(localtime(&time_date_stamp), "%D - %T");
+              std::string myTime = transTime.str();
+
+              unsigned char *byteData = reinterpret_cast<unsigned char*>(tx.hash.data);
+              std::string dest;
+              std::stringstream hexStringStream;
+
+              hexStringStream << std::hex << std::setfill('0');
+              for(size_t index = 0; index < 32; ++index)
+                  hexStringStream << std::setw(2) << static_cast<int>(byteData[index]);
+              dest = hexStringStream.str();
+
+              file << formatter
+                      % current_height
+                      % myTime
+                      % epee::string_tools::pod_to_hex(block.second.tx_hashes[tx_hash_counter])
+                      % std::to_string(((double)fee / 100))
+                      % std::to_string((double)(size_t((accumulate(tx.vin.begin(), tx.vin.end(), 0, [](size_t sum, const txin_v& input){ return sum + boost::get<txin_to_key_public>(input).amount; })) - fee)) / 100)
+                   << std::endl;
+              tx_hash_counter++;
+          }
+          current_height++;
+      }
+      file.close();
+      res.status = CORE_RPC_STATUS_OK;
+      return true;
+  }
+  //------------------------------------------------------------------------------------------------------------------------------
+
+
   bool core_rpc_server::on_relay_tx(const COMMAND_RPC_RELAY_TX::request& req, COMMAND_RPC_RELAY_TX::response& res, epee::json_rpc::error& error_resp, const connection_context *ctx)
   {
     PERF_TIMER(on_relay_tx);
