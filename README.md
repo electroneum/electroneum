@@ -275,7 +275,7 @@ See [LICENSE](LICENSE).
 
 # Copyright
 
-Copyright (c) 2017-2021, The Electroneum Project
+Copyright (c) 2017-2022, The Electroneum Project
 
 Copyright (c) 2014-2017, The Monero Project
 
