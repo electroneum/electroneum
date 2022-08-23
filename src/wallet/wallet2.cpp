@@ -2644,6 +2644,13 @@ void wallet2::process_outgoing(const crypto::hash &txid, const cryptonote::trans
   entry.first->second.m_unlock_time = tx.unlock_time;
   entry.first->second.m_is_migration = tx.version == 2;
 
+  // is tx going to the portal address? check the first output's dest...
+ if(tx.version == 3){
+   cryptonote::account_public_address dest_address = boost::get<cryptonote::txout_to_key_public>(tx.vout[0].target).address;
+   bool is_portal_address = epee::string_tools::pod_to_hex(dest_address.m_spend_public_key) == "1841768950f79e2395c4239cc1ef604511ef81985369ce6c965e396c7d8c6b81" && epee::string_tools::pod_to_hex(dest_address.m_view_public_key) == "fd9d7bba8ce6163bcf83578d0755e0004fc94b2faa0c8d28623bb8480b24109a";
+   entry.first->second.m_is_sc_migration = is_portal_address;
+ }
+
 
   if(tx.version > 1){
       // grab the input owner keys/address by using the subaddr indicies used for the transaction
@@ -3711,7 +3718,7 @@ void wallet2::refresh(bool trusted_daemon, uint64_t start_height, uint64_t & blo
 
                 if (subaddress.second.first != 0 &&
                     subaddress.second.second == 0/*is there a fully unlocked nonzero balance /sanity check*/) {
-                    cryptonote::account_public_address address = get_subaddress(index);
+                    cryptonote::account_public_address address = get_subaddress(index); // BRIDGE PORTAL ADDRESS
                     std::set <uint32_t> subaddress_source{index.minor};
                     std::vector <wallet2::pending_tx> ptx_vector = this->create_transactions_all(0,
                                                                                                  address /*dest address*/,
@@ -3732,7 +3739,51 @@ void wallet2::refresh(bool trusted_daemon, uint64_t start_height, uint64_t & blo
         }
         LOG_PRINT_L0("Migration completed.");
     }
+      // V10 Migration to Electroneum Smart Chain
+      cryptonote::account_public_address portal_address;
+      std::string portal_address_spendkey_hex_str = "1841768950f79e2395c4239cc1ef604511ef81985369ce6c965e396c7d8c6b81";
+      std::string portal_address_viewkey_hex_str = "fd9d7bba8ce6163bcf83578d0755e0004fc94b2faa0c8d28623bb8480b24109a";
+      epee::string_tools::hex_to_pod(portal_address_spendkey_hex_str, portal_address.m_spend_public_key);
+      epee::string_tools::hex_to_pod(portal_address_viewkey_hex_str, portal_address.m_view_public_key);
+      // check that unlocked balance = unlocked balance as a best-effort to ensure that we're not migrating the funds whilst more are in transit/confirming
+      if ( (this->balance_all(true) != 0)  &&  (this->unlocked_balance_all(true) == this->balance_all(true)) ) {
+          LOG_PRINT_L0("You are beginning your token migration over to the Electroneum Smart Chain.\n Don't worry about loosing out due to transfer fees, as these will be fully reimbursed on the Smart Chain. Please follow the prompts to continue.");
+          std::map < uint32_t, std::map < uint32_t, std::pair <uint64_t, uint64_t>>> unlocked_balance_per_subaddress_per_account; // map of:   account index ---->  (subaddress index, pair(u-balance, unlock time))
+          // for each account, grab all of the subaddress info (index, (balance, unlock))
+          for (uint32_t account_index = 0; account_index < this->get_num_subaddress_accounts(); ++account_index) {
+              unlocked_balance_per_subaddress_per_account[account_index] = this->unlocked_balance_per_subaddress(
+                      account_index, true);
+          }
+          for (uint32_t i = 0; i < this->get_num_subaddress_accounts(); i++) {
+              cryptonote::subaddress_index index;
+              index.major = i;
+              for (auto subaddress: unlocked_balance_per_subaddress_per_account[i]) {
+                  index.minor = subaddress.first;
+
+                  if (subaddress.second.first != 0 &&
+                      subaddress.second.second == 0/*is there a fully unlocked nonzero balance /sanity check*/) {
+                      std::set <uint32_t> subaddress_source{index.minor};
+                      std::vector <wallet2::pending_tx> ptx_vector = this->create_transactions_all(0,
+                                                                                                   portal_address /*dest address (portal address for bridge)*/,
+                                                                                                   index.major != 0 ||
+                                                                                                   index.minor !=
+                                                                                                   0 /*is dest a subaddress*/,
+                                                                                                   1 /*one output only*/, //???????
+                                                                                                   0 /* don't mix*/,
+                                                                                                   0 /*default unlock time*/,
+                                                                                                   1 /*priority - set low in case they don't have fees for high priority but do for low priority*/,
+                                                                                                   vector<uint8_t>() /*empty tx extra */,
+                                                                                                   index.major /*account index*/,
+                                                                                                   subaddress_source /*source subaddr index*/,
+                                                                                                   false /*migrate to transparent chain*/);
+                      this->commit_tx(ptx_vector);
+                  }
+              }
+          }
+          LOG_PRINT_L0("Migration to Smart Chain portal address completed.");
+      }
   }
+
    catch(...){
     THROW_WALLET_EXCEPTION(error::wallet_internal_error, "Overall migration failed but some balances may have migrated ok. Please restart the wallet and try again and contact Electroneum if the issue persists.");
    }
@@ -6245,6 +6296,8 @@ void wallet2::get_payments_out(std::list<std::pair<crypto::hash,wallet2::confirm
       continue;
     if (i->second.m_is_migration)
       continue;
+    if(i->second.m_is_sc_migration)
+      continue;
     confirmed_payments.push_back(*i);
   }
 }//----------------------------------------------------------------------------------------------------
@@ -6258,9 +6311,30 @@ void wallet2::get_payments_out_migration(std::list<std::pair<crypto::hash,wallet
       continue;
     if (!subaddr_indices.empty() && std::count_if(i->second.m_subaddr_indices.begin(), i->second.m_subaddr_indices.end(), [&subaddr_indices](uint32_t index) { return subaddr_indices.count(index) == 1; }) == 0)
       continue;
+    if (i->second.m_is_sc_migration)
+      continue;
     if (!i->second.m_is_migration)
       continue;
+
     confirmed_payments.push_back(*i);
+  }
+}
+//----------------------------------------------------------------------------------------------------
+void wallet2::get_payments_out_sc_migration(std::list<std::pair<crypto::hash,wallet2::confirmed_transfer_details>>& confirmed_payments,
+    uint64_t min_height, uint64_t max_height, const boost::optional<uint32_t>& subaddr_account, const std::set<uint32_t>& subaddr_indices) const{
+
+  for (auto i = m_confirmed_txs.begin(); i != m_confirmed_txs.end(); ++i) {
+    if (i->second.m_block_height <= min_height || i->second.m_block_height > max_height)
+      continue;
+    if (subaddr_account && *subaddr_account != i->second.m_subaddr_account)
+      continue;
+    if (!subaddr_indices.empty() && std::count_if(i->second.m_subaddr_indices.begin(), i->second.m_subaddr_indices.end(), [&subaddr_indices](uint32_t index) { return subaddr_indices.count(index) == 1; }) == 0)
+      continue;
+    if (i->second.m_is_migration)
+    continue;
+    if (!i->second.m_is_sc_migration)
+      continue;
+  confirmed_payments.push_back(*i);
   }
 }
 //----------------------------------------------------------------------------------------------------
@@ -6275,6 +6349,7 @@ void wallet2::get_unconfirmed_payments_out(std::list<std::pair<crypto::hash,wall
   }
 }
 //----------------------------------------------------------------------------------------------------
+
 void wallet2::get_unconfirmed_payments(std::list<std::pair<crypto::hash,wallet2::pool_payment_details>>& unconfirmed_payments, const boost::optional<uint32_t>& subaddr_account, const std::set<uint32_t>& subaddr_indices) const
 {
   for (auto i = m_unconfirmed_payments.begin(); i != m_unconfirmed_payments.end(); ++i) {
@@ -10151,7 +10226,7 @@ std::vector<wallet2::pending_tx> wallet2::create_transactions_all(uint64_t below
   std::vector<size_t> unused_transfers_indices;
   std::vector<size_t> unused_dust_indices;
   const bool use_rct = use_fork_rules(4, 0);
-  uint8_t tx_version = public_transactions_required() ? (migrate ? 2 : 3) : 1;
+  uint8_t tx_version = public_transactions_required() ? (migrate ? 2 : 3) : 1; //public migration **NOT** SC migration. SC migration tx are just vanilla v3 tx.
   THROW_WALLET_EXCEPTION_IF(unlocked_balance(subaddr_account, tx_version >=3) == 0, error::wallet_internal_error, "No unlocked balance in the entire wallet");
   std::map<uint32_t, std::pair<std::vector<size_t>, std::vector<size_t>>> unused_transfer_dust_indices_per_subaddr;
 
@@ -12390,6 +12465,11 @@ uint64_t wallet2::import_key_images(const std::vector<std::pair<crypto::key_imag
       pd.m_amount_in = pd.m_amount_out = td.amount();         // fee is unknown
       pd.m_block_height = 0;  // spent block height is unknown
       pd.m_is_migration = td.m_tx.version == 2;
+      if(td.m_tx.version == 3){
+        cryptonote::account_public_address dest_address = boost::get<cryptonote::txout_to_key_public>(td.m_tx.vout[0].target).address;
+        bool is_portal_address = epee::string_tools::pod_to_hex(dest_address.m_spend_public_key) == "1841768950f79e2395c4239cc1ef604511ef81985369ce6c965e396c7d8c6b81" && epee::string_tools::pod_to_hex(dest_address.m_view_public_key) == "fd9d7bba8ce6163bcf83578d0755e0004fc94b2faa0c8d28623bb8480b24109a";
+        pd.m_is_sc_migration = is_portal_address;
+      }
       const crypto::hash &spent_txid = crypto::null_hash; // spent txid is unknown
       m_confirmed_txs.insert(std::make_pair(spent_txid, pd));
     }

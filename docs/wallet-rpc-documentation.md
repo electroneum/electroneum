@@ -1698,6 +1698,7 @@ Inputs:
 * *failed*  - boolean; (defaults to false) Include failed transfers.
 * *pool*  - boolean; (defaults to false) Include transfers from the daemon's transaction pool.
 * *migration* - boolean; (defaults to false) Include migration transfers.
+* *sc_migration* - boolean; (defaults to false) Include smart chain migration transfers.
 * *filter_by_height*  - boolean; (Optional) Filter transfers by block height.
 * *min_height*  - unsigned int; (Optional) Minimum block height to scan for transfers, if filtering by height is enabled.
 * *max_height*  - unsigned int; (Optional) Maximum block height to scan for transfers, if filtering by height is enabled (defaults to max block height).
@@ -1724,13 +1725,14 @@ Outputs:
   * *suggested_confirmations_threshold*  - unsigned int; Estimation of the confirmations needed for the transaction to be included in a block.
   * *timestamp*  - unsigned int; POSIX timestamp for when this transfer was first confirmed in a block (or timestamp submission if not mined yet).
   * *txid*  - string; Transaction ID for this transfer.
-  * *type*  - string; Type of transfer, one of the following: "in", "out", "migration", "pending", "failed", "pool"
+  * *type*  - string; Type of transfer, one of the following: "in", "out", "migration", "sc-migration", "pending", "failed", "pool"
   * *unlock_time*  - unsigned int; Number of blocks until transfer is safely spendable.
 * *out*  array of transfers (see above).
 * *pending*  array of transfers (see above).
 * *failed*  array of transfers (see above).
 * *pool*  array of transfers (see above).
 * *migration*  array of transfers (see above).
+* *sc-migration*  array of transfers (see above).
 
 Example:
 
