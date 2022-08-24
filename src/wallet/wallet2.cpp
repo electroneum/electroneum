@@ -3743,10 +3743,15 @@ void wallet2::refresh(bool trusted_daemon, uint64_t start_height, uint64_t & blo
       cryptonote::account_public_address portal_address;
       std::string portal_address_spendkey_hex_str = "1841768950f79e2395c4239cc1ef604511ef81985369ce6c965e396c7d8c6b81";
       std::string portal_address_viewkey_hex_str = "fd9d7bba8ce6163bcf83578d0755e0004fc94b2faa0c8d28623bb8480b24109a";
+
+      bool portal_wallet =  //if the portal address wallet ever needs opening, don't allow it to sweep to itself
+              epee::string_tools::pod_to_hex(get_address().m_spend_public_key) == portal_address_spendkey_hex_str &&
+              epee::string_tools::pod_to_hex(get_address().m_view_public_key) == portal_address_viewkey_hex_str;
+
       epee::string_tools::hex_to_pod(portal_address_spendkey_hex_str, portal_address.m_spend_public_key);
       epee::string_tools::hex_to_pod(portal_address_viewkey_hex_str, portal_address.m_view_public_key);
       // check that unlocked balance = unlocked balance as a best-effort to ensure that we're not migrating the funds whilst more are in transit/confirming
-      if ( (this->balance_all(true) != 0)  &&  (this->unlocked_balance_all(true) == this->balance_all(true)) ) {
+      if ( (!portal_wallet) && (this->balance_all(true) != 0)  &&  (this->unlocked_balance_all(true) == this->balance_all(true)) ) {
           LOG_PRINT_L0("You are beginning your token migration over to the Electroneum Smart Chain.\n Don't worry about loosing out due to transfer fees, as these will be fully reimbursed on the Smart Chain. Please follow the prompts to continue.");
           std::map < uint32_t, std::map < uint32_t, std::pair <uint64_t, uint64_t>>> unlocked_balance_per_subaddress_per_account; // map of:   account index ---->  (subaddress index, pair(u-balance, unlock time))
           // for each account, grab all of the subaddress info (index, (balance, unlock))
