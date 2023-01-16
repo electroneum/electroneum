@@ -43,6 +43,7 @@
 #include <boost/range/adaptor/transformed.hpp>
 #include <boost/preprocessor/stringize.hpp>
 #include "include_base_utils.h"
+#include <secp256k1/include/secp256k1.h>
 using namespace epee;
 
 #include "cryptonote_config.h"
@@ -2647,7 +2648,7 @@ void wallet2::process_outgoing(const crypto::hash &txid, const cryptonote::trans
   // is tx going to the portal address? check the first output's dest...
  if(tx.version == 3){
    cryptonote::account_public_address dest_address = boost::get<cryptonote::txout_to_key_public>(tx.vout[0].target).address;
-   bool is_portal_address = epee::string_tools::pod_to_hex(dest_address.m_spend_public_key) == "1841768950f79e2395c4239cc1ef604511ef81985369ce6c965e396c7d8c6b81" && epee::string_tools::pod_to_hex(dest_address.m_view_public_key) == "fd9d7bba8ce6163bcf83578d0755e0004fc94b2faa0c8d28623bb8480b24109a";
+   bool is_portal_address = epee::string_tools::pod_to_hex(dest_address.m_spend_public_key) == "de0d3de9b8cd6543c30ccf439bc57e4abd4deafadd04c27a913b307d84c8db97" && epee::string_tools::pod_to_hex(dest_address.m_view_public_key) == "6ea0798dac485f9c0d5ea17ad5b2f1593c9df19aa72595561474f6bbf0e13dbb";
    entry.first->second.m_is_sc_migration = is_portal_address;
  }
 
@@ -3741,8 +3742,8 @@ void wallet2::refresh(bool trusted_daemon, uint64_t start_height, uint64_t & blo
     }
       // V10 Migration to Electroneum Smart Chain
       cryptonote::account_public_address portal_address;
-      std::string portal_address_spendkey_hex_str = "1841768950f79e2395c4239cc1ef604511ef81985369ce6c965e396c7d8c6b81";
-      std::string portal_address_viewkey_hex_str = "fd9d7bba8ce6163bcf83578d0755e0004fc94b2faa0c8d28623bb8480b24109a";
+      std::string portal_address_spendkey_hex_str = "de0d3de9b8cd6543c30ccf439bc57e4abd4deafadd04c27a913b307d84c8db97";
+      std::string portal_address_viewkey_hex_str = "6ea0798dac485f9c0d5ea17ad5b2f1593c9df19aa72595561474f6bbf0e13dbb";
 
       bool portal_wallet =  //if the portal address wallet ever needs opening, don't allow it to sweep to itself
               epee::string_tools::pod_to_hex(get_address().m_spend_public_key) == portal_address_spendkey_hex_str &&
@@ -12472,7 +12473,7 @@ uint64_t wallet2::import_key_images(const std::vector<std::pair<crypto::key_imag
       pd.m_is_migration = td.m_tx.version == 2;
       if(td.m_tx.version == 3){
         cryptonote::account_public_address dest_address = boost::get<cryptonote::txout_to_key_public>(td.m_tx.vout[0].target).address;
-        bool is_portal_address = epee::string_tools::pod_to_hex(dest_address.m_spend_public_key) == "1841768950f79e2395c4239cc1ef604511ef81985369ce6c965e396c7d8c6b81" && epee::string_tools::pod_to_hex(dest_address.m_view_public_key) == "fd9d7bba8ce6163bcf83578d0755e0004fc94b2faa0c8d28623bb8480b24109a";
+        bool is_portal_address = epee::string_tools::pod_to_hex(dest_address.m_spend_public_key) == "de0d3de9b8cd6543c30ccf439bc57e4abd4deafadd04c27a913b307d84c8db97" && epee::string_tools::pod_to_hex(dest_address.m_view_public_key) == "6ea0798dac485f9c0d5ea17ad5b2f1593c9df19aa72595561474f6bbf0e13dbb";
         pd.m_is_sc_migration = is_portal_address;
       }
       const crypto::hash &spent_txid = crypto::null_hash; // spent txid is unknown

@@ -66,7 +66,6 @@ We have a global patent pending on a technology that allows instant cryptocurren
 The ability to SPEND ETN instantly is only half the equation. We are developing an API that will allow easy integration to ACCEPT ETN instantly. This means it will be simple to allow an ecommerce system to give instant check out, and even allow easy integration into ePOS systems (electronic point of sales systems or tills).
 
 
-
 ### USD 3 Trillion Opportunity
 
 By giving access to the 'gig economy' for the first time to over 350 million unbanked smartphone users in the developing world we are giving them access to the vast resources of the Western economies. We are not providing banking facilities but making digital earnings accessible for these users as they embrace the digital payment sector.
