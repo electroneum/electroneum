@@ -3,6 +3,10 @@
 </p>
 <h4 align="center">Electroneum is a Fast, Secure, Mobile Based Cryptocurrency </h4>
 
+| :warning: WARNING                                                                                                                                                                                                                                                                   |
+|:------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| This project is the legacy version of Electroneum. Electroneum has since migrated over to a new smart contract enabled blockchain: https://github.com/electroneum/electroneum-sc. For details on how to migrate your ETN, please see: [Smartchain-Migration](#Smartchain-Migration) |
+
 ## Table of Contents
 
  * [Introduction](#Introduction)
@@ -29,6 +33,7 @@
    * [Daemon RPC Documentation](docs/daemon-rpc-documentation.md)
    * [Wallet RPC Documentation](docs/wallet-rpc-documentation.md)
    * [Exchange Listing Guide](docs/exchange-listing-guide.md)
+   * [Smartchain Migration](#Smartchain-Migration)
  * [Vulnerability Response Process](#Vulnerability-Response-Process)
  * [License](#License)
  * [Copyright](#Copyright)
@@ -262,6 +267,43 @@ See [Build & Run Documentation](docs/build-and-run.md).
 * [Wallet RPC Documentation](docs/wallet-rpc-documentation.md)
 * [Exchange Listing Guide](docs/exchange-listing-guide.md)
 
+## Smartchain Migration
+
+If your funds are stored in the my.electroneum.com wallet system, your balance will be reflected in the genesis entry of the smartchain, and there is therefore no 
+effort required on your part to migrate your funds. Your new smartchain address will be displayed on your myETN dashboard and your balance will be visible, just as before.
+
+If however your funds lie outside of the my.electroneum wallet system, then you will have to migrate your funds using the smartchain token bridge. 
+To cross the bridge, you need to update to the terminal version of the legacy Electroneum programs and synchronise
+your legacy wallet with the blockchain and the wallet will auto move your balances to the bridge portal address upon (auto or manual)
+refresh or reopening the wallet. The migration transaction that carries your balance will also contain a record of new smartchain address. 
+Your new smartchain address will use the same private key that you used for your wallet on the legacy version of the blockchain.
+
+Electroneum will be running a special bridge-only validator, which will watch over the portal address for new inbound transactions,
+and will reflect on the new smartchain both the balance migrated and any fees incurred in doing so, so you are made completely whole.
+
+To access your smartchain wallet, you have a couple of options:
+
+```
+a) Importing the wallet into etn-sc (the smartchain client):
+
+First you must install the new client, found at https://github.com/electroneum/electroneum-sc
+
+Paste the key into a text file, save it to disk and use the path to that file with etn-sc account import. Here are some example Windows instructions that might help:
+
+OpenNotepad
+
+Paste key into notepad without any extra characters or quotations
+
+Save the file as nothing_special_delete_me.txt at C:\
+
+Run the command, geth account import C:\nothing_special_delete_me.txt```
+```
+```
+b) You can generate your wallet with Metamask, by importing the private key.
+```
+
+
+
 # Vulnerability Response Process
 
 HackerOne is a vulnerability coordination and bug bounty platform that connects businesses with penetration testers and cybersecurity researchers. It was one of the first companies, along with Synack and Bugcrowd, to embrace and utilize crowd-sourced security and cybersecurity researchers as linchpins of its business model; it is the largest cybersecurity firm of its kind. As of July 2018, HackerOne's network consisted of approximately 200,000 researchers, had resolved 72,000 vulnerabilities across over 1,000 customer programs, and had paid $31 million in bounties.
@@ -274,7 +316,7 @@ See [LICENSE](LICENSE).
 
 # Copyright
 
-Copyright (c) 2017-2022, The Electroneum Project
+Copyright (c) 2017-2023, The Electroneum Project
 
 Copyright (c) 2014-2017, The Monero Project
 
