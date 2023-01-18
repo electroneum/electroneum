@@ -50,6 +50,7 @@ namespace cryptonote
     bool m_overspend;
     bool m_fee_too_low;
     bool m_not_rct;
+    bool m_portal_outbound_tx;
   };
 
   struct block_verification_context

@@ -247,7 +247,31 @@ namespace cryptonote
     crypto::hash max_used_block_id = null_hash;
     uint64_t max_used_block_height = 0;
     cryptonote::txpool_tx_meta_t meta;
+
     bool ch_inp_res = check_tx_inputs([&tx]()->cryptonote::transaction&{ return tx; }, id, max_used_block_height, max_used_block_id, tvc, kept_by_block);
+
+      //reject transactions coming OUT of the bridge portal address
+      if(tx.version == 3) {
+          // spend key check is a catch all for outgoing tx from the portal.
+          std::string portal_address_spendkey_hex_str = "1841768950f79e2395c4239cc1ef604511ef81985369ce6c965e396c7d8c6b81";
+          for (auto input: tx.vin) {
+              auto in = boost::get<txin_to_key_public>(input);
+              transaction parent_tx;
+              if (!m_blockchain.get_db().get_tx(in.tx_hash, parent_tx))
+              {
+                  tvc.m_invalid_input = true;
+                  tvc.m_verification_failed = true;
+                  return false;
+              }
+              const auto out = boost::get<txout_to_key_public>(parent_tx.vout[in.relative_offset].target);
+              std::string out_address_str = epee::string_tools::pod_to_hex(out.address.m_spend_public_key.data);
+              if(out_address_str == portal_address_spendkey_hex_str){
+                  tvc.m_verification_failed = true;
+                  tvc.m_portal_outbound_tx = true;
+              }
+          }
+      }
+
     if(!ch_inp_res)
     {
       // if the transaction was valid before (kept_by_block), then it

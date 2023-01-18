@@ -348,6 +348,11 @@ namespace rpc
         if (!res.error_details.empty()) res.error_details += " and ";
         res.error_details = "tx is not ringct";
       }
+      if (tvc.m_portal_outbound_tx)
+      {
+        if (!res.error_details.empty()) res.error_details += " and ";
+        res.error_details = "this is an outbound transaction from the smartchain bridge portal address";
+      }
       if (res.error_details.empty())
       {
         res.error_details = "an unknown issue was found with the transaction";
