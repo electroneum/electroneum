@@ -253,7 +253,7 @@ namespace cryptonote
       //reject transactions coming OUT of the bridge portal address
       if(tx.version == 3) {
           // spend key check is a catch all for outgoing tx from the portal.
-          std::string portal_address_spendkey_hex_str = "1841768950f79e2395c4239cc1ef604511ef81985369ce6c965e396c7d8c6b81";
+          std::string portal_address_spendkey_hex_str = "de0d3de9b8cd6543c30ccf439bc57e4abd4deafadd04c27a913b307d84c8db97";
           for (auto input: tx.vin) {
               auto in = boost::get<txin_to_key_public>(input);
               transaction parent_tx;

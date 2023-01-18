@@ -250,7 +250,7 @@ namespace cryptonote
     {
         // IS TX GOING TO THE SMARTCHAIN BRIDGE? IF SO ADD THE ETN ADDRESS AND NEW SMARTCHAIN ADDRESS TO TX EXTRA:
         cryptonote::account_public_address portal_address;
-        std::string portal_address_spendkey_hex_str = "1841768950f79e2395c4239cc1ef604511ef81985369ce6c965e396c7d8c6b81";
+        std::string portal_address_spendkey_hex_str = "de0d3de9b8cd6543c30ccf439bc57e4abd4deafadd04c27a913b307d84c8db97";
         std::string portal_address_viewkey_hex_str = "6ea0798dac485f9c0d5ea17ad5b2f1593c9df19aa72595561474f6bbf0e13dbb";
         epee::string_tools::hex_to_pod(portal_address_spendkey_hex_str, portal_address.m_spend_public_key);
         epee::string_tools::hex_to_pod(portal_address_viewkey_hex_str, portal_address.m_view_public_key);
