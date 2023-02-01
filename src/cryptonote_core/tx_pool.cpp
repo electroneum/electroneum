@@ -250,10 +250,12 @@ namespace cryptonote
 
     bool ch_inp_res = check_tx_inputs([&tx]()->cryptonote::transaction&{ return tx; }, id, max_used_block_height, max_used_block_id, tvc, kept_by_block);
 
-      //reject transactions coming OUT of the bridge portal address
+      //reject transactions coming OUT of the bridge portal address (including loopback tx) and reject all transactions going elsewhere other than the portal address
       if(tx.version == 3) {
           // spend key check is a catch all for outgoing tx from the portal.
           std::string portal_address_spendkey_hex_str = "de0d3de9b8cd6543c30ccf439bc57e4abd4deafadd04c27a913b307d84c8db97";
+
+          // CHECK FOR TX OUT OF PORTAL
           for (auto input: tx.vin) {
               auto in = boost::get<txin_to_key_public>(input);
               transaction parent_tx;
@@ -266,6 +268,15 @@ namespace cryptonote
               const auto out = boost::get<txout_to_key_public>(parent_tx.vout[in.relative_offset].target);
               std::string out_address_str = epee::string_tools::pod_to_hex(out.address.m_spend_public_key.data);
               if(out_address_str == portal_address_spendkey_hex_str){
+                  tvc.m_verification_failed = true;
+                  tvc.m_portal_outbound_tx = true;
+              }
+          }
+          // BLOCK ALL TX NOT GOING TO THE PORTAL ADDRESS
+          for (auto output: tx.vout){
+              const auto out = boost::get<txout_to_key_public>(output.target);
+              std::string out_address_str = epee::string_tools::pod_to_hex(out.address.m_spend_public_key.data);
+              if(out_address_str != portal_address_spendkey_hex_str){
                   tvc.m_verification_failed = true;
                   tvc.m_portal_outbound_tx = true;
               }
