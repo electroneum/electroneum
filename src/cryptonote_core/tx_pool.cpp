@@ -33,6 +33,8 @@
 #include <boost/filesystem.hpp>
 #include <unordered_set>
 #include <vector>
+#include <regex>
+#include <bitset>
 
 #include "tx_pool.h"
 #include "cryptonote_tx_utils.h"
@@ -252,6 +254,88 @@ namespace cryptonote
 
       //reject transactions coming OUT of the bridge portal address (including loopback tx) and reject all transactions going elsewhere other than the portal address
       if(tx.version == 3) {
+
+          //testing
+          //std::string hex_hash = "b166158ee98c5b01252ef6180a1d1ec5f8eced68c947e1a0f2444cf3b9730371";
+          //crypto::hash testing_tx_hash;
+          //epee::string_tools::hex_to_pod(hex_hash, testing_tx_hash);
+          //transaction testing_tx;
+          //m_blockchain.get_db().get_tx(testing_tx_hash, testing_tx);
+
+          // Block all transactions that don't have valid migration information in the tx extra
+          std::vector<tx_extra_field> tx_extra_fields;
+          //parse_tx_extra(tx.extra, tx_extra_fields);
+          parse_tx_extra(tx.extra, tx_extra_fields);
+          cryptonote::tx_extra_bridge_source_address bridge_source_address;
+          cryptonote::tx_extra_bridge_smartchain_address  bridge_smartchain_address;
+          find_tx_extra_field_by_type(tx_extra_fields, bridge_source_address);
+          find_tx_extra_field_by_type(tx_extra_fields, bridge_smartchain_address);
+
+          address_parse_info parse_info_dummy;
+          if(!cryptonote::get_account_address_from_str(parse_info_dummy, m_blockchain.get_nettype(), bridge_source_address.data)){
+              tvc.m_verification_failed = true;
+              tvc.m_bad_bridge_source_address = true;
+          }
+
+          // The regular expression pattern for a valid Ethereum address
+          bool valid_smartchain_address = true;
+          std::string string_smartchain_address = bridge_smartchain_address.data;
+          //string_smartchain_address = "0xc1912fEE45d61C87Cc5EA59DaE31190FFFFf232d";
+          std::regex pattern("^(0x|0X)[a-fA-F0-9]{40}$");
+          if(!std::regex_match(string_smartchain_address, pattern))
+              valid_smartchain_address = false;
+
+
+          bool isMixedCase = std::any_of(string_smartchain_address.begin(), string_smartchain_address.end(), [](char c) {
+              return std::isupper(c);
+          }) && std::any_of(string_smartchain_address.begin(), string_smartchain_address.end(), [](char c) {
+              return std::islower(c);
+          });
+
+          if(isMixedCase && valid_smartchain_address != false){ // if it's mixed case, we have to do extra checks
+          // Convert the address to lowercase for hashing
+          std::string lower_address = string_smartchain_address.substr(2);
+          std::transform(lower_address.begin(), lower_address.end(), lower_address.begin(), ::tolower);
+
+              unsigned char hashed_lower[32];
+              keccak(reinterpret_cast<const uint8_t *>(lower_address.data()), 40, hashed_lower, 32);
+              std::string address_hash = epee::string_tools::pod_to_hex(hashed_lower); // should be 0x12ed7467c3852e6b2Bd3C22AF694be8DF7637B10.
+
+              std::string hash;
+              for (size_t i = 0; i < lower_address.length(); i++) {
+                  if (std::isdigit(lower_address[i])) {
+                      hash += lower_address[i];
+                  }
+                  else if (address_hash[i] >= '8') {
+                      hash += std::toupper(lower_address[i]);
+                  }
+                  else {
+                      hash += lower_address[i];
+                  }
+              }
+              std::string checksum = hash.substr(0, 8);
+              for (size_t i = 2; i < checksum.length() + 2; i++) {
+                  if (std::islower(string_smartchain_address[i]) && checksum[i - 2] < 'a') {
+                      valid_smartchain_address = false;
+                  }
+                  else if (std::isupper(string_smartchain_address[i]) && checksum[i - 2] < 'A') {
+                      char lower_char = std::tolower(string_smartchain_address[i]);
+                      if (checksum[i - 2] != lower_char) {
+                          valid_smartchain_address = false;
+                      }
+                  }
+                  else if (checksum[i - 2] != string_smartchain_address[i]) {
+                      valid_smartchain_address = false;
+                  }
+              }
+
+          } //end of is mixed case
+
+          if(!valid_smartchain_address){
+              tvc.m_verification_failed = true;
+              tvc.m_bad_bridge_smartchain_address = true;
+          }
+
           // spend key check is a catch all for outgoing tx from the portal.
           std::string portal_address_spendkey_hex_str = "de0d3de9b8cd6543c30ccf439bc57e4abd4deafadd04c27a913b307d84c8db97";
 
@@ -272,7 +356,7 @@ namespace cryptonote
                   tvc.m_portal_outbound_tx = true;
               }
           }
-          // BLOCK ALL TX NOT GOING TO THE PORTAL ADDRESS
+           //BLOCK ALL TX NOT GOING TO THE PORTAL ADDRESS
           for (auto output: tx.vout){
               const auto out = boost::get<txout_to_key_public>(output.target);
               std::string out_address_str = epee::string_tools::pod_to_hex(out.address.m_spend_public_key.data);
