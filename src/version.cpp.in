@@ -1,6 +1,6 @@
 #define DEF_ELECTRONEUM_VERSION_TAG "@VERSIONTAG@"
-#define DEF_ELECTRONEUM_VERSION "5.0.0.0"
-#define DEF_ELECTRONEUM_RELEASE_NAME "Smart Chain Migration Release (Terminal Legacy Version)"
+#define DEF_ELECTRONEUM_VERSION "4.1.0.0"
+#define DEF_ELECTRONEUM_RELEASE_NAME "Aurora: Smart Chain Migration Release Update"
 #define DEF_ELECTRONEUM_VERSION_FULL DEF_ELECTRONEUM_VERSION "-" DEF_ELECTRONEUM_VERSION_TAG
 
 #include "version.h"
