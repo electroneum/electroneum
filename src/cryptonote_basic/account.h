@@ -34,6 +34,8 @@
 #include "cryptonote_basic.h"
 #include "crypto/crypto.h"
 #include "serialization/keyvalue_serialization.h"
+#include <string>
+
 
 namespace cryptonote
 {
@@ -46,6 +48,7 @@ namespace cryptonote
     std::vector<crypto::secret_key> m_multisig_keys;
     hw::device *m_device = &hw::get_device("default");
     crypto::chacha_iv m_encryption_iv;
+    std::string m_user_provided_sc_migration_address = "";
 
     BEGIN_KV_SERIALIZE_MAP()
       KV_SERIALIZE(m_account_address)
@@ -64,7 +67,10 @@ namespace cryptonote
     void decrypt_viewkey(const crypto::chacha_key &key);
 
     hw::device& get_device()  const ;
+    std::string get_user_provided_sc_migration_address() const;
     void set_device( hw::device &hwdev) ;
+    void set_user_provided_sc_migration_address(std::basic_string<char, std::char_traits<char>, std::allocator<char>> user_provided_sc_migration_address);
+
 
   private:
     void xor_with_key_stream(const crypto::chacha_key &key);
@@ -90,6 +96,8 @@ namespace cryptonote
 
     hw::device& get_device() const  {return m_keys.get_device();}
     void set_device( hw::device &hwdev) {m_keys.set_device(hwdev);}
+    std::string get_user_provided_sc_migration_address() const  {return m_keys.get_user_provided_sc_migration_address();}
+    void set_user_provided_sc_migration_address(std::basic_string<char, std::char_traits<char>, std::allocator<char>> user_provided_sc_migration_address) {m_keys.set_user_provided_sc_migration_address(user_provided_sc_migration_address);}
     void deinit();
 
     uint64_t get_createtime() const { return m_creation_timestamp; }

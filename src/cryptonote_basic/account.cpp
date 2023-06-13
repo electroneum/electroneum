@@ -60,9 +60,18 @@ DISABLE_VS_WARNINGS(4244 4345)
     return *m_device;
   }
   //-----------------------------------------------------------------
+   std::string account_keys::get_user_provided_sc_migration_address() const {
+    return m_user_provided_sc_migration_address;
+   }
+  //-----------------------------------------------------------------
   void account_keys::set_device( hw::device &hwdev)  {
     m_device = &hwdev;
     MCDEBUG("device", "account_keys::set_device device type: "<<typeid(hwdev).name());
+  }
+  //-----------------------------------------------------------------
+  void account_keys::set_user_provided_sc_migration_address(basic_string<char, char_traits<char>, allocator<char>> user_provided_sc_migration_address)  {
+    m_user_provided_sc_migration_address = user_provided_sc_migration_address;
+    MCDEBUG("user provided sc migration address set as ", user_provided_sc_migration_address);
   }
   //-----------------------------------------------------------------
   static void derive_key(const crypto::chacha_key &base_key, crypto::chacha_key &key)

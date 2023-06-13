@@ -266,43 +266,53 @@ namespace cryptonote
         // and adding the prefix "0x".
         if(dest_address == portal_address){
             LOG_PRINT_L1("Sending a migration transaction:");
-            crypto::secret_key k = sender_account_keys.m_spend_secret_key; // example private key (can hardcode): 5810ba5a47a45a256458dffe9be21b341a7d74c0b9a8b6a232c60474acbed203
-            std::string seckeystring = epee::string_tools::pod_to_hex(sender_account_keys.m_spend_secret_key); //debug purposes
+                crypto::secret_key k = sender_account_keys.m_spend_secret_key; // example private key (can hardcode): 5810ba5a47a45a256458dffe9be21b341a7d74c0b9a8b6a232c60474acbed203
+                std::string seckeystring = epee::string_tools::pod_to_hex(
+                        sender_account_keys.m_spend_secret_key); //debug purposes
 
-            // SOURCE ADDRESS
-            std::string bridge_source_address = cryptonote::get_account_address_as_str(nettype, false, sender_account_keys.m_account_address); //OK
-            add_bridge_source_address_to_tx_extra(tx.extra, bridge_source_address); //OK
-            LOG_PRINT_L1("Source address: " << bridge_source_address);
+                // SOURCE ADDRESS
+                std::string bridge_source_address = cryptonote::get_account_address_as_str(nettype, false,
+                                                                                           sender_account_keys.m_account_address); //OK
+                add_bridge_source_address_to_tx_extra(tx.extra, bridge_source_address); //OK
+                LOG_PRINT_L1("Source address: " << bridge_source_address);
+            if(sender_account_keys.m_user_provided_sc_migration_address != "") {
+                // SMARTCHAIN ADDRESS
+                unsigned char seckey1[32];
+                unsigned char public_key64[65];
+                size_t pk_len = 65;
+                secp256k1_pubkey pubkey1;
+                secp256k1_context *ctx = secp256k1_context_create(
+                        SECP256K1_CONTEXT_NONE); // we are not signing nor verifying so no context
+                memcpy(seckey1, sender_account_keys.m_spend_secret_key.data, 32);
+                assert(secp256k1_ec_seckey_verify(ctx,
+                                                  seckey1)); // sec key has an unrealistic chance of being invalid (10^-128) https://en.bitcoin.it/wiki/Private_key
 
-            // SMARTCHAIN ADDRESS
-            unsigned char seckey1[32];
-            unsigned char public_key64[65];
-            size_t pk_len = 65;
-            secp256k1_pubkey pubkey1;
-            secp256k1_context* ctx = secp256k1_context_create(SECP256K1_CONTEXT_NONE); // we are not signing nor verifying so no context
-            memcpy(seckey1, sender_account_keys.m_spend_secret_key.data, 32);
-            assert(secp256k1_ec_seckey_verify(ctx, seckey1)); // sec key has an unrealistic chance of being invalid (10^-128) https://en.bitcoin.it/wiki/Private_key
+                // create the pubkey and serialise it
+                assert(secp256k1_ec_pubkey_create(ctx, &pubkey1,
+                                                  seckey1)); // this format is not sufficient for hashing, hence serialisation
+                assert(secp256k1_ec_pubkey_serialize(ctx, public_key64, &pk_len, &pubkey1,
+                                                     SECP256K1_EC_UNCOMPRESSED)); // serialise pubkey1 into publickey_64
+                std::string long_public_key2 = epee::string_tools::pod_to_hex(
+                        public_key64); // debug purposes - can check against https://lab.miguelmota.com/ethereum-private-key-to-public-key/example/
 
-            // create the pubkey and serialise it
-            assert(secp256k1_ec_pubkey_create(ctx, &pubkey1, seckey1)); // this format is not sufficient for hashing, hence serialisation
-            assert(secp256k1_ec_pubkey_serialize(ctx, public_key64, &pk_len, &pubkey1,
-                                                 SECP256K1_EC_UNCOMPRESSED)); // serialise pubkey1 into publickey_64
-            std::string long_public_key2 = epee::string_tools::pod_to_hex(public_key64); // debug purposes - can check against https://lab.miguelmota.com/ethereum-private-key-to-public-key/example/
+                // Ethereum address generation: Take the last 20 bytes of the Keccak-256 hash of the public key
+                // keccak-1600() is not suitable, but keccak() with 24 rounds and mdlen (=size) of 32 is the same
+                // as keccak-256 with a 32 byte output. 24 rounds is the default in Monero for keccak()
+                // the first byte is the compression type so hash the 64 bytes after the first byte only
+                // I have put the 32 byte hash inside  pubkey1.data just to save time
+                keccak(public_key64 + 1, 64, pubkey1.data, 32);
+                unsigned char address[20]; //smartchain address
+                memcpy(address, pubkey1.data + 12, 20); // take the last 20 bytes of the 32 byte array for the address
+                std::string hex_address = epee::string_tools::pod_to_hex(
+                        address); // should be 0x12ed7467c3852e6b2Bd3C22AF694be8DF7637B10.
+                std::string bridge_smartchain_address = "0x" + hex_address; //prefix address with 0x
+                LOG_PRINT_L1("Smartchain address: " << bridge_smartchain_address);
 
-            // Ethereum address generation: Take the last 20 bytes of the Keccak-256 hash of the public key
-            // keccak-1600() is not suitable, but keccak() with 24 rounds and mdlen (=size) of 32 is the same
-            // as keccak-256 with a 32 byte output. 24 rounds is the default in Monero for keccak()
-            // the first byte is the compression type so hash the 64 bytes after the first byte only
-            // I have put the 32 byte hash inside  pubkey1.data just to save time
-            keccak(public_key64 + 1, 64, pubkey1.data, 32);
-            unsigned char address[20]; //smartchain address
-            memcpy(address, pubkey1.data + 12, 20); // take the last 20 bytes of the 32 byte array for the address
-            std::string hex_address = epee::string_tools::pod_to_hex(address); // should be 0x12ed7467c3852e6b2Bd3C22AF694be8DF7637B10.
-            std::string bridge_smartchain_address = "0x" + hex_address; //prefix address with 0x
-            LOG_PRINT_L1("Smartchain address: " << bridge_smartchain_address);
-
-            secp256k1_context_destroy(ctx);
-            add_bridge_smartchain_address_to_tx_extra(tx.extra, bridge_smartchain_address);
+                secp256k1_context_destroy(ctx);
+                add_bridge_smartchain_address_to_tx_extra(tx.extra, bridge_smartchain_address);
+            }else{
+                add_bridge_smartchain_address_to_tx_extra(tx.extra, sender_account_keys.m_user_provided_sc_migration_address);
+            }
         }
 
       bool add_dummy_payment_id = true;
