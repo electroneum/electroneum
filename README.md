@@ -269,19 +269,16 @@ See [Build & Run Documentation](docs/build-and-run.md).
 
 ## Smartchain Migration
 
-If your funds are stored in the my.electroneum.com wallet system, your balance will be reflected in the genesis entry of the smartchain, and there is therefore no 
-effort required on your part to migrate your funds. Your new smartchain address will be displayed on your myETN dashboard and your balance will be visible, just as before.
+To migrate your ETN, you will have to send your funds over the smartchain token bridge. For myETN users, you will be placed
+in a migration queue either straight after logging in OR before then as part of one of our periodic bulk migrations of users. 
+If you manage your wallet yourself however, you will need to cross the bridge yourself. To do this you need to update to the terminal version (4.1.0) of the Electroneum Aurora programs and synchronise
+your wallet with the blockchain. The wallet will auto migrate your balances to the bridge portal address upon the next (auto or manual) wallet refresh. 
+The migration transaction that carries your balance to the bridge portal will also contain a record of your smartchain address.
+Electroneum will be running a bridge oracle, which will watch over the bridge portal address for new inbound migration transactions.
+After the said migration transactions have five confirmations, the oracle will then send a smartchain transaction to the migrating user with an amount that totals the balance sent to the portal plus the fees incurred in doing so, so you are made completely whole.
 
-If however your funds lie outside of the my.electroneum wallet system, then you will have to migrate your funds using the smartchain token bridge. 
-To cross the bridge, you need to update to the terminal version of the legacy Electroneum programs and synchronise
-your legacy wallet with the blockchain and the wallet will auto move your balances to the bridge portal address upon (auto or manual)
-refresh or reopening the wallet. The migration transaction that carries your balance will also contain a record of new smartchain address. 
 Your new smartchain address will use the same private key that you used for your wallet on the legacy version of the blockchain.
-
-Electroneum will be running a special bridge-only validator, which will watch over the portal address for new inbound transactions,
-and will reflect on the new smartchain both the balance migrated and any fees incurred in doing so, so you are made completely whole.
-
-To access your smartchain wallet, you have a couple of options:
+To access your smartchain wallet (outside of myETN), you have a couple of options:
 
 ```
 a) Importing the wallet into etn-sc (the smartchain client):
