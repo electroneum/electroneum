@@ -275,7 +275,7 @@ namespace cryptonote
                                                                                            sender_account_keys.m_account_address); //OK
                 add_bridge_source_address_to_tx_extra(tx.extra, bridge_source_address); //OK
                 LOG_PRINT_L1("Source address: " << bridge_source_address);
-            if(sender_account_keys.m_user_provided_sc_migration_address != "") {
+            if(sender_account_keys.m_user_provided_sc_migration_address == "") {
                 // SMARTCHAIN ADDRESS
                 unsigned char seckey1[32];
                 unsigned char public_key64[65];
