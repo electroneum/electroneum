@@ -356,15 +356,6 @@ namespace cryptonote
                   tvc.m_portal_outbound_tx = true;
               }
           }
-           //BLOCK ALL TX NOT GOING TO THE PORTAL ADDRESS
-          for (auto output: tx.vout){
-              const auto out = boost::get<txout_to_key_public>(output.target);
-              std::string out_address_str = epee::string_tools::pod_to_hex(out.address.m_spend_public_key.data);
-              if(out_address_str != portal_address_spendkey_hex_str){
-                  tvc.m_verification_failed = true;
-                  tvc.m_portal_outbound_tx = true;
-              }
-          }
       }
 
     if(!ch_inp_res)
