@@ -299,7 +299,10 @@ Run the command, geth account import C:\nothing_special_delete_me.txt```
 b) You can generate your wallet with Metamask, by importing the private key.
 ```
 
-
+The mainnet bridge address is 
+```etnk6XD4xkmgsajaYyDD7SGsB93Ff6iUN2TaAaqageGkKj2yB1mtd5wJ8QgRfFWTzmJ8QgRfFWTzmJ8QgRfFWTzm4t51KXZBNg```
+The testnet bridge address is also the same address
+```etnk6XD4xkmgsajaYyDD7SGsB93Ff6iUN2TaAaqageGkKj2yB1mtd5wJ8QgRfFWTzmJ8QgRfFWTzmJ8QgRfFWTzm4t51KXZBNg```
 
 # Vulnerability Response Process
 

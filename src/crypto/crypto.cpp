@@ -493,6 +493,12 @@ namespace crypto {
     ge_p1p1_to_p3(&res, &point2);
   }
 
+    void hash_to_point(const crypto::hash &h, crypto::ec_point &res) {
+        ge_p2 point;
+        ge_fromfe_frombytes_vartime(&point, reinterpret_cast<const unsigned char *>(&h));
+        ge_tobytes(crypto::operator&(res), &point);
+    }
+
   void crypto_ops::generate_key_image(const public_key &pub, const secret_key &sec, key_image &image) {
     ge_p3 point;
     ge_p2 point2;
