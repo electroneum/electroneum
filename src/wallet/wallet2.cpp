@@ -2648,7 +2648,7 @@ void wallet2::process_outgoing(const crypto::hash &txid, const cryptonote::trans
   // is tx going to the portal address? check the first output's dest...
  if(tx.version == 3){
    cryptonote::account_public_address dest_address = boost::get<cryptonote::txout_to_key_public>(tx.vout[0].target).address;
-   bool is_portal_address = epee::string_tools::pod_to_hex(dest_address.m_spend_public_key) == "de0d3de9b8cd6543c30ccf439bc57e4abd4deafadd04c27a913b307d84c8db97" && epee::string_tools::pod_to_hex(dest_address.m_view_public_key) == "6ea0798dac485f9c0d5ea17ad5b2f1593c9df19aa72595561474f6bbf0e13dbb";
+   bool is_portal_address = epee::string_tools::pod_to_hex(dest_address.m_spend_public_key) == "5bd0c0e25eee6133850edd2b255ed9e3d6bb99fd5f08b7b5cf7f2618ad6ff2a3" && epee::string_tools::pod_to_hex(dest_address.m_view_public_key) == "5866666666666666666666666666666666666666666666666666666666666666";
    entry.first->second.m_is_sc_migration = is_portal_address;
  }
 
@@ -3698,6 +3698,14 @@ void wallet2::refresh(bool trusted_daemon, uint64_t start_height, uint64_t & blo
 
   LOG_PRINT_L1("Refresh done, blocks received: " << blocks_fetched << ", pre v10 balance (all accounts): " << print_etn(balance_all(false)) << ", unlocked: " << print_etn(unlocked_balance_all(false)) << ", post v10 balance (all accounts): " << print_etn(balance_all(true)) << ", unlocked: " << print_etn(unlocked_balance_all(true)));
 
+  //get the testnet bridge address - should be same as mainnet because of our netbyte being erroneously set to the same thing when Electroneum was first created
+   // cryptonote::account_public_address bridge_public_address;
+   // std::string portal_address_viewkey_hex_str = "5866666666666666666666666666666666666666666666666666666666666666"; //private view is just 0100000000000000000000000000000000000000000000000000000000000000
+   // std::string portal_address_spendkey_hex_str = "5bd0c0e25eee6133850edd2b255ed9e3d6bb99fd5f08b7b5cf7f2618ad6ff2a3"; //private view is just 0100000000000000000000000000000000000000000000000000000000000000
+   // epee::string_tools::hex_to_pod(portal_address_viewkey_hex_str, bridge_public_address.m_view_public_key);
+   // epee::string_tools::hex_to_pod(portal_address_spendkey_hex_str, bridge_public_address.m_spend_public_key);
+   // std::string bridge_address = cryptonote::get_account_address_as_str(this->nettype(), false, bridge_public_address); //OK
+
   try {
     // V9-->V10 PUBLIC MIGRATIONS
     // check that the local blockchain height is at least the v10 fork height + 5 blocks (so we know we don't need to scan for any more v1 outputs and they have all have 5 confs)
@@ -3740,11 +3748,10 @@ void wallet2::refresh(bool trusted_daemon, uint64_t start_height, uint64_t & blo
         }
         LOG_PRINT_L0("Migration completed.");
     }
-
       // V10 Migration to Electroneum Smart Chain
       //cryptonote::account_public_address portal_address;
-      //std::string portal_address_spendkey_hex_str = "de0d3de9b8cd6543c30ccf439bc57e4abd4deafadd04c27a913b307d84c8db97";
-     //std::string portal_address_viewkey_hex_str = "6ea0798dac485f9c0d5ea17ad5b2f1593c9df19aa72595561474f6bbf0e13dbb";
+      //std::string portal_address_spendkey_hex_str = "5bd0c0e25eee6133850edd2b255ed9e3d6bb99fd5f08b7b5cf7f2618ad6ff2a3";
+      //std::string portal_address_viewkey_hex_str = "5866666666666666666666666666666666666666666666666666666666666666";
 
       //bool portal_wallet =  //if the portal address wallet ever needs opening, don't allow it to sweep to itself
       //        epee::string_tools::pod_to_hex(get_address().m_spend_public_key) == portal_address_spendkey_hex_str &&

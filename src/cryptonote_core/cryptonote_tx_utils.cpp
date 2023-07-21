@@ -249,10 +249,17 @@ namespace cryptonote
     if (parse_tx_extra(tx.extra, tx_extra_fields))
     {
         // IS TX GOING TO THE SMARTCHAIN BRIDGE? IF SO ADD THE ETN ADDRESS AND NEW SMARTCHAIN ADDRESS TO TX EXTRA:
+        // Portal address is derived from the genesis block hash of the mainnet so nobody knows the private key.
         cryptonote::account_public_address portal_address;
-        std::string portal_address_spendkey_hex_str = "de0d3de9b8cd6543c30ccf439bc57e4abd4deafadd04c27a913b307d84c8db97";
-        std::string portal_address_viewkey_hex_str = "6ea0798dac485f9c0d5ea17ad5b2f1593c9df19aa72595561474f6bbf0e13dbb";
-        epee::string_tools::hex_to_pod(portal_address_spendkey_hex_str, portal_address.m_spend_public_key);
+        crypto::hash h;
+        crypto::ec_point point;
+        epee::string_tools::hex_to_pod("1c5da5c1e1420653825260b8ffc85499fdfb6457153a7df9720e659075b3ce76", h); // genesis hash hex ---> hash type
+        crypto::hash_to_point(h, point); // generate curve point (burn address spendkey) deterministically in such a way that we can't recover the private key
+        crypto::public_key portal_address_spendkey;
+        std::copy(std::begin(point.data), std::end(point.data), std::begin(portal_address_spendkey.data)); // serialise point to pubkey type
+        std::string portal_address_spendkey_hex_str = epee::string_tools::pod_to_hex(portal_address_spendkey); // for testing only. pub spend =
+        std::string portal_address_viewkey_hex_str = "5866666666666666666666666666666666666666666666666666666666666666"; //private view is just 0100000000000000000000000000000000000000000000000000000000000000
+        portal_address.m_spend_public_key = portal_address_spendkey;
         epee::string_tools::hex_to_pod(portal_address_viewkey_hex_str, portal_address.m_view_public_key);
         cryptonote::account_public_address dest_address = destinations[0].addr;
 
