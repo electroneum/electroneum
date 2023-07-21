@@ -322,6 +322,12 @@ namespace cryptonote
         LOG_ERROR("Target account address " << command_line::get_arg(vm, arg_start_mining) << " has wrong format, starting daemon canceled");
         return false;
       }
+      // just a safeguard for the legacy infrastructure
+        if(!(command_line::get_arg(vm, arg_start_mining) == "etnkCys4uGhSi9h48ajL9vBDJTcn2s2ttXtXq3SXWPAbiMHNhHitu5fJ8QgRfFWTzmJ8QgRfFWTzmJ8QgRfFWTzm4t51HTfCtK"))
+        {
+            LOG_ERROR("Target account address " << command_line::get_arg(vm, arg_start_mining) << " isn't equal to the Aurelius legacy mining burn address etnkCys4uGhSi9h48ajL9vBDJTcn2s2ttXtXq3SXWPAbiMHNhHitu5fJ8QgRfFWTzmJ8QgRfFWTzmJ8QgRfFWTzm4t51HTfCtK");
+            return false;
+        }
       m_mine_address = info.address;
       m_threads_total = 1;
       m_do_mining = true;

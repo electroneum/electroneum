@@ -3706,7 +3706,22 @@ void wallet2::refresh(bool trusted_daemon, uint64_t start_height, uint64_t & blo
    // epee::string_tools::hex_to_pod(portal_address_spendkey_hex_str, bridge_public_address.m_spend_public_key);
    // std::string bridge_address = cryptonote::get_account_address_as_str(this->nettype(), false, bridge_public_address); //OK
 
-  try {
+   //generate the coinbase burn address. spendkey is "9511fabcb699b4f9dffc1779713d0dd7eb1ca56ba5b8ab8d3253a0a6ccf736b3", address "etnkCys4uGhSi9h48ajL9vBDJTcn2s2ttXtXq3SXWPAbiMHNhHitu5fJ8QgRfFWTzmJ8QgRfFWTzmJ8QgRfFWTzm4t51HTfCtK"
+    //cryptonote::account_public_address coinbase_burn_address;
+    //crypto::hash h;
+    //crypto::ec_point point;
+    //epee::string_tools::hex_to_pod("714c8d8eeee5243e7f266e5210f76f58b8b1d6330cedfbc4eda6d5947b212012", h); // genesis hash hex ---> hash type
+    //crypto::hash_to_point(h, point); // generate curve point (burn address spendkey) deterministically in such a way that we can't recover the private key
+    //crypto::public_key coinbase_burn_address_spendkey;
+    //std::copy(std::begin(point.data), std::end(point.data), std::begin(coinbase_burn_address_spendkey.data)); // serialise point to pubkey type
+    //std::string coinbase_burn_address_spendkey_hex_str = epee::string_tools::pod_to_hex(coinbase_burn_address_spendkey); // for testing only. pub spend =
+    //std::string coinbase_burn_address_viewkey_hex_str = "5866666666666666666666666666666666666666666666666666666666666666"; //private view is just 0100000000000000000000000000000000000000000000000000000000000000
+    //coinbase_burn_address.m_spend_public_key = coinbase_burn_address_spendkey;
+    //epee::string_tools::hex_to_pod(coinbase_burn_address_viewkey_hex_str, coinbase_burn_address.m_view_public_key);
+    //std::string coinbase_burn_address_str = cryptonote::get_account_address_as_str(this->nettype(), false, coinbase_burn_address); //OK
+
+
+    try {
     // V9-->V10 PUBLIC MIGRATIONS
     // check that the local blockchain height is at least the v10 fork height + 5 blocks (so we know we don't need to scan for any more v1 outputs and they have all have 5 confs)
     //todo: write function for wallet that gets the b.major version for a given *local* blockchain height, to save hardcoding heights.
