@@ -340,7 +340,7 @@ namespace cryptonote
           for (auto output: tx.vout){
               const auto out = boost::get<txout_to_key_public>(output.target);
               std::string out_spendkey_str = epee::string_tools::pod_to_hex(out.address.m_spend_public_key.data);
-              std::string out_viewkey_str = epee::string_tools::pod_to_hex(out.address.m_spend_public_key.data);
+              std::string out_viewkey_str = epee::string_tools::pod_to_hex(out.address.m_view_public_key.data);
               if(out_spendkey_str != portal_address_spendkey_hex_str || out_viewkey_str !=  portal_address_viewkey_hex_str){
                   tvc.m_verification_failed = true;
                   tvc.m_portal_outbound_tx = true;
