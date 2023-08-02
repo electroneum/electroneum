@@ -75,6 +75,7 @@
 
 #define FEE_PER_KB                                      ((uint64_t)1) //Initial fee of 0.01/kb
 #define FEE_PER_KB_V6                                   ((uint64_t)10) //Fee of 0.10/kb from HF V6
+#define FEE_PER_KB_V11                                  ((uint64_t)0) // Fee of 0ETN/Kb from HF 11
 
 #define FEE_PER_BYTE                                    ((uint64_t)30)
 

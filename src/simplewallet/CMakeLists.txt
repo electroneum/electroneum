@@ -1,4 +1,4 @@
-# Copyright (c) 2017-2021, The Electroneum Project
+# Copyright (c) 2017-2022, The Electroneum Project
 # Copyright (c) 2014-2019, The Monero Project
 #
 # All rights reserved.
@@ -59,6 +59,7 @@ target_link_libraries(simplewallet
     ${Boost_THREAD_LIBRARY}
     ${CMAKE_THREAD_LIBS_INIT}
     ${GNU_READLINE_LIBRARY}
+    ${SECP256K1_LIBRARY}
     ${EXTRA_LIBRARIES})
 set_property(TARGET simplewallet
   PROPERTY

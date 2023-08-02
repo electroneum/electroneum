@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2018, The Electroneum Project
+// Copyright (c) 2017-2022, The Electroneum Project
 //
 // All rights reserved.
 //

@@ -1,4 +1,4 @@
-# Copyright (c) 2017-2021, The Electroneum Project
+# Copyright (c) 2017-2022, The Electroneum Project
 # Copyright (c) 2014-2019, The Monero Project
 #
 # All rights reserved.
@@ -463,7 +463,7 @@ if (CMAKE_SYSTEM_NAME MATCHES "(SunOS|Solaris)")
 endif ()
 
 if (APPLE AND NOT IOS)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=x86-64 -fvisibility=default")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility=default")
   if (NOT OpenSSL_DIR)
       EXECUTE_PROCESS(COMMAND brew --prefix openssl
         OUTPUT_VARIABLE OPENSSL_ROOT_DIR
@@ -1011,9 +1011,13 @@ find_library(NORM_LIBRARY norm)
 find_library(PROTOLIB_LIBRARY protolib)
 find_library(SODIUM_LIBRARY sodium)
 find_library(GSSAPI_LIBRARY gssapi_krb5)
+find_library(SECP256K1_LIBRARY secp256k1)
 
 if(NOT ZMQ_INCLUDE_PATH)
   message(FATAL_ERROR "Could not find required header zmq.h")
+endif()
+if(NOT SECP256K1_LIBRARY)
+  message(FATAL_ERROR "Could not find required libsecp256k1")
 endif()
 if(NOT ZMQ_LIB)
   message(FATAL_ERROR "Could not find required libzmq")

@@ -112,3 +112,4 @@ local.properties
 cmake-build*/
 utils/post_build/
 .vscode/
+.cache

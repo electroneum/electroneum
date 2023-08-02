@@ -35,6 +35,7 @@
 #include <utility>
 #include <vector>
 #include <stdexcept>
+#include <deque>
 
 namespace tools
 {

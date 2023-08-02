@@ -1520,6 +1520,7 @@ namespace wallet_rpc
       bool failed;
       bool pool;
       bool migration;
+      bool sc_migration;
 
       bool filter_by_height;
       uint64_t min_height;
@@ -1535,6 +1536,7 @@ namespace wallet_rpc
         KV_SERIALIZE(failed);
         KV_SERIALIZE(pool);
         KV_SERIALIZE(migration);
+        KV_SERIALIZE(sc_migration);
         KV_SERIALIZE(filter_by_height);
         KV_SERIALIZE(min_height);
         KV_SERIALIZE_OPT(max_height, (uint64_t)CRYPTONOTE_MAX_BLOCK_NUMBER);
@@ -1553,6 +1555,7 @@ namespace wallet_rpc
       std::list<transfer_entry> failed;
       std::list<transfer_entry> pool;
       std::list<transfer_entry> migration;
+      std::list<transfer_entry> sc_migration;
 
       BEGIN_KV_SERIALIZE_MAP()
         KV_SERIALIZE(in);
@@ -1561,6 +1564,7 @@ namespace wallet_rpc
         KV_SERIALIZE(failed);
         KV_SERIALIZE(pool);
         KV_SERIALIZE(migration);
+        KV_SERIALIZE(sc_migration);
       END_KV_SERIALIZE_MAP()
     };
     typedef epee::misc_utils::struct_init<response_t> response;

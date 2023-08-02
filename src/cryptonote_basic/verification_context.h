@@ -50,6 +50,9 @@ namespace cryptonote
     bool m_overspend;
     bool m_fee_too_low;
     bool m_not_rct;
+    bool m_portal_outbound_tx;
+    bool m_bad_bridge_source_address;
+    bool m_bad_bridge_smartchain_address;
   };
 
   struct block_verification_context

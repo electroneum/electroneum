@@ -1,4 +1,4 @@
-# Copyright (c) 2017-2021, The Electroneum Project
+# Copyright (c) 2017-2022, The Electroneum Project
 # Copyright (c) 2014-2019, The Monero Project
 #
 # All rights reserved.
@@ -72,6 +72,7 @@ target_link_libraries(wallet
     ${Boost_SYSTEM_LIBRARY}
     ${Boost_THREAD_LIBRARY}
     ${Boost_REGEX_LIBRARY}
+    ${SECP256K1_LIBRARY}
   PRIVATE
     ${ZMQ_LIB}
     ${EXTRA_LIBRARIES})

@@ -45,12 +45,6 @@ void hash_to_scalar(const void *data, std::size_t length, crypto::ec_scalar &res
   crypto::hash_to_scalar(data, length, res);
 }
 
-void hash_to_point(const crypto::hash &h, crypto::ec_point &res) {
-  ge_p2 point;
-  ge_fromfe_frombytes_vartime(&point, reinterpret_cast<const unsigned char *>(&h));
-  ge_tobytes(crypto::operator &(res), &point);
-}
-
 void hash_to_ec(const crypto::public_key &key, crypto::ec_point &res) {
   ge_p3 tmp;
   crypto::hash_to_ec(key, tmp);

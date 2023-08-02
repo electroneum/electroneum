@@ -492,6 +492,8 @@ namespace cryptonote
     if (!pick<tx_extra_additional_pub_keys>(nar, tx_extra_fields, TX_EXTRA_TAG_ADDITIONAL_PUBKEYS)) return false;
     if (!pick<tx_extra_nonce>(nar, tx_extra_fields, TX_EXTRA_NONCE)) return false;
     if (!pick<tx_extra_merge_mining_tag>(nar, tx_extra_fields, TX_EXTRA_MERGE_MINING_TAG)) return false;
+    if (!pick<tx_extra_bridge_source_address>(nar, tx_extra_fields, TX_EXTRA_TAG_BRIDGE_SOURCE_ADDRESS)) return false;
+    if (!pick<tx_extra_bridge_smartchain_address>(nar, tx_extra_fields, TX_EXTRA_TAG_BRIDGE_SMARTCHAIN_ADDRESS)) return false;
     if (!pick<tx_extra_mysterious_minergate>(nar, tx_extra_fields, TX_EXTRA_MYSTERIOUS_MINERGATE_TAG)) return false;
     if (!pick<tx_extra_padding>(nar, tx_extra_fields, TX_EXTRA_TAG_PADDING)) return false;
 
@@ -601,6 +603,38 @@ namespace cryptonote
     memcpy(&tx_extra[start_pos], extra_nonce.data(), extra_nonce.size());
     return true;
   }
+    //---------------------------------------------------------------
+    bool add_bridge_source_address_to_tx_extra(std::vector<uint8_t>& tx_extra, const blobdata& bridge_source_address)
+    {
+        //CHECK_AND_ASSERT_MES(bridge_source_address.size() <= TX_EXTRA_NONCE_MAX_COUNT, false, "extra nonce could be 255 bytes max");
+        size_t start_pos = tx_extra.size();
+        tx_extra.resize(tx_extra.size() + 2 + bridge_source_address.size());
+        //write tag
+        tx_extra[start_pos] = TX_EXTRA_TAG_BRIDGE_SOURCE_ADDRESS;
+        //write len
+        ++start_pos;
+        tx_extra[start_pos] = static_cast<uint8_t>(bridge_source_address.size());
+        //write data
+        ++start_pos;
+        memcpy(&tx_extra[start_pos], bridge_source_address.data(), bridge_source_address.size());
+        return true;
+    }
+    //---------------------------------------------------------------
+    bool add_bridge_smartchain_address_to_tx_extra(std::vector<uint8_t>& tx_extra, const blobdata& bridge_smartchain_address)
+    {
+        //CHECK_AND_ASSERT_MES(bridge_smartchain_address.size() <= TX_EXTRA_NONCE_MAX_COUNT, false, "extra nonce could be 255 bytes max");
+        size_t start_pos = tx_extra.size();
+        tx_extra.resize(tx_extra.size() + 2 + bridge_smartchain_address.size());
+        //write tag
+        tx_extra[start_pos] = TX_EXTRA_TAG_BRIDGE_SMARTCHAIN_ADDRESS;
+        //write len
+        ++start_pos;
+        tx_extra[start_pos] = static_cast<uint8_t>(bridge_smartchain_address.size());
+        //write data
+        ++start_pos;
+        memcpy(&tx_extra[start_pos], bridge_smartchain_address.data(), bridge_smartchain_address.size());
+        return true;
+    }
   //---------------------------------------------------------------
   bool remove_field_from_tx_extra(std::vector<uint8_t>& tx_extra, const std::type_info &type)
   {

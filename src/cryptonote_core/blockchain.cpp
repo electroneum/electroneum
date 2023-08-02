@@ -99,6 +99,7 @@ static const struct {
   { 8, 589169, 0, 1562547600 },
   { 9, 862866, 0, 1595615809 }, // Estimated July 22th, 2020
   { 10, 1175315, 0, 1632999041 }, // Estimated Sep 30th 2021
+  // TODO { 11, XXXXXXX, 0, XXXXXXXXXX }, // Estimated XXXXXXX //
 };
 static const uint64_t mainnet_hard_fork_version_1_till = 307499;
 
@@ -115,6 +116,7 @@ static const struct {
   { 8, 446674, 0, 1562889600 },
   { 9, 707121, 0, 1595615809 },
   { 10, 1086402, 0, 1631789441 }, // Estimated Sep 16th 2021
+  // TODO { 11, XXXXXXX, 0, XXXXXXXXXX }, // Estimated XXXXXXX //
 };
 static const uint64_t testnet_hard_fork_version_1_till = 190059;
 
@@ -137,6 +139,7 @@ static const struct {
   { 8, 38000, 0, 1521800000 },
   { 9, 39000, 0, 1522000000 },
   { 10, 1086402, 0, 1631789441 }, // Estimated Sep 16th 2021
+  // TODO { 11, XXXXXXX, 0, XXXXXXXXXX }, // Estimated XXXXXXX
 };
 
 //------------------------------------------------------------------
@@ -1359,9 +1362,23 @@ bool Blockchain::prevalidate_miner_transaction(const block& b, uint64_t height)
   return true;
 }
 //------------------------------------------------------------------
-// This function validates the miner transaction reward
+// This function validates the miner transaction reward and for v11, that the coinbase is going to thew burn address.
 bool Blockchain::validate_miner_transaction(const block& b, size_t cumulative_block_weight, uint64_t fee, uint64_t& base_reward, uint64_t already_generated_coins, bool &partial_block_reward, uint8_t version)
 {
+    if (version >= 11){
+        std::string coinbase_burn_address_viewkey_hex_str = "5866666666666666666666666666666666666666666666666666666666666666"; //private view is just 0100000000000000000000000000000000000000000000000000000000000000
+        std::string coinbase_burn_address_spendkey_hex_str = "9511fabcb699b4f9dffc1779713d0dd7eb1ca56ba5b8ab8d3253a0a6ccf736b3";
+        for (auto &o: b.miner_tx.vout) {
+            const auto out = boost::get<txout_to_key_public>(o.target);
+            std::string out_spendkey_str = epee::string_tools::pod_to_hex(out.address.m_spend_public_key.data);
+            std::string out_viewkey_str = epee::string_tools::pod_to_hex(out.address.m_view_public_key.data);
+            if(out_spendkey_str != coinbase_burn_address_spendkey_hex_str || out_viewkey_str !=  coinbase_burn_address_viewkey_hex_str){
+                MERROR_VER("v11 miner tx output " << print_etn(o.amount) << " is being sent to an address other than the burn address");
+                return false;
+            }
+        }
+    }
+
   LOG_PRINT_L3("Blockchain::" << __func__);
   //validate reward
   uint64_t etn_in_use = 0;
@@ -3323,7 +3340,13 @@ bool Blockchain::check_fee(size_t tx_weight, uint64_t fee) const
     uint64_t fee_per_kb;
     if (version < HF_VERSION_DYNAMIC_FEE)
     {
-      fee_per_kb = version >= 6 ? FEE_PER_KB_V6 : FEE_PER_KB;
+      if (version >= 11) {
+        fee_per_kb = FEE_PER_KB_V11;
+      } else if (version < 11 && version >= 6) {
+        fee_per_kb = FEE_PER_KB_V6;
+      } else {
+        fee_per_kb = FEE_PER_KB;
+      }
     }
     else
     {
@@ -3351,10 +3374,13 @@ uint64_t Blockchain::get_dynamic_base_fee_estimate(uint64_t grace_blocks) const
   const uint64_t db_height = m_db->height();
 
   if (version < HF_VERSION_DYNAMIC_FEE) {
-    if(version == 1)
-      return FEE_PER_KB;
-    else
+    if (version >= 11) {
+      return FEE_PER_KB_V11;
+    } else if (version < 11 && version >= 6) {
       return FEE_PER_KB_V6;
+    } else {
+      return FEE_PER_KB;
+    }
   }
 
   if (grace_blocks >= CRYPTONOTE_REWARD_BLOCKS_WINDOW)
