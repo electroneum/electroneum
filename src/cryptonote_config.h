@@ -161,6 +161,7 @@
 #define HF_VERSION_ENFORCE_0_DECOY_TXS            6
 #define HF_VERSION_ENFORCE_0_DECOY_TXS_END        100
 #define HF_VERSION_DYNAMIC_FEE                    100
+#define HF_VERSION_ZERO_FEE                       11
 #define HF_VERSION_MIN_MIXIN_2                    2
 #define HF_VERSION_MIN_MIXIN_4                    100
 #define HF_VERSION_MIN_MIXIN_6                    100

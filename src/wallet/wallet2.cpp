@@ -7689,7 +7689,7 @@ uint64_t wallet2::get_dynamic_base_fee_estimate() const
   boost::optional<std::string> result = m_node_rpc_proxy.get_dynamic_base_fee_estimate(FEE_ESTIMATE_GRACE_BLOCKS, fee);
   if (!result)
     return fee;
-  const uint64_t base_fee = use_fork_rules(HF_VERSION_PER_BYTE_FEE) ? FEE_PER_BYTE : FEE_PER_KB_V11;
+  const uint64_t base_fee = use_fork_rules(HF_VERSION_PER_BYTE_FEE) ? FEE_PER_BYTE : use_fork_rules(HF_VERSION_ZERO_FEE) ? FEE_PER_KB_V11 : FEE_PER_KB_V6;
   LOG_PRINT_L1("Failed to query base fee, using " << print_etn(base_fee));
   return base_fee;
 }
@@ -7704,10 +7704,16 @@ uint64_t wallet2::get_base_fee() const
       return m_light_wallet_per_kb_fee;
   }
   bool use_dyn_fee = use_fork_rules(HF_VERSION_DYNAMIC_FEE, -720 * 1);
-  if (!use_dyn_fee)
-    return FEE_PER_KB_V11;
+  if (!use_dyn_fee){
+      if (use_fork_rules(HF_VERSION_ZERO_FEE)){
+          return FEE_PER_KB_V11;
+      } else{
+          return FEE_PER_KB_V6;
+      }
+  }
 
-  return get_dynamic_base_fee_estimate();
+
+  return get_dynamic_base_fee_estimate(); //this never gets hit for any version before 100
 }
 //----------------------------------------------------------------------------------------------------
 uint64_t wallet2::get_fee_quantization_mask() const
