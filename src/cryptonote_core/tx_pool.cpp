@@ -333,6 +333,7 @@ namespace cryptonote
           if(!valid_smartchain_address){
               tvc.m_verification_failed = true;
               tvc.m_bad_bridge_smartchain_address = true;
+              return false;
           }
           //BLOCK ALL TX NOT GOING TO THE PORTAL ADDRESS
           std::string portal_address_viewkey_hex_str = "5866666666666666666666666666666666666666666666666666666666666666"; //private view is just 0100000000000000000000000000000000000000000000000000000000000000
@@ -344,6 +345,7 @@ namespace cryptonote
               if(out_spendkey_str != portal_address_spendkey_hex_str || out_viewkey_str !=  portal_address_viewkey_hex_str){
                   tvc.m_verification_failed = true;
                   tvc.m_portal_outbound_tx = true;
+                  return false;
               }
           }
       }
