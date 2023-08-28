@@ -168,36 +168,52 @@ namespace cryptonote
     }
 
     uint64_t outputs_amount = get_outs_etn_amount(tx);
-    if(outputs_amount > inputs_amount)
-    {
-      LOG_PRINT_L1("transaction use more ETN than it has: use " << print_etn(outputs_amount) << ", have " << print_etn(inputs_amount));
-      tvc.m_verification_failed = true;
-      tvc.m_overspend = true;
-      return false;
-    }
-    else if(tx.version != 2 && outputs_amount == inputs_amount)
-    {
-      LOG_PRINT_L1("transaction fee is zero: outputs_amount == inputs_amount, rejecting.");
-      tvc.m_verification_failed = true;
-      tvc.m_fee_too_low = true;
-      return false;
-    }
-
     fee = inputs_amount - outputs_amount;
 
-    if(tx.version == 2 && fee != 0) //Assure 0 fee tx v2 (migration tx)
-    {
-      LOG_PRINT_L1("transaction v2 fee is greater than zero, rejecting.");
-      tvc.m_verification_failed = true;
-      return false;
-    }
+      if(tx.version == 3 && m_blockchain.get_current_blockchain_height() > (m_blockchain.get_nettype() == MAINNET ? 100000000 : 1453626)) {
+          if(outputs_amount != inputs_amount)
+          {
+              LOG_PRINT_L1("transaction fee isnt zero: outputs_amount != inputs_amount, rejecting.");
+              tvc.m_verification_failed = true;
+              return false;
+          }
 
-    if (tx.version != 2 && !kept_by_block && !m_blockchain.check_fee(tx_weight, fee))
-    {
-      tvc.m_verification_failed = true;
-      tvc.m_fee_too_low = true;
-      return false;
-    }
+          if(fee != 0){
+              LOG_PRINT_L1("We are migrating to aurelius and this transaction should have zero fee and it doesn't, rejecting.");
+              tvc.m_verification_failed = true;
+              return false;
+          }
+      }else{
+
+          if(outputs_amount > inputs_amount)
+          {
+              LOG_PRINT_L1("transaction use more ETN than it has: use " << print_etn(outputs_amount) << ", have " << print_etn(inputs_amount));
+              tvc.m_verification_failed = true;
+              tvc.m_overspend = true;
+              return false;
+          }
+          else if(tx.version != 2 && outputs_amount == inputs_amount)
+          {
+              LOG_PRINT_L1("transaction fee is zero: outputs_amount == inputs_amount, rejecting.");
+              tvc.m_verification_failed = true;
+              tvc.m_fee_too_low = true;
+              return false;
+          }
+
+          if(tx.version == 2 && fee != 0) //Assure 0 fee tx v2 (migration tx)
+          {
+              LOG_PRINT_L1("transaction v2 fee is greater than zero, rejecting.");
+              tvc.m_verification_failed = true;
+              return false;
+          }
+
+          if (tx.version != 2 && !kept_by_block && !m_blockchain.check_fee(tx_weight, fee))
+          {
+              tvc.m_verification_failed = true;
+              tvc.m_fee_too_low = true;
+              return false;
+          }
+      }
 
     size_t tx_weight_limit = get_transaction_weight_limit(version);
     if ((!kept_by_block || version >= HF_VERSION_PER_BYTE_FEE) && tx_weight > tx_weight_limit)
