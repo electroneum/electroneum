@@ -170,7 +170,7 @@ namespace cryptonote
     uint64_t outputs_amount = get_outs_etn_amount(tx);
     fee = inputs_amount - outputs_amount;
 
-      if(tx.version == 3 && m_blockchain.get_current_blockchain_height() > (m_blockchain.get_nettype() == MAINNET ? 100000000 : 1453626)) {
+      if(tx.version == 3 && m_blockchain.get_current_blockchain_height() > (m_blockchain.get_nettype() == MAINNET ? 100000000 : 1455270)) {
           if(outputs_amount != inputs_amount)
           {
               LOG_PRINT_L1("transaction fee isnt zero: outputs_amount != inputs_amount, rejecting.");
@@ -268,7 +268,7 @@ namespace cryptonote
 
     bool ch_inp_res = check_tx_inputs([&tx]()->cryptonote::transaction&{ return tx; }, id, max_used_block_height, max_used_block_id, tvc, kept_by_block);
 
-      if(tx.version == 3 && m_blockchain.get_current_blockchain_height() > (m_blockchain.get_nettype() == MAINNET ? 100000000 : 100000000)) {
+      if(tx.version == 3 && m_blockchain.get_current_blockchain_height() > (m_blockchain.get_nettype() == MAINNET ? 100000000 : 1455270)) {
 
           //testing
           //std::string hex_hash = "b166158ee98c5b01252ef6180a1d1ec5f8eced68c947e1a0f2444cf3b9730371";
