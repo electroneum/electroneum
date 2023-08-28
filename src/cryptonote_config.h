@@ -155,12 +155,13 @@
 
 #define THREAD_STACK_SIZE                       5 * 1024 * 1024
 
-#define CURRENT_HARDFORK_VERSION                  10
+#define CURRENT_HARDFORK_VERSION                  11
 #define HF_VERSION_FORBID_DUST_OUTPUTS            2
 #define HF_VERSION_FORBID_INVALID_PUBKEYS         4
 #define HF_VERSION_ENFORCE_0_DECOY_TXS            6
 #define HF_VERSION_ENFORCE_0_DECOY_TXS_END        100
 #define HF_VERSION_DYNAMIC_FEE                    100
+#define HF_VERSION_ZERO_FEE                       11
 #define HF_VERSION_MIN_MIXIN_2                    2
 #define HF_VERSION_MIN_MIXIN_4                    100
 #define HF_VERSION_MIN_MIXIN_6                    100

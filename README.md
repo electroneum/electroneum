@@ -91,7 +91,7 @@ We currently have over a whopping 4m registered users.
 
 This is the core implementation of Electroneum. It is open source and completely free to use without restrictions, except for those specified in the license agreement below.
 
-The V8 software upgrade (Electroneum v3.0.0.0 release) introduced some fairly radical changes to the Electroneum blockchain, those consisting on a new consensus algorithm we’ve coined as **Proof of Responsibility** and change from a full permission-less blockchain to a **Moderated Blockchain**.
+The V8 software upgrade (Electroneum v4.0.0.0 release) introduced some fairly radical changes to the Electroneum blockchain, those consisting on a new consensus algorithm we’ve coined as **Proof of Responsibility** and change from a full permission-less blockchain to a **Moderated Blockchain**.
 
 A **Moderated Blockchain**, powered by the **Proof of Responsibility** consensus algorithm, allow Electroneum Ltd to have more control over the blockchain while keeping a good degree of decentralization. This ultimately improves our security while making the blockchain’s commercial & economic model more attractive. Besides these main features, we’ve included a few minor changes that contributes to the blockchain’s operability and scalability.
 
@@ -245,13 +245,14 @@ See [Build & Run Documentation](docs/build-and-run.md).
 
 ## Software Releases and Pre-compiled Downloads
 
-| Hard Fork upgrade height | Date       | Fork version | Minimum Electroneum version | Recommended Electroneum version | Details                                                                            |
-| ------------------------------ | -----------| ----------------- | ---------------------- | -------------------------- | ---------------------------------------------------------------------------------- |
-| 307500                         | 2018-05-30 | v6                | v2.0.0.0              | v2.0.0.0                  | Disable Mixin, Disable RingCT, Base Fee to 0.10 from 0.01, 120s Block Time, Anti-Asic Resistance         |
-| 324500                         | 2018-07-05 | v7                | v2.1.0.0              | v2.1.0.0                  | Enable ASIC         |
-| 589169                         | 2019-07-08 | v8                | v3.0.0.0              | v3.0.0.0                  | Migration to our next generation moderated blockchain with Proof of Responsbility. 300kB Blocks : Increased TPS. Improved Unlock Time (5 Blocks), Many Security Improvements, HackerOne Fixes, Reduced Block Reward By 75% (A Double Halvening)|
-| 862866                         | 2020-07-22 | v9                | v3.3.0.0              | v3.3.0.0                  | Block Reward reduction and future halving scheduling (halving every 4 years, minimum 50etn until max supply. 25etn emission per block after reaching max supply).
-| 1175315                        | 2021-09-30 | v10               | v4.0.0.0              | v4.0.0.0                  | Migration to a transparent blockchain: Electroneum Aurora                                                                                                                                                                                                                                                |             
+| Hard Fork upgrade height  | Date       | Fork version     | Minimum Electroneum version    | Recommended Electroneum version    | Name of Release               | Details                                                                                                                                                                                                                                        |
+|---------------------------| -----------|------------------|--------------------------------|------------------------------------|-------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| 307500                    | 2018-05-30 | v6               | v2.0.0.0                       | v2.0.0.0                           | Spark                         | Disable Mixin, Disable RingCT, Base Fee to 0.10 from 0.01, 120s Block Time, Anti-Asic Resistance                                                                                                                                               |
+| 324500                    | 2018-07-05 | v7               | v2.1.0.0                       | v2.1.0.0                           | Bolt                          | Enable ASIC                                                                                                                                                                                                                                    |
+| 589169                    | 2019-07-08 | v8               | v3.0.0.0                       | v3.0.0.0                           | Pulse                         | Migration to our next generation moderated blockchain with Proof of Responsbility. 300kB Blocks : Increased TPS. Improved Unlock Time (5 Blocks), Many Security Improvements, HackerOne Fixes, Reduced Block Reward By 75% (A Double Halvening) |
+| 862866                    | 2020-07-22 | v9               | v3.3.0.0                       | v3.3.0.0                           | Wave                          | Block Reward reduction and future halving scheduling (halving every 4 years, minimum 50etn until max supply. 25etn emission per block after reaching max supply).                                                                              
+| 1175315                   | 2021-09-30 | v10              | v4.0.0.0                       | v4.0.0.0                           | Aurora                        | Migration to a transparent blockchain with permissioned validation                                                                                                                                                                             |             
+| XXXXXXX                   | 2021-09-30 | v11              | v5.0.0.0                       | v5.0.0.0                           | Flow (Final Version)          | Bridge to the Electroneum Smart chain (github.com/electroneum/electroneum-sc)                                                                                                                                                                  |
 
 X's indicate that these details have not been determined as of commit date.
 
@@ -271,8 +272,8 @@ See [Build & Run Documentation](docs/build-and-run.md).
 
 To migrate your ETN, you will have to send your funds over the smartchain token bridge. For myETN users, you will be placed
 in a migration queue either straight after logging in OR before then as part of one of our periodic bulk migrations of users. 
-If you manage your wallet yourself however, you will need to cross the bridge yourself. To do this you need to update to the terminal version (4.1.0) of the Electroneum Aurora programs and synchronise
-your wallet with the blockchain. The wallet will auto migrate your balances to the bridge portal address upon the next (auto or manual) wallet refresh. 
+If you manage your wallet yourself however, you will need to cross the bridge yourself. To do this you need to update to the terminal version (5.0.0.0) of the Electroneum Flow programs and synchronise
+your wallet with the blockchain. When the fork block hits, the wallet will auto migrate your balances to the bridge portal address upon the next (auto or manual) wallet refresh. 
 The migration transaction that carries your balance to the bridge portal will also contain a record of your smartchain address.
 Electroneum will be running a bridge oracle, which will watch over the bridge portal address for new inbound migration transactions.
 After the said migration transactions have five confirmations, the oracle will then send a smartchain transaction to the migrating user with an amount that totals the balance sent to the portal plus the fees incurred in doing so, so you are made completely whole.

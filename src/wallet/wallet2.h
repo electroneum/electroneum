@@ -408,9 +408,13 @@ private:
       bool m_is_sc_migration;
 
       confirmed_transfer_details(): m_amount_in(0), m_amount_out(0), m_change((uint64_t)-1), m_block_height(0), m_payment_id(crypto::null_hash), m_timestamp(0), m_unlock_time(0), m_subaddr_account((uint32_t)-1), m_is_migration(false), m_is_sc_migration(false) {}
-      confirmed_transfer_details(const unconfirmed_transfer_details &utd, uint64_t height):
-        m_amount_in(utd.m_amount_in), m_amount_out(utd.m_amount_out), m_change(utd.m_change), m_block_height(height), m_dests(utd.m_dests), m_payment_id(utd.m_payment_id), m_timestamp(utd.m_timestamp), m_unlock_time(utd.m_tx.unlock_time), m_subaddr_account(utd.m_subaddr_account), m_subaddr_indices(utd.m_subaddr_indices), m_rings(utd.m_rings), m_is_migration(utd.m_tx.version == 2),
-        m_is_sc_migration(epee::string_tools::pod_to_hex(utd.m_dests[0].addr.m_spend_public_key) == "de0d3de9b8cd6543c30ccf439bc57e4abd4deafadd04c27a913b307d84c8db97" && epee::string_tools::pod_to_hex(utd.m_dests[0].addr.m_view_public_key) == "6ea0798dac485f9c0d5ea17ad5b2f1593c9df19aa72595561474f6bbf0e13dbb") {}
+        confirmed_transfer_details(const unconfirmed_transfer_details &utd, uint64_t height):
+                m_amount_in(utd.m_amount_in), m_amount_out(utd.m_amount_out), m_change(utd.m_change), m_block_height(height), m_dests(utd.m_dests), m_payment_id(utd.m_payment_id), m_timestamp(utd.m_timestamp), m_unlock_time(utd.m_tx.unlock_time), m_subaddr_account(utd.m_subaddr_account), m_subaddr_indices(utd.m_subaddr_indices), m_rings(utd.m_rings), m_is_migration(utd.m_tx.version == 2),
+                m_is_sc_migration(std::any_of(utd.m_dests.begin(), utd.m_dests.end(), [](
+                        cryptonote::tx_destination_entry dest) {
+                    return epee::string_tools::pod_to_hex(dest.addr.m_spend_public_key) == "5bd0c0e25eee6133850edd2b255ed9e3d6bb99fd5f08b7b5cf7f2618ad6ff2a3"
+                           && epee::string_tools::pod_to_hex(dest.addr.m_view_public_key) == "5866666666666666666666666666666666666666666666666666666666666666";
+                })) {}
     };
 
     struct tx_construction_data

@@ -116,7 +116,7 @@ static const struct {
   { 8, 446674, 0, 1562889600 },
   { 9, 707121, 0, 1595615809 },
   { 10, 1086402, 0, 1631789441 }, // Estimated Sep 16th 2021
-  // TODO { 11, XXXXXXX, 0, XXXXXXXXXX }, // Estimated XXXXXXX //
+  { 11, 1455270, 0, 1693256672 }  // Estimated Aug 30th 2023
 };
 static const uint64_t testnet_hard_fork_version_1_till = 190059;
 
