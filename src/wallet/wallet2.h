@@ -1906,6 +1906,8 @@ namespace boost
       if(ver < 7)
         return;
       a & x.m_is_migration;
+      if(ver < 8)
+          return;
       a & x.m_is_sc_migration;
     }
 
