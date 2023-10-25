@@ -870,6 +870,8 @@ namespace cryptonote
 
      std::vector<address_outputs> get_address_batch_history(const address_parse_info &addr, const uint64_t &start_tx_id = 0, const uint64_t &batch_size = 100, bool desc = false);
 
+     std::vector<address_txs> get_addr_tx_batch_history(const address_parse_info &addr, const uint64_t &start_tx_id = 0, const uint64_t &batch_size = 100, bool desc = false);
+
    private:
 
      /**

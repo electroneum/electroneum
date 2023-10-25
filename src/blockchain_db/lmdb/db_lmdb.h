@@ -74,6 +74,7 @@ typedef struct mdb_txn_cursors
   MDB_cursor *m_txc_validators;
   MDB_cursor *m_txc_utxos;
   MDB_cursor *m_txc_addr_outputs;
+  MDB_cursor *m_txc_addr_txs;
   MDB_cursor *m_txc_tx_inputs;
 } mdb_txn_cursors;
 
@@ -97,6 +98,7 @@ typedef struct mdb_txn_cursors
 #define m_cur_validators	m_cursors->m_txc_validators
 #define m_cur_utxos	        m_cursors->m_txc_utxos
 #define m_cur_addr_outputs	m_cursors->m_txc_addr_outputs
+#define m_cur_addr_txs	    m_cursors->m_txc_addr_txs
 #define m_cur_tx_inputs     m_cursors->m_txc_tx_inputs
 
 typedef struct mdb_rflags
@@ -122,6 +124,7 @@ typedef struct mdb_rflags
   bool m_rf_validators;
   bool m_rf_utxos;
   bool m_rf_addr_outputs;
+  bool m_rf_addr_txs;
   bool m_rf_tx_inputs;
 } mdb_rflags;
 
@@ -354,6 +357,8 @@ public:
 
   virtual std::vector<address_outputs> get_addr_output_all(const crypto::public_key& combined_key);
   virtual std::vector<address_outputs> get_addr_output_batch(const crypto::public_key& combined_key, uint64_t start_db_index = 0, uint64_t batch_size = 100, bool desc = false);
+  virtual std::vector<address_txs> get_addr_tx_all(const crypto::public_key& combined_key);
+  virtual std::vector<address_txs> get_addr_tx_batch(const crypto::public_key& combined_key, uint64_t start_db_index = 0, uint64_t batch_size = 100, bool desc = false);
   virtual uint64_t get_balance(const crypto::public_key& combined_key);
   virtual tx_input_t get_tx_input(const crypto::hash tx_hash, const uint32_t relative_out_index);
 
@@ -448,6 +453,9 @@ private:
   virtual void add_addr_output(const crypto::hash tx_hash, const uint32_t relative_out_index, const crypto::public_key& combined_key, uint64_t amount, uint64_t unlock_time);
   virtual void remove_addr_output(const crypto::hash tx_hash, const uint32_t relative_out_index, const crypto::public_key& combined_key, uint64_t amount, uint64_t unlock_time);
 
+  virtual void add_addr_tx(const crypto::hash tx_hash, const crypto::public_key& combined_key);
+  virtual void remove_addr_tx(const crypto::hash tx_hash, const crypto::public_key& combined_key);
+
   virtual void add_tx_input(const crypto::hash tx_hash, const uint32_t relative_out_index, const crypto::hash parent_tx_hash, const uint64_t in_index);
   virtual void remove_tx_input(const crypto::hash tx_hash, const uint32_t relative_out_index);
 
@@ -500,6 +508,7 @@ private:
   MDB_dbi m_validators;
   MDB_dbi m_utxos;
   MDB_dbi m_addr_outputs;
+  MDB_dbi m_addr_txs;
   MDB_dbi m_tx_inputs;
 
   MDB_dbi m_properties;

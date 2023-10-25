@@ -260,6 +260,7 @@ const char* const LMDB_VALIDATORS = "validators";
 const char* const LMDB_PROPERTIES = "properties";
 const char* const LMDB_UTXOS = "unspent_txos";
 const char* const LMDB_ADDR_OUTPUTS = "unspent_addr_outputs";
+const char* const LMDB_ADDR_TXS = "addr_tx_map";
 const char* const LMDB_TX_INPUTS = "tx_inputs";
 
 const char zerokey[8] = {0};
@@ -382,6 +383,11 @@ typedef struct acc_outs_t {
     uint64_t amount;
     uint64_t unlock_time;
 }acc_outs_t;
+
+typedef struct acc_addr_tx_t {
+    uint64_t db_index;
+    crypto::hash tx_hash;
+}acc_addr_tx_t;
 
 std::atomic<uint64_t> mdb_txn_safe::num_active_txns{0};
 std::atomic_flag mdb_txn_safe::creation_gate = ATOMIC_FLAG_INIT;
@@ -1483,6 +1489,7 @@ void BlockchainLMDB::open(const std::string& filename, const int db_flags)
   lmdb_db_open(txn, LMDB_VALIDATORS, MDB_INTEGERKEY | MDB_CREATE, m_validators, "Failed to open db handle for m_validators");
   lmdb_db_open(txn, LMDB_UTXOS, MDB_CREATE, m_utxos, "Failed to open db handle for m_utxos");
   lmdb_db_open(txn, LMDB_ADDR_OUTPUTS, MDB_CREATE | MDB_DUPSORT | MDB_DUPFIXED, m_addr_outputs, "Failed to open db handle for m_addr_outputs");
+  lmdb_db_open(txn, LMDB_ADDR_TXS, MDB_CREATE | MDB_DUPSORT | MDB_DUPFIXED, m_addr_txs, "Failed to open db handle for m_addr_txs");
   lmdb_db_open(txn, LMDB_TX_INPUTS, MDB_CREATE, m_tx_inputs, "Failed to open db handle for m_tx_inputs");
   lmdb_db_open(txn, LMDB_PROPERTIES, MDB_CREATE, m_properties, "Failed to open db handle for m_properties");
 
@@ -1504,6 +1511,9 @@ void BlockchainLMDB::open(const std::string& filename, const int db_flags)
 
   mdb_set_dupsort(txn, m_addr_outputs, compare_uint64);
   mdb_set_compare(txn, m_addr_outputs, compare_publickey);
+
+  mdb_set_dupsort(txn, m_addr_txs, compare_uint64);
+  mdb_set_compare(txn, m_addr_txs, compare_publickey);
 
   mdb_set_compare(txn, m_tx_inputs, compare_data);
 
@@ -1682,6 +1692,8 @@ void BlockchainLMDB::reset()
     throw0(DB_ERROR(lmdb_error("Failed to drop m_utxos: ", result).c_str()));
   if (auto result = mdb_drop(txn, m_addr_outputs, 0))
     throw0(DB_ERROR(lmdb_error("Failed to drop m_addr_outputs: ", result).c_str()));
+  if (auto result = mdb_drop(txn, m_addr_txs, 0))
+    throw0(DB_ERROR(lmdb_error("Failed to drop m_addr_txs: ", result).c_str()));
   if (auto result = mdb_drop(txn, m_tx_inputs, 0))
     throw0(DB_ERROR(lmdb_error("Failed to drop m_tx_inputs: ", result).c_str()));
   if (auto result = mdb_drop(txn, m_properties, 0))
@@ -2138,6 +2150,140 @@ std::vector<address_outputs> BlockchainLMDB::get_addr_output_batch(const crypto:
   return address_outputs;
 }
 
+void BlockchainLMDB::add_addr_tx(const crypto::hash tx_hash, const crypto::public_key& combined_key)
+{
+    LOG_PRINT_L3("BlockchainLMDB::" << __func__);
+    check_open();
+    mdb_txn_cursors *m_cursors = &m_wcursors;
+    CURSOR(addr_txs)
+
+    int result = 0;
+
+    MDB_val k = {sizeof(combined_key), (void *)&combined_key};
+    MDB_val v;
+    result = mdb_cursor_get(m_cur_addr_txs, &k, &v, MDB_SET);
+    if (result != 0 && result != MDB_NOTFOUND)
+        throw1(DB_ERROR(lmdb_error("Error finding addr tx to add: ", result).c_str()));
+
+    mdb_size_t num_elems = 0;
+
+    if(result == 0)
+    {
+        result = mdb_cursor_get(m_cur_addr_txs, &k, &v, MDB_LAST_DUP);
+        if (result)
+            throw0(DB_ERROR(std::string("Failed to get number txs for address: ").append(mdb_strerror(result)).c_str()));
+
+        const acc_outs_t res = *(const acc_outs_t *) v.mv_data;
+        num_elems = res.db_index + 1;
+    }
+
+    acc_addr_tx_t acc;
+    acc.db_index = num_elems;
+    acc.tx_hash = tx_hash;
+
+    k = {sizeof(combined_key), (void *)&combined_key};
+    MDB_val acc_v = {sizeof(acc), (void *)&acc};
+
+    result = mdb_cursor_put(m_cur_addr_txs, &k, &acc_v, MDB_APPENDDUP);
+    if (result == MDB_KEYEXIST)
+        throw1(UTXO_EXISTS("Attempting to add addr tx that's already in the db."));
+    else if(result != 0)
+        throw1(DB_ERROR(lmdb_error("Error adding addr tx to db transaction: ", result).c_str()));
+
+}
+
+std::vector<address_txs> BlockchainLMDB::get_addr_tx_all(const crypto::public_key& combined_key)
+{
+    LOG_PRINT_L3("BlockchainLMDB::" << __func__);
+    check_open();
+
+    TXN_PREFIX_RDONLY();
+    RCURSOR(addr_txs);
+
+    int result = 0;
+    std::vector<address_txs> address_txs;
+
+    MDB_val k = {sizeof(combined_key), (void *)&combined_key};
+
+    MDB_cursor_op op = MDB_SET_KEY;
+    while (1) {
+        MDB_val v;
+        int ret = mdb_cursor_get(m_cur_addr_txs, &k, &v, op);
+        op = MDB_NEXT_DUP;
+        if (ret == MDB_NOTFOUND)
+            break;
+        if (ret)
+            throw0(DB_ERROR("Failed to enumerate address txs"));
+
+        const acc_addr_tx_t res = *(const acc_addr_tx_t *) v.mv_data;
+
+        cryptonote::address_txs addr_tx;
+        addr_tx.addr_tx_id = res.db_index;
+        addr_tx.tx_hash = res.tx_hash;
+        address_txs.push_back(addr_tx);
+    }
+
+    TXN_POSTFIX_RDONLY();
+    return address_txs;
+}
+
+std::vector<address_txs> BlockchainLMDB::get_addr_tx_batch(const crypto::public_key& combined_key, uint64_t start_db_index, uint64_t batch_size, bool desc)
+{
+    LOG_PRINT_L3("BlockchainLMDB::" << __func__);
+    check_open();
+
+    TXN_PREFIX_RDONLY();
+    RCURSOR(addr_txs);
+
+    std::vector<address_txs> address_txs;
+
+    MDB_val k = {sizeof(combined_key), (void *)&combined_key};
+    MDB_val v;
+
+    MDB_cursor_op op;
+    if (start_db_index)
+        op = MDB_GET_BOTH;
+    else
+    {
+        op = desc ? MDB_LAST_DUP : MDB_FIRST_DUP;
+        int result = mdb_cursor_get(m_cur_addr_txs, &k, &v, MDB_SET_KEY);
+        if (result != 0 && result != MDB_NOTFOUND)
+            throw1(DB_ERROR(lmdb_error("Failed to enumerate address txs", result).c_str()));
+    }
+
+    std::set<std::string> tx_hashes;
+    for(size_t i = 0; i < batch_size + 1; ++i) {
+        if(op == MDB_GET_BOTH)
+            v = MDB_val{sizeof(start_db_index), (void*)&start_db_index};
+
+        int ret = mdb_cursor_get(m_cur_addr_txs, &k, &v, op);
+        op = desc ? MDB_PREV_DUP : MDB_NEXT_DUP;
+        if (ret == MDB_NOTFOUND)
+            break;
+        if (ret)
+            throw0(DB_ERROR("Failed to enumerate address txs"));
+
+        const acc_outs_t res = *(const acc_outs_t *) v.mv_data;
+
+        std::string tx_hash_hex = epee::string_tools::pod_to_hex(res.tx_hash);
+        if(tx_hashes.find(tx_hash_hex) != tx_hashes.end())
+        {
+            --i;
+            continue;
+        }
+
+        cryptonote::address_txs addr_tx;
+        addr_tx.addr_tx_id = res.db_index;
+        addr_tx.tx_hash = res.tx_hash;
+
+        address_txs.push_back(addr_tx);
+        tx_hashes.emplace(tx_hash_hex);
+    }
+
+    TXN_POSTFIX_RDONLY();
+    return address_txs;
+}
+
 uint64_t BlockchainLMDB::get_balance(const crypto::public_key& combined_key)
 {
   LOG_PRINT_L3("BlockchainLMDB::" << __func__);
@@ -2212,6 +2358,47 @@ void BlockchainLMDB::remove_addr_output(const crypto::hash tx_hash, const uint32
       break;
     }
   }
+}
+
+void BlockchainLMDB::remove_addr_tx(const crypto::hash tx_hash, const crypto::public_key& combined_key)
+{
+    LOG_PRINT_L3("BlockchainLMDB::" << __func__);
+    check_open();
+    mdb_txn_cursors *m_cursors = &m_wcursors;
+
+    CURSOR(addr_outputs)
+
+    int result = 0;
+
+    MDB_val k = {sizeof(combined_key), (void *)&combined_key};
+    MDB_val v;
+
+    result = mdb_cursor_get(m_cur_addr_txs, &k, &v, MDB_SET);
+    if (result != 0 && result != MDB_NOTFOUND)
+        throw1(DB_ERROR(lmdb_error("Failed to enumerate address txs", result).c_str()));
+    if (result == MDB_NOTFOUND)
+        return;
+
+    MDB_cursor_op op = MDB_LAST_DUP;
+    while (1) {
+        k = {sizeof(combined_key), (void *)&combined_key};
+        int ret = mdb_cursor_get(m_cur_addr_txs, &k, &v, op);
+        op = MDB_PREV_DUP;
+        if (ret == MDB_NOTFOUND)
+            break;
+        if (ret)
+            throw0(DB_ERROR("Failed to enumerate outputs"));
+
+        const acc_addr_tx_t res = *(const acc_addr_tx_t *) v.mv_data;
+
+        if(res.tx_hash == tx_hash) {
+            result = mdb_cursor_del(m_cur_addr_txs, 0);
+            if (result)
+                throw1(DB_ERROR(lmdb_error("Error removing of addr tx from db: ", result).c_str()));
+
+            break;
+        }
+    }
 }
 
 void BlockchainLMDB::add_txpool_tx(const crypto::hash &txid, const cryptonote::blobdata &blob, const txpool_tx_meta_t &meta)
