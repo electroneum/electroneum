@@ -1842,6 +1842,54 @@ namespace cryptonote
     return true;
   }
   //------------------------------------------------------------------------------------------------------------------------------
+  bool core_rpc_server::on_get_addr_tx_batch_history(const COMMAND_RPC_GET_ADDR_TX_BATCH_HISTORY::request& req, COMMAND_RPC_GET_ADDR_TX_BATCH_HISTORY::response& res, const connection_context *ctx)
+  {
+      PERF_TIMER(on_get_addr_tx_batch_history);
+      CHECK_CORE_READY();
+
+      if (req.etn_address.empty())
+      {
+          res.status = "Failed: Request attribute <etn_address> is mandatory.";
+          return true;
+      }
+
+      address_parse_info addr_info;
+      if(!get_account_address_from_str(addr_info, nettype(), req.etn_address))
+      {
+          res.status = "Failed: can't parse address from <etn_address> = " + req.etn_address;
+          return true;
+      }
+
+      try
+      {
+          std::vector<address_txs> addr_txs = m_core.get_addr_tx_batch_history(addr_info, req.start_addr_tx_id, req.batch_size, req.desc);
+          if(!addr_txs.empty() && addr_txs.size() > req.batch_size)
+          {
+              res.next_addr_tx_id = addr_txs.at(addr_txs.size() - 1).addr_tx_id;
+              res.last_page = false;
+              addr_txs.pop_back();
+          }
+          else
+          {
+              res.last_page = true;
+          }
+
+          for(auto addr_tx: addr_txs)
+          {
+              res.txs.push_back(epee::string_tools::pod_to_hex(addr_tx.tx_hash));
+          }
+
+          res.status = "OK";
+      }
+      catch(const std::exception& e)
+      {
+          res.status = "Failed: " + std::string(e.what());
+          return true;
+      }
+
+      return true;
+  }
+    //------------------------------------------------------------------------------------------------------------------------------
   bool core_rpc_server::on_get_connections(const COMMAND_RPC_GET_CONNECTIONS::request& req, COMMAND_RPC_GET_CONNECTIONS::response& res, epee::json_rpc::error& error_resp, const connection_context *ctx)
   {
     PERF_TIMER(on_get_connections);
