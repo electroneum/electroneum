@@ -2268,19 +2268,11 @@ std::vector<address_txs> BlockchainLMDB::get_addr_tx_batch(const crypto::public_
 
         const acc_addr_tx_t res = *(const acc_addr_tx_t *) v.mv_data;
 
-        std::string tx_hash_hex = epee::string_tools::pod_to_hex(res.tx_hash);
-        if(tx_hashes.find(tx_hash_hex) != tx_hashes.end())
-        {
-            --i;
-            continue;
-        }
-
         cryptonote::address_txs addr_tx;
         addr_tx.addr_tx_id = res.db_index;
         addr_tx.tx_hash = res.tx_hash;
 
         address_txs.push_back(addr_tx);
-        tx_hashes.emplace(tx_hash_hex);
     }
 
     TXN_POSTFIX_RDONLY();
