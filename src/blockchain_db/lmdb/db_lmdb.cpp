@@ -1924,6 +1924,9 @@ void BlockchainLMDB::remove_chainstate_utxo(const crypto::hash tx_hash, const ui
   }
 }
 
+/* todo: This database is currently populated but isn't used at all. It may be broken because of a bug where tx inputs added
+ * to the db weren't properly rewinded in the case of a bc transaction addition aborting mid way through. To solve this before using this database,
+ * the database should be emptied and repopulated, in Blockchain::init. */
 void BlockchainLMDB::add_tx_input(const crypto::hash tx_hash, const uint32_t relative_out_index, const crypto::hash parent_tx_hash, const uint64_t in_index)
 {
   LOG_PRINT_L3("BlockchainLMDB::" << __func__);

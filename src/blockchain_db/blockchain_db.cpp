@@ -181,8 +181,10 @@ void BlockchainDB::add_transaction(const crypto::hash& blk_hash, const std::pair
           remove_spent_key(boost::get<txin_to_key>(tx_input).k_image); // inputs are already checked here regardless of version
         }
         if (tx_input.type() == typeid(txin_to_key_public)) {
-            //work for addr_tx db
+            //rewind tx inputs added to tx input db if the transaction aborts
             const auto &txin = boost::get<txin_to_key_public>(tx_input);
+            remove_tx_input(txin.tx_hash, txin.relative_offset);
+            //work for addr_tx db
             transaction parent_tx = get_tx(txin.tx_hash);
             const auto &txout = boost::get<txout_to_key_public>(parent_tx.vout[txin.relative_offset].target); //previous tx out that this tx in references
             if (addr_tx_addresses.find(txout.address) != addr_tx_addresses.end()) { // dont do a remove for every input. there is only one entry per address per tx in the addr tx db
@@ -224,8 +226,10 @@ void BlockchainDB::add_transaction(const crypto::hash& blk_hash, const std::pair
                 remove_spent_key(boost::get<txin_to_key>(tx_input).k_image);
             }
             if (tx_input.type() == typeid(txin_to_key_public)) {
-                //work for addr_tx db
+                //rewind tx inputs added to tx input db if the transaction aborts
                 const auto &txin = boost::get<txin_to_key_public>(tx_input);
+                remove_tx_input(txin.tx_hash, txin.relative_offset);
+                //work for addr_tx db
                 transaction parent_tx = get_tx(txin.tx_hash);
                 const auto &txout = boost::get<txout_to_key_public>(
                         parent_tx.vout[txin.relative_offset].target); //previous tx out that this tx in references
