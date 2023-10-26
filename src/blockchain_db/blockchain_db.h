@@ -400,7 +400,7 @@ private:
    * private virtual members
    *********************************************************************/
 
-  /**
+    /**
    * @brief add the block and metadata to the db
    *
    * The subclass implementing this will add the specified block and
@@ -527,8 +527,6 @@ private:
   virtual void remove_addr_output(const crypto::hash tx_hash, const uint32_t relative_out_index, const crypto::public_key& combined_key, uint64_t amount, uint64_t unlock_time) = 0;
   virtual void add_tx_input(const crypto::hash tx_hash, const uint32_t relative_out_index, const crypto::hash parent_tx_hash, const uint64_t in_index) = 0;
   virtual void remove_tx_input(const crypto::hash tx_hash, const uint32_t relative_out_index) = 0;
-  virtual void add_addr_tx(const crypto::hash tx_hash, const crypto::public_key& combined_key) = 0;
-  virtual void remove_addr_tx(const crypto::hash tx_hash, const crypto::public_key& combined_key) = 0;
 
   /**
    * @brief store a spent key
@@ -605,6 +603,8 @@ protected:
 
 public:
 
+    virtual void add_addr_tx(const crypto::hash tx_hash, const crypto::public_key& combined_key) = 0;
+    virtual void remove_addr_tx(const crypto::hash tx_hash, const crypto::public_key& combined_key) = 0;
   /**
    * @brief An empty constructor.
    */
