@@ -134,6 +134,7 @@ namespace cryptonote
       MAP_URI_AUTO_JON2_IF("/pop_blocks", on_pop_blocks, COMMAND_RPC_POP_BLOCKS, !m_restricted)
       MAP_URI_AUTO_JON2("/get_balance", on_get_balance, COMMAND_RPC_GET_BALANCE)
       MAP_URI_AUTO_JON2("/get_address_batch_history", on_get_address_batch_history, COMMAND_RPC_GET_ADDRESS_BATCH_HISTORY)
+      MAP_URI_AUTO_JON2("/get_addr_tx_history", on_get_addr_tx_batch_history, COMMAND_RPC_GET_ADDR_TX_BATCH_HISTORY)
       BEGIN_JSON_RPC_MAP("/json_rpc")
         MAP_JON_RPC("get_tax_data",            on_get_tax_data,                COMMAND_RPC_GET_TAX_DATA)
         MAP_JON_RPC("get_block_count",           on_getblockcount,              COMMAND_RPC_GETBLOCKCOUNT)

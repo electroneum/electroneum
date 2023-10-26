@@ -1403,7 +1403,7 @@ void BlockchainLMDB::open(const std::string& filename, const int db_flags)
   // set up lmdb environment
   if ((result = mdb_env_create(&m_env)))
     throw0(DB_ERROR(lmdb_error("Failed to create lmdb environment: ", result).c_str()));
-  if ((result = mdb_env_set_maxdbs(m_env, 25)))
+  if ((result = mdb_env_set_maxdbs(m_env, 26)))
     throw0(DB_ERROR(lmdb_error("Failed to set max number of dbs: ", result).c_str()));
 
   int threads = tools::get_max_concurrency();
@@ -2173,7 +2173,7 @@ void BlockchainLMDB::add_addr_tx(const crypto::hash tx_hash, const crypto::publi
         if (result)
             throw0(DB_ERROR(std::string("Failed to get number txs for address: ").append(mdb_strerror(result)).c_str()));
 
-        const acc_outs_t res = *(const acc_outs_t *) v.mv_data;
+        const acc_addr_tx_t res = *(const acc_addr_tx_t *) v.mv_data;
         num_elems = res.db_index + 1;
     }
 
@@ -2263,7 +2263,7 @@ std::vector<address_txs> BlockchainLMDB::get_addr_tx_batch(const crypto::public_
         if (ret)
             throw0(DB_ERROR("Failed to enumerate address txs"));
 
-        const acc_outs_t res = *(const acc_outs_t *) v.mv_data;
+        const acc_addr_tx_t res = *(const acc_addr_tx_t *) v.mv_data;
 
         std::string tx_hash_hex = epee::string_tools::pod_to_hex(res.tx_hash);
         if(tx_hashes.find(tx_hash_hex) != tx_hashes.end())
