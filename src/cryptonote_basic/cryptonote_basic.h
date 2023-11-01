@@ -65,6 +65,12 @@ namespace cryptonote
     bool spent;
   };
 
+    struct address_txs
+    {
+        uint64_t addr_tx_id;
+        crypto::hash tx_hash;
+    };
+
   struct account_public_address
   {
     crypto::public_key m_spend_public_key;

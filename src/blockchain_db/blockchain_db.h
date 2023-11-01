@@ -97,6 +97,7 @@
  *   KEY_IMAGE_EXISTS
  *   UTXO_EXISTS
  *   ADDR_OUTPUT_EXISTS
+ *   ADDR_TX_EXISTS
  */
 
 namespace cryptonote
@@ -368,6 +369,13 @@ public:
     ADDR_OUTPUT_EXISTS(const char* s) : DB_EXCEPTION(s) { }
 };
 
+class ADDR_TX_EXISTS : public DB_EXCEPTION
+{
+public:
+    ADDR_TX_EXISTS() : DB_EXCEPTION("The tx record for this address already exists!") { }
+    ADDR_TX_EXISTS(const char* s) : DB_EXCEPTION(s) { }
+};
+
 /***********************************
  * End of Exception Definitions
  ***********************************/
@@ -392,7 +400,7 @@ private:
    * private virtual members
    *********************************************************************/
 
-  /**
+    /**
    * @brief add the block and metadata to the db
    *
    * The subclass implementing this will add the specified block and
@@ -595,6 +603,8 @@ protected:
 
 public:
 
+    virtual void add_addr_tx(const crypto::hash tx_hash, const crypto::public_key& combined_key) = 0;
+    virtual void remove_addr_tx(const crypto::hash tx_hash, const crypto::public_key& combined_key) = 0;
   /**
    * @brief An empty constructor.
    */
@@ -1790,6 +1800,8 @@ public:
 
   virtual std::vector<address_outputs> get_addr_output_all(const crypto::public_key& combined_key) = 0;
   virtual std::vector<address_outputs> get_addr_output_batch(const crypto::public_key& combined_key, uint64_t start_db_index = 0, uint64_t batch_size = 100, bool desc = false) = 0;
+  virtual std::vector<address_txs> get_addr_tx_all(const crypto::public_key& combined_key) = 0;
+  virtual std::vector<address_txs> get_addr_tx_batch(const crypto::public_key& combined_key, uint64_t start_db_index = 0, uint64_t batch_size = 100, bool desc = false) = 0;
   virtual uint64_t get_balance(const crypto::public_key& combined_key) = 0;
   virtual tx_input_t get_tx_input(const crypto::hash tx_hash, const uint32_t relative_out_index) = 0;
 

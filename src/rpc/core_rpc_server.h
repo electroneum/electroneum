@@ -134,6 +134,7 @@ namespace cryptonote
       MAP_URI_AUTO_JON2_IF("/pop_blocks", on_pop_blocks, COMMAND_RPC_POP_BLOCKS, !m_restricted)
       MAP_URI_AUTO_JON2("/get_balance", on_get_balance, COMMAND_RPC_GET_BALANCE)
       MAP_URI_AUTO_JON2("/get_address_batch_history", on_get_address_batch_history, COMMAND_RPC_GET_ADDRESS_BATCH_HISTORY)
+      MAP_URI_AUTO_JON2("/get_addr_tx_history", on_get_addr_tx_batch_history, COMMAND_RPC_GET_ADDR_TX_BATCH_HISTORY)
       BEGIN_JSON_RPC_MAP("/json_rpc")
         MAP_JON_RPC("get_tax_data",            on_get_tax_data,                COMMAND_RPC_GET_TAX_DATA)
         MAP_JON_RPC("get_block_count",           on_getblockcount,              COMMAND_RPC_GETBLOCKCOUNT)
@@ -215,8 +216,9 @@ namespace cryptonote
     bool on_pop_blocks(const COMMAND_RPC_POP_BLOCKS::request& req, COMMAND_RPC_POP_BLOCKS::response& res, const connection_context *ctx = NULL);
     bool on_get_balance(const COMMAND_RPC_GET_BALANCE::request& req, COMMAND_RPC_GET_BALANCE::response& res, const connection_context *ctx = NULL);
     bool on_get_address_batch_history(const COMMAND_RPC_GET_ADDRESS_BATCH_HISTORY::request& req, COMMAND_RPC_GET_ADDRESS_BATCH_HISTORY::response& res, const connection_context *ctx = NULL);
+    bool on_get_addr_tx_batch_history(const COMMAND_RPC_GET_ADDR_TX_BATCH_HISTORY::request& req, COMMAND_RPC_GET_ADDR_TX_BATCH_HISTORY::response& res, const connection_context *ctx = NULL);
 
-    //json_rpc
+      //json_rpc
     bool on_get_tax_data(const COMMAND_RPC_GET_TAX_DATA::request& req, COMMAND_RPC_GET_TAX_DATA::response& res, const connection_context *ctx = NULL);
     bool on_getblockcount(const COMMAND_RPC_GETBLOCKCOUNT::request& req, COMMAND_RPC_GETBLOCKCOUNT::response& res, const connection_context *ctx = NULL);
     bool on_getblockhash(const COMMAND_RPC_GETBLOCKHASH::request& req, COMMAND_RPC_GETBLOCKHASH::response& res, epee::json_rpc::error& error_resp, const connection_context *ctx = NULL);

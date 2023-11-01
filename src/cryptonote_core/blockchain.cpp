@@ -550,6 +550,70 @@ bool Blockchain::init(BlockchainDB* db, const network_type nettype, bool offline
       }
     }
   }
+
+    // GO BACK AND POPULATE A DATABASE OF KEY: COMBINED KEY , VALUE: TX INPUT
+    {
+        db_txn_guard txn_guard(m_db, m_db->is_read_only());
+        if(!m_db->is_read_only())
+        {
+            uint64_t top_height;
+            m_db->top_block_hash(&top_height);
+            uint64_t private_to_public_fork_height = m_nettype == MAINNET ? 1175315 : 1086402;
+            if(top_height >= private_to_public_fork_height)
+            {
+                block b = m_db->get_block_from_height(private_to_public_fork_height);
+                const auto &txout = boost::get<txout_to_key_public>(b.miner_tx.vout[0].target);
+                std::vector<cryptonote::address_txs> addr_txs = m_db->get_addr_tx_all(addKeys(txout.address.m_view_public_key, txout.address.m_spend_public_key));
+                if(addr_txs.empty()) {
+                    MGINFO("Populating addr tx database...");
+                    m_db->top_block_hash(&top_height);
+                    // begin at the private to public fork block and store the data in addr_tx db one block at a time
+                    uint64_t working_height = private_to_public_fork_height;
+                    while (working_height <= top_height) {
+                        block working_block = m_db->get_block_from_height(working_height);
+                        //deal with miner tx first
+                        for( auto vout: working_block.miner_tx.vout){ // all vouts are of type txout to key public
+                              const auto &txout = boost::get<txout_to_key_public>(vout.target);
+                              m_db->add_addr_tx(get_transaction_hash(working_block.miner_tx), addKeys(txout.address.m_view_public_key, txout.address.m_spend_public_key));
+
+                        }
+                        //deal with all other tx
+                        std::vector<transaction> transactions = m_db->get_tx_list(working_block.tx_hashes);
+                        for (auto tx : transactions){
+                            auto hash = get_transaction_hash(tx);
+                            std::unordered_set<crypto::public_key> addr_tx_addresses;
+                            for (size_t i = 0; i < tx.vin.size(); i++){
+                                if (tx.vin[i].type() == typeid(txin_to_key_public))
+                                {
+                                    const auto &txin = boost::get<txin_to_key_public>(tx.vin[i]);
+                                    transaction parent_tx = m_db->get_tx(txin.tx_hash);
+                                    const auto &txout = boost::get<txout_to_key_public>(parent_tx.vout[txin.relative_offset].target); //previous tx out that this tx in references
+                                    crypto::public_key combined_key = addKeys(txout.address.m_view_public_key, txout.address.m_spend_public_key);
+                                    if(addr_tx_addresses.find(combined_key) == addr_tx_addresses.end()){ //if addr hasn't been used for another input yet, add the unique addr tx record for this address
+                                        m_db->add_addr_tx(hash, combined_key);
+                                        addr_tx_addresses.emplace(combined_key);
+                                    }
+                                }
+                            }
+                            for(size_t i = 0; i < tx.vout.size(); i++){ // all vouts are of type txout to key public
+                                const auto &txout = boost::get<txout_to_key_public>(tx.vout[i].target);
+                                crypto::public_key combined_key = addKeys(txout.address.m_view_public_key, txout.address.m_spend_public_key);
+                                if(addr_tx_addresses.find(combined_key) == addr_tx_addresses.end()){ //if addr hasn't been used for another input yet, add the unique addr tx record for this address
+                                    m_db->add_addr_tx(tx.hash, combined_key);
+                                    addr_tx_addresses.emplace(combined_key);
+                                }
+                            }
+                        }
+                        ++working_height;
+                    }
+                    MGINFO("Addr_txs database recomputed OK");
+                }
+
+            }
+        }
+    
+        txn_guard.stop();
+    }
   return true;
 }
 //------------------------------------------------------------------

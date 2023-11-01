@@ -28,6 +28,7 @@
 // THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/range/adaptor/reversed.hpp>
+#include <unordered_set>
 
 #include "string_tools.h"
 #include "blockchain_db.h"
@@ -140,6 +141,8 @@ void BlockchainDB::add_transaction(const crypto::hash& blk_hash, const std::pair
   }
 
   std::vector<std::pair<crypto::hash, uint64_t>> utxos_to_remove;
+  // keep a set of the etn addresses (derived from BOTH ins and outs) associated with the tx for removal from addr_tx db
+  std::unordered_set<cryptonote::account_public_address> addr_tx_addresses;
 
   // Sanity check on supported input types
   for (size_t i = 0; i < tx.vin.size(); ++i)
@@ -154,6 +157,14 @@ void BlockchainDB::add_transaction(const crypto::hash& blk_hash, const std::pair
       const auto &txin = boost::get<txin_to_key_public>(tx_input);
       utxos_to_remove.push_back({txin.tx_hash, txin.relative_offset});
       add_tx_input(txin.tx_hash, txin.relative_offset, tx.hash, i);
+
+      //work for addr_tx db
+      transaction parent_tx = get_tx(txin.tx_hash);
+      const auto &txout = boost::get<txout_to_key_public>(parent_tx.vout[txin.relative_offset].target); //previous tx out that this tx in references
+      if(addr_tx_addresses.find(txout.address) == addr_tx_addresses.end()){ //if addr hasn't been used for another input yet, add the unique addr tx record for this address
+          add_addr_tx(tx.hash, addKeys(txout.address.m_view_public_key, txout.address.m_spend_public_key));
+          addr_tx_addresses.insert(txout.address);
+      }
     }
     else if (tx_input.type() == typeid(txin_gen))
     {
@@ -168,6 +179,18 @@ void BlockchainDB::add_transaction(const crypto::hash& blk_hash, const std::pair
         if (tx_input.type() == typeid(txin_to_key))
         {
           remove_spent_key(boost::get<txin_to_key>(tx_input).k_image); // inputs are already checked here regardless of version
+        }
+        if (tx_input.type() == typeid(txin_to_key_public)) {
+            //rewind tx inputs added to tx input db if the transaction aborts
+            const auto &txin = boost::get<txin_to_key_public>(tx_input);
+            remove_tx_input(txin.tx_hash, txin.relative_offset);
+            //work for addr_tx db
+            transaction parent_tx = get_tx(txin.tx_hash);
+            const auto &txout = boost::get<txout_to_key_public>(parent_tx.vout[txin.relative_offset].target); //previous tx out that this tx in references
+            if (addr_tx_addresses.find(txout.address) != addr_tx_addresses.end()) { // dont do a remove for every input. there is only one entry per address per tx in the addr tx db
+                remove_addr_tx(tx.hash, addKeys(txout.address.m_view_public_key, txout.address.m_spend_public_key));
+                addr_tx_addresses.erase(txout.address);
+            }
         }
       }
       return;
@@ -198,12 +221,24 @@ void BlockchainDB::add_transaction(const crypto::hash& blk_hash, const std::pair
       if(tx.vout[i].target.type() != typeid(txout_to_key_public))
       {
         LOG_PRINT_L1("Unsupported output type, reinstating UTXOs, removing key images and aborting transaction addition");
-        for (const txin_v& tx_input : tx.vin)
-        {
-          if (tx_input.type() == typeid(txin_to_key))
-          {
-            remove_spent_key(boost::get<txin_to_key>(tx_input).k_image);
-          }
+        for (const txin_v& tx_input : tx.vin) {
+            if (tx_input.type() == typeid(txin_to_key)) {
+                remove_spent_key(boost::get<txin_to_key>(tx_input).k_image);
+            }
+            if (tx_input.type() == typeid(txin_to_key_public)) {
+                //rewind tx inputs added to tx input db if the transaction aborts
+                const auto &txin = boost::get<txin_to_key_public>(tx_input);
+                remove_tx_input(txin.tx_hash, txin.relative_offset);
+                //work for addr_tx db
+                transaction parent_tx = get_tx(txin.tx_hash);
+                const auto &txout = boost::get<txout_to_key_public>(
+                        parent_tx.vout[txin.relative_offset].target); //previous tx out that this tx in references
+                if (addr_tx_addresses.find(txout.address) !=
+                    addr_tx_addresses.end()) { // dont do a remove for every input, only a remove for every addr that was uniquely added to the addr tx db
+                    remove_addr_tx(tx.hash, addKeys(txout.address.m_view_public_key, txout.address.m_spend_public_key));
+                    addr_tx_addresses.erase(txout.address);
+                }
+            }
         }
         return;
       }// if outs are all of the right type, we're ok to proceed by removing the utxos that are now spent
@@ -216,6 +251,10 @@ void BlockchainDB::add_transaction(const crypto::hash& blk_hash, const std::pair
       const auto &txout = boost::get<txout_to_key_public>(tx.vout[i].target);
       add_chainstate_utxo(tx.hash, i, addKeys(txout.address.m_view_public_key, txout.address.m_spend_public_key) , tx.vout[i].amount, txp.first.unlock_time, miner_tx);
       add_addr_output(tx.hash, i, addKeys(txout.address.m_view_public_key, txout.address.m_spend_public_key), tx.vout[i].amount, txp.first.unlock_time);
+      if(addr_tx_addresses.find(txout.address) == addr_tx_addresses.end()){ //if addr hasn't been used for another input yet, add the unique addr tx record for this address
+          add_addr_tx(tx.hash, addKeys(txout.address.m_view_public_key, txout.address.m_spend_public_key));
+          addr_tx_addresses.insert(txout.address);
+      }
     }//end of v2+ processing
   }
 }
@@ -301,6 +340,9 @@ void BlockchainDB::remove_transaction(const crypto::hash& tx_hash)
 {
   transaction tx = get_pruned_tx(tx_hash);
 
+  // keep a set of the etn addresses (derived from BOTH ins and outs) associated with the tx for removal from addr_tx db
+  std::unordered_set<cryptonote::account_public_address> addr_tx_addresses;
+
   for (const txin_v& tx_input : tx.vin)
   {
     if (tx_input.type() == typeid(txin_to_key))
@@ -317,6 +359,12 @@ void BlockchainDB::remove_transaction(const crypto::hash& tx_hash)
       bool reinstate_coinbase = cryptonote::is_coinbase(get_pruned_tx(txin.tx_hash));
       add_chainstate_utxo(txin.tx_hash, txin.relative_offset, addKeys(txout.address.m_view_public_key, txout.address.m_spend_public_key), txin.amount, get_tx_unlock_time(txin.tx_hash), reinstate_coinbase);
       remove_tx_input(txin.tx_hash, txin.relative_offset);
+
+
+      if(addr_tx_addresses.find(txout.address) == addr_tx_addresses.end()){
+          remove_addr_tx(tx.hash, addKeys(txout.address.m_view_public_key, txout.address.m_spend_public_key));
+          addr_tx_addresses.insert(txout.address);
+      }
     }
   }
 
@@ -328,6 +376,12 @@ void BlockchainDB::remove_transaction(const crypto::hash& tx_hash)
 
       remove_chainstate_utxo(tx.hash, i);
       remove_addr_output(tx_hash, i, addKeys(txout.address.m_view_public_key, txout.address.m_spend_public_key), tx.vout[i].amount, tx.unlock_time);
+
+      // remove addr tx entries for outputs involving addr that weren't used for ins
+      if(addr_tx_addresses.find(txout.address) == addr_tx_addresses.end()){
+          remove_addr_tx(tx.hash, addKeys(txout.address.m_view_public_key, txout.address.m_spend_public_key));
+          addr_tx_addresses.insert(txout.address);
+      }
     }
   }
 
