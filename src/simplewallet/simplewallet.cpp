@@ -7643,35 +7643,47 @@ bool simple_wallet::get_transfers(std::vector<std::string>& local_args, std::vec
   bool failed = true;
   bool pool = true;
   bool coinbase = true;
+  bool pub_blockchain_migration = true;
+  bool sc_migration = true;
   uint64_t min_height = 0;
   uint64_t max_height = (uint64_t)-1;
 
   // optional in/out selector
   if (local_args.size() > 0) {
     if (local_args[0] == "in" || local_args[0] == "incoming") {
-      out = pending = failed = false;
+      out = pending = failed = pub_blockchain_migration = sc_migration = false;
       local_args.erase(local_args.begin());
     }
-    else if (local_args[0] == "out" || local_args[0] == "outgoing") {
+    else if (local_args[0] == "out" || local_args[0] == "outgoing") { // migration txes still print out as part of outbound transactions
       in = pool = coinbase = false;
       local_args.erase(local_args.begin());
     }
     else if (local_args[0] == "pending") {
-      in = out = failed = coinbase = false;
+      in = out = failed = coinbase = pub_blockchain_migration = sc_migration = false;
       local_args.erase(local_args.begin());
     }
     else if (local_args[0] == "failed") {
-      in = out = pending = pool = coinbase = false;
+      in = out = pending = pool = coinbase = pub_blockchain_migration = sc_migration = false;
       local_args.erase(local_args.begin());
     }
     else if (local_args[0] == "pool") {
-      in = out = pending = failed = coinbase = false;
+      in = out = pending = failed = coinbase = pub_blockchain_migration = sc_migration = false;
       local_args.erase(local_args.begin());
     }
     else if (local_args[0] == "coinbase") {
-      in = out = pending = failed = pool = false;
+      in = out = pending = failed = pool = pub_blockchain_migration = sc_migration = false;
       coinbase = true;
       local_args.erase(local_args.begin());
+    }
+    else if (local_args[0] == "migration") {
+        in = out = pending = failed = pool = sc_migration = false;
+        coinbase = true;
+        local_args.erase(local_args.begin());
+    }
+    else if (local_args[0] == "sc_migration") {
+        in = out = pending = failed = pool = pub_blockchain_migration = false;
+        coinbase = true;
+        local_args.erase(local_args.begin());
     }
     else if (local_args[0] == "all" || local_args[0] == "both") {
       local_args.erase(local_args.begin());
@@ -7765,6 +7777,7 @@ bool simple_wallet::get_transfers(std::vector<std::string>& local_args, std::vec
   }
 
   if (out) {
+      //DEAL WITH REGULAR OUTBOUND TX BESIDES MIGRATION TX
     std::list<std::pair<crypto::hash, tools::wallet2::confirmed_transfer_details>> payments;
     m_wallet->get_payments_out(payments, min_height, max_height, m_current_subaddress_account, subaddr_indices);
     for (std::list<std::pair<crypto::hash, tools::wallet2::confirmed_transfer_details>>::const_iterator i = payments.begin(); i != payments.end(); ++i) {
@@ -7795,6 +7808,80 @@ bool simple_wallet::get_transfers(std::vector<std::string>& local_args, std::vec
         "-"
       });
     }
+  }
+
+    if(pub_blockchain_migration) {
+        // Private Public MIGRATION TXS
+        std::list<std::pair<crypto::hash, tools::wallet2::confirmed_transfer_details>> migration_payments;
+        m_wallet->get_payments_out_migration(migration_payments, min_height, max_height, m_current_subaddress_account,
+                                             subaddr_indices);
+        for (std::list<std::pair<crypto::hash, tools::wallet2::confirmed_transfer_details>>::const_iterator i = migration_payments.begin();
+             i != migration_payments.end(); ++i) {
+            const tools::wallet2::confirmed_transfer_details &pd = i->second;
+            uint64_t change = pd.m_change == (uint64_t) -1 ? 0 : pd.m_change; // change may not be known
+            uint64_t fee = pd.m_amount_in - pd.m_amount_out;
+            std::vector<std::pair<std::string, uint64_t>> destinations;
+            for (const auto &d: pd.m_dests) {
+                destinations.push_back(
+                        {get_account_address_as_str(m_wallet->nettype(), d.is_subaddress, d.addr), d.amount});
+            }
+            std::string payment_id = string_tools::pod_to_hex(i->second.m_payment_id);
+            if (payment_id.substr(16).find_first_not_of('0') == std::string::npos)
+                payment_id = payment_id.substr(0, 16);
+            std::string note = m_wallet->get_tx_note(i->first);
+            transfers.push_back({
+                                        "migration",
+                                        pd.m_block_height,
+                                        pd.m_timestamp,
+                                        "migration",
+                                        true,
+                                        pd.m_amount_in - change - fee,
+                                        i->first,
+                                        payment_id,
+                                        fee,
+                                        destinations,
+                                        pd.m_subaddr_indices,
+                                        note,
+                                        "-"
+                                });
+        }
+    }
+
+  if(sc_migration) {
+      // SC MIGRATION TXS
+      std::list<std::pair<crypto::hash, tools::wallet2::confirmed_transfer_details>> sc_migration_payments;
+      m_wallet->get_payments_out_sc_migration(sc_migration_payments, min_height, max_height,
+                                              m_current_subaddress_account, subaddr_indices);
+      for (std::list<std::pair<crypto::hash, tools::wallet2::confirmed_transfer_details>>::const_iterator i = sc_migration_payments.begin();
+           i != sc_migration_payments.end(); ++i) {
+          const tools::wallet2::confirmed_transfer_details &pd = i->second;
+          uint64_t change = pd.m_change == (uint64_t) -1 ? 0 : pd.m_change; // change may not be known
+          uint64_t fee = pd.m_amount_in - pd.m_amount_out;
+          std::vector<std::pair<std::string, uint64_t>> destinations;
+          for (const auto &d: pd.m_dests) {
+              destinations.push_back(
+                      {get_account_address_as_str(m_wallet->nettype(), d.is_subaddress, d.addr), d.amount});
+          }
+          std::string payment_id = string_tools::pod_to_hex(i->second.m_payment_id);
+          if (payment_id.substr(16).find_first_not_of('0') == std::string::npos)
+              payment_id = payment_id.substr(0, 16);
+          std::string note = m_wallet->get_tx_note(i->first);
+          transfers.push_back({
+                                      "sc_migration",
+                                      pd.m_block_height,
+                                      pd.m_timestamp,
+                                      "sc_migration",
+                                      true,
+                                      pd.m_amount_in - change - fee,
+                                      i->first,
+                                      payment_id,
+                                      fee,
+                                      destinations,
+                                      pd.m_subaddr_indices,
+                                      note,
+                                      "-"
+                              });
+      }
   }
 
   if (pool) {
@@ -7893,8 +7980,8 @@ bool simple_wallet::show_transfers(const std::vector<std::string> &args_)
 {
   std::vector<std::string> local_args = args_;
 
-  if(local_args.size() > 4) {
-    fail_msg_writer() << tr("usage: show_transfers [in|out|all|pending|failed|coinbase] [index=<N1>[,<N2>,...]] [<min_height> [<max_height>]]");
+  if(local_args.size() > 6) {
+    fail_msg_writer() << tr("usage: show_transfers [in|out|pub_blockchain_migration|sc_migration|all|pending|failed|coinbase] [index=<N1>[,<N2>,...]] [<min_height> [<max_height>]]");
     return true;
   }
 
@@ -7923,7 +8010,7 @@ bool simple_wallet::show_transfers(const std::vector<std::string> &args_)
       }
     }
 
-    auto formatter = boost::format("%8.8llu %6.6s %8.8s %25.25s %20.20s %s %s %14.14s %s %s - %s");
+    auto formatter = boost::format("%8.8llu %12.12s %8.8s %25.25s %20.20s %s %s %14.14s %s %s - %s");
 
     message_writer(color, false) << formatter
       % transfer.block
@@ -7946,7 +8033,7 @@ bool simple_wallet::export_transfers(const std::vector<std::string>& args_)
 {
   std::vector<std::string> local_args = args_;
 
-  if(local_args.size() > 5) {
+  if(local_args.size() > 7) {
     fail_msg_writer() << tr("usage: export_transfers [in|out|all|pending|failed|coinbase] [index=<N1>[,<N2>,...]] [<min_height> [<max_height>]] [output=<path>]");
     return true;
   }
