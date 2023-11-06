@@ -6332,9 +6332,9 @@ void wallet2::get_payments_out(std::list<std::pair<crypto::hash,wallet2::confirm
       continue;
     if (!subaddr_indices.empty() && std::count_if(i->second.m_subaddr_indices.begin(), i->second.m_subaddr_indices.end(), [&subaddr_indices](uint32_t index) { return subaddr_indices.count(index) == 1; }) == 0)
       continue;
-    if (i->second.m_is_migration)
+    if (i->second.m_is_migration) //avoid as processed by separate function
       continue;
-    if(i->second.m_is_sc_migration)
+    if(i->second.m_is_sc_migration) //avoid as processed by separate function
       continue;
     confirmed_payments.push_back(*i);
   }
@@ -6348,8 +6348,6 @@ void wallet2::get_payments_out_migration(std::list<std::pair<crypto::hash,wallet
     if (subaddr_account && *subaddr_account != i->second.m_subaddr_account)
       continue;
     if (!subaddr_indices.empty() && std::count_if(i->second.m_subaddr_indices.begin(), i->second.m_subaddr_indices.end(), [&subaddr_indices](uint32_t index) { return subaddr_indices.count(index) == 1; }) == 0)
-      continue;
-    if (i->second.m_is_sc_migration)
       continue;
     if (!i->second.m_is_migration)
       continue;
@@ -6368,8 +6366,6 @@ void wallet2::get_payments_out_sc_migration(std::list<std::pair<crypto::hash,wal
       continue;
     if (!subaddr_indices.empty() && std::count_if(i->second.m_subaddr_indices.begin(), i->second.m_subaddr_indices.end(), [&subaddr_indices](uint32_t index) { return subaddr_indices.count(index) == 1; }) == 0)
       continue;
-    if (i->second.m_is_migration)
-    continue;
     if (!i->second.m_is_sc_migration)
       continue;
   confirmed_payments.push_back(*i);
