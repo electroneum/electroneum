@@ -1163,6 +1163,10 @@ namespace cryptonote
     }
     return false;
   }
+
+  bool tx_memory_pool::utxo_spent_in_pool(const txin_to_key_public& in) const{
+      this->have_tx_utxo_as_spent(in);
+  }
   //---------------------------------------------------------------------------------
   bool tx_memory_pool::utxo_nonexistent(const transaction& tx) const
   {

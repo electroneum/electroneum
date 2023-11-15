@@ -176,7 +176,11 @@ struct tx_input_t
   crypto::hash tx_hash;
   uint64_t in_index;
 
-  tx_input_t() : tx_hash(crypto::null_hash), in_index(0) { }
+  tx_input_t() : tx_hash(crypto::null_hash), in_index(0) {}
+
+  bool is_empty() const {
+      return tx_hash == crypto::null_hash && in_index == 0;
+  }
 };
 
 #define DBF_SAFE       1
