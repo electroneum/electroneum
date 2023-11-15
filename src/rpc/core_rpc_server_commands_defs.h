@@ -400,18 +400,63 @@ namespace cryptonote {
     };
 
     //-----------------------------------------------
+    enum SPENT_STATUS {
+        UNSPENT = 0,
+        SPENT_IN_BLOCKCHAIN = 1,
+        SPENT_IN_POOL = 2,
+    };
+    //-----------------------------------------------
     struct COMMAND_RPC_IS_KEY_IMAGE_SPENT {
-        enum STATUS {
-            UNSPENT = 0,
-            SPENT_IN_BLOCKCHAIN = 1,
-            SPENT_IN_POOL = 2,
-        };
+        SPENT_STATUS STATUS;
 
         struct request_t {
             std::vector<std::string> key_images;
 
         BEGIN_KV_SERIALIZE_MAP()
                 KV_SERIALIZE(key_images)
+            END_KV_SERIALIZE_MAP()
+        };
+
+        typedef epee::misc_utils::struct_init<request_t> request;
+
+
+        struct response_t {
+            std::vector<u_int> spent_status;
+            std::string status;
+            bool untrusted;
+
+        BEGIN_KV_SERIALIZE_MAP()
+                KV_SERIALIZE(spent_status)
+                KV_SERIALIZE(status)
+                KV_SERIALIZE(untrusted)
+            END_KV_SERIALIZE_MAP()
+        };
+
+        typedef epee::misc_utils::struct_init<response_t> response;
+    };
+
+    //-----------------------------------------------
+
+    struct public_output {
+        std::string txid;
+        uint64_t relative_out_index;
+        uint64_t amount;
+
+    BEGIN_KV_SERIALIZE_MAP()
+            KV_SERIALIZE(txid)
+            KV_SERIALIZE(relative_out_index)
+            KV_SERIALIZE(amount)
+        END_KV_SERIALIZE_MAP()
+    };
+
+    struct COMMAND_RPC_IS_PUBLIC_OUTPUT_SPENT {
+        SPENT_STATUS STATUS;
+
+        struct request_t { // pairs of tx hash and relative out index which identify chainstate UTXOs uniquely
+            std::vector<public_output> public_outputs;
+
+        BEGIN_KV_SERIALIZE_MAP()
+                KV_SERIALIZE(public_outputs)
             END_KV_SERIALIZE_MAP()
         };
 

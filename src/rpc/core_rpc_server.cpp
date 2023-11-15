@@ -791,7 +791,7 @@ namespace cryptonote
     }
     res.spent_status.clear();
     for (size_t n = 0; n < spent_status.size(); ++n)
-      res.spent_status.push_back(spent_status[n] ? COMMAND_RPC_IS_KEY_IMAGE_SPENT::SPENT_IN_BLOCKCHAIN : COMMAND_RPC_IS_KEY_IMAGE_SPENT::UNSPENT);
+      res.spent_status.push_back(spent_status[n] ? SPENT_STATUS::SPENT_IN_BLOCKCHAIN : SPENT_STATUS::UNSPENT);
 
     // check the pool too
     std::vector<cryptonote::tx_info> txs;
@@ -811,11 +811,11 @@ namespace cryptonote
         memcpy(&spent_key_image, &hash, sizeof(hash)); // a bit dodgy, should be other parse functions somewhere
         for (size_t n = 0; n < res.spent_status.size(); ++n)
         {
-          if (res.spent_status[n] == COMMAND_RPC_IS_KEY_IMAGE_SPENT::UNSPENT)
+          if (res.spent_status[n] == SPENT_STATUS::UNSPENT)
           {
             if (key_images[n] == spent_key_image)
             {
-              res.spent_status[n] = COMMAND_RPC_IS_KEY_IMAGE_SPENT::SPENT_IN_POOL;
+              res.spent_status[n] = SPENT_STATUS::SPENT_IN_POOL;
               break;
             }
           }
@@ -827,6 +827,107 @@ namespace cryptonote
     return true;
   }
   //------------------------------------------------------------------------------------------------------------------------------
+  bool core_rpc_server::on_is_public_output_spent(const COMMAND_RPC_IS_PUBLIC_OUTPUT_SPENT::request& req, COMMAND_RPC_IS_PUBLIC_OUTPUT_SPENT::response& res, const connection_context *ctx)
+  {
+      PERF_TIMER(on_is_public_output_spent);
+      bool ok;
+      if (use_bootstrap_daemon_if_necessary<COMMAND_RPC_IS_PUBLIC_OUTPUT_SPENT>(invoke_http_mode::JON, "/is_public_output_spent", req, res, ok))
+          return ok;
+
+      const bool restricted = m_restricted && ctx;
+      const bool request_has_rpc_origin = ctx != NULL;
+      std::vector<txin_to_key_public> public_outputs; // vector of would-be inputs that reference the utxos
+
+      // Pre checks
+      for(const auto& public_output: req.public_outputs)
+      {
+          blobdata b;
+          if(!string_tools::parse_hexstr_to_binbuff(public_output.txid, b))
+          {
+              res.status = "Failed: tx input with public output (" + public_output.txid +
+                           ") and relative out index (" +
+                           std::to_string(public_output.relative_out_index) +
+                           ") failed to parse from hex format.";
+              return true;
+          }
+          if(b.size() != sizeof(crypto::hash))
+          {
+              res.status = "Failed: tx input with public output (" + public_output.txid +
+                                                      ") and relative out index (" +
+                                                      std::to_string(public_output.relative_out_index) +
+                                                      ") has the wrong size tx hash (should be 64 characters)";
+          }
+
+          // Check that the utxo ever existed before checking whether it currently does.
+          // Do this by fetching the transaction and checking whether it has a number
+          // of outputs > the relative output index in question (which is zero indexed)
+          std::vector<crypto::hash> txs_ids;
+          std::vector<cryptonote::blobdata> txs;
+          std::vector<crypto::hash> missed_txs;
+
+          //pull all the tx we need
+          for (auto public_output: req.public_outputs){
+              crypto::hash tx_hash;
+              epee::string_tools::hex_to_pod(public_output.txid, tx_hash);
+              txs_ids.push_back(tx_hash);
+          }
+          m_core.get_transactions(txs_ids, txs, missed_txs);
+
+          // error out if we have missing tx
+          if(!missed_txs.empty()){
+              res.status = "Failed: tx input with public output (" + public_output.txid +
+                           ") and relative out index (" +
+                           std::to_string(public_output.relative_out_index) +
+                           ") does not exist in the database and therefore doesn't exist on chain";
+              return true;
+          }
+
+          // Check that we have an appropriate number of outputs for each tx
+          for (size_t i = 0; i < txs.size(); ++i) {
+              transaction tx;
+              parse_and_validate_tx_from_blob(txs[i], tx);
+              const auto& public_output = req.public_outputs[i];
+              if (tx.vout.size() <= public_output.relative_out_index) { // we're comparing 1 indexed to zero indexed
+                  res.status = "Failed: public output (" + public_output.txid +
+                               ") and relative out index (" +
+                               std::to_string(public_output.relative_out_index) +
+                               ") has an out of range relative out index";
+                  return true;
+              }
+          }
+
+          txin_to_key_public txin;
+          txin.amount = public_output.amount;
+          txin.tx_hash = *reinterpret_cast<const crypto::hash*>(b.data());
+          txin.relative_offset = public_output.relative_out_index;
+          public_outputs.emplace_back(txin);
+      }
+
+      //Now everything is parsed and we know all outputs existed at some point, check the spent status of the outputs
+      std::vector<bool> spent_status;
+      bool r = m_core.utxo_nonexistant(public_outputs, spent_status);
+      if(!r)
+      {
+          res.status = "Failed to check that UTXOs are spent";
+          return true;
+      }
+      res.spent_status.clear();
+      for (size_t n = 0; n < spent_status.size(); ++n)
+          res.spent_status.push_back(spent_status[n] ? SPENT_STATUS::SPENT_IN_BLOCKCHAIN : SPENT_STATUS::UNSPENT);
+
+      // adjust the statuses in the response derived from the blockchain if the utxos are spent in the pool
+      uint64_t res_counter = 0;
+      for (auto public_output: public_outputs) {
+          if (m_core.pool_has_utxo_as_spent(public_output)) {
+              if (res.spent_status[res_counter] == SPENT_STATUS::UNSPENT)
+                  res.spent_status[res_counter] = SPENT_STATUS::SPENT_IN_POOL;
+          }
+      }
+
+      res.status = CORE_RPC_STATUS_OK;
+      return true;
+  }
+    //------------------------------------------------------------------------------------------------------------------------------
   bool core_rpc_server::on_send_raw_tx(const COMMAND_RPC_SEND_RAW_TX::request& req, COMMAND_RPC_SEND_RAW_TX::response& res, const connection_context *ctx)
   {
     PERF_TIMER(on_send_raw_tx);

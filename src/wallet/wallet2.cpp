@@ -6397,19 +6397,31 @@ void wallet2::rescan_spent()
 {
   // This is RPC call that can take a long time if there are many outputs,
   // so we call it several times, in stripes, so we don't time out spuriously
+
+  // M_TRANSFERS is a container of  OUTPUTS and NOT a container of entire transfers!
+
+  // The logic for dealing with publicised (v8 hf) outputs is as follows:
+  // 1. Check the output block height in m_transfers. If it's >= v8 hard fork height, the output must be a public one,
+  // 2. m_transfers contains the tx hash and relative out index for each output which uniquely determine
+  //    'chainstate UTXOs' in the blockchain database; if a chainstate UTXO is present in the DB, the output is truly
+  //    unspent. However nonexistence of the UTXO in the db doesn't mean it's spent, only that it doesn't exist. So we
+  //    must first check (by some means) that the output did exist. Use the tx input db.
+  // 3. Call the daemon for this output and ask of the spent status.
+  // 4. Set the correct spent status of the output in m_transfers
+
   std::vector<int> spent_status;
   spent_status.reserve(m_transfers.size());
   const size_t chunk_size = 1000;
   for (size_t start_offset = 0; start_offset < m_transfers.size(); start_offset += chunk_size)
   {
-    const size_t n_outputs = std::min<size_t>(chunk_size, m_transfers.size() - start_offset);
+    const size_t n_outputs = std::min<size_t>(chunk_size, m_transfers.size() - start_offset); // 1000 or less if we dont have 1000
     MDEBUG("Calling is_key_image_spent on " << start_offset << " - " << (start_offset + n_outputs - 1) << ", out of " << m_transfers.size());
     COMMAND_RPC_IS_KEY_IMAGE_SPENT::request req = AUTO_VAL_INIT(req);
     COMMAND_RPC_IS_KEY_IMAGE_SPENT::response daemon_resp = AUTO_VAL_INIT(daemon_resp);
-    for (size_t n = start_offset; n < start_offset + n_outputs; ++n)
+    for (size_t n = start_offset; n < start_offset + n_outputs; ++n) //loop over key images for the outputs in m_transfers and put the key image in the request
       req.key_images.push_back(string_tools::pod_to_hex(m_transfers[n].m_key_image));
     m_daemon_rpc_mutex.lock();
-    bool r = invoke_http_json("/is_key_image_spent", req, daemon_resp, rpc_timeout);
+    bool r = invoke_http_json("/is_key_image_spent", req, daemon_resp, rpc_timeout); //fire off the check command
     m_daemon_rpc_mutex.unlock();
     THROW_WALLET_EXCEPTION_IF(!r, error::no_connection_to_daemon, "is_key_image_spent");
     THROW_WALLET_EXCEPTION_IF(daemon_resp.status == CORE_RPC_STATUS_BUSY, error::daemon_busy, "is_key_image_spent");
@@ -6420,26 +6432,81 @@ void wallet2::rescan_spent()
     std::copy(daemon_resp.spent_status.begin(), daemon_resp.spent_status.end(), std::back_inserter(spent_status));
   }
 
-  // update spent status
+
+  // urgent code update so just duplicate code above for public outputs
+    uint64_t v8height = m_nettype == TESTNET ? 446674 : 589169;
+    for (size_t start_offset = 0; start_offset < m_transfers.size(); start_offset += chunk_size)
+    {
+        const size_t n_outputs = std::min<size_t>(chunk_size, m_transfers.size() - start_offset);
+        MDEBUG("Preparing is_public_output_spent request for outputs " << start_offset << " - " << (start_offset + n_outputs - 1) << ", out of " << m_transfers.size());
+
+        COMMAND_RPC_IS_PUBLIC_OUTPUT_SPENT::request req = AUTO_VAL_INIT(req);
+        COMMAND_RPC_IS_PUBLIC_OUTPUT_SPENT::response daemon_resp = AUTO_VAL_INIT(daemon_resp);
+
+        // Prepare the request for public outputs only for m_transfers after v8 height
+        for (size_t k = start_offset; k < start_offset + n_outputs; ++k) {
+            if (m_transfers[k].m_block_height >= v8height) {
+                public_output pub_out;
+                pub_out.txid = epee::string_tools::pod_to_hex(m_transfers[k].m_txid);
+                pub_out.relative_out_index = static_cast<uint64_t>(m_transfers[k].m_internal_output_index);
+                req.public_outputs.push_back(pub_out);
+            }
+        }
+
+        // We always call the daemon, but the request may be empty if no outputs meet the criteria
+        m_daemon_rpc_mutex.lock();
+        bool r = invoke_http_json("/is_public_output_spent", req, daemon_resp, rpc_timeout);
+        m_daemon_rpc_mutex.unlock();
+        THROW_WALLET_EXCEPTION_IF(!r, error::no_connection_to_daemon, "is_public_output_spent");
+        THROW_WALLET_EXCEPTION_IF(daemon_resp.status == CORE_RPC_STATUS_BUSY, error::daemon_busy, "is_public_output_spent");
+        THROW_WALLET_EXCEPTION_IF(daemon_resp.status != CORE_RPC_STATUS_OK, error::is_public_output_spent_error, get_rpc_status(daemon_resp.status));
+        THROW_WALLET_EXCEPTION_IF(daemon_resp.spent_status.size() != req.public_outputs.size(), error::wallet_internal_error,
+                                  "daemon returned wrong response for is_public_output_spent, wrong amount count = " +
+                                  std::to_string(daemon_resp.spent_status.size()) + ", expected " +  std::to_string(req.public_outputs.size()));
+
+        // Update spent_status only for outputs that were included in the request. do this by iterating through m_transfers and if it's >= v8 height
+        // then set the corresponding spent status for the same index. use a request index like so because not always does n == request index
+        // because not all outputs are public outputs
+        size_t request_index = 0;
+        for (size_t k = start_offset; k < start_offset + n_outputs; ++k) {
+            if (m_transfers[k].m_block_height >= v8height) {
+                spent_status[k] = daemon_resp.spent_status[request_index++];
+            }
+        }
+    }
+
+  // update spent status in m_transfers
+  // spent_status[i] guide:
+  //    UNSPENT = 0,
+  //    SPENT_IN_BLOCKCHAIN = 1,
+  //    SPENT_IN_POOL = 2,
   for (size_t i = 0; i < m_transfers.size(); ++i)
   {
     transfer_details& td = m_transfers[i];
-    // a view wallet may not know about key images
-    if (!td.m_key_image_known || td.m_key_image_partial)
+    // a view wallet may not know about key images. only skip in this case IF it isn't a public output
+    if (!(m_transfers[i].m_block_height >= v8height) && (!td.m_key_image_known || td.m_key_image_partial)) //we will hit this for all public outs, so modify here
       continue;
-    if (td.m_spent != (spent_status[i] != COMMAND_RPC_IS_KEY_IMAGE_SPENT::UNSPENT))
+
+    if (td.m_spent != (spent_status[i] != SPENT_STATUS::UNSPENT))  // if output in m_transfers is unspent and the daemon says spent or the other way round, handle either which way
     {
-      if (td.m_spent)
+      if (td.m_spent) //  given parent if statement, spent means we need to change to unspent
       {
-        LOG_PRINT_L0("Marking output " << i << "(" << td.m_key_image << ") as unspent, it was marked as spent");
+          if(!(m_transfers[i].m_block_height >= v8height)){
+              LOG_PRINT_L0("Marking output " << i << "(" << td.m_key_image << ") as unspent, it was marked as spent");
+          } else{
+              LOG_PRINT_L0("Marking public output " << i << " (txid: " << td.m_txid << ", index: " << td.m_internal_output_index << ") as unspent, it was marked as spent");
+          }
         set_unspent(i);
         td.m_spent_height = 0;
       }
-      else
+      else //  given parent if statement, unspent means we need to change to spent
       {
-        LOG_PRINT_L0("Marking output " << i << "(" << td.m_key_image << ") as spent, it was marked as unspent");
-        set_spent(i, td.m_spent_height);
-        // unknown height, if this gets reorged, it might still be missed
+          if (!(m_transfers[i].m_block_height >= v8height)) {
+              LOG_PRINT_L0("Marking output " << i << " (key image: " << epee::string_tools::pod_to_hex(td.m_key_image) << ") as spent, it was marked as unspent");
+          } else {
+              LOG_PRINT_L0("Not marking output " << i << " (txid: " << epee::string_tools::pod_to_hex(td.m_txid) << ", index: " << td.m_internal_output_index << ") as spent since block height " << td.m_block_height << " is below the threshold of " << v8height);
+          }
+          set_spent(i, td.m_spent_height);
       }
     }
   }
@@ -12314,7 +12381,7 @@ uint64_t wallet2::import_key_images(const std::vector<std::pair<crypto::key_imag
     for (size_t n = 0; n < daemon_resp.spent_status.size(); ++n)
     {
       transfer_details &td = m_transfers[n + offset];
-      td.m_spent = daemon_resp.spent_status[n] != COMMAND_RPC_IS_KEY_IMAGE_SPENT::UNSPENT;
+      td.m_spent = daemon_resp.spent_status[n] != SPENT_STATUS::UNSPENT;
     }
   }
   spent = 0;
@@ -12362,7 +12429,7 @@ uint64_t wallet2::import_key_images(const std::vector<std::pair<crypto::key_imag
     LOG_PRINT_L2("Transfer " << i << ": " << print_etn(amount) << " (" << td.m_global_output_index << "): "
         << (td.m_spent ? "spent" : "unspent") << " (key image " << req.key_images[i] << ")");
 
-    if (i < daemon_resp.spent_status.size() && daemon_resp.spent_status[i] == COMMAND_RPC_IS_KEY_IMAGE_SPENT::SPENT_IN_BLOCKCHAIN)
+    if (i < daemon_resp.spent_status.size() && daemon_resp.spent_status[i] == SPENT_STATUS::SPENT_IN_BLOCKCHAIN)
     {
       const std::unordered_map<crypto::key_image, crypto::hash>::const_iterator skii = spent_key_images.find(td.m_key_image);
       if (skii == spent_key_images.end())

@@ -435,11 +435,20 @@ namespace cryptonote
       */
      void disable_dns_checkpoints(bool disable = true) { m_disable_dns_checkpoints = disable; }
 
+       /**
+        * @copydoc tx_memory_pool::utxo_spent_in_pool
+        *
+        * @note see tx_memory_pool::utxo_spent_in_pool
+        */
+
+      bool pool_has_utxo_as_spent(const txin_to_key_public& in) const;
+
      /**
       * @copydoc tx_memory_pool::have_tx
       *
       * @note see tx_memory_pool::have_tx
       */
+
      bool pool_has_tx(const crypto::hash &txid) const;
 
      /**
@@ -754,14 +763,26 @@ namespace cryptonote
       */
      bool are_key_images_spent(const std::vector<crypto::key_image>& key_im, std::vector<bool> &spent) const;
 
-     /**
-      * @brief check if multiple key images are spent in the transaction pool
-      *
-      * @param key_im list of key images to check
-      * @param spent return-by-reference result for each image checked
-      *
-      * @return true
-      */
+       /**
+        * @brief check if multiple public outputs are found in the utxo database or not
+        *
+        * plural version of is_public_output_spent()
+        *
+        * @param key_im list of public outputs to check
+        * @param spent return-by-reference result for each public output checked
+        *
+        * @return true
+        */
+     bool utxo_nonexistant(const std::vector<txin_to_key_public>& public_outputs, std::vector<bool> &spent) const;
+
+       /**
+        * @brief check if multiple key images are spent in the transaction pool
+        *
+        * @param key_im list of key images to check
+        * @param spent return-by-reference result for each image checked
+        *
+        * @return true
+        */
      bool are_key_images_spent_in_pool(const std::vector<crypto::key_image>& key_im, std::vector<bool> &spent) const;
 
      /**

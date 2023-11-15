@@ -1937,6 +1937,9 @@ void BlockchainLMDB::add_tx_input(const crypto::hash tx_hash, const uint32_t rel
 
   int result = 0;
 
+    std::string hex_hash;
+    hex_hash = epee::string_tools::pod_to_hex(tx_hash);
+
   chainstate_key_t key;
   key.tx_hash = tx_hash;
   key.relative_out_index = relative_out_index;
@@ -1961,6 +1964,8 @@ tx_input_t BlockchainLMDB::get_tx_input(const crypto::hash tx_hash, const uint32
   LOG_PRINT_L3("BlockchainLMDB::" << __func__);
   check_open();
 
+  std::string hex_hash;
+  hex_hash = epee::string_tools::pod_to_hex(tx_hash);
   TXN_PREFIX_RDONLY();
   RCURSOR(tx_inputs)
 

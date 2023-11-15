@@ -269,6 +269,14 @@ namespace cryptonote
      */
     void get_transaction_stats(struct txpool_stats& stats, bool include_unrelayed_txes = true) const;
 
+      /**
+        * @brief get a summary statistics of all transaction hashes in the pool
+        *
+         * @param in input to check the pool spent status of
+         *
+        */
+      bool utxo_spent_in_pool(const txin_to_key_public& in) const;
+
     /**
      * @brief get information about all transactions and key images in the pool
      *

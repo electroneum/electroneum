@@ -5506,7 +5506,11 @@ bool simple_wallet::rescan_spent(const std::vector<std::string> &args)
   }
   catch (const tools::error::is_key_image_spent_error&)
   {
-    fail_msg_writer() << tr("failed to get spent status");
+    fail_msg_writer() << tr("failed to get spent status for key image");
+  }
+  catch (const tools::error::is_public_output_spent_error&)
+  {
+      fail_msg_writer() << tr("failed to get spent status for public output");
   }
   catch (const tools::error::wallet_rpc_error& e)
   {
