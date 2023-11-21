@@ -6453,6 +6453,10 @@ void wallet2::rescan_spent()
             }
         }
 
+        if(req.public_outputs.size() == 0){
+            MDEBUG("No public outs found in the range: " << start_offset << " - " << (start_offset + n_outputs - 1) << ", out of " << m_transfers.size() << ", skipping chunk");
+            continue;
+        }
         // We always call the daemon, but the request may be empty if no outputs meet the criteria
         m_daemon_rpc_mutex.lock();
         bool r = invoke_http_json("/is_public_output_spent", req, daemon_resp, rpc_timeout);

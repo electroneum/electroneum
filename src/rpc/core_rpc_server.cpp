@@ -836,7 +836,7 @@ namespace cryptonote
 
       const bool restricted = m_restricted && ctx;
       const bool request_has_rpc_origin = ctx != NULL;
-      std::vector<txin_to_key_public> public_outputs; // vector of would-be inputs that reference the utxos
+      std::vector<txin_to_key_public> public_outputs_to_lookup; // vector of would-be inputs that reference the utxos
 
       // Pre checks
       for(const auto& public_output: req.public_outputs)
@@ -856,21 +856,20 @@ namespace cryptonote
                                                       ") and relative out index (" +
                                                       std::to_string(public_output.relative_out_index) +
                                                       ") has the wrong size tx hash (should be 64 characters)";
+              return true;
           }
 
           // Check that the utxo ever existed before checking whether it currently does.
-          // Do this by fetching the transaction and checking whether it has a number
+          // Do this by fetching the transaction. Also check whether it has a number
           // of outputs > the relative output index in question (which is zero indexed)
           std::vector<crypto::hash> txs_ids;
           std::vector<cryptonote::blobdata> txs;
           std::vector<crypto::hash> missed_txs;
+          crypto::hash tx_hash;
+          epee::string_tools::hex_to_pod(public_output.txid, tx_hash);
+          txs_ids.push_back(tx_hash);
 
-          //pull all the tx we need
-          for (auto public_output: req.public_outputs){
-              crypto::hash tx_hash;
-              epee::string_tools::hex_to_pod(public_output.txid, tx_hash);
-              txs_ids.push_back(tx_hash);
-          }
+          //we're only pulling one tx.
           m_core.get_transactions(txs_ids, txs, missed_txs);
 
           // error out if we have missing tx
@@ -882,30 +881,28 @@ namespace cryptonote
               return true;
           }
 
-          // Check that we have an appropriate number of outputs for each tx
-          for (size_t i = 0; i < txs.size(); ++i) {
-              transaction tx;
-              parse_and_validate_tx_from_blob(txs[i], tx);
-              const auto& public_output = req.public_outputs[i];
-              if (tx.vout.size() <= public_output.relative_out_index) { // we're comparing 1 indexed to zero indexed
-                  res.status = "Failed: public output (" + public_output.txid +
-                               ") and relative out index (" +
-                               std::to_string(public_output.relative_out_index) +
-                               ") has an out of range relative out index";
-                  return true;
-              }
+          // Check that we have an appropriate number of outputs for the tx going by the relative out index in the req
+          transaction tx;
+          parse_and_validate_tx_from_blob(txs[0], tx);
+          if (tx.vout.size() <= public_output.relative_out_index) { // we're comparing 1 indexed to zero indexed
+              res.status = "Failed: public output (" + public_output.txid +
+                           ") and relative out index (" +
+                           std::to_string(public_output.relative_out_index) +
+                           ") has an out of range relative out index";
+              return true;
           }
 
           txin_to_key_public txin;
           txin.amount = public_output.amount;
-          txin.tx_hash = *reinterpret_cast<const crypto::hash*>(b.data());
+          epee::string_tools::hex_to_pod(public_output.txid, txin.tx_hash);
           txin.relative_offset = public_output.relative_out_index;
-          public_outputs.emplace_back(txin);
+          public_outputs_to_lookup.emplace_back(txin);
       }
 
       //Now everything is parsed and we know all outputs existed at some point, check the spent status of the outputs
       std::vector<bool> spent_status;
-      bool r = m_core.utxo_nonexistant(public_outputs, spent_status);
+      spent_status.reserve(public_outputs_to_lookup.size());
+      bool r = m_core.utxo_nonexistant(public_outputs_to_lookup, spent_status);
       if(!r)
       {
           res.status = "Failed to check that UTXOs are spent";
@@ -917,10 +914,11 @@ namespace cryptonote
 
       // adjust the statuses in the response derived from the blockchain if the utxos are spent in the pool
       uint64_t res_counter = 0;
-      for (auto public_output: public_outputs) {
+      for (auto public_output: public_outputs_to_lookup) {
           if (m_core.pool_has_utxo_as_spent(public_output)) {
               if (res.spent_status[res_counter] == SPENT_STATUS::UNSPENT)
                   res.spent_status[res_counter] = SPENT_STATUS::SPENT_IN_POOL;
+              res_counter++;
           }
       }
 
