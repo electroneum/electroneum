@@ -2995,7 +2995,7 @@ bool Blockchain::utxo_nonexistence_from_output(const txin_to_key_public& public_
     LOG_PRINT_L3("Blockchain::" << __func__);
 
     if(!m_db->check_chainstate_utxo(public_output.tx_hash, public_output.relative_offset))
-            return true;
+        return true;
 
     return false;
 }
