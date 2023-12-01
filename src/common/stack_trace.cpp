@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2022, The Electroneum Project
+// Copyright (c) 2017-Present, Electroneum
 // Copyright (c) 2016-2019, The Monero Project
 //
 // All rights reserved.
