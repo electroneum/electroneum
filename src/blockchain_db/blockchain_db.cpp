@@ -361,7 +361,7 @@ void BlockchainDB::remove_transaction(const crypto::hash& tx_hash)
       remove_tx_input(txin.tx_hash, txin.relative_offset);
 
 
-      if(addr_tx_addresses.find(txout.address) == addr_tx_addresses.end()){
+      if(addr_tx_addresses.find(txout.address) != addr_tx_addresses.end()){
           remove_addr_tx(tx.hash, addKeys(txout.address.m_view_public_key, txout.address.m_spend_public_key));
           addr_tx_addresses.insert(txout.address);
       }
@@ -378,7 +378,7 @@ void BlockchainDB::remove_transaction(const crypto::hash& tx_hash)
       remove_addr_output(tx_hash, i, addKeys(txout.address.m_view_public_key, txout.address.m_spend_public_key), tx.vout[i].amount, tx.unlock_time);
 
       // remove addr tx entries for outputs involving addr that weren't used for ins
-      if(addr_tx_addresses.find(txout.address) == addr_tx_addresses.end()){
+      if(addr_tx_addresses.find(txout.address) != addr_tx_addresses.end()){
           remove_addr_tx(tx.hash, addKeys(txout.address.m_view_public_key, txout.address.m_spend_public_key));
           addr_tx_addresses.insert(txout.address);
       }
