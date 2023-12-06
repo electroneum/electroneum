@@ -2187,8 +2187,8 @@ di nuovo il tuo portafoglio (le chiavi del tuo portafoglio NON sono a rischio in
     </message>
     <message>
         <location filename="../src/simplewallet/simplewallet.cpp" line="3661"/>
-        <source>usage: show_transfers [in|out|all|pending|failed] [&lt;min_height&gt; [&lt;max_height&gt;]]</source>
-        <translation>uso: show_transfers [in|out|all|pending|failed] [&lt;min_height&gt; [&lt;max_height&gt;]]</translation>
+        <source>usage: show_transfers [in|out|pub_blockchain_migration|sc_migration|all|pending|failed] [&lt;min_height&gt; [&lt;max_height&gt;]]</source>
+        <translation>uso: show_transfers [in|out|pub_blockchain_migration|sc_migration|all|pending|failed] [&lt;min_height&gt; [&lt;max_height&gt;]]</translation>
     </message>
     <message>
         <location filename="../src/simplewallet/simplewallet.cpp" line="3700"/>

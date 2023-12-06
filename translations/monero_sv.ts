@@ -2478,12 +2478,12 @@ This transaction (including %s change) will unlock on block %llu, in approximate
     </message>
     <message>
         <location filename="../src/simplewallet/simplewallet.cpp" line="7869"/>
-        <source>usage: show_transfers [in|out|all|pending|failed|coinbase] [index=&lt;N1&gt;[,&lt;N2&gt;,...]] [&lt;min_height&gt; [&lt;max_height&gt;]]</source>
+        <source>usage: show_transfers [in|out|pub_blockchain_migration|sc_migration|all|pending|failed|coinbase] [index=&lt;N1&gt;[,&lt;N2&gt;,...]] [&lt;min_height&gt; [&lt;max_height&gt;]]</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../src/simplewallet/simplewallet.cpp" line="7922"/>
-        <source>usage: export_transfers [in|out|all|pending|failed|coinbase] [index=&lt;N1&gt;[,&lt;N2&gt;,...]] [&lt;min_height&gt; [&lt;max_height&gt;]] [output=&lt;path&gt;]</source>
+        <source>usage: export_transfers [in|out|pub_blockchain_migration|sc_migration|all|pending|failed|coinbase] [index=&lt;N1&gt;[,&lt;N2&gt;,...]] [&lt;min_height&gt; [&lt;max_height&gt;]] [output=&lt;path&gt;]</source>
         <translation type="unfinished"></translation>
     </message>
     <message>

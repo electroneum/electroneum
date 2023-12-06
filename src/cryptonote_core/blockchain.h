@@ -272,12 +272,22 @@ namespace cryptonote
       bool key_images_already_spent(const transaction &tx) const;
 
       /**
-      * @brief check if any utxo in a transaction has already been spent  (v3 tx onwards)
-      *
-      * @param tx the transaction to check
-      *
-      * @return true if any utxo is nonexistent, else false
-      */
+       * @brief check if a single utxo in a transaction has already been spent using the hash and out index (v3 tx onwards)
+       *
+       * @param public_output the output to check
+       *
+       * @return true if any utxo is nonexistent, else false
+       */
+
+      bool utxo_nonexistence_from_output(const txin_to_key_public& public_output) const;
+
+      /**
+        * @brief check if any utxo in a transaction has already been spent using the tx  (v3 tx onwards)
+        *
+        * @param tx the transaction to check
+        *
+        * @return true if any utxo is nonexistent, else false
+        */
 
       bool utxo_nonexistent(const transaction &tx) const;
 
@@ -295,7 +305,7 @@ namespace cryptonote
      */
     bool have_tx_keyimg_as_spent(const crypto::key_image &key_im) const;
 
-    /**
+      /**
      * @brief get the current height of the blockchain
      *
      * @return the height

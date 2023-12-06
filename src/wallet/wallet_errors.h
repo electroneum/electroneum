@@ -90,6 +90,7 @@ namespace tools
     //         daemon_busy
     //         no_connection_to_daemon
     //         is_key_image_spent_error
+    //         is_public_output_spent_error
     //         get_histogram_error
     //         get_output_distribution
     //       wallet_files_doesnt_correspond
@@ -829,6 +830,14 @@ namespace tools
       }
     };
     //----------------------------------------------------------------------------------------------------
+    struct is_public_output_spent_error : public wallet_rpc_error
+    {
+        explicit is_public_output_spent_error(std::string&& loc, const std::string& request)
+                : wallet_rpc_error(std::move(loc), "error from is_public_output_spent call", request)
+        {
+        }
+    };
+      //----------------------------------------------------------------------------------------------------
     struct get_histogram_error : public wallet_rpc_error
     {
       explicit get_histogram_error(std::string&& loc, const std::string& request)

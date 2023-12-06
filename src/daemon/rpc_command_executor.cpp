@@ -1004,7 +1004,7 @@ bool t_rpc_command_executor::is_key_image_spent(const crypto::key_image &ki) {
   if (1 == res.spent_status.size())
   {
     // first as hex
-    tools::success_msg_writer() << ki << ": " << (res.spent_status.front() ? "spent" : "unspent") << (res.spent_status.front() == cryptonote::COMMAND_RPC_IS_KEY_IMAGE_SPENT::SPENT_IN_POOL ? " (in pool)" : "");
+    tools::success_msg_writer() << ki << ": " << (res.spent_status.front() ? "spent" : "unspent") << (res.spent_status.front() == cryptonote::SPENT_STATUS::SPENT_IN_POOL ? " (in pool)" : "");
   }
   else
   {
@@ -1012,6 +1012,46 @@ bool t_rpc_command_executor::is_key_image_spent(const crypto::key_image &ki) {
   }
 
   return true;
+}
+
+bool t_rpc_command_executor::is_public_output_spent(const cryptonote::txin_to_key_public &txin) {
+    cryptonote::COMMAND_RPC_IS_PUBLIC_OUTPUT_SPENT::request req;
+    cryptonote::COMMAND_RPC_IS_PUBLIC_OUTPUT_SPENT::response res;
+
+    std::string fail_message = "Problem checking public_output";
+
+    cryptonote::public_output po;
+    po.txid = epee::string_tools::pod_to_hex(txin.tx_hash);
+    po.relative_out_index = txin.relative_offset;
+    po.amount = txin.amount;
+    req.public_outputs.push_back(po);
+    if (m_is_rpc)
+    {
+        if (!m_rpc_client->rpc_request(req, res, "/is_public_output_spent", fail_message.c_str()))
+        {
+            return true;
+        }
+    }
+    else
+    {
+        if (!m_rpc_server->on_is_public_output_spent(req, res) || res.status != CORE_RPC_STATUS_OK)
+        {
+            tools::fail_msg_writer() << make_error(fail_message, res.status);
+            return true;
+        }
+    }
+
+    if (1 == res.spent_status.size())
+    {
+        // first as hex
+        tools::success_msg_writer() << "public output with hash: " << epee::string_tools::pod_to_hex(txin.tx_hash) << ", relative output index: " <<  txin.relative_offset << " and amount:" << txin.amount << " ------ " << (res.spent_status.front() ? "spent" : "unspent") << (res.spent_status.front() == cryptonote::SPENT_STATUS::SPENT_IN_POOL ? " (in pool)" : "");
+    }
+    else
+    {
+        tools::fail_msg_writer() << "public output status could not be determined" << std::endl;
+    }
+
+    return true;
 }
 
 bool t_rpc_command_executor::print_transaction_pool_long() {

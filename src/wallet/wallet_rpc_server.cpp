@@ -2589,7 +2589,7 @@ namespace tools
     }
 
     std::list<std::pair<crypto::hash, tools::wallet2::confirmed_transfer_details>> sc_migrations;
-    m_wallet->get_payments_out_sc_migration(migrations, 0, (uint64_t)-1, req.account_index);
+    m_wallet->get_payments_out_sc_migration(sc_migrations, 0, (uint64_t)-1, req.account_index);
     for (std::list<std::pair<crypto::hash, tools::wallet2::confirmed_transfer_details>>::const_iterator i = sc_migrations.begin(); i != sc_migrations.end(); ++i) {
       if (i->first == txid)
       {

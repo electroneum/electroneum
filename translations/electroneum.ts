@@ -2180,7 +2180,7 @@ your wallet again (your wallet keys are NOT at risk in any case).
     </message>
     <message>
         <location filename="../src/simplewallet/simplewallet.cpp" line="3661"/>
-        <source>usage: show_transfers [in|out|all|pending|failed] [&lt;min_height&gt; [&lt;max_height&gt;]]</source>
+        <source>usage: show_transfers [in|out|pub_blockchain_migration|sc_migration|all|pending|failed] [&lt;min_height&gt; [&lt;max_height&gt;]]</source>
         <translation type="unfinished"></translation>
     </message>
     <message>

@@ -102,6 +102,8 @@ public:
 
   bool is_key_image_spent(const crypto::key_image &ki);
 
+  bool is_public_output_spent(const cryptonote::txin_to_key_public& txin);
+
   bool print_transaction_pool_long();
 
   bool print_transaction_pool_short();
