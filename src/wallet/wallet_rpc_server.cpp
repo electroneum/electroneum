@@ -91,7 +91,7 @@ namespace
 
     if (block_reward == 0)
       entry.suggested_confirmations_threshold = 0;
-    else if (entry.type == "migration")
+    else if (entry.type == "migration" || entry.type == "sc-migration")
       entry.suggested_confirmations_threshold = 5;
     else
       entry.suggested_confirmations_threshold = (entry.amount + block_reward - 1) / block_reward;
@@ -363,7 +363,7 @@ namespace tools
     }
 
 
-    entry.type = pd.m_is_migration ? "migration" : "out";
+    entry.type = pd.m_is_migration ? "migration" : pd.m_is_sc_migration ? "sc-migration" : "out";
     entry.subaddr_index = { pd.m_subaddr_account, 0 };
     for (uint32_t i: pd.m_subaddr_indices)
       entry.subaddr_indices.push_back({pd.m_subaddr_account, i});
@@ -2482,6 +2482,16 @@ namespace tools
       }
     }
 
+      if (req.sc_migration)
+      {
+          std::list<std::pair<crypto::hash, tools::wallet2::confirmed_transfer_details>> payments;
+          m_wallet->get_payments_out_sc_migration(payments, min_height, max_height, account_index, subaddr_indices);
+          for (std::list<std::pair<crypto::hash, tools::wallet2::confirmed_transfer_details>>::const_iterator i = payments.begin(); i != payments.end(); ++i) {
+              res.sc_migration.push_back(wallet_rpc::transfer_entry());
+              fill_transfer_entry(res.sc_migration.back(), i->first, i->second);
+          }
+      }
+
     if (req.pending || req.failed) {
       std::list<std::pair<crypto::hash, tools::wallet2::unconfirmed_transfer_details>> upayments;
       m_wallet->get_unconfirmed_payments_out(upayments, account_index, subaddr_indices);
@@ -2571,6 +2581,16 @@ namespace tools
     std::list<std::pair<crypto::hash, tools::wallet2::confirmed_transfer_details>> migrations;
     m_wallet->get_payments_out_migration(migrations, 0, (uint64_t)-1, req.account_index);
     for (std::list<std::pair<crypto::hash, tools::wallet2::confirmed_transfer_details>>::const_iterator i = migrations.begin(); i != migrations.end(); ++i) {
+      if (i->first == txid)
+      {
+        res.transfers.resize(res.transfers.size() + 1);
+        fill_transfer_entry(res.transfers.back(), i->first, i->second);
+      }
+    }
+
+    std::list<std::pair<crypto::hash, tools::wallet2::confirmed_transfer_details>> sc_migrations;
+    m_wallet->get_payments_out_sc_migration(sc_migrations, 0, (uint64_t)-1, req.account_index);
+    for (std::list<std::pair<crypto::hash, tools::wallet2::confirmed_transfer_details>>::const_iterator i = sc_migrations.begin(); i != sc_migrations.end(); ++i) {
       if (i->first == txid)
       {
         res.transfers.resize(res.transfers.size() + 1);

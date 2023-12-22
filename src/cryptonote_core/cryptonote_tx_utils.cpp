@@ -44,6 +44,8 @@ using namespace epee;
 #include "crypto/hash.h"
 #include "ringct/rctSigs.h"
 #include "multisig/multisig.h"
+#include <secp256k1/include/secp256k1.h>
+#include <boost/algorithm/hex.hpp>
 
 using namespace crypto;
 
@@ -230,6 +232,7 @@ namespace cryptonote
     std::vector<rct::key> amount_keys;
     //test tx is sent through this scope TWICE, once as a test and once for real... therefore we set null before each run.
     tx.set_null_besides_version();
+
     amount_keys.clear();
     if (msout)
     {
@@ -245,6 +248,70 @@ namespace cryptonote
     std::vector<tx_extra_field> tx_extra_fields;
     if (parse_tx_extra(tx.extra, tx_extra_fields))
     {
+        // IS TX GOING TO THE SMARTCHAIN BRIDGE? IF SO ADD THE ETN ADDRESS AND NEW SMARTCHAIN ADDRESS TO TX EXTRA:
+        // Portal address is derived from the genesis block hash of the mainnet so nobody knows the private key.
+        cryptonote::account_public_address portal_address;
+        crypto::hash h;
+        crypto::ec_point point;
+        epee::string_tools::hex_to_pod("1c5da5c1e1420653825260b8ffc85499fdfb6457153a7df9720e659075b3ce76", h); // genesis hash hex ---> hash type
+        crypto::hash_to_point(h, point); // generate curve point (burn address spendkey) deterministically in such a way that we can't recover the private key
+        crypto::public_key portal_address_spendkey;
+        std::copy(std::begin(point.data), std::end(point.data), std::begin(portal_address_spendkey.data)); // serialise point to pubkey type
+        std::string portal_address_spendkey_hex_str = epee::string_tools::pod_to_hex(portal_address_spendkey); // for testing only. pub spend =
+        std::string portal_address_viewkey_hex_str = "5866666666666666666666666666666666666666666666666666666666666666"; //private view is just 0100000000000000000000000000000000000000000000000000000000000000
+        portal_address.m_spend_public_key = portal_address_spendkey;
+        epee::string_tools::hex_to_pod(portal_address_viewkey_hex_str, portal_address.m_view_public_key);
+        cryptonote::account_public_address dest_address = destinations[0].addr;
+
+        // Grab the full etnk.... address as a string, which we serialise to the extra as bytestring
+        // Also use secp256k1 library to take their electroneum private key (which will become their smartchain private key)
+        // and use it to create a secp256k1 public key... Then use the public key to
+        // generate their smartchain address 0xABC1D........ and put this in the tx extra in the same fashion
+        // NB the curve private key domain of ed25519 is a subset of that of secp256k1, and therefore no extra modulo
+        // operation is needed before generating the smartchain public key.
+        // This code uses generates an Ethereum address by taking the last 20 bytes of the Keccak-256 hash of the public key
+        // and adding the prefix "0x".
+        if(dest_address == portal_address){
+            LOG_PRINT_L1("Sending a migration transaction:");
+            crypto::secret_key k = sender_account_keys.m_spend_secret_key; // example private key (can hardcode): 5810ba5a47a45a256458dffe9be21b341a7d74c0b9a8b6a232c60474acbed203
+            std::string seckeystring = epee::string_tools::pod_to_hex(sender_account_keys.m_spend_secret_key); //debug purposes
+
+            // SOURCE ADDRESS
+            std::string bridge_source_address = cryptonote::get_account_address_as_str(nettype, false, sender_account_keys.m_account_address); //OK
+            add_bridge_source_address_to_tx_extra(tx.extra, bridge_source_address); //OK
+            LOG_PRINT_L1("Source address: " << bridge_source_address);
+
+            // SMARTCHAIN ADDRESS
+            unsigned char seckey1[32];
+            unsigned char public_key64[65];
+            size_t pk_len = 65;
+            secp256k1_pubkey pubkey1;
+            secp256k1_context* ctx = secp256k1_context_create(SECP256K1_CONTEXT_NONE); // we are not signing nor verifying so no context
+            memcpy(seckey1, sender_account_keys.m_spend_secret_key.data, 32);
+            assert(secp256k1_ec_seckey_verify(ctx, seckey1)); // sec key has an unrealistic chance of being invalid (10^-128) https://en.bitcoin.it/wiki/Private_key
+
+            // create the pubkey and serialise it
+            assert(secp256k1_ec_pubkey_create(ctx, &pubkey1, seckey1)); // this format is not sufficient for hashing, hence serialisation
+            assert(secp256k1_ec_pubkey_serialize(ctx, public_key64, &pk_len, &pubkey1,
+                                                 SECP256K1_EC_UNCOMPRESSED)); // serialise pubkey1 into publickey_64
+            std::string long_public_key2 = epee::string_tools::pod_to_hex(public_key64); // debug purposes - can check against https://lab.miguelmota.com/ethereum-private-key-to-public-key/example/
+
+            // Ethereum address generation: Take the last 20 bytes of the Keccak-256 hash of the public key
+            // keccak-1600() is not suitable, but keccak() with 24 rounds and mdlen (=size) of 32 is the same
+            // as keccak-256 with a 32 byte output. 24 rounds is the default in Monero for keccak()
+            // the first byte is the compression type so hash the 64 bytes after the first byte only
+            // I have put the 32 byte hash inside  pubkey1.data just to save time
+            keccak(public_key64 + 1, 64, pubkey1.data, 32);
+            unsigned char address[20]; //smartchain address
+            memcpy(address, pubkey1.data + 12, 20); // take the last 20 bytes of the 32 byte array for the address
+            std::string hex_address = epee::string_tools::pod_to_hex(address); // should be 0x12ed7467c3852e6b2Bd3C22AF694be8DF7637B10.
+            std::string bridge_smartchain_address = "0x" + hex_address; //prefix address with 0x
+            LOG_PRINT_L1("Smartchain address: " << bridge_smartchain_address);
+
+            secp256k1_context_destroy(ctx);
+            add_bridge_smartchain_address_to_tx_extra(tx.extra, bridge_smartchain_address);
+        }
+
       bool add_dummy_payment_id = true;
       tx_extra_nonce extra_nonce;
       if (find_tx_extra_field_by_type(tx_extra_fields, extra_nonce))

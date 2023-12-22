@@ -40,6 +40,8 @@
 #include "cryptonote_core/cryptonote_core.h"
 #include "p2p/net_node.h"
 #include "cryptonote_protocol/cryptonote_protocol_handler.h"
+#include "common/i18n.h"
+
 
 #undef ELECTRONEUM_DEFAULT_LOG_CATEGORY
 #define ELECTRONEUM_DEFAULT_LOG_CATEGORY "daemon.rpc"
@@ -102,6 +104,7 @@ namespace cryptonote
       MAP_URI_AUTO_JON2("/gettransactions", on_get_transactions, COMMAND_RPC_GET_TRANSACTIONS)
       MAP_URI_AUTO_JON2("/get_alt_blocks_hashes", on_get_alt_blocks_hashes, COMMAND_RPC_GET_ALT_BLOCKS_HASHES)
       MAP_URI_AUTO_JON2("/is_key_image_spent", on_is_key_image_spent, COMMAND_RPC_IS_KEY_IMAGE_SPENT)
+      MAP_URI_AUTO_JON2("/is_public_output_spent", on_is_public_output_spent, COMMAND_RPC_IS_PUBLIC_OUTPUT_SPENT)
       MAP_URI_AUTO_JON2("/send_raw_transaction", on_send_raw_tx, COMMAND_RPC_SEND_RAW_TX)
       MAP_URI_AUTO_JON2("/sendrawtransaction", on_send_raw_tx, COMMAND_RPC_SEND_RAW_TX)
       MAP_URI_AUTO_JON2_IF("/start_mining", on_start_mining, COMMAND_RPC_START_MINING, !m_restricted)
@@ -132,7 +135,9 @@ namespace cryptonote
       MAP_URI_AUTO_JON2_IF("/pop_blocks", on_pop_blocks, COMMAND_RPC_POP_BLOCKS, !m_restricted)
       MAP_URI_AUTO_JON2("/get_balance", on_get_balance, COMMAND_RPC_GET_BALANCE)
       MAP_URI_AUTO_JON2("/get_address_batch_history", on_get_address_batch_history, COMMAND_RPC_GET_ADDRESS_BATCH_HISTORY)
+      MAP_URI_AUTO_JON2("/get_addr_tx_history", on_get_addr_tx_batch_history, COMMAND_RPC_GET_ADDR_TX_BATCH_HISTORY)
       BEGIN_JSON_RPC_MAP("/json_rpc")
+        MAP_JON_RPC("get_tax_data",            on_get_tax_data,                COMMAND_RPC_GET_TAX_DATA)
         MAP_JON_RPC("get_block_count",           on_getblockcount,              COMMAND_RPC_GETBLOCKCOUNT)
         MAP_JON_RPC("getblockcount",             on_getblockcount,              COMMAND_RPC_GETBLOCKCOUNT)
         MAP_JON_RPC_WE("on_get_block_hash",      on_getblockhash,               COMMAND_RPC_GETBLOCKHASH)
@@ -168,10 +173,10 @@ namespace cryptonote
         MAP_JON_RPC_WE("get_txpool_backlog",     on_get_txpool_backlog,         COMMAND_RPC_GET_TRANSACTION_POOL_BACKLOG)
         MAP_JON_RPC_WE("get_output_distribution", on_get_output_distribution, COMMAND_RPC_GET_OUTPUT_DISTRIBUTION)
         MAP_JON_RPC_WE_IF("prune_blockchain",    on_prune_blockchain,           COMMAND_RPC_PRUNE_BLOCKCHAIN, !m_restricted)
-        MAP_JON_RPC_WE("set_validator_key",      on_set_validator_key,          COMMAND_RPC_SET_VALIDATOR_KEY)
+        MAP_JON_RPC_WE_IF("set_validator_key",      on_set_validator_key,          COMMAND_RPC_SET_VALIDATOR_KEY, !m_restricted)
         MAP_JON_RPC_WE("generate_ed25519_keypair",      on_generate_ed25519_keypair,          COMMAND_RPC_GENERATE_ED25519_KEYPAIR)
         MAP_JON_RPC_WE("sign_message",           on_sign_message,               COMMAND_RPC_SIGN_MESSAGE)
-        MAP_JON_RPC_WE("inject_emergency_vlist",     on_inject_emergency_vlist,      COMMAND_RPC_INJECT_EMERGENCY_VLIST)
+        MAP_JON_RPC_WE_IF("inject_emergency_vlist",     on_inject_emergency_vlist,      COMMAND_RPC_INJECT_EMERGENCY_VLIST, !m_restricted)
       END_JSON_RPC_MAP()
     END_URI_MAP2()
 
@@ -182,6 +187,7 @@ namespace cryptonote
     bool on_get_hashes(const COMMAND_RPC_GET_HASHES_FAST::request& req, COMMAND_RPC_GET_HASHES_FAST::response& res, const connection_context *ctx = NULL);
     bool on_get_transactions(const COMMAND_RPC_GET_TRANSACTIONS::request& req, COMMAND_RPC_GET_TRANSACTIONS::response& res, const connection_context *ctx = NULL);
     bool on_is_key_image_spent(const COMMAND_RPC_IS_KEY_IMAGE_SPENT::request& req, COMMAND_RPC_IS_KEY_IMAGE_SPENT::response& res, const connection_context *ctx = NULL);
+    bool on_is_public_output_spent(const COMMAND_RPC_IS_PUBLIC_OUTPUT_SPENT::request& req, COMMAND_RPC_IS_PUBLIC_OUTPUT_SPENT::response& res, const connection_context *ctx = NULL);
     bool on_get_indexes(const COMMAND_RPC_GET_TX_GLOBAL_OUTPUTS_INDEXES::request& req, COMMAND_RPC_GET_TX_GLOBAL_OUTPUTS_INDEXES::response& res, const connection_context *ctx = NULL);
     bool on_send_raw_tx(const COMMAND_RPC_SEND_RAW_TX::request& req, COMMAND_RPC_SEND_RAW_TX::response& res, const connection_context *ctx = NULL);
     bool on_start_mining(const COMMAND_RPC_START_MINING::request& req, COMMAND_RPC_START_MINING::response& res, const connection_context *ctx = NULL);
@@ -212,8 +218,10 @@ namespace cryptonote
     bool on_pop_blocks(const COMMAND_RPC_POP_BLOCKS::request& req, COMMAND_RPC_POP_BLOCKS::response& res, const connection_context *ctx = NULL);
     bool on_get_balance(const COMMAND_RPC_GET_BALANCE::request& req, COMMAND_RPC_GET_BALANCE::response& res, const connection_context *ctx = NULL);
     bool on_get_address_batch_history(const COMMAND_RPC_GET_ADDRESS_BATCH_HISTORY::request& req, COMMAND_RPC_GET_ADDRESS_BATCH_HISTORY::response& res, const connection_context *ctx = NULL);
+    bool on_get_addr_tx_batch_history(const COMMAND_RPC_GET_ADDR_TX_BATCH_HISTORY::request& req, COMMAND_RPC_GET_ADDR_TX_BATCH_HISTORY::response& res, const connection_context *ctx = NULL);
 
-    //json_rpc
+      //json_rpc
+    bool on_get_tax_data(const COMMAND_RPC_GET_TAX_DATA::request& req, COMMAND_RPC_GET_TAX_DATA::response& res, const connection_context *ctx = NULL);
     bool on_getblockcount(const COMMAND_RPC_GETBLOCKCOUNT::request& req, COMMAND_RPC_GETBLOCKCOUNT::response& res, const connection_context *ctx = NULL);
     bool on_getblockhash(const COMMAND_RPC_GETBLOCKHASH::request& req, COMMAND_RPC_GETBLOCKHASH::response& res, epee::json_rpc::error& error_resp, const connection_context *ctx = NULL);
     bool on_getblocktemplate(const COMMAND_RPC_GETBLOCKTEMPLATE::request& req, COMMAND_RPC_GETBLOCKTEMPLATE::response& res, epee::json_rpc::error& error_resp, const connection_context *ctx = NULL);

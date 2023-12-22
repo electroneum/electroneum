@@ -129,6 +129,8 @@ namespace crypto {
 
   void hash_to_ec(const public_key &key, ge_p3 &res);
   void hash_to_ec(const hash& h, ge_p3 &res);
+  void hash_to_point(const crypto::hash &h, crypto::ec_point &res);
+
 
   static_assert(sizeof(ec_point) == 32 && sizeof(ec_scalar) == 32 &&
     sizeof(public_key) == 32 && sizeof(secret_key) == 32 &&

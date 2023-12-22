@@ -59,6 +59,8 @@ target_link_libraries(simplewallet
     ${Boost_THREAD_LIBRARY}
     ${CMAKE_THREAD_LIBS_INIT}
     ${GNU_READLINE_LIBRARY}
+    ${SECP256K1_LIBRARY}
+    ${GMP_LIBRARY}
     ${EXTRA_LIBRARIES})
 set_property(TARGET simplewallet
   PROPERTY

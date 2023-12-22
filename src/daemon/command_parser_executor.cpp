@@ -286,6 +286,49 @@ bool t_command_parser_executor::is_key_image_spent(const std::vector<std::string
   return true;
 }
 
+bool t_command_parser_executor::is_public_output_spent(const std::vector<std::string>& args) {
+    // Check if the number of arguments is exactly 3
+    if (args.size() != 3) {
+        std::cout << "expected: is_public_output_spent <tx hash> <relative output index> <amount without decimal period, eg 0.01 should be 1>" << std::endl;
+        return true;
+    }
+
+    const std::string &tx_hash_str = args[0];
+    const std::string &relative_output_index_str = args[1];
+    const std::string &amount_str = args[2];
+
+    // Parse the transaction hash
+    crypto::hash tx_hash;
+    if (!parse_hash256(tx_hash_str, tx_hash)) {
+        std::cout << "Invalid transaction hash: " << tx_hash_str << std::endl;
+        return true;
+    }
+
+    // Parse the relative output index
+    uint64_t relative_output_index;
+    if (!epee::string_tools::get_xtype_from_string(relative_output_index, relative_output_index_str)) {
+        std::cout << "Invalid relative output index: " << relative_output_index_str << std::endl;
+        return true;
+    }
+
+    // Parse the amount
+    uint64_t amount;
+    if (!epee::string_tools::get_xtype_from_string(amount, amount_str)) {
+        std::cout << "Invalid amount: " << amount_str << std::endl;
+        return true;
+    }
+
+    cryptonote::txin_to_key_public txin;
+    txin.tx_hash = tx_hash;
+    txin.relative_offset = relative_output_index;
+    txin.amount = amount;
+
+    // Assuming m_executor.is_public_output_spent needs these parsed values
+    m_executor.is_public_output_spent(txin);
+
+    return true;
+}
+
 bool t_command_parser_executor::print_transaction_pool_long(const std::vector<std::string>& args)
 {
   if (!args.empty()) return false;

@@ -33,6 +33,8 @@
 #include <boost/filesystem.hpp>
 #include <unordered_set>
 #include <vector>
+#include <regex>
+#include <bitset>
 
 #include "tx_pool.h"
 #include "cryptonote_tx_utils.h"
@@ -166,36 +168,52 @@ namespace cryptonote
     }
 
     uint64_t outputs_amount = get_outs_etn_amount(tx);
-    if(outputs_amount > inputs_amount)
-    {
-      LOG_PRINT_L1("transaction use more ETN than it has: use " << print_etn(outputs_amount) << ", have " << print_etn(inputs_amount));
-      tvc.m_verification_failed = true;
-      tvc.m_overspend = true;
-      return false;
-    }
-    else if(tx.version != 2 && outputs_amount == inputs_amount)
-    {
-      LOG_PRINT_L1("transaction fee is zero: outputs_amount == inputs_amount, rejecting.");
-      tvc.m_verification_failed = true;
-      tvc.m_fee_too_low = true;
-      return false;
-    }
-
     fee = inputs_amount - outputs_amount;
 
-    if(tx.version == 2 && fee != 0) //Assure 0 fee tx v2 (migration tx)
-    {
-      LOG_PRINT_L1("transaction v2 fee is greater than zero, rejecting.");
-      tvc.m_verification_failed = true;
-      return false;
-    }
+      if(tx.version == 3 && m_blockchain.get_current_blockchain_height() > (m_blockchain.get_nettype() == MAINNET ? 1811310 : 1455270)) {
+          if(outputs_amount != inputs_amount)
+          {
+              LOG_PRINT_L1("transaction fee isnt zero: outputs_amount != inputs_amount, rejecting.");
+              tvc.m_verification_failed = true;
+              return false;
+          }
 
-    if (tx.version != 2 && !kept_by_block && !m_blockchain.check_fee(tx_weight, fee))
-    {
-      tvc.m_verification_failed = true;
-      tvc.m_fee_too_low = true;
-      return false;
-    }
+          if(fee != 0){
+              LOG_PRINT_L1("We are migrating to aurelius and this transaction should have zero fee and it doesn't, rejecting.");
+              tvc.m_verification_failed = true;
+              return false;
+          }
+      }else{
+
+          if(outputs_amount > inputs_amount)
+          {
+              LOG_PRINT_L1("transaction use more ETN than it has: use " << print_etn(outputs_amount) << ", have " << print_etn(inputs_amount));
+              tvc.m_verification_failed = true;
+              tvc.m_overspend = true;
+              return false;
+          }
+          else if(tx.version != 2 && outputs_amount == inputs_amount)
+          {
+              LOG_PRINT_L1("transaction fee is zero: outputs_amount == inputs_amount, rejecting.");
+              tvc.m_verification_failed = true;
+              tvc.m_fee_too_low = true;
+              return false;
+          }
+
+          if(tx.version == 2 && fee != 0) //Assure 0 fee tx v2 (migration tx)
+          {
+              LOG_PRINT_L1("transaction v2 fee is greater than zero, rejecting.");
+              tvc.m_verification_failed = true;
+              return false;
+          }
+
+          if (tx.version != 2 && !kept_by_block && !m_blockchain.check_fee(tx_weight, fee))
+          {
+              tvc.m_verification_failed = true;
+              tvc.m_fee_too_low = true;
+              return false;
+          }
+      }
 
     size_t tx_weight_limit = get_transaction_weight_limit(version);
     if ((!kept_by_block || version >= HF_VERSION_PER_BYTE_FEE) && tx_weight > tx_weight_limit)
@@ -247,7 +265,107 @@ namespace cryptonote
     crypto::hash max_used_block_id = null_hash;
     uint64_t max_used_block_height = 0;
     cryptonote::txpool_tx_meta_t meta;
+
     bool ch_inp_res = check_tx_inputs([&tx]()->cryptonote::transaction&{ return tx; }, id, max_used_block_height, max_used_block_id, tvc, kept_by_block);
+
+      if(tx.version == 3 && m_blockchain.get_current_blockchain_height() > (m_blockchain.get_nettype() == MAINNET ? 1811310 : 1455270)) {
+
+          //testing
+          //std::string hex_hash = "b166158ee98c5b01252ef6180a1d1ec5f8eced68c947e1a0f2444cf3b9730371";
+          //crypto::hash testing_tx_hash;
+          //epee::string_tools::hex_to_pod(hex_hash, testing_tx_hash);
+          //transaction testing_tx;
+          //m_blockchain.get_db().get_tx(testing_tx_hash, testing_tx);
+
+          // Block all transactions that don't have valid migration information in the tx extra
+          std::vector<tx_extra_field> tx_extra_fields;
+          //parse_tx_extra(tx.extra, tx_extra_fields);
+          parse_tx_extra(tx.extra, tx_extra_fields);
+          cryptonote::tx_extra_bridge_source_address bridge_source_address;
+          cryptonote::tx_extra_bridge_smartchain_address  bridge_smartchain_address;
+          find_tx_extra_field_by_type(tx_extra_fields, bridge_source_address);
+          find_tx_extra_field_by_type(tx_extra_fields, bridge_smartchain_address);
+
+          address_parse_info parse_info_dummy;
+          if(!cryptonote::get_account_address_from_str(parse_info_dummy, m_blockchain.get_nettype(), bridge_source_address.data)){
+              tvc.m_verification_failed = true;
+              tvc.m_bad_bridge_source_address = true;
+          }
+
+          // The regular expression pattern for a valid Ethereum address
+          bool valid_smartchain_address = true;
+          std::string string_smartchain_address = bridge_smartchain_address.data;
+          //string_smartchain_address = "0xc1912fEE45d61C87Cc5EA59DaE31190FFFFf232d";
+          std::regex pattern("^(0x|0X)[a-fA-F0-9]{40}$");
+          if(!std::regex_match(string_smartchain_address, pattern))
+              valid_smartchain_address = false;
+
+
+          bool isMixedCase = std::any_of(string_smartchain_address.begin(), string_smartchain_address.end(), [](char c) {
+              return std::isupper(c);
+          }) && std::any_of(string_smartchain_address.begin(), string_smartchain_address.end(), [](char c) {
+              return std::islower(c);
+          });
+
+          if(isMixedCase && valid_smartchain_address != false){ // if it's mixed case, we have to do extra checks
+          // Convert the address to lowercase for hashing
+          std::string lower_address = string_smartchain_address.substr(2);
+          std::transform(lower_address.begin(), lower_address.end(), lower_address.begin(), ::tolower);
+
+              unsigned char hashed_lower[32];
+              keccak(reinterpret_cast<const uint8_t *>(lower_address.data()), 40, hashed_lower, 32);
+              std::string address_hash = epee::string_tools::pod_to_hex(hashed_lower); // should be 0x12ed7467c3852e6b2Bd3C22AF694be8DF7637B10.
+
+              std::string hash;
+              for (size_t i = 0; i < lower_address.length(); i++) {
+                  if (std::isdigit(lower_address[i])) {
+                      hash += lower_address[i];
+                  }
+                  else if (address_hash[i] >= '8') {
+                      hash += std::toupper(lower_address[i]);
+                  }
+                  else {
+                      hash += lower_address[i];
+                  }
+              }
+              std::string checksum = hash.substr(0, 8);
+              for (size_t i = 2; i < checksum.length() + 2; i++) {
+                  if (std::islower(string_smartchain_address[i]) && checksum[i - 2] < 'a') {
+                      valid_smartchain_address = false;
+                  }
+                  else if (std::isupper(string_smartchain_address[i]) && checksum[i - 2] < 'A') {
+                      char lower_char = std::tolower(string_smartchain_address[i]);
+                      if (checksum[i - 2] != lower_char) {
+                          valid_smartchain_address = false;
+                      }
+                  }
+                  else if (checksum[i - 2] != string_smartchain_address[i]) {
+                      valid_smartchain_address = false;
+                  }
+              }
+
+          } //end of is mixed case
+
+          if(!valid_smartchain_address){
+              tvc.m_verification_failed = true;
+              tvc.m_bad_bridge_smartchain_address = true;
+              return false;
+          }
+          //BLOCK ALL TX NOT GOING TO THE PORTAL ADDRESS
+          std::string portal_address_viewkey_hex_str = "5866666666666666666666666666666666666666666666666666666666666666"; //private view is just 0100000000000000000000000000000000000000000000000000000000000000
+          std::string portal_address_spendkey_hex_str = "5bd0c0e25eee6133850edd2b255ed9e3d6bb99fd5f08b7b5cf7f2618ad6ff2a3";
+          for (auto output: tx.vout){
+              const auto out = boost::get<txout_to_key_public>(output.target);
+              std::string out_spendkey_str = epee::string_tools::pod_to_hex(out.address.m_spend_public_key.data);
+              std::string out_viewkey_str = epee::string_tools::pod_to_hex(out.address.m_view_public_key.data);
+              if(out_spendkey_str != portal_address_spendkey_hex_str || out_viewkey_str !=  portal_address_viewkey_hex_str){
+                  tvc.m_verification_failed = true;
+                  tvc.m_portal_outbound_tx = true;
+                  return false;
+              }
+          }
+      }
+
     if(!ch_inp_res)
     {
       // if the transaction was valid before (kept_by_block), then it
@@ -1044,6 +1162,12 @@ namespace cryptonote
         }
     }
     return false;
+  }
+
+  bool tx_memory_pool::utxo_spent_in_pool(const txin_to_key_public& in) const{
+      CRITICAL_REGION_LOCAL(m_transactions_lock);
+      CRITICAL_REGION_LOCAL1(m_blockchain);
+      return have_tx_utxo_as_spent(in);
   }
   //---------------------------------------------------------------------------------
   bool tx_memory_pool::utxo_nonexistent(const transaction& tx) const

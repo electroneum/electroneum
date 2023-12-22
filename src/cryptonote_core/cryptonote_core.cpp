@@ -1085,9 +1085,17 @@ namespace cryptonote
     uint64_t amount_in = 0;
     get_inputs_etn_amount(tx, amount_in);
     uint64_t amount_out = get_outs_etn_amount(tx);
+    // fees are 0 for all tx versions after the v11 hard vork
+      if(m_blockchain_storage.get_current_blockchain_height() > ((m_nettype == MAINNET ? 1811310 : 1455270))) {
+          if(amount_in != amount_out){
 
-    if((tx.version != 2 && amount_in <= amount_out) || (tx.version == 2 && amount_in != amount_out)) {
-        MERROR_VER("tx with wrong amounts: ins " << amount_in << ", outs " << amount_out << ", rejected for tx id= "
+              MERROR_VER("tx on hardfork 11 (aurelius) sent with out zero fee: ins " << amount_in << ", outs " << amount_out << ", rejected for tx id= "
+                                                                                     << get_transaction_hash(tx));
+              return false;
+          }
+      }
+      else if((tx.version != 2 && amount_in <= amount_out) || (tx.version == 2 && amount_in != amount_out)) {
+          MERROR_VER("tx with wrong amounts: ins " << amount_in << ", outs " << amount_out << ", rejected for tx id= "
                                              << get_transaction_hash(tx));
         return false;
     }
@@ -1142,6 +1150,16 @@ namespace cryptonote
     return true;
   }
   //-----------------------------------------------------------------------------------------------
+  bool core::utxo_nonexistant(const std::vector<txin_to_key_public>& public_outputs, std::vector<bool> &spent) const
+  {
+      spent.clear();
+      for(auto& po: public_outputs)
+      {
+          spent.push_back(m_blockchain_storage.utxo_nonexistence_from_output(po));
+      }
+      return true;
+  }
+    //-----------------------------------------------------------------------------------------------
   size_t core::get_block_sync_size(uint64_t height) const
   {
     static const uint64_t quick_height = m_nettype == TESTNET ? 801219 : m_nettype == MAINNET ? 1220516 : 0;
@@ -1590,6 +1608,11 @@ namespace cryptonote
     return m_mempool.have_tx(id);
   }
   //-----------------------------------------------------------------------------------------------
+  bool core::pool_has_utxo_as_spent(const txin_to_key_public& in) const
+  {
+      return m_mempool.utxo_spent_in_pool(in);
+  }
+  //-----------------------------------------------------------------------------------------------
   bool core::get_pool_transactions_and_spent_keys_info(std::vector<tx_info>& tx_infos, std::vector<spent_key_image_info>& key_image_infos, bool include_sensitive_data) const
   {
     return m_mempool.get_transactions_and_spent_keys_info(tx_infos, key_image_infos, include_sensitive_data);
@@ -2021,6 +2044,12 @@ namespace cryptonote
     return m_blockchain_storage.get_db().get_addr_output_batch(combined_key, start_tx_id, batch_size, desc);
   }
   //-----------------------------------------------------------------------------------------------
+  std::vector<address_txs> core::get_addr_tx_batch_history(const address_parse_info &addr, const uint64_t &start_tx_id, const uint64_t &batch_size, bool desc)
+  {
+      crypto::public_key combined_key = crypto::addKeys(addr.address.m_view_public_key, addr.address.m_spend_public_key);
+      return m_blockchain_storage.get_db().get_addr_tx_batch(combined_key, start_tx_id, batch_size, desc);
+  }
+    //-----------------------------------------------------------------------------------------------
   void core::graceful_exit()
   {
     raise(SIGTERM);

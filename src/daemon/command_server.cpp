@@ -108,6 +108,12 @@ t_command_server::t_command_server(
     , "is_key_image_spent <key_image>"
     , "Print whether a given key image is in the spent key images set."
     );
+    m_command_lookup.set_handler(
+            "is_public_output_spent"
+            , std::bind(&t_command_parser_executor::is_public_output_spent, &m_parser, p::_1)
+            , "is_public_output_spent <tx hash> <relative output index> <amount without decimal period, eg 0.01 should be 1>"
+            , "Print whether a given public output has been spent in the pool or on the blockchain."
+    );
   m_command_lookup.set_handler(
       "start_mining"
     , std::bind(&t_command_parser_executor::start_mining, &m_parser, p::_1)

@@ -75,6 +75,7 @@
 
 #define FEE_PER_KB                                      ((uint64_t)1) //Initial fee of 0.01/kb
 #define FEE_PER_KB_V6                                   ((uint64_t)10) //Fee of 0.10/kb from HF V6
+#define FEE_PER_KB_V11                                  ((uint64_t)0) // Fee of 0ETN/Kb from HF 11
 
 #define FEE_PER_BYTE                                    ((uint64_t)30)
 
@@ -154,12 +155,13 @@
 
 #define THREAD_STACK_SIZE                       5 * 1024 * 1024
 
-#define CURRENT_HARDFORK_VERSION                  10
+#define CURRENT_HARDFORK_VERSION                  11
 #define HF_VERSION_FORBID_DUST_OUTPUTS            2
 #define HF_VERSION_FORBID_INVALID_PUBKEYS         4
 #define HF_VERSION_ENFORCE_0_DECOY_TXS            6
 #define HF_VERSION_ENFORCE_0_DECOY_TXS_END        100
 #define HF_VERSION_DYNAMIC_FEE                    100
+#define HF_VERSION_ZERO_FEE                       11
 #define HF_VERSION_MIN_MIXIN_2                    2
 #define HF_VERSION_MIN_MIXIN_4                    100
 #define HF_VERSION_MIN_MIXIN_6                    100

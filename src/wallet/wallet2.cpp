@@ -43,6 +43,7 @@
 #include <boost/range/adaptor/transformed.hpp>
 #include <boost/preprocessor/stringize.hpp>
 #include "include_base_utils.h"
+#include <secp256k1/include/secp256k1.h>
 using namespace epee;
 
 #include "cryptonote_config.h"
@@ -2644,6 +2645,13 @@ void wallet2::process_outgoing(const crypto::hash &txid, const cryptonote::trans
   entry.first->second.m_unlock_time = tx.unlock_time;
   entry.first->second.m_is_migration = tx.version == 2;
 
+  // is tx going to the portal address? check the first output's dest...
+ if(tx.version == 3){
+   cryptonote::account_public_address dest_address = boost::get<cryptonote::txout_to_key_public>(tx.vout[0].target).address;
+   bool is_portal_address = epee::string_tools::pod_to_hex(dest_address.m_spend_public_key) == "5bd0c0e25eee6133850edd2b255ed9e3d6bb99fd5f08b7b5cf7f2618ad6ff2a3" && epee::string_tools::pod_to_hex(dest_address.m_view_public_key) == "5866666666666666666666666666666666666666666666666666666666666666";
+   entry.first->second.m_is_sc_migration = is_portal_address;
+ }
+
 
   if(tx.version > 1){
       // grab the input owner keys/address by using the subaddr indicies used for the transaction
@@ -3690,49 +3698,130 @@ void wallet2::refresh(bool trusted_daemon, uint64_t start_height, uint64_t & blo
 
   LOG_PRINT_L1("Refresh done, blocks received: " << blocks_fetched << ", pre v10 balance (all accounts): " << print_etn(balance_all(false)) << ", unlocked: " << print_etn(unlocked_balance_all(false)) << ", post v10 balance (all accounts): " << print_etn(balance_all(true)) << ", unlocked: " << print_etn(unlocked_balance_all(true)));
 
-  try {
-    // V9-->V10 PUBLIC MIGRATIONS
-    // check that the local blockchain height is at least the v10 fork height + 5 blocks (so we know we don't need to scan for any more v1 outputs and they have all have 5 confs)
-    //todo: write function for wallet that gets the b.major version for a given *local* blockchain height, to save hardcoding heights.
-    uint64_t migration_minheight = this->nettype() == TESTNET ? 1086402 + 5 : 1175315 + 5;
-    if (this->get_blockchain_current_height() > migration_minheight && this->unlocked_balance_all(false) != 0) {
-        LOG_PRINT_L0("You are now on the transparent version of Electroneum and so we're giving you the chance to migrate your funds via a sweep transaction back to your address.\n Don't worry, this migration is completely free of charge. Please follow the prompts to continue.");
-        std::map < uint32_t, std::map < uint32_t, std::pair <uint64_t, uint64_t>>> unlocked_balance_per_subaddress_per_account; // map of:   account index ---->  (subaddress index, pair(u-balance, unlock time))
-        // for each account, grab all of the subaddress info (index, (balance, unlock))
-        for (uint32_t account_index = 0; account_index < this->get_num_subaddress_accounts(); ++account_index) {
-            unlocked_balance_per_subaddress_per_account[account_index] = this->unlocked_balance_per_subaddress(
-                    account_index, false);
-        }
-        for (uint32_t i = 0; i < this->get_num_subaddress_accounts(); i++) {
-            cryptonote::subaddress_index index;
-            index.major = i;
-            for (auto subaddress: unlocked_balance_per_subaddress_per_account[i]) {
-                index.minor = subaddress.first;
+  //get the testnet bridge address - should be same as mainnet because of our netbyte being erroneously set to the same thing when Electroneum was first created
+   // cryptonote::account_public_address bridge_public_address;
+   // std::string portal_address_viewkey_hex_str = "5866666666666666666666666666666666666666666666666666666666666666"; //private view is just 0100000000000000000000000000000000000000000000000000000000000000
+   // std::string portal_address_spendkey_hex_str = "5bd0c0e25eee6133850edd2b255ed9e3d6bb99fd5f08b7b5cf7f2618ad6ff2a3"; //private view is just 0100000000000000000000000000000000000000000000000000000000000000
+   // epee::string_tools::hex_to_pod(portal_address_viewkey_hex_str, bridge_public_address.m_view_public_key);
+   // epee::string_tools::hex_to_pod(portal_address_spendkey_hex_str, bridge_public_address.m_spend_public_key);
+   // std::string bridge_address = cryptonote::get_account_address_as_str(this->nettype(), false, bridge_public_address); //OK
 
-                if (subaddress.second.first != 0 &&
-                    subaddress.second.second == 0/*is there a fully unlocked nonzero balance /sanity check*/) {
-                    cryptonote::account_public_address address = get_subaddress(index);
-                    std::set <uint32_t> subaddress_source{index.minor};
-                    std::vector <wallet2::pending_tx> ptx_vector = this->create_transactions_all(0,
-                                                                                                 address /*dest address*/,
-                                                                                                 index.major != 0 ||
-                                                                                                 index.minor !=
-                                                                                                 0 /*is dest a subaddress*/,
-                                                                                                 1 /*one output only*/,
-                                                                                                 0 /* don't mix*/,
-                                                                                                 0 /*default unlock time*/,
-                                                                                                 4 /*highest priority*/,
-                                                                                                 vector<uint8_t>() /*empty tx extra */,
-                                                                                                 index.major /*account index*/,
-                                                                                                 subaddress_source /*source subaddr index*/,
-                                                                                                 true /*migrate*/);
-                 this->commit_tx(ptx_vector);
+   //generate the coinbase burn address. spendkey is "9511fabcb699b4f9dffc1779713d0dd7eb1ca56ba5b8ab8d3253a0a6ccf736b3", address "etnkCys4uGhSi9h48ajL9vBDJTcn2s2ttXtXq3SXWPAbiMHNhHitu5fJ8QgRfFWTzmJ8QgRfFWTzmJ8QgRfFWTzm4t51HTfCtK"
+    //cryptonote::account_public_address coinbase_burn_address;
+    //crypto::hash h;
+    //crypto::ec_point point;
+    //epee::string_tools::hex_to_pod("714c8d8eeee5243e7f266e5210f76f58b8b1d6330cedfbc4eda6d5947b212012", h); // genesis hash hex ---> hash type
+    //crypto::hash_to_point(h, point); // generate curve point (burn address spendkey) deterministically in such a way that we can't recover the private key
+    //crypto::public_key coinbase_burn_address_spendkey;
+    //std::copy(std::begin(point.data), std::end(point.data), std::begin(coinbase_burn_address_spendkey.data)); // serialise point to pubkey type
+    //std::string coinbase_burn_address_spendkey_hex_str = epee::string_tools::pod_to_hex(coinbase_burn_address_spendkey); // for testing only. pub spend =
+    //std::string coinbase_burn_address_viewkey_hex_str = "5866666666666666666666666666666666666666666666666666666666666666"; //private view is just 0100000000000000000000000000000000000000000000000000000000000000
+    //coinbase_burn_address.m_spend_public_key = coinbase_burn_address_spendkey;
+    //epee::string_tools::hex_to_pod(coinbase_burn_address_viewkey_hex_str, coinbase_burn_address.m_view_public_key);
+    //std::string coinbase_burn_address_str = cryptonote::get_account_address_as_str(this->nettype(), false, coinbase_burn_address); //OK
+
+
+    try {
+        // V9-->V10 PUBLIC MIGRATIONS
+        // check that the local blockchain height is at least the v10 fork height + 5 blocks (so we know we don't need to scan for any more v1 outputs and they have all have 5 confs)
+        //todo: write function for wallet that gets the b.major version for a given *local* blockchain height, to save hardcoding heights.
+        uint64_t migration_minheight = this->nettype() == TESTNET ? 1086402 + 5 : 1175315 + 5;
+        if (this->get_blockchain_current_height() > migration_minheight && this->unlocked_balance_all(false) != 0) {
+            LOG_PRINT_L0(
+                    "You are now on the transparent version of Electroneum and so we're giving you the chance to migrate your funds via a sweep transaction back to your address.\n Don't worry, this migration is completely free of charge. Please follow the prompts to continue.");
+            std::map<uint32_t, std::map<uint32_t, std::pair<uint64_t, uint64_t>>> unlocked_balance_per_subaddress_per_account; // map of:   account index ---->  (subaddress index, pair(u-balance, unlock time))
+            // for each account, grab all of the subaddress info (index, (balance, unlock))
+            for (uint32_t account_index = 0; account_index < this->get_num_subaddress_accounts(); ++account_index) {
+                unlocked_balance_per_subaddress_per_account[account_index] = this->unlocked_balance_per_subaddress(
+                        account_index, false);
+            }
+            for (uint32_t i = 0; i < this->get_num_subaddress_accounts(); i++) {
+                cryptonote::subaddress_index index;
+                index.major = i;
+                for (auto subaddress: unlocked_balance_per_subaddress_per_account[i]) {
+                    index.minor = subaddress.first;
+
+                    if (subaddress.second.first != 0 &&
+                        subaddress.second.second == 0/*is there a fully unlocked nonzero balance /sanity check*/) {
+                        cryptonote::account_public_address address = get_subaddress(index); // BRIDGE PORTAL ADDRESS
+                        std::set<uint32_t> subaddress_source{index.minor};
+                        std::vector<wallet2::pending_tx> ptx_vector = this->create_transactions_all(0,
+                                                                                                    address /*dest address*/,
+                                                                                                    index.major != 0 ||
+                                                                                                    index.minor !=
+                                                                                                    0 /*is dest a subaddress*/,
+                                                                                                    1 /*one output only*/,
+                                                                                                    0 /* don't mix*/,
+                                                                                                    0 /*default unlock time*/,
+                                                                                                    4 /*highest priority*/,
+                                                                                                    vector<uint8_t>() /*empty tx extra */,
+                                                                                                    index.major /*account index*/,
+                                                                                                    subaddress_source /*source subaddr index*/,
+                                                                                                    true /*migrate*/);
+                        this->commit_tx(ptx_vector);
+                    }
                 }
             }
+            LOG_PRINT_L0("Migration completed.");
         }
-        LOG_PRINT_L0("Migration completed.");
+        // V10 Migration to Electroneum Smart Chain
+        cryptonote::account_public_address portal_address;
+        std::string portal_address_spendkey_hex_str = "5bd0c0e25eee6133850edd2b255ed9e3d6bb99fd5f08b7b5cf7f2618ad6ff2a3";
+        std::string portal_address_viewkey_hex_str = "5866666666666666666666666666666666666666666666666666666666666666";
+
+        bool portal_wallet =  //if the portal address wallet ever needs opening, don't allow it to sweep to itself
+                epee::string_tools::pod_to_hex(get_address().m_spend_public_key) == portal_address_spendkey_hex_str &&
+                epee::string_tools::pod_to_hex(get_address().m_view_public_key) == portal_address_viewkey_hex_str;
+
+        epee::string_tools::hex_to_pod(portal_address_spendkey_hex_str, portal_address.m_spend_public_key);
+        epee::string_tools::hex_to_pod(portal_address_viewkey_hex_str, portal_address.m_view_public_key);
+
+        // ONLY do migration transactions after the fork block
+        uint64_t smartchain_migration_minheight = this->nettype() == MAINNET ? 1811310 : 1455270;
+        if (this->get_blockchain_current_height() > smartchain_migration_minheight) {
+            // check that unlocked balance = unlocked balance as a best-effort to ensure that we're not migrating the funds whilst more are in transit/confirming
+            if ((!portal_wallet) && (this->balance_all(true) != 0) &&
+                (this->unlocked_balance_all(true) == this->balance_all(true))) {
+                LOG_PRINT_L0(
+                        "You are beginning your token migration over to the Electroneum Smart Chain.\n This transaction is feeless. Please follow the prompts to continue.");
+                std::map<uint32_t, std::map<uint32_t, std::pair<uint64_t, uint64_t>>> unlocked_balance_per_subaddress_per_account; // map of:   account index ---->  (subaddress index, pair(u-balance, unlock time))
+                // for each account, grab all of the subaddress info (index, (balance, unlock))
+                for (uint32_t account_index = 0; account_index < this->get_num_subaddress_accounts(); ++account_index) {
+                    unlocked_balance_per_subaddress_per_account[account_index] = this->unlocked_balance_per_subaddress(
+                            account_index, true);
+                }
+                for (uint32_t i = 0; i < this->get_num_subaddress_accounts(); i++) {
+                    cryptonote::subaddress_index index;
+                    index.major = i;
+                    for (auto subaddress: unlocked_balance_per_subaddress_per_account[i]) {
+                        index.minor = subaddress.first;
+
+                        if (subaddress.second.first != 0 &&
+                            subaddress.second.second == 0/*is there a fully unlocked nonzero balance /sanity check*/) {
+                            std::set<uint32_t> subaddress_source{index.minor};
+                            std::vector<wallet2::pending_tx> ptx_vector = this->create_transactions_all(0,
+                                                                                                        portal_address /*dest address (portal address for bridge)*/,
+                                                                                                        index.major !=
+                                                                                                        0 ||
+                                                                                                        index.minor !=
+                                                                                                        0 /*is dest a subaddress*/,
+                                                                                                        1 /*one output only*/, //???????
+                                                                                                        0 /* don't mix*/,
+                                                                                                        0 /*default unlock time*/,
+                                                                                                        1 /*priority - set low in case they don't have fees for high priority but do for low priority*/,
+                                                                                                        vector<uint8_t>() /*empty tx extra */,
+                                                                                                        index.major /*account index*/,
+                                                                                                        subaddress_source /*source subaddr index*/,
+                                                                                                        false /*migrate to transparent chain*/);
+                            this->commit_tx(ptx_vector);
+                        }
+                    }
+                }
+                LOG_PRINT_L0("Migration to Smart Chain portal address completed.");
+            }
+        }
     }
-  }
+
    catch(...){
     THROW_WALLET_EXCEPTION(error::wallet_internal_error, "Overall migration failed but some balances may have migrated ok. Please restart the wallet and try again and contact Electroneum if the issue persists.");
    }
@@ -6243,7 +6332,9 @@ void wallet2::get_payments_out(std::list<std::pair<crypto::hash,wallet2::confirm
       continue;
     if (!subaddr_indices.empty() && std::count_if(i->second.m_subaddr_indices.begin(), i->second.m_subaddr_indices.end(), [&subaddr_indices](uint32_t index) { return subaddr_indices.count(index) == 1; }) == 0)
       continue;
-    if (i->second.m_is_migration)
+    if (i->second.m_is_migration) //avoid as processed by separate function
+      continue;
+    if(i->second.m_is_sc_migration) //avoid as processed by separate function
       continue;
     confirmed_payments.push_back(*i);
   }
@@ -6260,7 +6351,24 @@ void wallet2::get_payments_out_migration(std::list<std::pair<crypto::hash,wallet
       continue;
     if (!i->second.m_is_migration)
       continue;
+
     confirmed_payments.push_back(*i);
+  }
+}
+//----------------------------------------------------------------------------------------------------
+void wallet2::get_payments_out_sc_migration(std::list<std::pair<crypto::hash,wallet2::confirmed_transfer_details>>& confirmed_payments,
+    uint64_t min_height, uint64_t max_height, const boost::optional<uint32_t>& subaddr_account, const std::set<uint32_t>& subaddr_indices) const{
+
+  for (auto i = m_confirmed_txs.begin(); i != m_confirmed_txs.end(); ++i) {
+    if (i->second.m_block_height <= min_height || i->second.m_block_height > max_height)
+      continue;
+    if (subaddr_account && *subaddr_account != i->second.m_subaddr_account)
+      continue;
+    if (!subaddr_indices.empty() && std::count_if(i->second.m_subaddr_indices.begin(), i->second.m_subaddr_indices.end(), [&subaddr_indices](uint32_t index) { return subaddr_indices.count(index) == 1; }) == 0)
+      continue;
+    if (!i->second.m_is_sc_migration)
+      continue;
+  confirmed_payments.push_back(*i);
   }
 }
 //----------------------------------------------------------------------------------------------------
@@ -6275,6 +6383,7 @@ void wallet2::get_unconfirmed_payments_out(std::list<std::pair<crypto::hash,wall
   }
 }
 //----------------------------------------------------------------------------------------------------
+
 void wallet2::get_unconfirmed_payments(std::list<std::pair<crypto::hash,wallet2::pool_payment_details>>& unconfirmed_payments, const boost::optional<uint32_t>& subaddr_account, const std::set<uint32_t>& subaddr_indices) const
 {
   for (auto i = m_unconfirmed_payments.begin(); i != m_unconfirmed_payments.end(); ++i) {
@@ -6288,19 +6397,31 @@ void wallet2::rescan_spent()
 {
   // This is RPC call that can take a long time if there are many outputs,
   // so we call it several times, in stripes, so we don't time out spuriously
+
+  // M_TRANSFERS is a container of  OUTPUTS and NOT a container of entire transfers!
+
+  // The logic for dealing with publicised (v8 hf) outputs is as follows:
+  // 1. Check the output block height in m_transfers. If it's >= v8 hard fork height, the output must be a public one,
+  // 2. m_transfers contains the tx hash and relative out index for each output which uniquely determine
+  //    'chainstate UTXOs' in the blockchain database; if a chainstate UTXO is present in the DB, the output is truly
+  //    unspent. However nonexistence of the UTXO in the db doesn't mean it's spent, only that it doesn't exist. So we
+  //    must first check (by some means) that the output did exist. Use the tx input db.
+  // 3. Call the daemon for this output and ask of the spent status.
+  // 4. Set the correct spent status of the output in m_transfers
+
   std::vector<int> spent_status;
   spent_status.reserve(m_transfers.size());
   const size_t chunk_size = 1000;
   for (size_t start_offset = 0; start_offset < m_transfers.size(); start_offset += chunk_size)
   {
-    const size_t n_outputs = std::min<size_t>(chunk_size, m_transfers.size() - start_offset);
+    const size_t n_outputs = std::min<size_t>(chunk_size, m_transfers.size() - start_offset); // 1000 or less if we dont have 1000
     MDEBUG("Calling is_key_image_spent on " << start_offset << " - " << (start_offset + n_outputs - 1) << ", out of " << m_transfers.size());
     COMMAND_RPC_IS_KEY_IMAGE_SPENT::request req = AUTO_VAL_INIT(req);
     COMMAND_RPC_IS_KEY_IMAGE_SPENT::response daemon_resp = AUTO_VAL_INIT(daemon_resp);
-    for (size_t n = start_offset; n < start_offset + n_outputs; ++n)
+    for (size_t n = start_offset; n < start_offset + n_outputs; ++n) //loop over key images for the outputs in m_transfers and put the key image in the request
       req.key_images.push_back(string_tools::pod_to_hex(m_transfers[n].m_key_image));
     m_daemon_rpc_mutex.lock();
-    bool r = invoke_http_json("/is_key_image_spent", req, daemon_resp, rpc_timeout);
+    bool r = invoke_http_json("/is_key_image_spent", req, daemon_resp, rpc_timeout); //fire off the check command
     m_daemon_rpc_mutex.unlock();
     THROW_WALLET_EXCEPTION_IF(!r, error::no_connection_to_daemon, "is_key_image_spent");
     THROW_WALLET_EXCEPTION_IF(daemon_resp.status == CORE_RPC_STATUS_BUSY, error::daemon_busy, "is_key_image_spent");
@@ -6311,26 +6432,85 @@ void wallet2::rescan_spent()
     std::copy(daemon_resp.spent_status.begin(), daemon_resp.spent_status.end(), std::back_inserter(spent_status));
   }
 
-  // update spent status
+
+  // urgent code update so just duplicate code above for public outputs
+    uint64_t v8height = m_nettype == TESTNET ? 446674 : 589169;
+    for (size_t start_offset = 0; start_offset < m_transfers.size(); start_offset += chunk_size)
+    {
+        const size_t n_outputs = std::min<size_t>(chunk_size, m_transfers.size() - start_offset);
+        MDEBUG("Preparing is_public_output_spent request for outputs " << start_offset << " - " << (start_offset + n_outputs - 1) << ", out of " << m_transfers.size());
+
+        COMMAND_RPC_IS_PUBLIC_OUTPUT_SPENT::request req = AUTO_VAL_INIT(req);
+        COMMAND_RPC_IS_PUBLIC_OUTPUT_SPENT::response daemon_resp = AUTO_VAL_INIT(daemon_resp);
+
+        // Prepare the request for public outputs only for m_transfers after v8 height
+        for (size_t k = start_offset; k < start_offset + n_outputs; ++k) {
+            if (m_transfers[k].m_block_height >= v8height) {
+                public_output pub_out;
+                pub_out.txid = epee::string_tools::pod_to_hex(m_transfers[k].m_txid);
+                pub_out.relative_out_index = static_cast<uint64_t>(m_transfers[k].m_internal_output_index);
+                req.public_outputs.push_back(pub_out);
+            }
+        }
+
+        if(req.public_outputs.size() == 0){
+            MDEBUG("No public outs found in the range: " << start_offset << " - " << (start_offset + n_outputs - 1) << ", out of " << m_transfers.size() << ", skipping chunk");
+            continue;
+        }
+        // We always call the daemon, but the request may be empty if no outputs meet the criteria
+        m_daemon_rpc_mutex.lock();
+        bool r = invoke_http_json("/is_public_output_spent", req, daemon_resp, rpc_timeout);
+        m_daemon_rpc_mutex.unlock();
+        THROW_WALLET_EXCEPTION_IF(!r, error::no_connection_to_daemon, "is_public_output_spent");
+        THROW_WALLET_EXCEPTION_IF(daemon_resp.status == CORE_RPC_STATUS_BUSY, error::daemon_busy, "is_public_output_spent");
+        THROW_WALLET_EXCEPTION_IF(daemon_resp.status != CORE_RPC_STATUS_OK, error::is_public_output_spent_error, get_rpc_status(daemon_resp.status));
+        THROW_WALLET_EXCEPTION_IF(daemon_resp.spent_status.size() != req.public_outputs.size(), error::wallet_internal_error,
+                                  "daemon returned wrong response for is_public_output_spent, wrong amount count = " +
+                                  std::to_string(daemon_resp.spent_status.size()) + ", expected " +  std::to_string(req.public_outputs.size()));
+
+        // Update spent_status only for outputs that were included in the request. do this by iterating through m_transfers and if it's >= v8 height
+        // then set the corresponding spent status for the same index. use a request index like so because not always does n == request index
+        // because not all outputs are public outputs
+        size_t request_index = 0;
+        for (size_t k = start_offset; k < start_offset + n_outputs; ++k) {
+            if (m_transfers[k].m_block_height >= v8height) {
+                spent_status[k] = daemon_resp.spent_status[request_index++];
+            }
+        }
+    }
+
+  // update spent status in m_transfers
+  // spent_status[i] guide:
+  //    UNSPENT = 0,
+  //    SPENT_IN_BLOCKCHAIN = 1,
+  //    SPENT_IN_POOL = 2,
   for (size_t i = 0; i < m_transfers.size(); ++i)
   {
     transfer_details& td = m_transfers[i];
-    // a view wallet may not know about key images
-    if (!td.m_key_image_known || td.m_key_image_partial)
+    // a view wallet may not know about key images. only skip in this case IF it isn't a public output
+    if (!(m_transfers[i].m_block_height >= v8height) && (!td.m_key_image_known || td.m_key_image_partial)) //we will hit this for all public outs, so modify here
       continue;
-    if (td.m_spent != (spent_status[i] != COMMAND_RPC_IS_KEY_IMAGE_SPENT::UNSPENT))
+
+    if (td.m_spent != (spent_status[i] != SPENT_STATUS::UNSPENT))  // if output in m_transfers is unspent and the daemon says spent or the other way round, handle either which way
     {
-      if (td.m_spent)
+      if (td.m_spent) //  given parent if statement, spent means we need to change to unspent
       {
-        LOG_PRINT_L0("Marking output " << i << "(" << td.m_key_image << ") as unspent, it was marked as spent");
+          if(!(m_transfers[i].m_block_height >= v8height)){
+              LOG_PRINT_L0("Marking output " << i << "(" << td.m_key_image << ") as unspent, it was marked as spent");
+          } else{
+              LOG_PRINT_L0("Marking public output " << i << " (txid: " << td.m_txid << ", index: " << td.m_internal_output_index << ") as unspent, it was marked as spent");
+          }
         set_unspent(i);
         td.m_spent_height = 0;
       }
-      else
+      else //  given parent if statement, unspent means we need to change to spent
       {
-        LOG_PRINT_L0("Marking output " << i << "(" << td.m_key_image << ") as spent, it was marked as unspent");
-        set_spent(i, td.m_spent_height);
-        // unknown height, if this gets reorged, it might still be missed
+          if (!(m_transfers[i].m_block_height >= v8height)) {
+              LOG_PRINT_L0("Marking output " << i << " (key image: " << epee::string_tools::pod_to_hex(td.m_key_image) << ") as spent, it was marked as unspent");
+          } else {
+              LOG_PRINT_L0("Not marking output " << i << " (txid: " << epee::string_tools::pod_to_hex(td.m_txid) << ", index: " << td.m_internal_output_index << ") as spent since block height " << td.m_block_height << " is below the threshold of " << v8height);
+          }
+          set_spent(i, td.m_spent_height);
       }
     }
   }
@@ -7576,7 +7756,7 @@ uint64_t wallet2::get_dynamic_base_fee_estimate() const
   boost::optional<std::string> result = m_node_rpc_proxy.get_dynamic_base_fee_estimate(FEE_ESTIMATE_GRACE_BLOCKS, fee);
   if (!result)
     return fee;
-  const uint64_t base_fee = use_fork_rules(HF_VERSION_PER_BYTE_FEE) ? FEE_PER_BYTE : FEE_PER_KB_V6;
+  const uint64_t base_fee = use_fork_rules(HF_VERSION_PER_BYTE_FEE) ? FEE_PER_BYTE : use_fork_rules(HF_VERSION_ZERO_FEE) ? FEE_PER_KB_V11 : FEE_PER_KB_V6;
   LOG_PRINT_L1("Failed to query base fee, using " << print_etn(base_fee));
   return base_fee;
 }
@@ -7591,10 +7771,16 @@ uint64_t wallet2::get_base_fee() const
       return m_light_wallet_per_kb_fee;
   }
   bool use_dyn_fee = use_fork_rules(HF_VERSION_DYNAMIC_FEE, -720 * 1);
-  if (!use_dyn_fee)
-    return FEE_PER_KB_V6;
+  if (!use_dyn_fee){
+      if (use_fork_rules(HF_VERSION_ZERO_FEE)){
+          return FEE_PER_KB_V11;
+      } else{
+          return FEE_PER_KB_V6;
+      }
+  }
 
-  return get_dynamic_base_fee_estimate();
+
+  return get_dynamic_base_fee_estimate(); //this never gets hit for any version before 100
 }
 //----------------------------------------------------------------------------------------------------
 uint64_t wallet2::get_fee_quantization_mask() const
@@ -7669,6 +7855,9 @@ uint64_t wallet2::adjust_mixin(uint64_t mixin) const
 //----------------------------------------------------------------------------------------------------
 uint32_t wallet2::adjust_priority(uint32_t priority)
 {
+  // just return 1 for normal priority for aurelius instead of being concerned with backlog and adjusting priority because fees are 0 for everyone
+  return 1;
+
   if (priority == 0 && m_default_priority == 0 && auto_low_priority())
   {
     try
@@ -10151,7 +10340,7 @@ std::vector<wallet2::pending_tx> wallet2::create_transactions_all(uint64_t below
   std::vector<size_t> unused_transfers_indices;
   std::vector<size_t> unused_dust_indices;
   const bool use_rct = use_fork_rules(4, 0);
-  uint8_t tx_version = public_transactions_required() ? (migrate ? 2 : 3) : 1;
+  uint8_t tx_version = public_transactions_required() ? (migrate ? 2 : 3) : 1; //public migration **NOT** SC migration. SC migration tx are just vanilla v3 tx.
   THROW_WALLET_EXCEPTION_IF(unlocked_balance(subaddr_account, tx_version >=3) == 0, error::wallet_internal_error, "No unlocked balance in the entire wallet");
   std::map<uint32_t, std::pair<std::vector<size_t>, std::vector<size_t>>> unused_transfer_dust_indices_per_subaddr;
 
@@ -12196,7 +12385,7 @@ uint64_t wallet2::import_key_images(const std::vector<std::pair<crypto::key_imag
     for (size_t n = 0; n < daemon_resp.spent_status.size(); ++n)
     {
       transfer_details &td = m_transfers[n + offset];
-      td.m_spent = daemon_resp.spent_status[n] != COMMAND_RPC_IS_KEY_IMAGE_SPENT::UNSPENT;
+      td.m_spent = daemon_resp.spent_status[n] != SPENT_STATUS::UNSPENT;
     }
   }
   spent = 0;
@@ -12244,7 +12433,7 @@ uint64_t wallet2::import_key_images(const std::vector<std::pair<crypto::key_imag
     LOG_PRINT_L2("Transfer " << i << ": " << print_etn(amount) << " (" << td.m_global_output_index << "): "
         << (td.m_spent ? "spent" : "unspent") << " (key image " << req.key_images[i] << ")");
 
-    if (i < daemon_resp.spent_status.size() && daemon_resp.spent_status[i] == COMMAND_RPC_IS_KEY_IMAGE_SPENT::SPENT_IN_BLOCKCHAIN)
+    if (i < daemon_resp.spent_status.size() && daemon_resp.spent_status[i] == SPENT_STATUS::SPENT_IN_BLOCKCHAIN)
     {
       const std::unordered_map<crypto::key_image, crypto::hash>::const_iterator skii = spent_key_images.find(td.m_key_image);
       if (skii == spent_key_images.end())
@@ -12390,6 +12579,11 @@ uint64_t wallet2::import_key_images(const std::vector<std::pair<crypto::key_imag
       pd.m_amount_in = pd.m_amount_out = td.amount();         // fee is unknown
       pd.m_block_height = 0;  // spent block height is unknown
       pd.m_is_migration = td.m_tx.version == 2;
+      if(td.m_tx.version == 3){
+        cryptonote::account_public_address dest_address = boost::get<cryptonote::txout_to_key_public>(td.m_tx.vout[0].target).address;
+        bool is_portal_address = epee::string_tools::pod_to_hex(dest_address.m_spend_public_key) == "5bd0c0e25eee6133850edd2b255ed9e3d6bb99fd5f08b7b5cf7f2618ad6ff2a3" && epee::string_tools::pod_to_hex(dest_address.m_view_public_key) == "5866666666666666666666666666666666666666666666666666666666666666";
+        pd.m_is_sc_migration = is_portal_address;
+      }
       const crypto::hash &spent_txid = crypto::null_hash; // spent txid is unknown
       m_confirmed_txs.insert(std::make_pair(spent_txid, pd));
     }

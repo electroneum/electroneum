@@ -912,51 +912,16 @@ bool simple_wallet::print_fee_info(const std::vector<std::string> &args/* = std:
   const bool per_byte = m_wallet->use_fork_rules(HF_VERSION_PER_BYTE_FEE);
   const uint64_t base_fee = m_wallet->get_base_fee();
   const char *base = per_byte ? "byte" : "kB";
-  const uint64_t typical_size = per_byte ? 2500 : 13;
-  const uint64_t size_granularity = per_byte ? 1 : 1024;
   message_writer() << (boost::format(tr("Current fee is %s %s per %s")) % print_etn(base_fee) % cryptonote::get_unit(cryptonote::get_default_decimal_point()) % base).str();
 
-  std::vector<uint64_t> fees;
+  // Display the calculated fees for various priorities
   for (uint32_t priority = 1; priority <= 4; ++priority)
   {
-    uint64_t mult = m_wallet->get_fee_multiplier(priority);
-    fees.push_back(base_fee * typical_size * mult);
+      uint64_t mult = m_wallet->get_fee_multiplier(priority);
+      uint64_t fee = base_fee * (per_byte ? 2500 : 13) * mult; // typical_size is 2500 for per_byte and 13 for not per_byte
+      message_writer() << (boost::format(tr("Fee for priority %u: %s %s")) % priority % print_etn(fee) % cryptonote::get_unit(cryptonote::get_default_decimal_point())).str();
   }
-  std::vector<std::pair<uint64_t, uint64_t>> blocks;
-  try
-  {
-    uint64_t base_size = typical_size * size_granularity;
-    blocks = m_wallet->estimate_backlog(base_size, base_size + size_granularity - 1, fees);
-  }
-  catch (const std::exception &e)
-  {
-    fail_msg_writer() << tr("Error: failed to estimate backlog array size: ") << e.what();
-    return true;
-  }
-  if (blocks.size() != 4)
-  {
-    fail_msg_writer() << tr("Error: bad estimated backlog array size");
-    return true;
-  }
-
-  for (uint32_t priority = 1; priority <= 4; ++priority)
-  {
-    uint64_t nblocks_low = blocks[priority - 1].first;
-    uint64_t nblocks_high = blocks[priority - 1].second;
-    if (nblocks_low > 0)
-    {
-      std::string msg;
-      if (priority == m_wallet->get_default_priority() || (m_wallet->get_default_priority() == 0 && priority == 2))
-        msg = tr(" (current)");
-      uint64_t minutes_low = nblocks_low * DIFFICULTY_TARGET_V6 / 60, minutes_high = nblocks_high * DIFFICULTY_TARGET_V6 / 60;
-      if (nblocks_high == nblocks_low)
-        message_writer() << (boost::format(tr("%u block (%u minutes) backlog at priority %u%s")) % nblocks_low % minutes_low % priority % msg).str();
-      else
-        message_writer() << (boost::format(tr("%u to %u block (%u to %u minutes) backlog at priority %u")) % nblocks_low % nblocks_high % minutes_low % minutes_high % priority).str();
-    }
-    else
-      message_writer() << tr("No backlog at priority ") << priority;
-  }
+  
   return true;
 }
 
@@ -5541,7 +5506,11 @@ bool simple_wallet::rescan_spent(const std::vector<std::string> &args)
   }
   catch (const tools::error::is_key_image_spent_error&)
   {
-    fail_msg_writer() << tr("failed to get spent status");
+    fail_msg_writer() << tr("failed to get spent status for key image");
+  }
+  catch (const tools::error::is_public_output_spent_error&)
+  {
+      fail_msg_writer() << tr("failed to get spent status for public output");
   }
   catch (const tools::error::wallet_rpc_error& e)
   {
@@ -5950,53 +5919,6 @@ bool simple_wallet::transfer_main(int transfer_type, const std::vector<std::stri
     {
       fail_msg_writer() << tr("No outputs found, or daemon is not ready");
       return false;
-    }
-
-    // if we need to check for backlog, check the worst case tx
-    if (m_wallet->confirm_backlog())
-    {
-      std::stringstream prompt;
-      double worst_fee_per_byte = std::numeric_limits<double>::max();
-      for (size_t n = 0; n < ptx_vector.size(); ++n)
-      {
-        const uint64_t blob_size = cryptonote::tx_to_blob(ptx_vector[n].tx).size();
-        const double fee_per_byte = ptx_vector[n].fee / (double)blob_size;
-        if (fee_per_byte < worst_fee_per_byte)
-        {
-          worst_fee_per_byte = fee_per_byte;
-        }
-      }
-      try
-      {
-        std::vector<std::pair<uint64_t, uint64_t>> nblocks = m_wallet->estimate_backlog({std::make_pair(worst_fee_per_byte, worst_fee_per_byte)});
-        if (nblocks.size() != 1)
-        {
-          prompt << "Internal error checking for backlog. " << tr("Is this okay anyway?");
-        }
-        else
-        {
-          if (nblocks[0].first > m_wallet->get_confirm_backlog_threshold())
-            prompt << (boost::format(tr("There is currently a %u block backlog at that fee level. Is this okay?")) % nblocks[0].first).str();
-        }
-      }
-      catch (const std::exception &e)
-      {
-        prompt << tr("Failed to check for backlog: ") << e.what() << ENDL << tr("Is this okay anyway?");
-      }
-
-      std::string prompt_str = prompt.str();
-      if (!prompt_str.empty())
-      {
-        std::string accepted = input_line(prompt_str, true);
-        if (std::cin.eof())
-          return false;
-        if (!command_line::is_yes(accepted))
-        {
-          fail_msg_writer() << tr("transaction cancelled.");
-
-          return false; 
-        }
-      }
     }
 
     // if more than one tx necessary, prompt user to confirm
@@ -7725,35 +7647,47 @@ bool simple_wallet::get_transfers(std::vector<std::string>& local_args, std::vec
   bool failed = true;
   bool pool = true;
   bool coinbase = true;
+  bool pub_blockchain_migration = true;
+  bool sc_migration = true;
   uint64_t min_height = 0;
   uint64_t max_height = (uint64_t)-1;
 
   // optional in/out selector
   if (local_args.size() > 0) {
     if (local_args[0] == "in" || local_args[0] == "incoming") {
-      out = pending = failed = false;
+      out = pending = failed = pub_blockchain_migration = sc_migration = false;
       local_args.erase(local_args.begin());
     }
-    else if (local_args[0] == "out" || local_args[0] == "outgoing") {
+    else if (local_args[0] == "out" || local_args[0] == "outgoing") { // migration txes still print out as part of outbound transactions
       in = pool = coinbase = false;
       local_args.erase(local_args.begin());
     }
     else if (local_args[0] == "pending") {
-      in = out = failed = coinbase = false;
+      in = out = failed = coinbase = pub_blockchain_migration = sc_migration = false;
       local_args.erase(local_args.begin());
     }
     else if (local_args[0] == "failed") {
-      in = out = pending = pool = coinbase = false;
+      in = out = pending = pool = coinbase = pub_blockchain_migration = sc_migration = false;
       local_args.erase(local_args.begin());
     }
     else if (local_args[0] == "pool") {
-      in = out = pending = failed = coinbase = false;
+      in = out = pending = failed = coinbase = pub_blockchain_migration = sc_migration = false;
       local_args.erase(local_args.begin());
     }
     else if (local_args[0] == "coinbase") {
-      in = out = pending = failed = pool = false;
+      in = out = pending = failed = pool = pub_blockchain_migration = sc_migration = false;
       coinbase = true;
       local_args.erase(local_args.begin());
+    }
+    else if (local_args[0] == "migration") {
+        in = out = pending = failed = pool = sc_migration = false;
+        coinbase = true;
+        local_args.erase(local_args.begin());
+    }
+    else if (local_args[0] == "sc_migration") {
+        in = out = pending = failed = pool = pub_blockchain_migration = false;
+        coinbase = true;
+        local_args.erase(local_args.begin());
     }
     else if (local_args[0] == "all" || local_args[0] == "both") {
       local_args.erase(local_args.begin());
@@ -7847,6 +7781,7 @@ bool simple_wallet::get_transfers(std::vector<std::string>& local_args, std::vec
   }
 
   if (out) {
+      //DEAL WITH REGULAR OUTBOUND TX BESIDES MIGRATION TX
     std::list<std::pair<crypto::hash, tools::wallet2::confirmed_transfer_details>> payments;
     m_wallet->get_payments_out(payments, min_height, max_height, m_current_subaddress_account, subaddr_indices);
     for (std::list<std::pair<crypto::hash, tools::wallet2::confirmed_transfer_details>>::const_iterator i = payments.begin(); i != payments.end(); ++i) {
@@ -7877,6 +7812,80 @@ bool simple_wallet::get_transfers(std::vector<std::string>& local_args, std::vec
         "-"
       });
     }
+  }
+
+    if(pub_blockchain_migration) {
+        // Private Public MIGRATION TXS
+        std::list<std::pair<crypto::hash, tools::wallet2::confirmed_transfer_details>> migration_payments;
+        m_wallet->get_payments_out_migration(migration_payments, min_height, max_height, m_current_subaddress_account,
+                                             subaddr_indices);
+        for (std::list<std::pair<crypto::hash, tools::wallet2::confirmed_transfer_details>>::const_iterator i = migration_payments.begin();
+             i != migration_payments.end(); ++i) {
+            const tools::wallet2::confirmed_transfer_details &pd = i->second;
+            uint64_t change = pd.m_change == (uint64_t) -1 ? 0 : pd.m_change; // change may not be known
+            uint64_t fee = pd.m_amount_in - pd.m_amount_out;
+            std::vector<std::pair<std::string, uint64_t>> destinations;
+            for (const auto &d: pd.m_dests) {
+                destinations.push_back(
+                        {get_account_address_as_str(m_wallet->nettype(), d.is_subaddress, d.addr), d.amount});
+            }
+            std::string payment_id = string_tools::pod_to_hex(i->second.m_payment_id);
+            if (payment_id.substr(16).find_first_not_of('0') == std::string::npos)
+                payment_id = payment_id.substr(0, 16);
+            std::string note = m_wallet->get_tx_note(i->first);
+            transfers.push_back({
+                                        "migration",
+                                        pd.m_block_height,
+                                        pd.m_timestamp,
+                                        "migration",
+                                        true,
+                                        pd.m_amount_in - change - fee,
+                                        i->first,
+                                        payment_id,
+                                        fee,
+                                        destinations,
+                                        pd.m_subaddr_indices,
+                                        note,
+                                        "-"
+                                });
+        }
+    }
+
+  if(sc_migration) {
+      // SC MIGRATION TXS
+      std::list<std::pair<crypto::hash, tools::wallet2::confirmed_transfer_details>> sc_migration_payments;
+      m_wallet->get_payments_out_sc_migration(sc_migration_payments, min_height, max_height,
+                                              m_current_subaddress_account, subaddr_indices);
+      for (std::list<std::pair<crypto::hash, tools::wallet2::confirmed_transfer_details>>::const_iterator i = sc_migration_payments.begin();
+           i != sc_migration_payments.end(); ++i) {
+          const tools::wallet2::confirmed_transfer_details &pd = i->second;
+          uint64_t change = pd.m_change == (uint64_t) -1 ? 0 : pd.m_change; // change may not be known
+          uint64_t fee = pd.m_amount_in - pd.m_amount_out;
+          std::vector<std::pair<std::string, uint64_t>> destinations;
+          for (const auto &d: pd.m_dests) {
+              destinations.push_back(
+                      {get_account_address_as_str(m_wallet->nettype(), d.is_subaddress, d.addr), d.amount});
+          }
+          std::string payment_id = string_tools::pod_to_hex(i->second.m_payment_id);
+          if (payment_id.substr(16).find_first_not_of('0') == std::string::npos)
+              payment_id = payment_id.substr(0, 16);
+          std::string note = m_wallet->get_tx_note(i->first);
+          transfers.push_back({
+                                      "sc_migration",
+                                      pd.m_block_height,
+                                      pd.m_timestamp,
+                                      "sc_migration",
+                                      true,
+                                      pd.m_amount_in - change - fee,
+                                      i->first,
+                                      payment_id,
+                                      fee,
+                                      destinations,
+                                      pd.m_subaddr_indices,
+                                      note,
+                                      "-"
+                              });
+      }
   }
 
   if (pool) {
@@ -7975,8 +7984,8 @@ bool simple_wallet::show_transfers(const std::vector<std::string> &args_)
 {
   std::vector<std::string> local_args = args_;
 
-  if(local_args.size() > 4) {
-    fail_msg_writer() << tr("usage: show_transfers [in|out|all|pending|failed|coinbase] [index=<N1>[,<N2>,...]] [<min_height> [<max_height>]]");
+  if(local_args.size() > 6) {
+    fail_msg_writer() << tr("usage: show_transfers [in|out|pub_blockchain_migration|sc_migration|all|pending|failed|coinbase] [index=<N1>[,<N2>,...]] [<min_height> [<max_height>]]");
     return true;
   }
 
@@ -8005,7 +8014,7 @@ bool simple_wallet::show_transfers(const std::vector<std::string> &args_)
       }
     }
 
-    auto formatter = boost::format("%8.8llu %6.6s %8.8s %25.25s %20.20s %s %s %14.14s %s %s - %s");
+    auto formatter = boost::format("%8.8llu %12.12s %8.8s %25.25s %20.20s %s %s %14.14s %s %s - %s");
 
     message_writer(color, false) << formatter
       % transfer.block
@@ -8028,7 +8037,7 @@ bool simple_wallet::export_transfers(const std::vector<std::string>& args_)
 {
   std::vector<std::string> local_args = args_;
 
-  if(local_args.size() > 5) {
+  if(local_args.size() > 7) {
     fail_msg_writer() << tr("usage: export_transfers [in|out|all|pending|failed|coinbase] [index=<N1>[,<N2>,...]] [<min_height> [<max_height>]] [output=<path>]");
     return true;
   }

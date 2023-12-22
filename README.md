@@ -3,6 +3,10 @@
 </p>
 <h4 align="center">Electroneum is a Fast, Secure, Mobile Based Cryptocurrency </h4>
 
+| :warning: WARNING                                                                                                                                                                                                                                                                   |
+|:------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| This project is the legacy version of Electroneum. Electroneum has since migrated over to a new smart contract enabled blockchain: https://github.com/electroneum/electroneum-sc. For details on how to migrate your ETN, please see: [Smartchain-Migration](#Smartchain-Migration) |
+
 ## Table of Contents
 
  * [Development Resources](#Development-Resources)
@@ -12,6 +16,7 @@
    * [Daemon RPC Documentation](docs/daemon-rpc-documentation.md)
    * [Wallet RPC Documentation](docs/wallet-rpc-documentation.md)
    * [Exchange Listing Guide](docs/exchange-listing-guide.md)
+   * [Smartchain Migration](#Smartchain-Migration)
  * [Vulnerability Response Process](#Vulnerability-Response-Process)
  * [License](#License)
  * [Copyright](#Copyright)
@@ -28,13 +33,14 @@ See [Build & Run Documentation](docs/build-and-run.md).
 
 ## Software Releases and Pre-compiled Downloads
 
-| Hard Fork upgrade height | Date       | Fork version | Minimum Electroneum version | Recommended Electroneum version | Name of Release | Details                                                                                                                                                                                                                                         |
-| ------------------------------ | -----------| ----------------- | ---------------------- | --------------------------|-----------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| 307500                         | 2018-05-30 | v6                | v2.0.0.0              | v2.0.0.0                  | Spark           | Disable Mixin, Disable RingCT, Base Fee to 0.10 from 0.01, 120s Block Time, Anti-Asic Resistance                                                                                                                                                |
-| 324500                         | 2018-07-05 | v7                | v2.1.0.0              | v2.1.0.0                  | Bolt            | Enable ASIC                                                                                                                                                                                                                                     |
-| 589169                         | 2019-07-08 | v8                | v3.0.0.0              | v3.0.0.0                  | Pulse           | Migration to our next generation moderated blockchain with Proof of Responsbility. 300kB Blocks : Increased TPS. Improved Unlock Time (5 Blocks), Many Security Improvements, HackerOne Fixes, Reduced Block Reward By 75% (A Double Halvening) |
-| 862866                         | 2020-07-22 | v9                | v3.3.0.0              | v3.3.0.0                  | Wave            | Block Reward reduction and future halving scheduling (halving every 4 years, minimum 50etn until max supply. 25etn emission per block after reaching max supply).                                                                               
-| 1175315                        | 2021-09-30 | v10               | v4.0.0.0              | v4.0.0.0                  | Aurora          | Migration to a transparent blockchain with permissioned validation                                                                                                                                                                              |             
+| Hard Fork upgrade height | Date       | Fork version     | Minimum Electroneum version    | Recommended Electroneum version    | Name of Release               | Details                                                                                                                                                                                                                                        |
+|--------------------------|------------|------------------|--------------------------------|------------------------------------|-------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| 307500                   | 2018-05-30 | v6               | v2.0.0.0                       | v2.0.0.0                           | Spark                         | Disable Mixin, Disable RingCT, Base Fee to 0.10 from 0.01, 120s Block Time, Anti-Asic Resistance                                                                                                                                               |
+| 324500                   | 2018-07-05 | v7               | v2.1.0.0                       | v2.1.0.0                           | Bolt                          | Enable ASIC                                                                                                                                                                                                                                    |
+| 589169                   | 2019-07-08 | v8               | v3.0.0.0                       | v3.0.0.0                           | Pulse                         | Migration to our next generation moderated blockchain with Proof of Responsbility. 300kB Blocks : Increased TPS. Improved Unlock Time (5 Blocks), Many Security Improvements, HackerOne Fixes, Reduced Block Reward By 75% (A Double Halvening) |
+| 862866                   | 2020-07-22 | v9               | v3.3.0.0                       | v3.3.0.0                           | Wave                          | Block Reward reduction and future halving scheduling (halving every 4 years, minimum 50etn until max supply. 25etn emission per block after reaching max supply).                                                                              
+| 1175315                  | 2021-09-30 | v10              | v4.0.0.0                       | v4.0.0.0                           | Aurora                        | Migration to a transparent blockchain with permissioned validation                                                                                                                                                                             |             
+| 1811310                  | 2024-03-05 | v11              | v5.0.0.0                       | v5.0.0.0                           | Flow (Final Version)          | Bridge to the Electroneum Smart chain (github.com/electroneum/electroneum-sc)                                                                                                                                                                  |
 
 X's indicate that these details have not been determined as of commit date.
 
@@ -49,6 +55,27 @@ See [Build & Run Documentation](docs/build-and-run.md).
 * [Daemon RPC Documentation](docs/daemon-rpc-documentation.md)
 * [Wallet RPC Documentation](docs/wallet-rpc-documentation.md)
 * [Exchange Listing Guide](docs/exchange-listing-guide.md)
+
+## Smartchain Migration
+
+Please see our  [gitbook documentation](https://developer.electroneum.com/)
+which explains how to migrate your ETN over to the Electroneum Smartchain.
+
+Some technical information about how the bridge address was created can be found below:
+```
+
+The bridge address spendkey is generated by doing Hash_to_point(genesis block hash).
+This ensures that the bridge address is essentially a burn address for which there is no known private key. This means that nobody can access the funds, even Electroneum Ltd.
+The same logic has been used for a coinbase burn address (hash_to_point(hash of v9 fork block: 1175315 )), which the remaining validators for this project will mine to after the Electroneum Flow fork block, meaning that the circulating supply can be considered frozen at the final fork block.
+This is required for continuity in the circulating supply when we migrate to the smartchain.
+
+The bridge address for the mainnet and testnet is:
+```etnk6XD4xkmgsajaYyDD7SGsB93Ff6iUN2TaAaqageGkKj2yB1mtd5wJ8QgRfFWTzmJ8QgRfFWTzmJ8QgRfFWTzm4t51KXZBNg```
+
+The coinbase burn address for the mainnet and testnet is:
+```etnkCys4uGhSi9h48ajL9vBDJTcn2s2ttXtXq3SXWPAbiMHNhHitu5fJ8QgRfFWTzmJ8QgRfFWTzmJ8QgRfFWTzm4t51HTfCtK```
+
+```
 
 # Vulnerability Response Process
 
