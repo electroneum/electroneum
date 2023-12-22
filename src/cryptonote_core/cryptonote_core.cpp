@@ -1086,7 +1086,7 @@ namespace cryptonote
     get_inputs_etn_amount(tx, amount_in);
     uint64_t amount_out = get_outs_etn_amount(tx);
     // fees are 0 for all tx versions after the v11 hard vork
-      if(m_blockchain_storage.get_current_blockchain_height() > ((m_nettype == MAINNET ? 10000000 : 1455270))) {
+      if(m_blockchain_storage.get_current_blockchain_height() > ((m_nettype == MAINNET ? 1811310 : 1455270))) {
           if(amount_in != amount_out){
 
               MERROR_VER("tx on hardfork 11 (aurelius) sent with out zero fee: ins " << amount_in << ", outs " << amount_out << ", rejected for tx id= "

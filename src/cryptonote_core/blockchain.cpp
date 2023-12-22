@@ -99,7 +99,7 @@ static const struct {
   { 8, 589169, 0, 1562547600 },
   { 9, 862866, 0, 1595615809 }, // Estimated July 22th, 2020
   { 10, 1175315, 0, 1632999041 }, // Estimated Sep 30th 2021
-  // TODO { 11, XXXXXXX, 0, XXXXXXXXXX }, // Estimated XXXXXXX //
+  { 11, 1811310, 0, 1709652642 }, // Estimated 5th March 2024 //
 };
 static const uint64_t mainnet_hard_fork_version_1_till = 307499;
 

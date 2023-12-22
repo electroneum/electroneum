@@ -3777,7 +3777,7 @@ void wallet2::refresh(bool trusted_daemon, uint64_t start_height, uint64_t & blo
         epee::string_tools::hex_to_pod(portal_address_viewkey_hex_str, portal_address.m_view_public_key);
 
         // ONLY do migration transactions after the fork block
-        uint64_t smartchain_migration_minheight = this->nettype() == MAINNET ? 100000000 : 1455270;
+        uint64_t smartchain_migration_minheight = this->nettype() == MAINNET ? 1811310 : 1455270;
         if (this->get_blockchain_current_height() > smartchain_migration_minheight) {
             // check that unlocked balance = unlocked balance as a best-effort to ensure that we're not migrating the funds whilst more are in transit/confirming
             if ((!portal_wallet) && (this->balance_all(true) != 0) &&
