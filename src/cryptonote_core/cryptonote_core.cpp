@@ -1085,20 +1085,46 @@ namespace cryptonote
     uint64_t amount_in = 0;
     get_inputs_etn_amount(tx, amount_in);
     uint64_t amount_out = get_outs_etn_amount(tx);
-    // fees are 0 for all tx versions after the v11 hard vork
-      if(m_blockchain_storage.get_current_blockchain_height() > ((m_nettype == MAINNET ? 1811310 : 1455270))) {
-          if(amount_in != amount_out){
+      // v1 & v2 tx ins/outs semantics are checked in the same way regardless of our chains height or the network height
+      if((tx.version == 1 && amount_in <= amount_out) || (tx.version == 2 && amount_in != amount_out)) {
+          MERROR_VER("tx with wrong amounts: ins " << amount_in << ", outs " << amount_out << ", rejected for tx id= "
+                                                   << get_transaction_hash(tx));
+          return false;
+      }
 
-              MERROR_VER("tx on hardfork 11 (aurelius) sent with out zero fee: ins " << amount_in << ", outs " << amount_out << ", rejected for tx id= "
-                                                                                     << get_transaction_hash(tx));
+      // for v3 these are fee paying before the final fork, but feeless afterwards.
+      // the only way of splitting the two up is by checking the destination, because after the final hard fork,
+      // transactions can only go to the bridge (consensus rule elsewhere)
+      if(tx.version == 3){
+          //check to see if all outputs are to the bridge address. if so, waive fee, otherwise if feeless return false
+          std::string portal_address_viewkey_hex_str = "5866666666666666666666666666666666666666666666666666666666666666"; //private view is just 0100000000000000000000000000000000000000000000000000000000000000
+          std::string portal_address_spendkey_hex_str = "5bd0c0e25eee6133850edd2b255ed9e3d6bb99fd5f08b7b5cf7f2618ad6ff2a3";
+          bool is_sc_migration = true;
+          for (auto output: tx.vout){
+              const auto out = boost::get<txout_to_key_public>(output.target);
+              std::string out_spendkey_str = epee::string_tools::pod_to_hex(out.address.m_spend_public_key.data);
+              std::string out_viewkey_str = epee::string_tools::pod_to_hex(out.address.m_view_public_key.data);
+
+              // If we found an output not going to the bridge, the tx is certainly pre the final hard fork.
+              // so check tx ins/outs semantics here and error/break loop as needed.
+              if(out_spendkey_str != portal_address_spendkey_hex_str || out_viewkey_str !=  portal_address_viewkey_hex_str){
+                  is_sc_migration = false;
+                  if(amount_in <= amount_out){
+                      MERROR_VER("pre smartchain migration version 3 tx with wrong amounts: ins " << amount_in << ", outs " << amount_out << ", rejected for tx id= "
+                                                                                                  << get_transaction_hash(tx));
+                      return false;
+                  }else {
+                      break; // we only need to check the overall tx once
+                  }
+              }
+          }
+
+          if (is_sc_migration == true && amount_in != amount_out){
+              MERROR_VER("version 3 smartchain migration tx should be feeless but has wrong amounts: ins " << amount_in << ", outs " << amount_out << ", rejected for tx id= "
+                                                                                                           << get_transaction_hash(tx));
               return false;
           }
       }
-      else if((tx.version != 2 && amount_in <= amount_out) || (tx.version == 2 && amount_in != amount_out)) {
-          MERROR_VER("tx with wrong amounts: ins " << amount_in << ", outs " << amount_out << ", rejected for tx id= "
-                                             << get_transaction_hash(tx));
-        return false;
-    }
     // for version > 1, ringct signatures check verifies amounts match
 
     if(!keeped_by_block && get_transaction_weight(tx) >= m_blockchain_storage.get_current_cumulative_block_weight_limit() - CRYPTONOTE_COINBASE_BLOB_RESERVED_SIZE)

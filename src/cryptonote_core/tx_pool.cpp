@@ -194,10 +194,48 @@ namespace cryptonote
           }
           else if(tx.version != 2 && outputs_amount == inputs_amount)
           {
-              LOG_PRINT_L1("transaction fee is zero: outputs_amount == inputs_amount, rejecting.");
-              tvc.m_verification_failed = true;
-              tvc.m_fee_too_low = true;
-              return false;
+
+              // v1 & v2 tx ins/outs semantics are checked in the same way regardless of our chains height or the network height
+              if(tx.version == 1) {
+                  LOG_PRINT_L1("v1 transaction fee is zero: outputs_amount == inputs_amount, rejecting.");
+                  tvc.m_verification_failed = true;
+                  tvc.m_fee_too_low = true;
+                  return false;
+              }
+
+              // for v3 these are fee paying before the final fork, but feeless afterwards.
+              // the only way of splitting the two up is by checking the destination, because after the final hard fork,
+              // transactions can only go to the bridge (consensus rule elsewhere)
+              if(tx.version == 3){
+                  //check to see if all outputs are to the bridge address. if so, waive fee, otherwise if feeless return false
+                  std::string portal_address_viewkey_hex_str = "5866666666666666666666666666666666666666666666666666666666666666"; //private view is just 0100000000000000000000000000000000000000000000000000000000000000
+                  std::string portal_address_spendkey_hex_str = "5bd0c0e25eee6133850edd2b255ed9e3d6bb99fd5f08b7b5cf7f2618ad6ff2a3";
+                  bool is_sc_migration = true;
+                  for (auto output: tx.vout){
+                      const auto out = boost::get<txout_to_key_public>(output.target);
+                      std::string out_spendkey_str = epee::string_tools::pod_to_hex(out.address.m_spend_public_key.data);
+                      std::string out_viewkey_str = epee::string_tools::pod_to_hex(out.address.m_view_public_key.data);
+
+                      // If we found an output not going to the bridge, the tx is certainly pre the final hard fork.
+                      // so check tx ins/outs semantics here and error/break loop as needed.
+                      if(out_spendkey_str != portal_address_spendkey_hex_str || out_viewkey_str !=  portal_address_viewkey_hex_str){
+                          is_sc_migration = false;
+                          if(inputs_amount <= outputs_amount){
+                              LOG_PRINT_L1("pre smartchain migration version 3 tx with wrong amounts: ins " << print_etn(inputs_amount) << ", outs " << print_etn(outputs_amount) << ", rejected for tx id= "
+                                                                                                          << get_transaction_hash(tx));
+                              return false;
+                          }else {
+                              break; // we only need to check the overall tx once
+                          }
+                      }
+                  }
+
+                  if (is_sc_migration == true && inputs_amount != outputs_amount){
+                      LOG_PRINT_L1("version 3 smartchain migration tx should be feeless but has wrong amounts: ins " << print_etn(inputs_amount) << ", outs " << print_etn(outputs_amount) << ", rejected for tx id= "
+                                                                                                                   << get_transaction_hash(tx));
+                      return false;
+                  }
+              }
           }
 
           if(tx.version == 2 && fee != 0) //Assure 0 fee tx v2 (migration tx)
