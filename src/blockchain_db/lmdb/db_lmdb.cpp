@@ -1490,6 +1490,9 @@ void BlockchainLMDB::open(const std::string& filename, const int db_flags)
   lmdb_db_open(txn, LMDB_UTXOS, MDB_CREATE, m_utxos, "Failed to open db handle for m_utxos");
   lmdb_db_open(txn, LMDB_ADDR_OUTPUTS, MDB_CREATE | MDB_DUPSORT | MDB_DUPFIXED, m_addr_outputs, "Failed to open db handle for m_addr_outputs");
   lmdb_db_open(txn, LMDB_ADDR_TXS, MDB_CREATE | MDB_DUPSORT | MDB_DUPFIXED, m_addr_txs, "Failed to open db handle for m_addr_txs");
+  if(db_flags & DBF_ADDR_TX_SALVAGE) {
+    mdb_drop(txn, m_addr_txs, 0);
+  }
   lmdb_db_open(txn, LMDB_TX_INPUTS, MDB_CREATE, m_tx_inputs, "Failed to open db handle for m_tx_inputs");
   lmdb_db_open(txn, LMDB_PROPERTIES, MDB_CREATE, m_properties, "Failed to open db handle for m_properties");
 
@@ -2366,7 +2369,7 @@ void BlockchainLMDB::remove_addr_tx(const crypto::hash tx_hash, const crypto::pu
     check_open();
     mdb_txn_cursors *m_cursors = &m_wcursors;
 
-    CURSOR(addr_outputs)
+    CURSOR(addr_txs)
 
     int result = 0;
 
