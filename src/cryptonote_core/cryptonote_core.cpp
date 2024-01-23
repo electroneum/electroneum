@@ -513,6 +513,7 @@ namespace cryptonote
     std::string db_type = command_line::get_arg(vm, cryptonote::arg_db_type);
     std::string db_sync_mode = command_line::get_arg(vm, cryptonote::arg_db_sync_mode);
     bool db_salvage = command_line::get_arg(vm, cryptonote::arg_db_salvage) != 0;
+    bool addr_db_salvage = command_line::get_arg(vm, cryptonote::arg_addr_db_salvage) != 0;
     bool fast_sync = command_line::get_arg(vm, arg_fast_block_sync) != 0;
     uint64_t blocks_threads = command_line::get_arg(vm, arg_prep_blocks_threads);
     std::string check_updates_string = command_line::get_arg(vm, arg_check_updates);
@@ -651,6 +652,9 @@ namespace cryptonote
 
       if (db_salvage)
         db_flags |= DBF_SALVAGE;
+
+      if(addr_db_salvage)
+        db_flags |= DBF_ADDR_TX_SALVAGE;
 
       db->open(filename, db_flags);
       if(!db->m_open)
@@ -1087,41 +1091,34 @@ namespace cryptonote
     uint64_t amount_out = get_outs_etn_amount(tx);
       // v1 & v2 tx ins/outs semantics are checked in the same way regardless of our chains height or the network height
       if((tx.version == 1 && amount_in <= amount_out) || (tx.version == 2 && amount_in != amount_out)) {
-          MERROR_VER("tx with wrong amounts: ins " << amount_in << ", outs " << amount_out << ", rejected for tx id= "
+
+          MERROR_VER("V" << tx.version << " tx with wrong amounts: ins " << amount_in << ", outs " << amount_out << ", rejected for tx id= "
                                                    << get_transaction_hash(tx));
           return false;
       }
 
-      // for v3 these are fee paying before the final fork, but feeless afterwards.
-      // the only way of splitting the two up is by checking the destination, because after the final hard fork,
-      // transactions can only go to the bridge (consensus rule elsewhere)
-      if(tx.version == 3){
-          //check to see if all outputs are to the bridge address. if so, waive fee, otherwise if feeless return false
+      if (tx.version == 3) {
+          // if we find a single output that isn't to the bridge, ensure it's a fee paying tx, then carry with other semantic checks
+          bool only_bridge_dests = true;
           std::string portal_address_viewkey_hex_str = "5866666666666666666666666666666666666666666666666666666666666666"; //private view is just 0100000000000000000000000000000000000000000000000000000000000000
           std::string portal_address_spendkey_hex_str = "5bd0c0e25eee6133850edd2b255ed9e3d6bb99fd5f08b7b5cf7f2618ad6ff2a3";
-          bool is_sc_migration = true;
           for (auto output: tx.vout){
               const auto out = boost::get<txout_to_key_public>(output.target);
               std::string out_spendkey_str = epee::string_tools::pod_to_hex(out.address.m_spend_public_key.data);
               std::string out_viewkey_str = epee::string_tools::pod_to_hex(out.address.m_view_public_key.data);
-
-              // If we found an output not going to the bridge, the tx is certainly pre the final hard fork.
-              // so check tx ins/outs semantics here and error/break loop as needed.
               if(out_spendkey_str != portal_address_spendkey_hex_str || out_viewkey_str !=  portal_address_viewkey_hex_str){
-                  is_sc_migration = false;
+                  only_bridge_dests = false;
                   if(amount_in <= amount_out){
-                      MERROR_VER("pre smartchain migration version 3 tx with wrong amounts: ins " << amount_in << ", outs " << amount_out << ", rejected for tx id= "
+                      MERROR_VER("v3 tx with some outs not going to the bridge should be fee paying: ins " << amount_in << ", outs " << amount_out << ", rejected for tx id= "
                                                                                                   << get_transaction_hash(tx));
                       return false;
-                  }else {
-                      break; // we only need to check the overall tx once
                   }
+                  break;
               }
           }
-
-          if (is_sc_migration == true && amount_in != amount_out){
-              MERROR_VER("version 3 smartchain migration tx should be feeless but has wrong amounts: ins " << amount_in << ", outs " << amount_out << ", rejected for tx id= "
-                                                                                                           << get_transaction_hash(tx));
+          if (only_bridge_dests && amount_in < amount_out){ // allow both fee paying (pre fork) and feeless (post fork)
+              MERROR_VER("v3 sc_migration tx has wrong amounts: ins " << amount_in << ", outs " << amount_out << ", rejected for tx id= "
+                                                                                                   << get_transaction_hash(tx));
               return false;
           }
       }

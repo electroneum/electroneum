@@ -109,6 +109,7 @@ typedef std::pair<crypto::hash, uint64_t> tx_out_index;
 extern const command_line::arg_descriptor<std::string> arg_db_type;
 extern const command_line::arg_descriptor<std::string> arg_db_sync_mode;
 extern const command_line::arg_descriptor<bool, false> arg_db_salvage;
+extern const command_line::arg_descriptor<bool, false> arg_addr_db_salvage;
 
 #pragma pack(push, 1)
 
@@ -188,6 +189,7 @@ struct tx_input_t
 #define DBF_FASTEST    4
 #define DBF_RDONLY     8
 #define DBF_SALVAGE 0x10
+#define DBF_ADDR_TX_SALVAGE 0x20
 
 /***********************************
  * Exception Definitions

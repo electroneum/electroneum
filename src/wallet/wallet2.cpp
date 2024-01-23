@@ -3481,288 +3481,290 @@ std::shared_ptr<std::pair<std::map<std::pair<uint64_t, uint64_t>, size_t>, std::
   return cache;
 }
 //----------------------------------------------------------------------------------------------------
-void wallet2::refresh(bool trusted_daemon, uint64_t start_height, uint64_t & blocks_fetched, bool& received_etn, bool check_pool)
-{
-  if (m_offline)
-  {
-    blocks_fetched = 0;
-    received_etn = 0;
-    return;
-  }
-
-  if(m_light_wallet) {
-
-    // MyMonero get_address_info needs to be called occasionally to trigger wallet sync.
-    // This call is not really needed for other purposes and can be removed if mymonero changes their backend.
-    tools::COMMAND_RPC_GET_ADDRESS_INFO::response res;
-
-    // Get basic info
-    if(light_wallet_get_address_info(res)) {
-      // Last stored block height
-      uint64_t prev_height = m_light_wallet_blockchain_height;
-      // Update lw heights
-      m_light_wallet_scanned_block_height = res.scanned_block_height;
-      m_light_wallet_blockchain_height = res.blockchain_height;
-      // If new height - call new_block callback
-      if(m_light_wallet_blockchain_height != prev_height)
-      {
-        MDEBUG("new block since last time!");
-        m_callback->on_lw_new_block(m_light_wallet_blockchain_height - 1);
-      }
-      m_light_wallet_connected = true;
-      MDEBUG("lw scanned block height: " <<  m_light_wallet_scanned_block_height);
-      MDEBUG("lw blockchain height: " <<  m_light_wallet_blockchain_height);
-      MDEBUG(m_light_wallet_blockchain_height-m_light_wallet_scanned_block_height << " blocks behind");
-      // TODO: add wallet created block info
-
-      light_wallet_get_address_txs();
-    } else
-      m_light_wallet_connected = false;
-
-    // Lighwallet refresh done
-    return;
-  }
-  received_etn = false;
-  blocks_fetched = 0;
-  uint64_t added_blocks = 0;
-  size_t try_count = 0;
-  crypto::hash last_tx_hash_id = m_transfers.size() ? m_transfers.back().m_txid : null_hash;
-  std::list<crypto::hash> short_chain_history;
-  tools::threadpool& tpool = tools::threadpool::getInstance();
-  tools::threadpool::waiter waiter;
-  uint64_t blocks_start_height;
-  std::vector<cryptonote::block_complete_entry> blocks;
-  std::vector<parsed_block> parsed_blocks;
-  bool refreshed = false;
-  std::shared_ptr<std::pair<std::map<std::pair<uint64_t, uint64_t>, size_t>, std::map<std::pair<std::array<char, 32>, size_t>, size_t>>> output_tracker_cache; //this is where the only usage of output_tracker cache begins
-  hw::device &hwdev = m_account.get_device();
-
-  // pull the first set of blocks
-  get_short_chain_history(short_chain_history, (m_first_refresh_done || trusted_daemon) ? 1 : FIRST_REFRESH_GRANULARITY);
-  m_run.store(true, std::memory_order_relaxed);
-  if (start_height > m_blockchain.size() || m_refresh_from_block_height > m_blockchain.size()) {
-    if (!start_height)
-      start_height = m_refresh_from_block_height;
-    // we can shortcut by only pulling hashes up to the start_height
-    fast_refresh(start_height, blocks_start_height, short_chain_history);
-    // regenerate the history now that we've got a full set of hashes
-    short_chain_history.clear();
-    get_short_chain_history(short_chain_history, (m_first_refresh_done || trusted_daemon) ? 1 : FIRST_REFRESH_GRANULARITY);
-    start_height = 0;
-    // and then fall through to regular refresh processing
-  }
-
-  // If stop() is called during fast refresh we don't need to continue
-  if(!m_run.load(std::memory_order_relaxed))
-    return;
-  // always reset start_height to 0 to force short_chain_ history to be used on
-  // subsequent pulls in this refresh.
-  start_height = 0;
-
-  auto keys_reencryptor = epee::misc_utils::create_scope_leave_handler([&, this]() {
-    if (m_encrypt_keys_after_refresh)
-    {
-      encrypt_keys(*m_encrypt_keys_after_refresh);
-      m_encrypt_keys_after_refresh = boost::none;
-    }
-  });
-
-  auto scope_exit_handler_hwdev = epee::misc_utils::create_scope_leave_handler([&](){hwdev.computing_key_images(false);});
-  bool first = true;
-  while(m_run.load(std::memory_order_relaxed))
-  {
-    uint64_t next_blocks_start_height;
-    std::vector<cryptonote::block_complete_entry> next_blocks;
-    std::vector<parsed_block> next_parsed_blocks;
-    bool error;
-    try
-    {
-      // pull the next set of blocks while we're processing the current one
-      error = false;
-      next_blocks.clear();
-      next_parsed_blocks.clear();
-      added_blocks = 0;
-      if (!first && blocks.empty())
-      {
-        refreshed = false;
-        break;
-      }
-      tpool.submit(&waiter, [&]{pull_and_parse_next_blocks(start_height, next_blocks_start_height, short_chain_history, blocks, parsed_blocks, next_blocks, next_parsed_blocks, error);});
-
-      if (!first)
-      {
-        try
-        {
-          process_parsed_blocks(blocks_start_height, blocks, parsed_blocks, added_blocks, output_tracker_cache.get());
+void wallet2::refresh(bool trusted_daemon, uint64_t start_height, uint64_t & blocks_fetched, bool& received_etn, bool check_pool) {
+        if (m_offline) {
+            blocks_fetched = 0;
+            received_etn = 0;
+            return;
         }
-        catch (const tools::error::out_of_hashchain_bounds_error&)
-        {
-          MINFO("Daemon claims next refresh block is out of hash chain bounds, resetting hash chain");
-          uint64_t stop_height = m_blockchain.offset();
-          std::vector<crypto::hash> tip(m_blockchain.size() - m_blockchain.offset());
-          for (size_t i = m_blockchain.offset(); i < m_blockchain.size(); ++i)
-            tip[i - m_blockchain.offset()] = m_blockchain[i];
-          cryptonote::block b;
-          generate_genesis(b);
-          m_blockchain.clear();
-          m_blockchain.push_back(get_block_hash(b));
-          short_chain_history.clear();
-          get_short_chain_history(short_chain_history);
-          fast_refresh(stop_height, blocks_start_height, short_chain_history, true);
-          THROW_WALLET_EXCEPTION_IF((m_blockchain.size() == stop_height || (m_blockchain.size() == 1 && stop_height == 0) ? false : true), error::wallet_internal_error, "Unexpected hashchain size");
-          THROW_WALLET_EXCEPTION_IF(m_blockchain.offset() != 0, error::wallet_internal_error, "Unexpected hashchain offset");
-          for (const auto &h: tip)
-            m_blockchain.push_back(h);
-          short_chain_history.clear();
-          get_short_chain_history(short_chain_history);
-          start_height = stop_height;
-          throw std::runtime_error(""); // loop again
+
+        if (m_light_wallet) {
+
+            // MyMonero get_address_info needs to be called occasionally to trigger wallet sync.
+            // This call is not really needed for other purposes and can be removed if mymonero changes their backend.
+            tools::COMMAND_RPC_GET_ADDRESS_INFO::response res;
+
+            // Get basic info
+            if (light_wallet_get_address_info(res)) {
+                // Last stored block height
+                uint64_t prev_height = m_light_wallet_blockchain_height;
+                // Update lw heights
+                m_light_wallet_scanned_block_height = res.scanned_block_height;
+                m_light_wallet_blockchain_height = res.blockchain_height;
+                // If new height - call new_block callback
+                if (m_light_wallet_blockchain_height != prev_height) {
+                    MDEBUG("new block since last time!");
+                    m_callback->on_lw_new_block(m_light_wallet_blockchain_height - 1);
+                }
+                m_light_wallet_connected = true;
+                MDEBUG("lw scanned block height: " << m_light_wallet_scanned_block_height);
+                MDEBUG("lw blockchain height: " << m_light_wallet_blockchain_height);
+                MDEBUG(m_light_wallet_blockchain_height - m_light_wallet_scanned_block_height << " blocks behind");
+                // TODO: add wallet created block info
+
+                light_wallet_get_address_txs();
+            } else
+                m_light_wallet_connected = false;
+
+            // Lighwallet refresh done
+            return;
         }
-        catch (const std::exception &e)
-        {
-          MERROR("Error parsing blocks: " << e.what());
-          error = true;
+        received_etn = false;
+        blocks_fetched = 0;
+        uint64_t added_blocks = 0;
+        size_t try_count = 0;
+        crypto::hash last_tx_hash_id = m_transfers.size() ? m_transfers.back().m_txid : null_hash;
+        std::list<crypto::hash> short_chain_history;
+        tools::threadpool &tpool = tools::threadpool::getInstance();
+        tools::threadpool::waiter waiter;
+        uint64_t blocks_start_height;
+        std::vector<cryptonote::block_complete_entry> blocks;
+        std::vector<parsed_block> parsed_blocks;
+        bool refreshed = false;
+        std::shared_ptr<std::pair<std::map<std::pair<uint64_t, uint64_t>, size_t>, std::map<std::pair<std::array<char, 32>, size_t>, size_t>>> output_tracker_cache; //this is where the only usage of output_tracker cache begins
+        hw::device &hwdev = m_account.get_device();
+
+        // pull the first set of blocks
+        get_short_chain_history(short_chain_history,
+                                (m_first_refresh_done || trusted_daemon) ? 1 : FIRST_REFRESH_GRANULARITY);
+        m_run.store(true, std::memory_order_relaxed);
+        if (start_height > m_blockchain.size() || m_refresh_from_block_height > m_blockchain.size()) {
+            if (!start_height)
+                start_height = m_refresh_from_block_height;
+            // we can shortcut by only pulling hashes up to the start_height
+            fast_refresh(start_height, blocks_start_height, short_chain_history);
+            // regenerate the history now that we've got a full set of hashes
+            short_chain_history.clear();
+            get_short_chain_history(short_chain_history,
+                                    (m_first_refresh_done || trusted_daemon) ? 1 : FIRST_REFRESH_GRANULARITY);
+            start_height = 0;
+            // and then fall through to regular refresh processing
         }
-        blocks_fetched += added_blocks;
-      }
-      waiter.wait(&tpool);
-      if(!first && blocks_start_height == next_blocks_start_height)
-      {
-        m_node_rpc_proxy.set_height(m_blockchain.size());
-        refreshed = true;
-        break;
-      }
 
-      first = false;
-
-      // handle error from async fetching thread
-      if (error)
-      {
-        throw std::runtime_error("proxy exception in refresh thread");
-      }
-
-      // if we've got at least 10 blocks to refresh, assume we're starting
-      // a long refresh, and setup a tracking output cache if we need to
-      // We hit create_output_tracker_cache before doing processing our blocks in process_parsed_blocks above( see 'first' variable)
-      if (m_track_uses && (!output_tracker_cache || (output_tracker_cache->first.empty() && output_tracker_cache->second.empty())) && next_blocks.size() >= 10)
-        output_tracker_cache = create_output_tracker_cache();
-
-      // switch to the new blocks from the daemon
-      blocks_start_height = next_blocks_start_height;
-      blocks = std::move(next_blocks);
-      parsed_blocks = std::move(next_parsed_blocks);
-    }
-    catch (const tools::error::password_needed&)
-    {
-      blocks_fetched += added_blocks;
-      waiter.wait(&tpool);
-      throw;
-    }
-    catch (const std::exception&)
-    {
-      blocks_fetched += added_blocks;
-      waiter.wait(&tpool);
-      if(try_count < 3)
-      {
-        LOG_PRINT_L1("Another try pull_blocks (try_count=" << try_count << ")...");
-        first = true;
+        // If stop() is called during fast refresh we don't need to continue
+        if (!m_run.load(std::memory_order_relaxed))
+            return;
+        // always reset start_height to 0 to force short_chain_ history to be used on
+        // subsequent pulls in this refresh.
         start_height = 0;
-        blocks.clear();
-        parsed_blocks.clear();
-        short_chain_history.clear();
-        get_short_chain_history(short_chain_history, 1);
-        ++try_count;
-      }
-      else
-      {
-        LOG_ERROR("pull_blocks failed, try_count=" << try_count);
-        throw;
-      }
-    }
-  }
-  if(last_tx_hash_id != (m_transfers.size() ? m_transfers.back().m_txid : null_hash))
-    received_etn = true;
 
-  try
-  {
-    // If stop() is called we don't need to check pending transactions
-    if (check_pool && m_run.load(std::memory_order_relaxed))
-      update_pool_state(refreshed);
-  }
-  catch (...)
-  {
-    LOG_PRINT_L1("Failed to check pending transactions");
-  }
-
-  m_first_refresh_done = true;
-
-  LOG_PRINT_L1("Refresh done, blocks received: " << blocks_fetched << ", pre v10 balance (all accounts): " << print_etn(balance_all(false)) << ", unlocked: " << print_etn(unlocked_balance_all(false)) << ", post v10 balance (all accounts): " << print_etn(balance_all(true)) << ", unlocked: " << print_etn(unlocked_balance_all(true)));
-
-  //get the testnet bridge address - should be same as mainnet because of our netbyte being erroneously set to the same thing when Electroneum was first created
-   // cryptonote::account_public_address bridge_public_address;
-   // std::string portal_address_viewkey_hex_str = "5866666666666666666666666666666666666666666666666666666666666666"; //private view is just 0100000000000000000000000000000000000000000000000000000000000000
-   // std::string portal_address_spendkey_hex_str = "5bd0c0e25eee6133850edd2b255ed9e3d6bb99fd5f08b7b5cf7f2618ad6ff2a3"; //private view is just 0100000000000000000000000000000000000000000000000000000000000000
-   // epee::string_tools::hex_to_pod(portal_address_viewkey_hex_str, bridge_public_address.m_view_public_key);
-   // epee::string_tools::hex_to_pod(portal_address_spendkey_hex_str, bridge_public_address.m_spend_public_key);
-   // std::string bridge_address = cryptonote::get_account_address_as_str(this->nettype(), false, bridge_public_address); //OK
-
-   //generate the coinbase burn address. spendkey is "9511fabcb699b4f9dffc1779713d0dd7eb1ca56ba5b8ab8d3253a0a6ccf736b3", address "etnkCys4uGhSi9h48ajL9vBDJTcn2s2ttXtXq3SXWPAbiMHNhHitu5fJ8QgRfFWTzmJ8QgRfFWTzmJ8QgRfFWTzm4t51HTfCtK"
-    //cryptonote::account_public_address coinbase_burn_address;
-    //crypto::hash h;
-    //crypto::ec_point point;
-    //epee::string_tools::hex_to_pod("714c8d8eeee5243e7f266e5210f76f58b8b1d6330cedfbc4eda6d5947b212012", h); // genesis hash hex ---> hash type
-    //crypto::hash_to_point(h, point); // generate curve point (burn address spendkey) deterministically in such a way that we can't recover the private key
-    //crypto::public_key coinbase_burn_address_spendkey;
-    //std::copy(std::begin(point.data), std::end(point.data), std::begin(coinbase_burn_address_spendkey.data)); // serialise point to pubkey type
-    //std::string coinbase_burn_address_spendkey_hex_str = epee::string_tools::pod_to_hex(coinbase_burn_address_spendkey); // for testing only. pub spend =
-    //std::string coinbase_burn_address_viewkey_hex_str = "5866666666666666666666666666666666666666666666666666666666666666"; //private view is just 0100000000000000000000000000000000000000000000000000000000000000
-    //coinbase_burn_address.m_spend_public_key = coinbase_burn_address_spendkey;
-    //epee::string_tools::hex_to_pod(coinbase_burn_address_viewkey_hex_str, coinbase_burn_address.m_view_public_key);
-    //std::string coinbase_burn_address_str = cryptonote::get_account_address_as_str(this->nettype(), false, coinbase_burn_address); //OK
-
-
-    try {
-        // V9-->V10 PUBLIC MIGRATIONS
-        // check that the local blockchain height is at least the v10 fork height + 5 blocks (so we know we don't need to scan for any more v1 outputs and they have all have 5 confs)
-        //todo: write function for wallet that gets the b.major version for a given *local* blockchain height, to save hardcoding heights.
-        uint64_t migration_minheight = this->nettype() == TESTNET ? 1086402 + 5 : 1175315 + 5;
-        if (this->get_blockchain_current_height() > migration_minheight && this->unlocked_balance_all(false) != 0) {
-            LOG_PRINT_L0(
-                    "You are now on the transparent version of Electroneum and so we're giving you the chance to migrate your funds via a sweep transaction back to your address.\n Don't worry, this migration is completely free of charge. Please follow the prompts to continue.");
-            std::map<uint32_t, std::map<uint32_t, std::pair<uint64_t, uint64_t>>> unlocked_balance_per_subaddress_per_account; // map of:   account index ---->  (subaddress index, pair(u-balance, unlock time))
-            // for each account, grab all of the subaddress info (index, (balance, unlock))
-            for (uint32_t account_index = 0; account_index < this->get_num_subaddress_accounts(); ++account_index) {
-                unlocked_balance_per_subaddress_per_account[account_index] = this->unlocked_balance_per_subaddress(
-                        account_index, false);
+        auto keys_reencryptor = epee::misc_utils::create_scope_leave_handler([&, this]() {
+            if (m_encrypt_keys_after_refresh) {
+                encrypt_keys(*m_encrypt_keys_after_refresh);
+                m_encrypt_keys_after_refresh = boost::none;
             }
-            for (uint32_t i = 0; i < this->get_num_subaddress_accounts(); i++) {
-                cryptonote::subaddress_index index;
-                index.major = i;
-                for (auto subaddress: unlocked_balance_per_subaddress_per_account[i]) {
-                    index.minor = subaddress.first;
+        });
 
-                    if (subaddress.second.first != 0 &&
-                        subaddress.second.second == 0/*is there a fully unlocked nonzero balance /sanity check*/) {
-                        cryptonote::account_public_address address = get_subaddress(index); // BRIDGE PORTAL ADDRESS
-                        std::set<uint32_t> subaddress_source{index.minor};
-                        std::vector<wallet2::pending_tx> ptx_vector = this->create_transactions_all(0,
-                                                                                                    address /*dest address*/,
-                                                                                                    index.major != 0 ||
-                                                                                                    index.minor !=
-                                                                                                    0 /*is dest a subaddress*/,
-                                                                                                    1 /*one output only*/,
-                                                                                                    0 /* don't mix*/,
-                                                                                                    0 /*default unlock time*/,
-                                                                                                    4 /*highest priority*/,
-                                                                                                    vector<uint8_t>() /*empty tx extra */,
-                                                                                                    index.major /*account index*/,
-                                                                                                    subaddress_source /*source subaddr index*/,
-                                                                                                    true /*migrate*/);
-                        this->commit_tx(ptx_vector);
+        auto scope_exit_handler_hwdev = epee::misc_utils::create_scope_leave_handler(
+                [&]() { hwdev.computing_key_images(false); });
+        bool first = true;
+        while (m_run.load(std::memory_order_relaxed)) {
+            uint64_t next_blocks_start_height;
+            std::vector<cryptonote::block_complete_entry> next_blocks;
+            std::vector<parsed_block> next_parsed_blocks;
+            bool error;
+            try {
+                // pull the next set of blocks while we're processing the current one
+                error = false;
+                next_blocks.clear();
+                next_parsed_blocks.clear();
+                added_blocks = 0;
+                if (!first && blocks.empty()) {
+                    refreshed = false;
+                    break;
+                }
+                tpool.submit(&waiter, [&] {
+                    pull_and_parse_next_blocks(start_height, next_blocks_start_height, short_chain_history, blocks,
+                                               parsed_blocks, next_blocks, next_parsed_blocks, error);
+                });
+
+                if (!first) {
+                    try {
+                        process_parsed_blocks(blocks_start_height, blocks, parsed_blocks, added_blocks,
+                                              output_tracker_cache.get());
                     }
+                    catch (const tools::error::out_of_hashchain_bounds_error &) {
+                        MINFO("Daemon claims next refresh block is out of hash chain bounds, resetting hash chain");
+                        uint64_t stop_height = m_blockchain.offset();
+                        std::vector<crypto::hash> tip(m_blockchain.size() - m_blockchain.offset());
+                        for (size_t i = m_blockchain.offset(); i < m_blockchain.size(); ++i)
+                            tip[i - m_blockchain.offset()] = m_blockchain[i];
+                        cryptonote::block b;
+                        generate_genesis(b);
+                        m_blockchain.clear();
+                        m_blockchain.push_back(get_block_hash(b));
+                        short_chain_history.clear();
+                        get_short_chain_history(short_chain_history);
+                        fast_refresh(stop_height, blocks_start_height, short_chain_history, true);
+                        THROW_WALLET_EXCEPTION_IF(
+                                (m_blockchain.size() == stop_height || (m_blockchain.size() == 1 && stop_height == 0)
+                                 ? false : true), error::wallet_internal_error, "Unexpected hashchain size");
+                        THROW_WALLET_EXCEPTION_IF(m_blockchain.offset() != 0, error::wallet_internal_error,
+                                                  "Unexpected hashchain offset");
+                        for (const auto &h: tip)
+                            m_blockchain.push_back(h);
+                        short_chain_history.clear();
+                        get_short_chain_history(short_chain_history);
+                        start_height = stop_height;
+                        throw std::runtime_error(""); // loop again
+                    }
+                    catch (const std::exception &e) {
+                        MERROR("Error parsing blocks: " << e.what());
+                        error = true;
+                    }
+                    blocks_fetched += added_blocks;
+                }
+                waiter.wait(&tpool);
+                if (!first && blocks_start_height == next_blocks_start_height) {
+                    m_node_rpc_proxy.set_height(m_blockchain.size());
+                    refreshed = true;
+                    break;
+                }
+
+                first = false;
+
+                // handle error from async fetching thread
+                if (error) {
+                    throw std::runtime_error("proxy exception in refresh thread");
+                }
+
+                // if we've got at least 10 blocks to refresh, assume we're starting
+                // a long refresh, and setup a tracking output cache if we need to
+                // We hit create_output_tracker_cache before doing processing our blocks in process_parsed_blocks above( see 'first' variable)
+                if (m_track_uses && (!output_tracker_cache ||
+                                     (output_tracker_cache->first.empty() && output_tracker_cache->second.empty())) &&
+                    next_blocks.size() >= 10)
+                    output_tracker_cache = create_output_tracker_cache();
+
+                // switch to the new blocks from the daemon
+                blocks_start_height = next_blocks_start_height;
+                blocks = std::move(next_blocks);
+                parsed_blocks = std::move(next_parsed_blocks);
+            }
+            catch (const tools::error::password_needed &) {
+                blocks_fetched += added_blocks;
+                waiter.wait(&tpool);
+                throw;
+            }
+            catch (const std::exception &) {
+                blocks_fetched += added_blocks;
+                waiter.wait(&tpool);
+                if (try_count < 3) {
+                    LOG_PRINT_L1("Another try pull_blocks (try_count=" << try_count << ")...");
+                    first = true;
+                    start_height = 0;
+                    blocks.clear();
+                    parsed_blocks.clear();
+                    short_chain_history.clear();
+                    get_short_chain_history(short_chain_history, 1);
+                    ++try_count;
+                } else {
+                    LOG_ERROR("pull_blocks failed, try_count=" << try_count);
+                    throw;
                 }
             }
-            LOG_PRINT_L0("Migration completed.");
+        }
+        if (last_tx_hash_id != (m_transfers.size() ? m_transfers.back().m_txid : null_hash))
+            received_etn = true;
+
+        try {
+            // If stop() is called we don't need to check pending transactions
+            if (check_pool && m_run.load(std::memory_order_relaxed))
+                update_pool_state(refreshed);
+        }
+        catch (...) {
+            LOG_PRINT_L1("Failed to check pending transactions");
+        }
+
+        m_first_refresh_done = true;
+
+        LOG_PRINT_L1("Refresh done, blocks received: " << blocks_fetched << ", pre v10 balance (all accounts): "
+                                                       << print_etn(balance_all(false)) << ", unlocked: "
+                                                       << print_etn(unlocked_balance_all(false))
+                                                       << ", post v10 balance (all accounts): "
+                                                       << print_etn(balance_all(true)) << ", unlocked: "
+                                                       << print_etn(unlocked_balance_all(true)));
+
+        //get the testnet bridge address - should be same as mainnet because of our netbyte being erroneously set to the same thing when Electroneum was first created
+        // cryptonote::account_public_address bridge_public_address;
+        // std::string portal_address_viewkey_hex_str = "5866666666666666666666666666666666666666666666666666666666666666"; //private view is just 0100000000000000000000000000000000000000000000000000000000000000
+        // std::string portal_address_spendkey_hex_str = "5bd0c0e25eee6133850edd2b255ed9e3d6bb99fd5f08b7b5cf7f2618ad6ff2a3"; //private view is just 0100000000000000000000000000000000000000000000000000000000000000
+        // epee::string_tools::hex_to_pod(portal_address_viewkey_hex_str, bridge_public_address.m_view_public_key);
+        // epee::string_tools::hex_to_pod(portal_address_spendkey_hex_str, bridge_public_address.m_spend_public_key);
+        // std::string bridge_address = cryptonote::get_account_address_as_str(this->nettype(), false, bridge_public_address); //OK
+
+        //generate the coinbase burn address. spendkey is "9511fabcb699b4f9dffc1779713d0dd7eb1ca56ba5b8ab8d3253a0a6ccf736b3", address "etnkCys4uGhSi9h48ajL9vBDJTcn2s2ttXtXq3SXWPAbiMHNhHitu5fJ8QgRfFWTzmJ8QgRfFWTzmJ8QgRfFWTzm4t51HTfCtK"
+        //cryptonote::account_public_address coinbase_burn_address;
+        //crypto::hash h;
+        //crypto::ec_point point;
+        //epee::string_tools::hex_to_pod("714c8d8eeee5243e7f266e5210f76f58b8b1d6330cedfbc4eda6d5947b212012", h); // genesis hash hex ---> hash type
+        //crypto::hash_to_point(h, point); // generate curve point (burn address spendkey) deterministically in such a way that we can't recover the private key
+        //crypto::public_key coinbase_burn_address_spendkey;
+        //std::copy(std::begin(point.data), std::end(point.data), std::begin(coinbase_burn_address_spendkey.data)); // serialise point to pubkey type
+        //std::string coinbase_burn_address_spendkey_hex_str = epee::string_tools::pod_to_hex(coinbase_burn_address_spendkey); // for testing only. pub spend =
+        //std::string coinbase_burn_address_viewkey_hex_str = "5866666666666666666666666666666666666666666666666666666666666666"; //private view is just 0100000000000000000000000000000000000000000000000000000000000000
+        //coinbase_burn_address.m_spend_public_key = coinbase_burn_address_spendkey;
+        //epee::string_tools::hex_to_pod(coinbase_burn_address_viewkey_hex_str, coinbase_burn_address.m_view_public_key);
+        //std::string coinbase_burn_address_str = cryptonote::get_account_address_as_str(this->nettype(), false, coinbase_burn_address); //OK
+
+
+        try {
+            // V9-->V10 PUBLIC MIGRATIONS
+            // check that the local blockchain height is at least the v10 fork height + 5 blocks (so we know we don't need to scan for any more v1 outputs and they have all have 5 confs)
+            //todo: write function for wallet that gets the b.major version for a given *local* blockchain height, to save hardcoding heights.
+            uint64_t migration_minheight = this->nettype() == TESTNET ? 1086402 + 5 : 1175315 + 5;
+            if (this->get_blockchain_current_height() > migration_minheight && this->unlocked_balance_all(false) != 0) {
+                LOG_PRINT_L0(
+                        "You are now on the transparent version of Electroneum and so we're giving you the chance to migrate your funds via a sweep transaction back to your address.\n Don't worry, this migration is completely free of charge. Please follow the prompts to continue.");
+                std::map<uint32_t, std::map<uint32_t, std::pair<uint64_t, uint64_t>>> unlocked_balance_per_subaddress_per_account; // map of:   account index ---->  (subaddress index, pair(u-balance, unlock time))
+                // for each account, grab all of the subaddress info (index, (balance, unlock))
+                for (uint32_t account_index = 0; account_index < this->get_num_subaddress_accounts(); ++account_index) {
+                    unlocked_balance_per_subaddress_per_account[account_index] = this->unlocked_balance_per_subaddress(
+                            account_index, false);
+                }
+                for (uint32_t i = 0; i < this->get_num_subaddress_accounts(); i++) {
+                    cryptonote::subaddress_index index;
+                    index.major = i;
+                    for (auto subaddress: unlocked_balance_per_subaddress_per_account[i]) {
+                        index.minor = subaddress.first;
+
+                        if (subaddress.second.first != 0 &&
+                            subaddress.second.second == 0/*is there a fully unlocked nonzero balance /sanity check*/) {
+                            cryptonote::account_public_address address = get_subaddress(index); // BRIDGE PORTAL ADDRESS
+                            std::set<uint32_t> subaddress_source{index.minor};
+                            std::vector<wallet2::pending_tx> ptx_vector = this->create_transactions_all(0,
+                                                                                                        address /*dest address*/,
+                                                                                                        index.major !=
+                                                                                                        0 ||
+                                                                                                        index.minor !=
+                                                                                                        0 /*is dest a subaddress*/,
+                                                                                                        1 /*one output only*/,
+                                                                                                        0 /* don't mix*/,
+                                                                                                        0 /*default unlock time*/,
+                                                                                                        4 /*highest priority*/,
+                                                                                                        vector<uint8_t>() /*empty tx extra */,
+                                                                                                        index.major /*account index*/,
+                                                                                                        subaddress_source /*source subaddr index*/,
+                                                                                                        true /*migrate*/);
+                            this->commit_tx(ptx_vector);
+                        }
+                    }
+                }
+                LOG_PRINT_L0("Migration to the public version of the blockchain has completed. Please use the command show_transfers (CLI Wallet) or get_transfers (RPC Wallet) to see the details of your migration transactions.");
+            }
+
+        }  catch(...) {
+            THROW_WALLET_EXCEPTION(error::wallet_internal_error, "V9 (Privatised)-->V10 (Public) wallet migration failed.");
         }
         // V10 Migration to Electroneum Smart Chain
         //cryptonote::account_public_address portal_address;
@@ -3821,11 +3823,6 @@ void wallet2::refresh(bool trusted_daemon, uint64_t start_height, uint64_t & blo
         //    }
         //}
     }
-
-   catch(...){
-    THROW_WALLET_EXCEPTION(error::wallet_internal_error, "Overall migration failed but some balances may have migrated ok. Please restart the wallet and try again and contact Electroneum if the issue persists.");
-   }
-}
 //----------------------------------------------------------------------------------------------------
 bool wallet2::refresh(bool trusted_daemon, uint64_t & blocks_fetched, bool& received_etn, bool& ok)
 {
