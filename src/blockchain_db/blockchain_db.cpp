@@ -98,6 +98,12 @@ const command_line::arg_descriptor<bool> arg_db_salvage  = {
 , false
 };
 
+const command_line::arg_descriptor<bool> arg_addr_db_salvage  = {
+  "addr-db-salvage"
+, "Try to salvage a addr tx database if it seems corrupted"
+, false
+};
+
 BlockchainDB *new_db(const std::string& db_type)
 {
   if (db_type == "lmdb")
@@ -114,6 +120,7 @@ void BlockchainDB::init_options(boost::program_options::options_description& des
   command_line::add_arg(desc, arg_db_type);
   command_line::add_arg(desc, arg_db_sync_mode);
   command_line::add_arg(desc, arg_db_salvage);
+  command_line::add_arg(desc, arg_addr_db_salvage);
 }
 
 void BlockchainDB::pop_block()
@@ -361,8 +368,8 @@ void BlockchainDB::remove_transaction(const crypto::hash& tx_hash)
       remove_tx_input(txin.tx_hash, txin.relative_offset);
 
 
-      if(addr_tx_addresses.find(txout.address) != addr_tx_addresses.end()){
-          remove_addr_tx(tx.hash, addKeys(txout.address.m_view_public_key, txout.address.m_spend_public_key));
+      if(addr_tx_addresses.find(txout.address) == addr_tx_addresses.end()){
+          remove_addr_tx(txin.tx_hash, addKeys(txout.address.m_view_public_key, txout.address.m_spend_public_key));
           addr_tx_addresses.insert(txout.address);
       }
     }
@@ -374,12 +381,12 @@ void BlockchainDB::remove_transaction(const crypto::hash& tx_hash)
     {
       const auto &txout = boost::get<txout_to_key_public>(tx.vout[i].target);
 
-      remove_chainstate_utxo(tx.hash, i);
+      remove_chainstate_utxo(tx_hash, i);
       remove_addr_output(tx_hash, i, addKeys(txout.address.m_view_public_key, txout.address.m_spend_public_key), tx.vout[i].amount, tx.unlock_time);
 
       // remove addr tx entries for outputs involving addr that weren't used for ins
-      if(addr_tx_addresses.find(txout.address) != addr_tx_addresses.end()){
-          remove_addr_tx(tx.hash, addKeys(txout.address.m_view_public_key, txout.address.m_spend_public_key));
+      if(addr_tx_addresses.find(txout.address) == addr_tx_addresses.end()){
+          remove_addr_tx(tx_hash, addKeys(txout.address.m_view_public_key, txout.address.m_spend_public_key));
           addr_tx_addresses.insert(txout.address);
       }
     }

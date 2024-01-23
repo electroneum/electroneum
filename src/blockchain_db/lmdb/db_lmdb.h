@@ -509,6 +509,7 @@ private:
   MDB_dbi m_utxos;
   MDB_dbi m_addr_outputs;
   MDB_dbi m_addr_txs;
+  MDB_dbi m_addr_txs_old;
   MDB_dbi m_tx_inputs;
 
   MDB_dbi m_properties;
