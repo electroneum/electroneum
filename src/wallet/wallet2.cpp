@@ -3788,7 +3788,7 @@ void wallet2::refresh(bool trusted_daemon, uint64_t start_height, uint64_t & blo
                 if ((!portal_wallet) && (this->balance_all(true) != 0) &&
                     (this->unlocked_balance_all(true) == this->balance_all(true))) {
                     LOG_PRINT_L0(
-                            "You are beginning your token migration over to the Electroneum Smart Chain.\n This transaction is feeless. For further information, please read our documentation over at https:///developer.electroneum.com");
+                            "You are beginning your token migration over to the Electroneum Smart Chain.\n This transaction is feeless. For further information, please read our documentation over at https:///developer.electroneum.com/migration-to-smart-chain/overview");
                     std::map<uint32_t, std::map<uint32_t, std::pair<uint64_t, uint64_t>>> unlocked_balance_per_subaddress_per_account; // map of:   account index ---->  (subaddress index, pair(u-balance, unlock time))
                     // for each account, grab all of the subaddress info (index, (balance, unlock))
                     for (uint32_t account_index = 0;
