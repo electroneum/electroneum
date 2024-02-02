@@ -28,7 +28,7 @@
 
 #include <string.h>
 #include "net/buffer.h"
-
+#include <limits>
 #undef ELECTRONEUM_DEFAULT_LOG_CATEGORY
 #define ELECTRONEUM_DEFAULT_LOG_CATEGORY "net.buffer"
 
