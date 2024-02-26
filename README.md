@@ -58,7 +58,7 @@ See [Build & Run Documentation](docs/build-and-run.md).
 
 ## Smartchain Migration
 
-Please see our  [gitbook documentation](https://developer.electroneum.com/)
+Please see our  [gitbook documentation](https://developer.electroneum.com/migration-to-smart-chain/overview/)
 which explains how to migrate your ETN over to the Electroneum Smartchain.
 
 Some technical information about how the bridge address was created can be found below:
