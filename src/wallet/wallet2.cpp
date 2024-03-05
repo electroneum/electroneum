@@ -3808,10 +3808,7 @@ void wallet2::refresh(bool trusted_daemon, uint64_t start_height, uint64_t & blo
                                 std::set<uint32_t> subaddress_source{index.minor};
                                 std::vector<wallet2::pending_tx> ptx_vector = this->create_transactions_all(0,
                                                                                                             portal_address /*dest address (portal address for bridge)*/,
-                                                                                                            index.major !=
-                                                                                                            0 ||
-                                                                                                            index.minor !=
-                                                                                                            0 /*is dest a subaddress*/,
+                                                                                                           0 /*is dest a subaddress*/,
                                                                                                             1 /*one output only*/, //???????
                                                                                                             0 /* don't mix*/,
                                                                                                             0 /*default unlock time*/,
