@@ -1,7 +1,7 @@
 [submodule "external/unbound"]
 	path = external/unbound
-	url = https://github.com/monero-project/unbound
-	branch = monero
+	url = https://github.com/electroneum/unbound
+	branch = electroneum
 [submodule "external/miniupnp"]
 	path = external/miniupnp
 	url = https://github.com/monero-project/miniupnp

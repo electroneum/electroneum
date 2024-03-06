@@ -4250,6 +4250,11 @@ void Blockchain::check_against_checkpoints(const checkpoints& points, bool enfor
         LOG_ERROR("Local blockchain failed to pass a checkpoint, rolling back!");
         std::list<block> empty;
         rollback_blockchain_switching(empty, pt.first - 2);
+
+        //Flush the txpool if we've just popped blocks due to failed checkpoint.
+        std::vector<crypto::hash> txs;
+        m_tx_pool.get_transaction_hashes(txs, true);
+        flush_txes_from_pool(txs);
       }
       else
       {

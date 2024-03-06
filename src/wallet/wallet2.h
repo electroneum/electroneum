@@ -411,9 +411,9 @@ private:
         confirmed_transfer_details(const unconfirmed_transfer_details &utd, uint64_t height):
                 m_amount_in(utd.m_amount_in), m_amount_out(utd.m_amount_out), m_change(utd.m_change), m_block_height(height), m_dests(utd.m_dests), m_payment_id(utd.m_payment_id), m_timestamp(utd.m_timestamp), m_unlock_time(utd.m_tx.unlock_time), m_subaddr_account(utd.m_subaddr_account), m_subaddr_indices(utd.m_subaddr_indices), m_rings(utd.m_rings), m_is_migration(utd.m_tx.version == 2),
                 m_is_sc_migration(std::any_of(utd.m_dests.begin(), utd.m_dests.end(), [](
-                        cryptonote::tx_destination_entry dest) {
-                    return epee::string_tools::pod_to_hex(dest.addr.m_spend_public_key) == "5bd0c0e25eee6133850edd2b255ed9e3d6bb99fd5f08b7b5cf7f2618ad6ff2a3"
-                           && epee::string_tools::pod_to_hex(dest.addr.m_view_public_key) == "5866666666666666666666666666666666666666666666666666666666666666";
+                        cryptonote::tx_destination_entry dest) { // Nb one or the other = workaround to save messing with this struct/nettype. Old bridge addr wont be used on revised mainnet anyway
+                    return (epee::string_tools::pod_to_hex(dest.addr.m_spend_public_key) == "5bd0c0e25eee6133850edd2b255ed9e3d6bb99fd5f08b7b5cf7f2618ad6ff2a3" && epee::string_tools::pod_to_hex(dest.addr.m_view_public_key) == "5866666666666666666666666666666666666666666666666666666666666666")
+                     || (epee::string_tools::pod_to_hex(dest.addr.m_spend_public_key) == "8ce0f34fd37c7f7d07c44024eb5b3cdf275d1b3e75c3464b808dce532e861137" && epee::string_tools::pod_to_hex(dest.addr.m_view_public_key) == "2b95a2eb2c62253c57e82b082b850bbf22a1a7829aaea09c7c1511c1cced4375");
                 })) {}
     };
 
