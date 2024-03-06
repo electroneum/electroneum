@@ -2646,9 +2646,18 @@ void wallet2::process_outgoing(const crypto::hash &txid, const cryptonote::trans
   entry.first->second.m_is_migration = tx.version == 2;
 
   // is tx going to the portal address? check the first output's dest...
- if(tx.version == 3){
-   cryptonote::account_public_address dest_address = boost::get<cryptonote::txout_to_key_public>(tx.vout[0].target).address;
-   bool is_portal_address = epee::string_tools::pod_to_hex(dest_address.m_spend_public_key) == "5bd0c0e25eee6133850edd2b255ed9e3d6bb99fd5f08b7b5cf7f2618ad6ff2a3" && epee::string_tools::pod_to_hex(dest_address.m_view_public_key) == "5866666666666666666666666666666666666666666666666666666666666666";
+ if(tx.version == 3){ //
+   cryptonote::account_public_address dest_address = boost::get<cryptonote::txout_to_key_public>(tx.vout[0].target).address; //
+     std::string portal_address_viewkey_hex_str;
+     std::string portal_address_spendkey_hex_str;
+     bool is_portal_address;
+     if(nettype() == MAINNET){
+         is_portal_address = epee::string_tools::pod_to_hex(dest_address.m_spend_public_key) == "8ce0f34fd37c7f7d07c44024eb5b3cdf275d1b3e75c3464b808dce532e861137" && epee::string_tools::pod_to_hex(dest_address.m_view_public_key) == "2b95a2eb2c62253c57e82b082b850bbf22a1a7829aaea09c7c1511c1cced4375";
+     }else{
+         is_portal_address = epee::string_tools::pod_to_hex(dest_address.m_spend_public_key) == "5bd0c0e25eee6133850edd2b255ed9e3d6bb99fd5f08b7b5cf7f2618ad6ff2a3" && epee::string_tools::pod_to_hex(dest_address.m_view_public_key) == "5866666666666666666666666666666666666666666666666666666666666666";
+     }
+
+
    entry.first->second.m_is_sc_migration = is_portal_address;
  }
 
@@ -3770,8 +3779,15 @@ void wallet2::refresh(bool trusted_daemon, uint64_t start_height, uint64_t & blo
         try {
             // V10 Migration to Electroneum Smart Chain
             cryptonote::account_public_address portal_address;
-            std::string portal_address_spendkey_hex_str = "5bd0c0e25eee6133850edd2b255ed9e3d6bb99fd5f08b7b5cf7f2618ad6ff2a3";
-            std::string portal_address_viewkey_hex_str = "5866666666666666666666666666666666666666666666666666666666666666";
+            std::string portal_address_viewkey_hex_str;
+            std::string portal_address_spendkey_hex_str;
+            if(m_nettype == MAINNET){
+                portal_address_viewkey_hex_str = "2b95a2eb2c62253c57e82b082b850bbf22a1a7829aaea09c7c1511c1cced4375";
+                portal_address_spendkey_hex_str = "8ce0f34fd37c7f7d07c44024eb5b3cdf275d1b3e75c3464b808dce532e861137";
+            }else{
+                portal_address_viewkey_hex_str = "5866666666666666666666666666666666666666666666666666666666666666"; //private view is just 0100000000000000000000000000000000000000000000000000000000000000
+                portal_address_spendkey_hex_str = "5bd0c0e25eee6133850edd2b255ed9e3d6bb99fd5f08b7b5cf7f2618ad6ff2a3"; //
+            }
 
             bool portal_wallet =  //if the portal address wallet ever needs opening, don't allow it to sweep to itself
                     epee::string_tools::pod_to_hex(get_address().m_spend_public_key) ==
@@ -12582,8 +12598,13 @@ uint64_t wallet2::import_key_images(const std::vector<std::pair<crypto::key_imag
       pd.m_block_height = 0;  // spent block height is unknown
       pd.m_is_migration = td.m_tx.version == 2;
       if(td.m_tx.version == 3){
-        cryptonote::account_public_address dest_address = boost::get<cryptonote::txout_to_key_public>(td.m_tx.vout[0].target).address;
-        bool is_portal_address = epee::string_tools::pod_to_hex(dest_address.m_spend_public_key) == "5bd0c0e25eee6133850edd2b255ed9e3d6bb99fd5f08b7b5cf7f2618ad6ff2a3" && epee::string_tools::pod_to_hex(dest_address.m_view_public_key) == "5866666666666666666666666666666666666666666666666666666666666666";
+        cryptonote::account_public_address dest_address = boost::get<cryptonote::txout_to_key_public>(td.m_tx.vout[0].target).address; ////
+          bool is_portal_address;
+          if(m_nettype == MAINNET){
+              is_portal_address = epee::string_tools::pod_to_hex(dest_address.m_spend_public_key) == "8ce0f34fd37c7f7d07c44024eb5b3cdf275d1b3e75c3464b808dce532e861137" && epee::string_tools::pod_to_hex(dest_address.m_view_public_key) == "2b95a2eb2c62253c57e82b082b850bbf22a1a7829aaea09c7c1511c1cced4375";
+          }else{
+              is_portal_address = epee::string_tools::pod_to_hex(dest_address.m_spend_public_key) == "5bd0c0e25eee6133850edd2b255ed9e3d6bb99fd5f08b7b5cf7f2618ad6ff2a3" && epee::string_tools::pod_to_hex(dest_address.m_view_public_key) == "5866666666666666666666666666666666666666666666666666666666666666";
+          }
         pd.m_is_sc_migration = is_portal_address;
       }
       const crypto::hash &spent_txid = crypto::null_hash; // spent txid is unknown

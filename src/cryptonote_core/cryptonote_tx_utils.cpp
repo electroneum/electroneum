@@ -253,12 +253,21 @@ namespace cryptonote
         cryptonote::account_public_address portal_address;
         crypto::hash h;
         crypto::ec_point point;
-        epee::string_tools::hex_to_pod("1c5da5c1e1420653825260b8ffc85499fdfb6457153a7df9720e659075b3ce76", h); // genesis hash hex ---> hash type
+        if(nettype == MAINNET){
+            epee::string_tools::hex_to_pod("a2050dacd6a36b6fc71cd6447ee498fb2c42801b74e8fe921213f4fcbd95ddcc", h); // v9 fork
+        }else{
+            epee::string_tools::hex_to_pod("1c5da5c1e1420653825260b8ffc85499fdfb6457153a7df9720e659075b3ce76", h); // genesis hash hex ---> hash type --
+        }
         crypto::hash_to_point(h, point); // generate curve point (burn address spendkey) deterministically in such a way that we can't recover the private key
         crypto::public_key portal_address_spendkey;
         std::copy(std::begin(point.data), std::end(point.data), std::begin(portal_address_spendkey.data)); // serialise point to pubkey type
         std::string portal_address_spendkey_hex_str = epee::string_tools::pod_to_hex(portal_address_spendkey); // for testing only. pub spend =
-        std::string portal_address_viewkey_hex_str = "5866666666666666666666666666666666666666666666666666666666666666"; //private view is just 0100000000000000000000000000000000000000000000000000000000000000
+        std::string portal_address_viewkey_hex_str;
+        if(nettype == MAINNET){
+            portal_address_viewkey_hex_str = "2b95a2eb2c62253c57e82b082b850bbf22a1a7829aaea09c7c1511c1cced4375"; //private view is just e5c8af002654f38ec39ac80edbbcd0c03c9b483379d297af0c3ca15568c7300e -
+        }else{
+            portal_address_viewkey_hex_str = "5866666666666666666666666666666666666666666666666666666666666666"; //private view is just 0100000000000000000000000000000000000000000000000000000000000000 -
+        }
         portal_address.m_spend_public_key = portal_address_spendkey;
         epee::string_tools::hex_to_pod(portal_address_viewkey_hex_str, portal_address.m_view_public_key);
         cryptonote::account_public_address dest_address = destinations[0].addr;
