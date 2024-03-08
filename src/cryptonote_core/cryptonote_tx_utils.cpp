@@ -295,7 +295,7 @@ namespace cryptonote
             unsigned char public_key64[65];
             size_t pk_len = 65;
             secp256k1_pubkey pubkey1;
-            secp256k1_context* ctx = secp256k1_context_create(SECP256K1_CONTEXT_NONE); // we are not signing nor verifying so no context
+            secp256k1_context* ctx = secp256k1_context_create(SECP256K1_CONTEXT_SIGN);
             memcpy(seckey1, sender_account_keys.m_spend_secret_key.data, 32);
             if(secp256k1_ec_seckey_verify(ctx, seckey1) == 0) { // sec key has an unrealistic chance of being invalid (10^-128) https://en.bitcoin.it/wiki/Private_key
                 LOG_ERROR("Invalid private key");
