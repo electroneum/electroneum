@@ -60,6 +60,14 @@ if(NOT UNBOUND_INCLUDE_DIR OR STATIC)
   # be set in this case.
   # The unbound CMakeLists.txt can set it, since it's also needed for the
   # static OpenSSL libraries set up there after with target_link_libraries.
+  # Pre-set type existence checks for unbound's configure_checks.cmake.
+  # On macOS, sys/types.h does not expose fixed-width integer types, causing
+  # unbound to emit conflicting #define macros that clash with the SDK typedefs.
+  # Setting these cache variables prevents the broken checks from running.
+  foreach(_type int8_t int16_t int32_t int64_t uint8_t uint16_t uint32_t uint64_t)
+    set(HAVE_${_type} TRUE CACHE INTERNAL "")
+    set(${_type} FALSE CACHE INTERNAL "")
+  endforeach()
   add_subdirectory(unbound)
 
   set(UNBOUND_STATIC true PARENT_SCOPE)
