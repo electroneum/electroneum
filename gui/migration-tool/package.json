@@ -1,0 +1,51 @@
+{
+  "name": "etn-migration-tool",
+  "version": "1.0.0",
+  "description": "Electroneum Legacy Chain to Smart Chain Migration Tool",
+  "main": "out/main/main.js",
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "electron-vite build && electron-builder",
+    "build:mac": "electron-vite build && electron-builder --mac",
+    "build:linux": "electron-vite build && electron-builder --linux",
+    "build:win": "electron-vite build && electron-builder --win",
+    "preview": "electron-vite preview"
+  },
+  "dependencies": {
+    "axios": "^1.6.0",
+    "ethereum-cryptography": "^2.1.2"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.2.0",
+    "electron": "^28.0.0",
+    "electron-builder": "^24.9.1",
+    "electron-vite": "^2.0.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "vite": "^5.0.0"
+  },
+  "build": {
+    "appId": "com.electroneum.migration-tool",
+    "productName": "ETN Migration Tool",
+    "directories": {
+      "buildResources": "build"
+    },
+    "extraResources": [
+      {
+        "from": "bin/${os}-${arch}/",
+        "to": "bin/",
+        "filter": ["**/*"]
+      }
+    ],
+    "mac": {
+      "target": [{ "target": "dmg", "arch": ["arm64", "x64"] }],
+      "category": "public.app-category.finance"
+    },
+    "linux": {
+      "target": ["AppImage", "deb"]
+    },
+    "win": {
+      "target": [{ "target": "nsis", "arch": ["x64"] }]
+    }
+  }
+}

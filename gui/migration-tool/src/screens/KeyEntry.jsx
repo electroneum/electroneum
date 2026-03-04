@@ -1,0 +1,107 @@
+import { useState } from 'react';
+import { generateFromKeys } from '../lib/walletRpc.js';
+import { deriveEthAddress } from '../lib/deriveEthAddress.js';
+
+export default function KeyEntry({ onSuccess }) {
+  const [address, setAddress] = useState('');
+  const [spendKey, setSpendKey] = useState('');
+  const [viewKey, setViewKey] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  function validate() {
+    if (!address.trim().startsWith('etn')) {
+      return 'Address must start with "etn"';
+    }
+    if (!/^[0-9a-fA-F]{64}$/.test(spendKey.trim())) {
+      return 'Private spend key must be 64 hex characters';
+    }
+    if (!/^[0-9a-fA-F]{64}$/.test(viewKey.trim())) {
+      return 'Private view key must be 64 hex characters';
+    }
+    return null;
+  }
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    setError('');
+
+    const validationError = validate();
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await generateFromKeys(address.trim(), spendKey.trim(), viewKey.trim());
+      const ethInfo = deriveEthAddress(spendKey.trim());
+      onSuccess({ address: address.trim(), spendKey: spendKey.trim(), ethInfo });
+    } catch (err) {
+      setError(err.message || 'Failed to create wallet');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="screen key-entry">
+      <div className="logo-area">
+        <h1>ETN Migration Tool</h1>
+        <p className="subtitle">Check your legacy wallet's migration status</p>
+      </div>
+
+      <form onSubmit={handleSubmit} className="key-form">
+        <div className="field">
+          <label htmlFor="address">ETN Address</label>
+          <input
+            id="address"
+            type="text"
+            placeholder="etnk..."
+            value={address}
+            onChange={(e) => setAddress(e.target.value)}
+            spellCheck={false}
+            autoComplete="off"
+          />
+        </div>
+
+        <div className="field">
+          <label htmlFor="spendKey">Private Spend Key</label>
+          <input
+            id="spendKey"
+            type="password"
+            placeholder="64 hex characters"
+            value={spendKey}
+            onChange={(e) => setSpendKey(e.target.value)}
+            spellCheck={false}
+            autoComplete="off"
+          />
+        </div>
+
+        <div className="field">
+          <label htmlFor="viewKey">Private View Key</label>
+          <input
+            id="viewKey"
+            type="password"
+            placeholder="64 hex characters"
+            value={viewKey}
+            onChange={(e) => setViewKey(e.target.value)}
+            spellCheck={false}
+            autoComplete="off"
+          />
+        </div>
+
+        {error && <p className="error">{error}</p>}
+
+        <button type="submit" disabled={loading} className="btn-primary">
+          {loading ? 'Opening wallet…' : 'Check Migration Status'}
+        </button>
+      </form>
+
+      <p className="disclaimer">
+        Your keys never leave your device. The wallet-rpc process runs locally and only
+        connects to the Electroneum network to verify your balance.
+      </p>
+    </div>
+  );
+}
