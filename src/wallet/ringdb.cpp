@@ -44,13 +44,14 @@ static const MDB_val zerokeyval = { sizeof(zerokey), (void *)zerokey };
 
 static int compare_hash32(const MDB_val *a, const MDB_val *b)
 {
-  uint32_t *va = (uint32_t*) a->mv_data;
-  uint32_t *vb = (uint32_t*) b->mv_data;
   for (int n = 7; n >= 0; n--)
   {
-    if (va[n] == vb[n])
+    uint32_t va, vb;
+    memcpy(&va, (const uint32_t*) a->mv_data + n, sizeof(va));
+    memcpy(&vb, (const uint32_t*) b->mv_data + n, sizeof(vb));
+    if (va == vb)
       continue;
-    return va[n] < vb[n] ? -1 : 1;
+    return va < vb ? -1 : 1;
   }
 
   return 0;
@@ -58,8 +59,9 @@ static int compare_hash32(const MDB_val *a, const MDB_val *b)
 
 static int compare_uint64(const MDB_val *a, const MDB_val *b)
 {
-  const uint64_t va = *(const uint64_t*) a->mv_data;
-  const uint64_t vb = *(const uint64_t*) b->mv_data;
+  uint64_t va, vb;
+  memcpy(&va, a->mv_data, sizeof(va));
+  memcpy(&vb, b->mv_data, sizeof(vb));
   return va < vb ? -1 : va > vb;
 }
 

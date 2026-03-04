@@ -45,7 +45,7 @@ else
   deldirs  := $(builddir)/debug $(builddir)/release $(builddir)/fuzz
 endif
 
-all: release-all
+all: release
 
 depends:
 	cd contrib/depends && $(MAKE) HOST=$(target) && cd ../.. && mkdir -p build/$(target)/release
