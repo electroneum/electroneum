@@ -15,6 +15,17 @@ let walletRpcProcess = null;
 let walletRpcPort = null;
 let mainWindow = null;
 
+// Sync progress parsed from wallet-rpc stdout. We track this instead of
+// calling get_height RPC, because wallet-rpc is single-threaded and the
+// RPC server is blocked while a refresh is in progress.
+//
+// The height advances in increments of ~999 (not 1000) because the daemon
+// returns 1000 blocks per batch but includes one overlapping block that the
+// wallet already knows. This overlap exists for fork detection — the wallet
+// verifies the first returned block matches its chain tip, and if it doesn't,
+// a chain reorganisation has occurred and the wallet rewinds.
+let syncProgressHeight = 0;
+
 // ── Port helpers ─────────────────────────────────────────────────────────────
 
 function findFreePort() {
@@ -133,6 +144,35 @@ function removePidFile() {
   try { fs.unlinkSync(getPidFilePath()); } catch { /* ignore */ }
 }
 
+// ── Parse wallet-rpc stdout for sync progress ───────────────────────────────
+
+function parseWalletRpcOutput(data) {
+  const text = data.toString();
+  for (const line of text.split('\n')) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+
+    // Match: "Processed block: <hash>, height 123456, ..."
+    const m = trimmed.match(/Processed block: .*, height (\d+)/);
+    if (m) {
+      syncProgressHeight = parseInt(m[1], 10);
+      // Don't log every block — too noisy
+      continue;
+    }
+
+    // Skip lines that are just timestamps/log prefixes with no useful content
+    // (these come from the DEBUG log lines surrounding "Processed block")
+    if (trimmed.match(/^\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}\.\d+\s+[A-Z]\s*$/) ||
+        trimmed.match(/^PERF\s/) ||
+        trimmed.match(/process_new_transaction/)) {
+      continue;
+    }
+
+    // Log all other lines normally
+    console.log(`[wallet-rpc] ${trimmed}`);
+  }
+}
+
 // ── Spawn wallet-rpc ─────────────────────────────────────────────────────────
 
 async function startWalletRpc() {
@@ -156,7 +196,9 @@ async function startWalletRpc() {
     '--daemon-address', REMOTE_NODE,
     '--disable-rpc-login',
     '--non-interactive',
-    '--log-level', '1',
+    // Level 0 defaults + wallet.wallet2 at DEBUG to get per-block "Processed block" lines
+    '--log-level', '0,wallet.wallet2:DEBUG',
+    '--max-log-files', '1',
     '--wallet-dir', walletDir,
     '--rpc-ssl=disabled',
     '--daemon-ssl=enabled',
@@ -168,8 +210,12 @@ async function startWalletRpc() {
   walletRpcProcess = spawn(binaryPath, args, { stdio: ['ignore', 'pipe', 'pipe'] });
   writePidFile(walletRpcProcess.pid);
 
-  walletRpcProcess.stdout.on('data', (d) => console.log(`[wallet-rpc] ${d.toString().trim()}`));
-  walletRpcProcess.stderr.on('data', (d) => console.error(`[wallet-rpc] ${d.toString().trim()}`));
+  walletRpcProcess.stdout.on('data', (d) => {
+    parseWalletRpcOutput(d);
+  });
+  walletRpcProcess.stderr.on('data', (d) => {
+    parseWalletRpcOutput(d);
+  });
   walletRpcProcess.on('exit', (code) => {
     console.log(`[main] wallet-rpc exited with code ${code}`);
     walletRpcProcess = null;
@@ -256,6 +302,7 @@ ipcMain.handle('get-rpc-port', () => walletRpcPort);
 ipcMain.handle('create-wallet', async (_event, { address, spendKey, viewKey }) => {
   // Derive a stable filename from the address
   const filename = crypto.createHash('sha256').update(address).digest('hex').slice(0, 16);
+  syncProgressHeight = 0;
 
   try {
     const result = await rpc('generate_from_keys', {
@@ -284,30 +331,24 @@ ipcMain.handle('create-wallet', async (_event, { address, spendKey, viewKey }) =
 });
 
 ipcMain.handle('get-sync-status', async () => {
-  console.log('[sync] polling get_height...');
+  // Wallet height comes from parsing stdout — no RPC call needed (which
+  // would be blocked while the single-threaded wallet-rpc is refreshing).
+  const walletHeight = syncProgressHeight;
+
+  // Daemon height fetched directly over HTTPS (bypasses wallet-rpc entirely)
+  let daemonHeight = 0;
   try {
-    const heightRes = await rpc('get_height');
-    const walletHeight = heightRes.height;
-    console.log(`[sync] walletHeight=${walletHeight}`);
-
-    let daemonHeight = 0;
-    try {
-      const daemonRes = await axios.post(
-        `${REMOTE_NODE_URL}/json_rpc`,
-        { jsonrpc: '2.0', id: '0', method: 'get_info' },
-        { timeout: 120000 }
-      );
-      daemonHeight = daemonRes.data.result.height;
-      console.log(`[sync] daemonHeight=${daemonHeight}`);
-    } catch (daemonErr) {
-      console.warn('[sync] Daemon get_info failed:', daemonErr.message);
-    }
-
-    console.log(`[sync] result: wallet=${walletHeight} daemon=${daemonHeight} remaining=${daemonHeight - walletHeight}`);
-    return { ok: true, walletHeight, daemonHeight };
-  } catch (err) {
-    return { ok: false, error: err.message };
+    const daemonRes = await axios.post(
+      `${REMOTE_NODE_URL}/json_rpc`,
+      { jsonrpc: '2.0', id: '0', method: 'get_info' },
+      { timeout: 120000 }
+    );
+    daemonHeight = daemonRes.data.result.height;
+  } catch (daemonErr) {
+    console.warn('[sync] Daemon get_info failed:', daemonErr.message);
   }
+
+  return { ok: true, walletHeight, daemonHeight };
 });
 
 ipcMain.handle('get-migration-status', async () => {
