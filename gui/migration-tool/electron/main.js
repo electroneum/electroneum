@@ -13,6 +13,7 @@ const WALLET_RPC_POLL_INTERVAL_MS = 500;
 
 let walletRpcProcess = null;
 let walletRpcPort = null;
+let walletRpcMode = null; // 'dir' or 'file'
 let mainWindow = null;
 
 // Sync progress parsed from wallet-rpc stdout. We track this instead of
@@ -105,7 +106,7 @@ function killStaleWalletRpc() {
     try {
       const walletDir = getWalletDir();
       const out = execSync(
-        `pgrep -f "electroneum-wallet-rpc.*--wallet-dir.*${walletDir}"`,
+        `pgrep -f "electroneum-wallet-rpc.*(--wallet-dir|--wallet-file).*${walletDir}"`,
         { encoding: 'utf-8', timeout: 5000 }
       ).trim();
       for (const line of out.split('\n')) {
@@ -175,12 +176,15 @@ function parseWalletRpcOutput(data) {
 
 // ── Spawn wallet-rpc ─────────────────────────────────────────────────────────
 
-async function startWalletRpc() {
+// mode: 'dir'  — --wallet-dir (for creating wallets via RPC)
+// mode: 'file' — --wallet-file (for syncing; initial refresh is interruptible
+//                by SIGTERM, which saves the wallet cache before exiting)
+async function startWalletRpc(mode, walletFile) {
   killStaleWalletRpc();
 
   walletRpcPort = await findFreePort();
+  walletRpcMode = mode;
   const binaryPath = getWalletRpcBinaryPath();
-  const walletDir = getWalletDir();
 
   if (!fs.existsSync(binaryPath)) {
     throw new Error(`wallet-rpc binary not found at: ${binaryPath}`);
@@ -199,14 +203,19 @@ async function startWalletRpc() {
     // Level 0 defaults + wallet.wallet2 at DEBUG to get per-block "Processed block" lines
     '--log-level', '0,wallet.wallet2:DEBUG',
     '--max-log-files', '1',
-    '--wallet-dir', walletDir,
     '--rpc-ssl=disabled',
     '--daemon-ssl=enabled',
     '--daemon-ssl-allow-any-cert',
     '--trusted-daemon',
   ];
 
-  console.log(`[main] Spawning wallet-rpc on port ${walletRpcPort}`);
+  if (mode === 'file') {
+    args.push('--wallet-file', walletFile, '--password', '');
+  } else {
+    args.push('--wallet-dir', getWalletDir());
+  }
+
+  console.log(`[main] Spawning wallet-rpc in ${mode} mode on port ${walletRpcPort}`);
   walletRpcProcess = spawn(binaryPath, args, { stdio: ['ignore', 'pipe', 'pipe'] });
   writePidFile(walletRpcProcess.pid);
 
@@ -216,13 +225,24 @@ async function startWalletRpc() {
   walletRpcProcess.stderr.on('data', (d) => {
     parseWalletRpcOutput(d);
   });
-  walletRpcProcess.on('exit', (code) => {
-    console.log(`[main] wallet-rpc exited with code ${code}`);
-    walletRpcProcess = null;
-    removePidFile();
+  const thisProc = walletRpcProcess;
+  thisProc.on('exit', (code) => {
+    console.log(`[main] wallet-rpc (PID ${thisProc.pid}) exited with code ${code}`);
+    // Only clear the global ref if it still points to this process —
+    // a new process may have been spawned before the old one exited.
+    if (walletRpcProcess === thisProc) {
+      walletRpcProcess = null;
+      removePidFile();
+    }
   });
 
-  await waitForWalletRpcReady();
+  // In 'dir' mode we need the RPC server ready before we can create wallets.
+  // In 'file' mode the initial refresh blocks the server from starting, so
+  // we skip this — sync progress comes from stdout, and the RPC server will
+  // become available once the refresh completes.
+  if (mode === 'dir') {
+    await waitForWalletRpcReady();
+  }
 }
 
 async function waitForWalletRpcReady() {
@@ -250,25 +270,38 @@ function stopWalletRpc() {
   }
 
   const proc = walletRpcProcess;
+  const pid = proc.pid;
+  const mode = walletRpcMode;
   walletRpcProcess = null;
-  console.log('[main] Stopping wallet-rpc (PID ' + proc.pid + ')...');
-  proc.kill('SIGTERM');
+  walletRpcPort = null;
+  walletRpcMode = null;
 
-  // Wait synchronously for the process to die (up to 5s) so Electron
-  // doesn't exit while the child is still running.
-  const deadline = Date.now() + 5000;
+  // In 'file' mode, SIGTERM triggers the interruptible signal handler which
+  // calls wal->stop() (sets m_run=false), breaking the refresh loop, then
+  // saves the wallet cache (store) and exits cleanly.
+  // In 'dir' mode, SIGTERM cannot interrupt a refresh, so we just kill it.
+  console.log(`[main] Stopping wallet-rpc (PID ${pid}, mode=${mode})...`);
+  try { process.kill(pid, 'SIGTERM'); } catch {
+    removePidFile();
+    return;
+  }
+
+  const timeoutMs = mode === 'file' ? 30000 : 3000;
+  const start = Date.now();
+  const deadline = start + timeoutMs;
   while (Date.now() < deadline) {
-    try { process.kill(proc.pid, 0); } catch { break; } // gone
-    const wait = Date.now() + 100;
+    try { process.kill(pid, 0); } catch {
+      console.log(`[main] wallet-rpc exited gracefully after ${Date.now() - start}ms`);
+      removePidFile();
+      return;
+    }
+    const wait = Date.now() + 200;
     while (Date.now() < wait) { /* spin */ }
   }
-  // Force-kill if still alive
-  try {
-    process.kill(proc.pid, 0);
-    console.log('[main] Force-killing wallet-rpc');
-    proc.kill('SIGKILL');
-  } catch { /* already gone */ }
 
+  // Force-kill if still alive
+  console.log(`[main] Force-killing wallet-rpc after ${timeoutMs / 1000}s`);
+  try { process.kill(pid, 'SIGKILL'); } catch { /* already gone */ }
   removePidFile();
 }
 
@@ -302,10 +335,20 @@ ipcMain.handle('get-rpc-port', () => walletRpcPort);
 ipcMain.handle('create-wallet', async (_event, { address, spendKey, viewKey }) => {
   // Derive a stable filename from the address
   const filename = crypto.createHash('sha256').update(address).digest('hex').slice(0, 16);
+  const walletFile = path.join(getWalletDir(), filename);
   syncProgressHeight = 0;
 
+  // If wallet file already exists, skip creation and go straight to file mode
+  if (fs.existsSync(walletFile)) {
+    console.log(`[main] Wallet file exists, restarting in file mode: ${walletFile}`);
+    stopWalletRpc();
+    await startWalletRpc('file', walletFile);
+    return { ok: true, result: { address, info: 'Wallet already exists, opened.' } };
+  }
+
+  // Phase 1: create the wallet via RPC in dir mode
   try {
-    const result = await rpc('generate_from_keys', {
+    await rpc('generate_from_keys', {
       restore_height: 0,
       filename,
       address,
@@ -314,20 +357,19 @@ ipcMain.handle('create-wallet', async (_event, { address, spendKey, viewKey }) =
       password: '',
       autosave_current: true,
     }, 300000);
-    return { ok: true, result };
   } catch (err) {
-    // If wallet file already exists wallet-rpc returns an error; try opening it instead
     const msg = err.message || '';
-    if (msg.includes('already exists') || msg.includes('already open')) {
-      try {
-        await rpc('open_wallet', { filename, password: '' }, 300000);
-        return { ok: true, result: { address, info: 'Wallet already exists, opened.' } };
-      } catch (openErr) {
-        return { ok: false, error: openErr.message };
-      }
+    if (!msg.includes('already exists') && !msg.includes('already open')) {
+      return { ok: false, error: msg };
     }
-    return { ok: false, error: msg };
   }
+
+  // Phase 2: restart wallet-rpc in file mode so the initial refresh is
+  // interruptible by SIGTERM and saves the wallet cache on exit
+  console.log(`[main] Wallet created, restarting in file mode: ${walletFile}`);
+  stopWalletRpc();
+  await startWalletRpc('file', walletFile);
+  return { ok: true, result: { address } };
 });
 
 ipcMain.handle('get-sync-status', async () => {
@@ -390,7 +432,7 @@ function createWindow() {
 
 app.whenReady().then(async () => {
   try {
-    await startWalletRpc();
+    await startWalletRpc('dir');
   } catch (err) {
     console.error('[main] Failed to start wallet-rpc:', err.message);
     // Don't crash — renderer will show an error via get-rpc-port returning null
@@ -400,10 +442,12 @@ app.whenReady().then(async () => {
 });
 
 app.on('before-quit', () => {
+  console.log('[main] before-quit event fired');
   stopWalletRpc();
 });
 
 app.on('window-all-closed', () => {
+  console.log('[main] window-all-closed event fired');
   stopWalletRpc();
   app.quit();
 });
