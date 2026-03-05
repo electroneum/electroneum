@@ -81,6 +81,12 @@ export default function Syncing({ onSynced }) {
         </div>
       </div>
 
+      <p className="warning">
+        If the app appears to hang when opening or closing, don't worry — this
+        is normal. Wallets with many transactions need time to load and save
+        their data. The app is not frozen; please let it finish.
+      </p>
+
       {isSynced && (
         <p className="synced-msg">Sync complete. Loading results…</p>
       )}
