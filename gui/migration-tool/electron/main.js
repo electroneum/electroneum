@@ -1,6 +1,6 @@
 const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
-const { spawn } = require('child_process');
+const { spawn, execSync } = require('child_process');
 const net = require('net');
 const fs = require('fs');
 const axios = require('axios');
@@ -71,9 +71,73 @@ function getWalletDir() {
   return dir;
 }
 
+// ── Stale process cleanup ────────────────────────────────────────────────────
+
+function getPidFilePath() {
+  return path.join(getWalletDir(), 'wallet-rpc.pid');
+}
+
+function killStaleWalletRpc() {
+  const pidsToKill = new Set();
+
+  // 1. Check our PID file
+  const pidFile = getPidFilePath();
+  try {
+    const pid = parseInt(fs.readFileSync(pidFile, 'utf-8').trim(), 10);
+    if (pid && !isNaN(pid)) {
+      try { process.kill(pid, 0); pidsToKill.add(pid); } catch { /* already dead */ }
+    }
+  } catch { /* no pid file or unreadable */ }
+
+  // 2. Find any electroneum-wallet-rpc using our wallet dir (catches orphans)
+  if (process.platform !== 'win32') {
+    try {
+      const walletDir = getWalletDir();
+      const out = execSync(
+        `pgrep -f "electroneum-wallet-rpc.*--wallet-dir.*${walletDir}"`,
+        { encoding: 'utf-8', timeout: 5000 }
+      ).trim();
+      for (const line of out.split('\n')) {
+        const pid = parseInt(line.trim(), 10);
+        if (pid && pid !== process.pid) pidsToKill.add(pid);
+      }
+    } catch { /* pgrep returns exit 1 when no matches — that's fine */ }
+  }
+
+  // 3. Kill them all
+  for (const pid of pidsToKill) {
+    console.log(`[main] Killing stale wallet-rpc (PID ${pid})`);
+    try { process.kill(pid, 'SIGTERM'); } catch { continue; }
+    // Wait up to 3s for graceful exit, then SIGKILL
+    const deadline = Date.now() + 3000;
+    while (Date.now() < deadline) {
+      try { process.kill(pid, 0); } catch { break; } // gone
+      const wait = Date.now() + 200;
+      while (Date.now() < wait) { /* spin */ }
+    }
+    try { process.kill(pid, 'SIGKILL'); } catch { /* already gone */ }
+  }
+
+  try { fs.unlinkSync(pidFile); } catch { /* ignore */ }
+}
+
+function writePidFile(pid) {
+  try {
+    fs.writeFileSync(getPidFilePath(), String(pid), 'utf-8');
+  } catch (err) {
+    console.warn('[main] Could not write PID file:', err.message);
+  }
+}
+
+function removePidFile() {
+  try { fs.unlinkSync(getPidFilePath()); } catch { /* ignore */ }
+}
+
 // ── Spawn wallet-rpc ─────────────────────────────────────────────────────────
 
 async function startWalletRpc() {
+  killStaleWalletRpc();
+
   walletRpcPort = await findFreePort();
   const binaryPath = getWalletRpcBinaryPath();
   const walletDir = getWalletDir();
@@ -102,12 +166,14 @@ async function startWalletRpc() {
 
   console.log(`[main] Spawning wallet-rpc on port ${walletRpcPort}`);
   walletRpcProcess = spawn(binaryPath, args, { stdio: ['ignore', 'pipe', 'pipe'] });
+  writePidFile(walletRpcProcess.pid);
 
   walletRpcProcess.stdout.on('data', (d) => console.log(`[wallet-rpc] ${d.toString().trim()}`));
   walletRpcProcess.stderr.on('data', (d) => console.error(`[wallet-rpc] ${d.toString().trim()}`));
   walletRpcProcess.on('exit', (code) => {
     console.log(`[main] wallet-rpc exited with code ${code}`);
     walletRpcProcess = null;
+    removePidFile();
   });
 
   await waitForWalletRpcReady();
@@ -132,11 +198,32 @@ async function waitForWalletRpcReady() {
 }
 
 function stopWalletRpc() {
-  if (walletRpcProcess) {
-    console.log('[main] Killing wallet-rpc');
-    walletRpcProcess.kill();
-    walletRpcProcess = null;
+  if (!walletRpcProcess) {
+    removePidFile();
+    return;
   }
+
+  const proc = walletRpcProcess;
+  walletRpcProcess = null;
+  console.log('[main] Stopping wallet-rpc (PID ' + proc.pid + ')...');
+  proc.kill('SIGTERM');
+
+  // Wait synchronously for the process to die (up to 5s) so Electron
+  // doesn't exit while the child is still running.
+  const deadline = Date.now() + 5000;
+  while (Date.now() < deadline) {
+    try { process.kill(proc.pid, 0); } catch { break; } // gone
+    const wait = Date.now() + 100;
+    while (Date.now() < wait) { /* spin */ }
+  }
+  // Force-kill if still alive
+  try {
+    process.kill(proc.pid, 0);
+    console.log('[main] Force-killing wallet-rpc');
+    proc.kill('SIGKILL');
+  } catch { /* already gone */ }
+
+  removePidFile();
 }
 
 // ── RPC helper ───────────────────────────────────────────────────────────────
@@ -276,7 +363,8 @@ app.on('before-quit', () => {
 });
 
 app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') app.quit();
+  stopWalletRpc();
+  app.quit();
 });
 
 app.on('activate', () => {
