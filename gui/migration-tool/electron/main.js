@@ -72,7 +72,7 @@ function getWalletRpcBinaryPath() {
 
   let platformDir;
   if (platform === 'darwin') {
-    platformDir = arch === 'arm64' ? 'mac-arm64' : 'mac-x64';
+    platformDir = 'mac-arm64';
   } else if (platform === 'linux') {
     platformDir = 'linux-x64';
   } else if (platform === 'win32') {
@@ -86,10 +86,9 @@ function getWalletRpcBinaryPath() {
     : 'electroneum-wallet-rpc';
 
   if (isDev) {
-    // __dirname is out/main/ at runtime; walk up to gui/migration-tool then up two more to repo root
-    const repoRoot = path.join(__dirname, '..', '..', '..', '..');
-    const osDir = platform === 'darwin' ? 'Darwin' : platform === 'linux' ? 'Linux' : 'Windows';
-    return path.join(repoRoot, 'build', osDir, 'master', 'release', 'bin', binaryName);
+    // __dirname is out/main/ at runtime; walk up to gui/migration-tool/
+    const projectRoot = path.join(__dirname, '..', '..');
+    return path.join(projectRoot, 'bin', platformDir, binaryName);
   }
 
   // In production: electron-builder copies bin/ into resourcesPath
