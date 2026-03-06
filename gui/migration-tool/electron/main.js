@@ -5,6 +5,29 @@ const net = require('net');
 const fs = require('fs');
 const axios = require('axios');
 const crypto = require('crypto');
+// On Windows, Node's proc.kill('SIGTERM') does an unconditional TerminateProcess
+// — no signal handler runs, so wallet-rpc can't save. We use ctrlc-windows to
+// send CTRL_C_EVENT instead, which triggers the C++ win_handler and saves.
+const isWin = process.platform === 'win32';
+let ctrlc;
+if (isWin) {
+  try { ctrlc = require('ctrlc-windows').ctrlc; } catch { /* not available */ }
+}
+
+/**
+ * Send a graceful termination signal to a process.
+ * - Unix: SIGTERM (caught by posix_handler → store → exit)
+ * - Windows: CTRL_C_EVENT via ctrlc-windows (caught by win_handler → store → exit)
+ *   Falls back to proc.kill() if ctrlc-windows is unavailable.
+ */
+function gracefulKill(proc) {
+  if (isWin && ctrlc) {
+    console.log(`[main] Sending CTRL_C_EVENT to PID ${proc.pid}`);
+    ctrlc(proc.pid);
+  } else {
+    proc.kill('SIGTERM');
+  }
+}
 
 const REMOTE_NODE = 'legacy-rpc.electroneum.com:443';
 const REMOTE_NODE_URL = 'https://legacy-rpc.electroneum.com';
@@ -119,8 +142,14 @@ function killStaleWalletRpc() {
   // 3. Kill them all
   for (const pid of pidsToKill) {
     console.log(`[main] Killing stale wallet-rpc (PID ${pid})`);
-    try { process.kill(pid, 'SIGTERM'); } catch { continue; }
-    // Wait up to 3s for graceful exit, then SIGKILL
+    try {
+      if (isWin && ctrlc) {
+        ctrlc(pid);
+      } else {
+        process.kill(pid, 'SIGTERM');
+      }
+    } catch { continue; }
+    // Wait up to 3s for graceful exit, then force kill
     const deadline = Date.now() + 3000;
     while (Date.now() < deadline) {
       try { process.kill(pid, 0); } catch { break; } // gone
@@ -278,7 +307,7 @@ function stopWalletRpcSync() {
   walletRpcMode = null;
 
   console.log(`[main] Stopping wallet-rpc sync (PID ${pid}, dir mode)...`);
-  proc.kill('SIGTERM');
+  gracefulKill(proc);
 
   const deadline = Date.now() + 3000;
   while (Date.now() < deadline) {
@@ -318,7 +347,7 @@ function stopWalletRpcAsync() {
       resolve();
     });
 
-    proc.kill('SIGTERM');
+    gracefulKill(proc);
   });
 }
 
