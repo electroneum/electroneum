@@ -50,7 +50,7 @@ export default function KeyEntry({ onSuccess }) {
       <div className="logo-area">
         <img src={logo} alt="Electroneum" className="logo" />
         <h1>ETN Migration Tool</h1>
-        <p className="subtitle">Check your legacy wallet's migration status</p>
+        <p className="subtitle">Migrate your legacy wallet to the Electroneum Smart Chain</p>
       </div>
 
       <form onSubmit={handleSubmit} className="key-form">
@@ -101,8 +101,8 @@ export default function KeyEntry({ onSuccess }) {
       </form>
 
       <p className="disclaimer">
-        Your keys never leave your device. The wallet-rpc process runs locally and only
-        connects to the Electroneum network to verify your balance.
+        Your private spend key never leaves your device. A remote blockchain node hosted by Electroneum is used
+        to sync your wallet.
       </p>
     </div>
   );

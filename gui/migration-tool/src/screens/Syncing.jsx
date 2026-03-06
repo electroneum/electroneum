@@ -52,7 +52,7 @@ export default function Syncing({ onSynced }) {
       <img src={logo} alt="Electroneum" className="logo logo-sm" />
       <h2>Scanning the Blockchain</h2>
       <p className="subtitle">
-        Scanning the legacy blockchain. This may take a few minutes.
+        Scanning the legacy blockchain. This may take a while.
       </p>
 
       <div className="progress-container">
