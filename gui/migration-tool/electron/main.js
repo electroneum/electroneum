@@ -263,7 +263,9 @@ async function waitForWalletRpcReady() {
   throw new Error('wallet-rpc did not become ready in time');
 }
 
-function stopWalletRpc() {
+// Synchronous stop for dir mode (no wallet loaded, nothing to save).
+// Used when switching from dir→file mode during create-wallet.
+function stopWalletRpcSync() {
   if (!walletRpcProcess) {
     removePidFile();
     return;
@@ -271,38 +273,53 @@ function stopWalletRpc() {
 
   const proc = walletRpcProcess;
   const pid = proc.pid;
-  const mode = walletRpcMode;
   walletRpcProcess = null;
   walletRpcPort = null;
   walletRpcMode = null;
 
-  // In 'file' mode, SIGTERM triggers the interruptible signal handler which
-  // calls wal->stop() (sets m_run=false), breaking the refresh loop, then
-  // saves the wallet cache (store) and exits cleanly.
-  // In 'dir' mode, SIGTERM cannot interrupt a refresh, so we just kill it.
-  console.log(`[main] Stopping wallet-rpc (PID ${pid}, mode=${mode})...`);
-  try { process.kill(pid, 'SIGTERM'); } catch {
-    removePidFile();
-    return;
-  }
+  console.log(`[main] Stopping wallet-rpc sync (PID ${pid}, dir mode)...`);
+  proc.kill('SIGTERM');
 
-  const timeoutMs = mode === 'file' ? 30000 : 3000;
-  const start = Date.now();
-  const deadline = start + timeoutMs;
+  const deadline = Date.now() + 3000;
   while (Date.now() < deadline) {
-    try { process.kill(pid, 0); } catch {
-      console.log(`[main] wallet-rpc exited gracefully after ${Date.now() - start}ms`);
-      removePidFile();
-      return;
-    }
+    try { process.kill(pid, 0); } catch { removePidFile(); return; }
     const wait = Date.now() + 200;
     while (Date.now() < wait) { /* spin */ }
   }
-
-  // Force-kill if still alive
-  console.log(`[main] Force-killing wallet-rpc after ${timeoutMs / 1000}s`);
   try { process.kill(pid, 'SIGKILL'); } catch { /* already gone */ }
   removePidFile();
+}
+
+// Async stop for file mode — sends SIGTERM and returns a Promise that
+// resolves when wallet-rpc exits. Does not block the event loop, so Node
+// can reap the child process properly. SIGTERM during the initial refresh
+// interrupts it and triggers store() to save the wallet cache.
+function stopWalletRpcAsync() {
+  return new Promise((resolve) => {
+    if (!walletRpcProcess) {
+      removePidFile();
+      resolve();
+      return;
+    }
+
+    const proc = walletRpcProcess;
+    const pid = proc.pid;
+    const mode = walletRpcMode;
+    walletRpcProcess = null;
+    walletRpcPort = null;
+    walletRpcMode = null;
+
+    console.log(`[main] Stopping wallet-rpc (PID ${pid}, mode=${mode})...`);
+    const start = Date.now();
+
+    proc.on('exit', (code) => {
+      console.log(`[main] wallet-rpc (PID ${pid}) exited with code ${code} after ${Date.now() - start}ms`);
+      removePidFile();
+      resolve();
+    });
+
+    proc.kill('SIGTERM');
+  });
 }
 
 // ── RPC helper ───────────────────────────────────────────────────────────────
@@ -341,7 +358,7 @@ ipcMain.handle('create-wallet', async (_event, { address, spendKey, viewKey }) =
   // If wallet file already exists, skip creation and go straight to file mode
   if (fs.existsSync(walletFile)) {
     console.log(`[main] Wallet file exists, restarting in file mode: ${walletFile}`);
-    stopWalletRpc();
+    stopWalletRpcSync();
     await startWalletRpc('file', walletFile);
     return { ok: true, result: { address, info: 'Wallet already exists, opened.' } };
   }
@@ -367,7 +384,7 @@ ipcMain.handle('create-wallet', async (_event, { address, spendKey, viewKey }) =
   // Phase 2: restart wallet-rpc in file mode so the initial refresh is
   // interruptible by SIGTERM and saves the wallet cache on exit
   console.log(`[main] Wallet created, restarting in file mode: ${walletFile}`);
-  stopWalletRpc();
+  stopWalletRpcSync();
   await startWalletRpc('file', walletFile);
   return { ok: true, result: { address } };
 });
@@ -430,6 +447,8 @@ function createWindow() {
 
 // ── App lifecycle ────────────────────────────────────────────────────────────
 
+let isQuitting = false;
+
 app.whenReady().then(async () => {
   try {
     await startWalletRpc('dir');
@@ -441,14 +460,20 @@ app.whenReady().then(async () => {
   createWindow();
 });
 
-app.on('before-quit', () => {
-  console.log('[main] before-quit event fired');
-  stopWalletRpc();
+app.on('before-quit', (event) => {
+  if (isQuitting) return; // already handling shutdown
+  isQuitting = true;
+  console.log('[main] before-quit: stopping wallet-rpc...');
+
+  // Prevent Electron from quitting until wallet-rpc has saved and exited
+  event.preventDefault();
+  stopWalletRpcAsync().then(() => {
+    console.log('[main] wallet-rpc stopped, quitting app');
+    app.quit();
+  });
 });
 
 app.on('window-all-closed', () => {
-  console.log('[main] window-all-closed event fired');
-  stopWalletRpc();
   app.quit();
 });
 
