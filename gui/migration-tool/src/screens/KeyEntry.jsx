@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { generateFromKeys } from '../lib/walletRpc.js';
 import { deriveEthAddress } from '../lib/deriveEthAddress.js';
+import logo from '../assets/electroneum-logo-symbol.png';
 
 export default function KeyEntry({ onSuccess }) {
   const [address, setAddress] = useState('');
@@ -47,6 +48,7 @@ export default function KeyEntry({ onSuccess }) {
   return (
     <div className="screen key-entry">
       <div className="logo-area">
+        <img src={logo} alt="Electroneum" className="logo" />
         <h1>ETN Migration Tool</h1>
         <p className="subtitle">Check your legacy wallet's migration status</p>
       </div>

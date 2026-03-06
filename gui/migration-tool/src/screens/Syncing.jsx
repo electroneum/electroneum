@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { getSyncStatus } from '../lib/walletRpc.js';
 import { POLL_INTERVAL_MS, SYNC_THRESHOLD } from '../lib/constants.js';
+import logo from '../assets/electroneum-logo-symbol.png';
 
 export default function Syncing({ onSynced }) {
   const [walletHeight, setWalletHeight] = useState(0);
@@ -48,6 +49,7 @@ export default function Syncing({ onSynced }) {
 
   return (
     <div className="screen syncing">
+      <img src={logo} alt="Electroneum" className="logo logo-sm" />
       <h2>Scanning the Blockchain</h2>
       <p className="subtitle">
         Scanning the legacy blockchain. This may take a few minutes.

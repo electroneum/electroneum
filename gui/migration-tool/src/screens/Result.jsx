@@ -4,6 +4,7 @@ import {
   LEGACY_EXPLORER_TX_URL,
   SMARTCHAIN_EXPLORER_ADDR_URL,
 } from '../lib/constants.js';
+import logo from '../assets/electroneum-logo-symbol.png';
 
 function CopyButton({ text }) {
   const [copied, setCopied] = useState(false);
@@ -57,6 +58,7 @@ export default function Result({ ethInfo, onReset }) {
 
   return (
     <div className="screen result">
+      <img src={logo} alt="Electroneum" className="logo logo-sm" />
       <h2>Migration Result</h2>
 
       {/* Migration status */}
