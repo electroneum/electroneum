@@ -394,7 +394,7 @@ ipcMain.handle('create-wallet', async (_event, { address, spendKey, viewKey }) =
   // Phase 1: create the wallet via RPC in dir mode
   try {
     await rpc('generate_from_keys', {
-      restore_height: 0,
+      restore_height: 2338760, // TODO: revert to 0 for production
       filename,
       address,
       spendkey: spendKey,
@@ -436,6 +436,15 @@ ipcMain.handle('get-sync-status', async () => {
   }
 
   return { ok: true, walletHeight, daemonHeight };
+});
+
+ipcMain.handle('wait-for-rpc-ready', async () => {
+  try {
+    await waitForWalletRpcReady();
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err.message };
+  }
 });
 
 ipcMain.handle('get-migration-status', async () => {

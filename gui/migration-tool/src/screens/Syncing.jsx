@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { getSyncStatus } from '../lib/walletRpc.js';
+import { getSyncStatus, waitForRpcReady } from '../lib/walletRpc.js';
 import { POLL_INTERVAL_MS, SYNC_THRESHOLD } from '../lib/constants.js';
 import logo from '../assets/electroneum-logo-symbol.png';
 
@@ -28,7 +28,10 @@ export default function Syncing({ onSynced }) {
         setError('');
 
         if (dh > 0 && dh - wh < SYNC_THRESHOLD) {
-          onSynced();
+          // Sync is done but the RPC server may still be starting —
+          // wait for it before transitioning to the Result screen.
+          await waitForRpcReady();
+          if (!cancelled) onSynced();
           return;
         }
       } catch (err) {

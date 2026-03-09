@@ -17,6 +17,11 @@ export async function getSyncStatus() {
   return { walletHeight: res.walletHeight, daemonHeight: res.daemonHeight };
 }
 
+export async function waitForRpcReady() {
+  const res = await api.waitForRpcReady();
+  if (!res.ok) throw new Error(res.error);
+}
+
 export async function getMigrationStatus() {
   const res = await api.getMigrationStatus();
   if (!res.ok) throw new Error(res.error);
