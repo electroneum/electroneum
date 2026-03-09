@@ -1,10 +1,13 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { getMigrationStatus } from '../lib/walletRpc.js';
 import {
   LEGACY_EXPLORER_TX_URL,
   SMARTCHAIN_EXPLORER_ADDR_URL,
 } from '../lib/constants.js';
 import logo from '../assets/electroneum-logo-symbol.png';
+
+const MIGRATION_POLL_MS = 5000;
+const MIGRATION_POLL_MAX_ATTEMPTS = 60; // 5 minutes of polling
 
 function CopyButton({ text }) {
   const [copied, setCopied] = useState(false);
@@ -47,11 +50,42 @@ function RevealField({ label, value }) {
 export default function Result({ ethInfo, onReset }) {
   const [migrations, setMigrations] = useState(null);
   const [error, setError] = useState('');
+  const [polling, setPolling] = useState(true);
+  const timerRef = useRef(null);
 
   useEffect(() => {
-    getMigrationStatus()
-      .then(setMigrations)
-      .catch((err) => setError(err.message));
+    let cancelled = false;
+    let attempts = 0;
+
+    async function poll() {
+      try {
+        const result = await getMigrationStatus();
+        if (cancelled) return;
+        setMigrations(result);
+        setError('');
+
+        // If migration found, stop polling
+        if (result && result.length > 0) {
+          setPolling(false);
+          return;
+        }
+      } catch (err) {
+        if (!cancelled) setError(err.message);
+      }
+
+      attempts++;
+      if (!cancelled && attempts < MIGRATION_POLL_MAX_ATTEMPTS) {
+        timerRef.current = setTimeout(poll, MIGRATION_POLL_MS);
+      } else if (!cancelled) {
+        setPolling(false);
+      }
+    }
+
+    poll();
+    return () => {
+      cancelled = true;
+      clearTimeout(timerRef.current);
+    };
   }, []);
 
   const hasMigrated = migrations && migrations.length > 0;
@@ -66,15 +100,28 @@ export default function Result({ ethInfo, onReset }) {
         <h3>Legacy Chain Migration</h3>
         {migrations === null && !error && <p className="loading">Loading…</p>}
         {error && <p className="error">{error}</p>}
-        {migrations !== null && !hasMigrated && (
+        {migrations !== null && !hasMigrated && polling && (
           <div className="status pending">
             <span className="status-icon">⏳</span>
             <div>
-              <strong>Not yet migrated</strong>
+              <strong>Checking for migration...</strong>
+              <p>
+                Your wallet has synced. If you have a balance, the migration
+                transaction will be sent automatically. This may take a moment.
+              </p>
+            </div>
+          </div>
+        )}
+        {migrations !== null && !hasMigrated && !polling && (
+          <div className="status pending">
+            <span className="status-icon">⏳</span>
+            <div>
+              <strong>No migration found</strong>
               <p>
                 No smart chain migration transaction was found for this wallet.
-                If you believe this is wrong, ensure your wallet is fully synced
-                and try again.
+                This could mean the wallet has no balance, or the migration has
+                not yet been processed. You can leave the app open and it will
+                continue checking.
               </p>
             </div>
           </div>
