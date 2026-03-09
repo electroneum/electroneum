@@ -76,7 +76,7 @@ function getWalletRpcBinaryPath() {
   } else if (platform === 'linux') {
     platformDir = 'linux-x64';
   } else if (platform === 'win32') {
-    platformDir = 'win32-x64';
+    platformDir = 'win-x64';
   } else {
     throw new Error(`Unsupported platform: ${platform}`);
   }
