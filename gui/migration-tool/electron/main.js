@@ -450,10 +450,13 @@ ipcMain.handle('get-migration-status', async () => {
 // ── Window ───────────────────────────────────────────────────────────────────
 
 function createWindow() {
+  const iconPath = path.join(__dirname, '..', '..', 'build', 'icon.png');
+
   mainWindow = new BrowserWindow({
     width: 800,
     height: 600,
     resizable: false,
+    icon: iconPath,
     webPreferences: {
       preload: path.join(__dirname, '..', 'preload', 'preload.js'),
       contextIsolation: true,
