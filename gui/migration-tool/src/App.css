@@ -232,6 +232,10 @@ body {
 }
 .reveal-value.hidden { color: var(--etn-muted); letter-spacing: 2px; }
 
+/* ── Shutdown overlay ────────────────────────────────────────────────────── */
+.shutdown-overlay { text-align: center; }
+.shutdown-overlay h2 { font-size: 20px; margin-bottom: 8px; }
+
 /* ── Utilities ───────────────────────────────────────────────────────────── */
 .error { color: var(--etn-red); font-size: 13px; margin-top: 4px; }
 .loading { color: var(--etn-muted); font-size: 13px; }

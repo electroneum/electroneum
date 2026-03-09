@@ -482,22 +482,23 @@ app.whenReady().then(async () => {
     await startWalletRpc('dir');
   } catch (err) {
     console.error('[main] Failed to start wallet-rpc:', err.message);
-    // Don't crash — renderer will show an error via get-rpc-port returning null
     walletRpcPort = null;
   }
   createWindow();
-});
 
-app.on('before-quit', (event) => {
-  if (isQuitting) return; // already handling shutdown
-  isQuitting = true;
-  console.log('[main] before-quit: stopping wallet-rpc...');
+  // Intercept the window close to keep it visible while wallet-rpc saves.
+  mainWindow.on('close', (event) => {
+    if (isQuitting) return; // already shutting down, let it close
+    event.preventDefault();
+    isQuitting = true;
 
-  // Prevent Electron from quitting until wallet-rpc has saved and exited
-  event.preventDefault();
-  stopWalletRpcAsync().then(() => {
-    console.log('[main] wallet-rpc stopped, quitting app');
-    app.quit();
+    console.log('[main] Window close requested — saving wallet...');
+    mainWindow.webContents.send('shutting-down');
+
+    stopWalletRpcAsync().then(() => {
+      console.log('[main] wallet-rpc stopped, closing window');
+      mainWindow.destroy();
+    });
   });
 });
 
