@@ -142,11 +142,7 @@ function killStaleWalletRpc() {
   for (const pid of pidsToKill) {
     console.log(`[main] Killing stale wallet-rpc (PID ${pid})`);
     try {
-      if (isWin && ctrlc) {
-        ctrlc(pid);
-      } else {
-        process.kill(pid, 'SIGTERM');
-      }
+      process.kill(pid, 'SIGTERM');
     } catch { continue; }
     // Wait up to 3s for graceful exit, then force kill
     const deadline = Date.now() + 3000;
@@ -394,7 +390,7 @@ ipcMain.handle('create-wallet', async (_event, { address, spendKey, viewKey }) =
   // Phase 1: create the wallet via RPC in dir mode
   try {
     await rpc('generate_from_keys', {
-      restore_height: 2338760, // TODO: revert to 0 for production
+      restore_height: 0,
       filename,
       address,
       spendkey: spendKey,
