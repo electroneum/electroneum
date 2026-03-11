@@ -6,24 +6,41 @@ const fs = require('fs');
 const axios = require('axios');
 const crypto = require('crypto');
 // On Windows, Node's proc.kill('SIGTERM') does an unconditional TerminateProcess
-// — no signal handler runs, so wallet-rpc can't save. We use ctrlc-windows to
-// send CTRL_C_EVENT instead, which triggers the C++ win_handler and saves.
+// — no signal handler runs, so wallet-rpc can't save. We load ctrlc-windows'
+// native module directly (not via its index.js) because the library resolves
+// process-killer.exe via __dirname, which points inside app.asar in packaged
+// Electron apps. We fix the path by replacing app.asar with app.asar.unpacked.
 const isWin = process.platform === 'win32';
-let ctrlc;
+let ctrlcNative;
+let processKillerPath;
 if (isWin) {
-  try { ctrlc = require('ctrlc-windows').ctrlc; } catch { /* not available */ }
+  try {
+    const ctrlcDir = path.dirname(require.resolve('ctrlc-windows/package.json'));
+    const archDir = process.arch === 'arm64' ? 'arm64' : 'x64';
+    ctrlcNative = require(path.join(ctrlcDir, 'dist', archDir, 'ctrlc-windows.node'));
+    processKillerPath = path.join(ctrlcDir, 'dist', archDir, 'process-killer.exe')
+      .replace('app.asar', 'app.asar.unpacked');
+    console.log(`[main] ctrlc-windows loaded, process-killer: ${processKillerPath}`);
+  } catch (err) {
+    console.error('[main] ctrlc-windows failed to load:', err.message);
+  }
 }
 
 /**
  * Send a graceful termination signal to a process.
  * - Unix: SIGTERM (caught by posix_handler → store → exit)
  * - Windows: CTRL_C_EVENT via ctrlc-windows (caught by win_handler → store → exit)
- *   Falls back to proc.kill() if ctrlc-windows is unavailable.
+ *   Falls back to proc.kill() (TerminateProcess — no save) if unavailable.
  */
 function gracefulKill(proc) {
-  if (isWin && ctrlc) {
+  if (isWin && ctrlcNative) {
     console.log(`[main] Sending CTRL_C_EVENT to PID ${proc.pid}`);
-    ctrlc(proc.pid);
+    try {
+      ctrlcNative.ctrlc(proc.pid, processKillerPath);
+    } catch (err) {
+      console.error(`[main] ctrlc failed: ${err.message}, falling back to kill`);
+      proc.kill();
+    }
   } else {
     proc.kill('SIGTERM');
   }
