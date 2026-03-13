@@ -472,7 +472,7 @@ ipcMain.handle('get-migration-status', async () => {
 // ── Window ───────────────────────────────────────────────────────────────────
 
 function createWindow() {
-  const iconPath = path.join(__dirname, '..', '..', 'build', 'icon.png');
+  const iconPath = path.join(__dirname, '..', '..', 'resources', 'icon.png');
 
   mainWindow = new BrowserWindow({
     width: 800,

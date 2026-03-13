@@ -29,7 +29,7 @@
     "appId": "com.electroneum.migration-tool",
     "productName": "ETN Migration Tool",
     "directories": {
-      "buildResources": "build"
+      "buildResources": "resources"
     },
     "extraResources": [
       {
@@ -40,6 +40,7 @@
         ]
       }
     ],
+    "icon": "resources/icon",
     "mac": {
       "target": [
         {
