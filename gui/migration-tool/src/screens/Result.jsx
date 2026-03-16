@@ -102,12 +102,6 @@ export default function Result({ ethInfo, onReset }) {
         setMigrations(scResult);
         setPrelimMigrations(prelimResult);
         setError('');
-
-        // Stop polling once smart chain migration is found
-        if (scResult && scResult.length > 0) {
-          setPolling(false);
-          return;
-        }
       } catch (err) {
         if (!cancelled) setError(err.message);
       }
