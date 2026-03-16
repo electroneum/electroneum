@@ -27,3 +27,9 @@ export async function getMigrationStatus() {
   if (!res.ok) throw new Error(res.error);
   return res.scMigrations; // array of transfer_entry objects
 }
+
+export async function getPreliminaryMigrationStatus() {
+  const res = await api.getPreliminaryMigrationStatus();
+  if (!res.ok) throw new Error(res.error);
+  return res.migrations; // array of transfer_entry objects (v2 private→public)
+}

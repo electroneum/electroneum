@@ -469,6 +469,15 @@ ipcMain.handle('get-migration-status', async () => {
   }
 });
 
+ipcMain.handle('get-preliminary-migration-status', async () => {
+  try {
+    const result = await rpc('get_transfers', { migration: true, out: true });
+    return { ok: true, migrations: result.migration || [] };
+  } catch (err) {
+    return { ok: false, error: err.message };
+  }
+});
+
 // ── Window ───────────────────────────────────────────────────────────────────
 
 function createWindow() {

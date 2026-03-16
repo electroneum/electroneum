@@ -6,5 +6,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getSyncStatus: () => ipcRenderer.invoke('get-sync-status'),
   waitForRpcReady: () => ipcRenderer.invoke('wait-for-rpc-ready'),
   getMigrationStatus: () => ipcRenderer.invoke('get-migration-status'),
+  getPreliminaryMigrationStatus: () => ipcRenderer.invoke('get-preliminary-migration-status'),
   onShuttingDown: (callback) => ipcRenderer.on('shutting-down', callback),
 });

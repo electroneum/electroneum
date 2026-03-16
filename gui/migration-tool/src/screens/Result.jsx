@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { getMigrationStatus } from '../lib/walletRpc.js';
+import { getMigrationStatus, getPreliminaryMigrationStatus } from '../lib/walletRpc.js';
 import {
   LEGACY_EXPLORER_TX_URL,
   SMARTCHAIN_EXPLORER_ADDR_URL,
@@ -47,8 +47,43 @@ function RevealField({ label, value }) {
   );
 }
 
+function TxTable({ txs }) {
+  return (
+    <table className="tx-table">
+      <thead>
+        <tr>
+          <th>TX ID</th>
+          <th>Amount (ETN)</th>
+          <th>Confirmations</th>
+          <th>Explorer</th>
+        </tr>
+      </thead>
+      <tbody>
+        {txs.map((tx) => (
+          <tr key={tx.txid}>
+            <td className="txid">{tx.txid.slice(0, 16)}…</td>
+            <td>{(tx.amount / 1e2).toFixed(2)}</td>
+            <td>{tx.confirmations ?? '—'}</td>
+            <td>
+              <a
+                href={`${LEGACY_EXPLORER_TX_URL}${tx.txid}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="link"
+              >
+                View
+              </a>
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
 export default function Result({ ethInfo, onReset }) {
   const [migrations, setMigrations] = useState(null);
+  const [prelimMigrations, setPrelimMigrations] = useState(null);
   const [error, setError] = useState('');
   const [polling, setPolling] = useState(true);
   const timerRef = useRef(null);
@@ -59,13 +94,17 @@ export default function Result({ ethInfo, onReset }) {
 
     async function poll() {
       try {
-        const result = await getMigrationStatus();
+        const [scResult, prelimResult] = await Promise.all([
+          getMigrationStatus(),
+          getPreliminaryMigrationStatus(),
+        ]);
         if (cancelled) return;
-        setMigrations(result);
+        setMigrations(scResult);
+        setPrelimMigrations(prelimResult);
         setError('');
 
-        // If migration found, stop polling
-        if (result && result.length > 0) {
+        // Stop polling once smart chain migration is found
+        if (scResult && scResult.length > 0) {
           setPolling(false);
           return;
         }
@@ -89,15 +128,32 @@ export default function Result({ ethInfo, onReset }) {
   }, []);
 
   const hasMigrated = migrations && migrations.length > 0;
+  const hasPrelim = prelimMigrations && prelimMigrations.length > 0;
 
   return (
     <div className="screen result">
       <img src={logo} alt="Electroneum" className="logo logo-sm" />
       <h2>Migration Result</h2>
 
-      {/* Migration status */}
+      {/* Preliminary private→public migration (v2) */}
+      {hasPrelim && (
+        <section className="card">
+          <h3>Preliminary Hardfork Migration</h3>
+          <p className="hint">
+            While scanning your wallet, we detected funds that predate the
+            private-to-public hardfork on the legacy blockchain. To prepare for
+            your Smart Chain migration, we have first migrated these funds between
+            hardforks. This preliminary step typically takes around 10 minutes to
+            confirm, so please be patient while you wait for these transactions to
+            finalise and your Smart Chain migration to begin automatically below.
+          </p>
+          <TxTable txs={prelimMigrations} />
+        </section>
+      )}
+
+      {/* Smart chain migration status (v3) */}
       <section className="card">
-        <h3>Legacy Chain Migration</h3>
+        <h3>Smart Chain Migration</h3>
         {migrations === null && !error && <p className="loading">Loading…</p>}
         {error && <p className="error">{error}</p>}
         {migrations !== null && !hasMigrated && polling && (
@@ -107,7 +163,10 @@ export default function Result({ ethInfo, onReset }) {
               <strong>Checking for migration...</strong>
               <p>
                 Your wallet has synced. If you have a balance, the migration
-                transaction will be sent automatically. This may take a moment.
+                transaction will be sent automatically.
+                {hasPrelim
+                  ? ' The preliminary hardfork migration above must confirm first — this may take around 10 minutes.'
+                  : ' This may take a moment.'}
               </p>
             </div>
           </div>
@@ -136,37 +195,7 @@ export default function Result({ ethInfo, onReset }) {
           </div>
         )}
 
-        {hasMigrated && (
-          <table className="tx-table">
-            <thead>
-              <tr>
-                <th>TX ID</th>
-                <th>Amount (ETN)</th>
-                <th>Confirmations</th>
-                <th>Explorer</th>
-              </tr>
-            </thead>
-            <tbody>
-              {migrations.map((tx) => (
-                <tr key={tx.txid}>
-                  <td className="txid">{tx.txid.slice(0, 16)}…</td>
-                  <td>{(tx.amount / 1e2).toFixed(2)}</td>
-                  <td>{tx.confirmations ?? '—'}</td>
-                  <td>
-                    <a
-                      href={`${LEGACY_EXPLORER_TX_URL}${tx.txid}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="link"
-                    >
-                      View
-                    </a>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
+        {hasMigrated && <TxTable txs={migrations} />}
       </section>
 
       {/* ETN Smart Chain address */}
