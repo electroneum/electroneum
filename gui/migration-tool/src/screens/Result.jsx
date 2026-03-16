@@ -7,7 +7,7 @@ import {
 import logo from '../assets/electroneum-logo-symbol.png';
 
 const MIGRATION_POLL_MS = 5000;
-const MIGRATION_POLL_MAX_ATTEMPTS = 60; // 5 minutes of polling
+const MIGRATION_POLL_MAX_ATTEMPTS = 720; // 1 hour of polling
 
 function CopyButton({ text }) {
   const [copied, setCopied] = useState(false);
