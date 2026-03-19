@@ -138,16 +138,25 @@ export default function Result({ ethInfo, onReset }) {
             private-to-public hardfork on the legacy blockchain. To prepare for
             your Smart Chain migration, we have first migrated these funds between
             hardforks. This preliminary step typically takes around 10 minutes to
-            confirm, so please be patient while you wait for these transactions to
-            finalise and your Smart Chain migration to begin automatically below.
+            confirm, so please be patient while you wait for your migration
+            transfer to the legacy bridge address to take place — those details
+            will appear in the "Smart Chain Bridge Migration Transfers" section below.
           </p>
           <TxTable txs={prelimMigrations} />
         </section>
       )}
 
-      {/* Smart chain migration status (v3) */}
+      {/* Smart chain bridge migration status (v3) */}
       <section className="card">
-        <h3>Smart Chain Migration</h3>
+        <h3>Smart Chain Bridge Migration Transfers</h3>
+        <p className="hint">
+          This section shows transfers from your legacy wallet to the bridge
+          address on the legacy blockchain. Once these transactions have
+          confirmed (which may take 10 minutes or more), the Electroneum Smart
+          Chain Oracle will observe them and send your balance to your new Smart
+          Chain address. You can check your Smart Chain balance using the explorer
+          link in the "Your ETN Smart Chain Address" section below.
+        </p>
         {migrations === null && !error && <p className="loading">Loading…</p>}
         {error && <p className="error">{error}</p>}
         {migrations !== null && !hasMigrated && polling && (
@@ -198,6 +207,9 @@ export default function Result({ ethInfo, onReset }) {
         <p className="hint">
           This address was derived from your private spend key using secp256k1.
           It is your EVM-compatible address on the Electroneum Smart Chain.
+          Once the Oracle has observed your confirmed bridge transfers, your
+          balance will be sent to this address. Please be patient — this process
+          may take some time. Use the explorer link below to check your balance.
         </p>
 
         <div className="address-row">
