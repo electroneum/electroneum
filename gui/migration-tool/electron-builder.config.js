@@ -40,7 +40,7 @@ module.exports = {
 
   mac: {
     target: [
-      { target: 'dmg', arch: ['arm64', 'x64'] },
+      { target: 'dmg', arch: ['arm64'] },
     ],
     category: 'public.app-category.finance',
     icon: 'resources/icon.icns',
@@ -62,8 +62,6 @@ module.exports = {
   nsis: {
     oneClick: false,
     allowToChangeInstallationDirectory: true,
-    installerIcon: 'build/icon.ico',
-    uninstallerIcon: 'build/icon.ico',
     installerIcon: 'resources/icon.ico',
     uninstallerIcon: 'resources/icon.ico',
   },
