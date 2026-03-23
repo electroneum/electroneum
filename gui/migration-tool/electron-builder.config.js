@@ -21,7 +21,7 @@ module.exports = {
   copyright: 'Copyright © 2024 Electroneum Limited',
 
   directories: {
-    buildResources: 'build',
+    buildResources: 'resources',
     output: 'dist-electron',
   },
 
@@ -43,20 +43,20 @@ module.exports = {
       { target: 'dmg', arch: ['arm64', 'x64'] },
     ],
     category: 'public.app-category.finance',
-    icon: 'build/icon.icns',
+    icon: 'resources/icon.icns',
   },
 
   linux: {
     target: ['AppImage', 'deb'],
     category: 'Finance',
-    icon: 'build/icon.png',
+    icon: 'resources/icon.png',
   },
 
   win: {
     target: [
       { target: 'nsis', arch: ['x64'] },
     ],
-    icon: 'build/icon.ico',
+    icon: 'resources/icon.ico',
   },
 
   nsis: {
@@ -64,6 +64,8 @@ module.exports = {
     allowToChangeInstallationDirectory: true,
     installerIcon: 'build/icon.ico',
     uninstallerIcon: 'build/icon.ico',
+    installerIcon: 'resources/icon.ico',
+    uninstallerIcon: 'resources/icon.ico',
   },
 
   dmg: {
