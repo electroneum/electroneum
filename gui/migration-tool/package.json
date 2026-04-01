@@ -2,6 +2,8 @@
   "name": "etn-migration-tool",
   "version": "1.0.0",
   "description": "Electroneum Legacy Chain to Smart Chain Migration Tool",
+  "author": "chris.harrison@electroneum.com",
+  "homepage": "https://electroneum.com",
   "main": "out/main/main.js",
   "scripts": {
     "dev": "electron-vite dev",
