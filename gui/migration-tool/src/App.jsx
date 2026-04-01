@@ -7,14 +7,8 @@ import './App.css';
 
 // Screens: 'key-entry' → 'syncing' → 'result'
 export default function App() {
-  // TEMP: skip to result screen for testing paper wallet
-  const [screen, setScreen] = useState('result');
-  const [walletInfo, setWalletInfo] = useState({
-    ethInfo: {
-      address: '0x742d35Cc6634C0532925a3b844Bc9e7595f2bD18',
-      privateKey: '0x4c0883a69102937d6231471b5dbb6204fe512961708279f23efb3c3b3e3e5e1c',
-    },
-  });
+  const [screen, setScreen] = useState('key-entry');
+  const [walletInfo, setWalletInfo] = useState(null);
   const [shuttingDown, setShuttingDown] = useState(false);
 
   useEffect(() => {

@@ -9,6 +9,7 @@ export default function KeyEntry({ onSuccess }) {
   const [viewKey, setViewKey] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [accepted, setAccepted] = useState(false);
 
   function validate() {
     if (!address.trim().startsWith('etn')) {
@@ -95,7 +96,23 @@ export default function KeyEntry({ onSuccess }) {
 
         {error && <p className="error">{error}</p>}
 
-        <button type="submit" disabled={loading} className="btn-primary">
+        <label className="accept-checkbox">
+          <input
+            type="checkbox"
+            checked={accepted}
+            onChange={(e) => setAccepted(e.target.checked)}
+          />
+          <span>
+            I understand that by proceeding, I am authorising this software to use
+            my private spend key to open my legacy wallet and migrate my ETN balance
+            to the Electroneum Smart Chain. My private spend key never leaves this
+            device — only my view key is used to sync with a remote blockchain node
+            hosted by Electroneum. The view key confers no spending powers and is
+            not used on the Smart Chain.
+          </span>
+        </label>
+
+        <button type="submit" disabled={loading || !accepted} className="btn-primary">
           {loading ? 'Opening wallet…' : 'Migrate Wallet (or check migration result)'}
         </button>
 
@@ -106,10 +123,6 @@ export default function KeyEntry({ onSuccess }) {
         </p>
       </form>
 
-      <p className="disclaimer">
-        Your private spend key never leaves your device. A remote blockchain node hosted by Electroneum is used
-        to sync your wallet.
-      </p>
     </div>
   );
 }
