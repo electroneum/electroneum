@@ -96,8 +96,14 @@ export default function KeyEntry({ onSuccess }) {
         {error && <p className="error">{error}</p>}
 
         <button type="submit" disabled={loading} className="btn-primary">
-          {loading ? 'Opening wallet…' : 'Check Migration Status'}
+          {loading ? 'Opening wallet…' : 'Migrate Wallet (or check migration result)'}
         </button>
+
+        <p className="hint" style={{ textAlign: 'center', marginTop: '10px' }}>
+          If you have already migrated this wallet, clicking the button above will
+          also show your migration status. Migration status is only available for
+          wallets that were migrated through this app.
+        </p>
       </form>
 
       <p className="disclaimer">
