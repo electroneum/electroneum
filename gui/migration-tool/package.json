@@ -14,7 +14,9 @@
   "dependencies": {
     "axios": "^1.6.0",
     "ctrlc-windows": "^2.2.0",
-    "ethereum-cryptography": "^2.1.2"
+    "ethereum-cryptography": "^2.1.2",
+    "pdfkit": "^0.15.0",
+    "qrcode": "^1.5.4"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.2.0",
@@ -39,6 +41,11 @@
           "**/*"
         ]
       }
+    ],
+    "asarUnpack": [
+      "node_modules/pdfkit/**",
+      "node_modules/fontkit/**",
+      "node_modules/linebreak/**"
     ],
     "icon": "resources/icon",
     "mac": {

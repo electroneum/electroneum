@@ -7,5 +7,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   waitForRpcReady: () => ipcRenderer.invoke('wait-for-rpc-ready'),
   getMigrationStatus: () => ipcRenderer.invoke('get-migration-status'),
   getPreliminaryMigrationStatus: () => ipcRenderer.invoke('get-preliminary-migration-status'),
+  generatePaperWallet: (params) => ipcRenderer.invoke('generate-paper-wallet', params),
   onShuttingDown: (callback) => ipcRenderer.on('shutting-down', callback),
 });

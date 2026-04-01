@@ -4,6 +4,7 @@ import {
   LEGACY_EXPLORER_TX_URL,
   SMARTCHAIN_EXPLORER_ADDR_URL,
 } from '../lib/constants.js';
+import PaperWalletModal from '../components/PaperWalletModal.jsx';
 import logo from '../assets/electroneum-logo-symbol.png';
 
 const MIGRATION_POLL_MS = 5000;
@@ -86,6 +87,7 @@ export default function Result({ ethInfo, onReset }) {
   const [prelimMigrations, setPrelimMigrations] = useState(null);
   const [error, setError] = useState('');
   const [polling, setPolling] = useState(true);
+  const [showPaperWallet, setShowPaperWallet] = useState(false);
   const timerRef = useRef(null);
 
   useEffect(() => {
@@ -237,9 +239,25 @@ export default function Result({ ethInfo, onReset }) {
         <RevealField label="Private key (hex)" value={ethInfo.privateKey} />
       </section>
 
+      <button
+        className="btn-primary"
+        style={{ width: '100%' }}
+        onClick={() => setShowPaperWallet(true)}
+      >
+        Download Smart Chain Paper Wallet
+      </button>
+
       <button className="btn-secondary" onClick={onReset}>
         Check another wallet
       </button>
+
+      {showPaperWallet && (
+        <PaperWalletModal
+          address={ethInfo.address}
+          privateKey={ethInfo.privateKey}
+          onClose={() => setShowPaperWallet(false)}
+        />
+      )}
     </div>
   );
 }

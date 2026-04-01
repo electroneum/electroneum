@@ -1,10 +1,11 @@
-const { app, BrowserWindow, ipcMain } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
 const { spawn, execSync } = require('child_process');
 const net = require('net');
 const fs = require('fs');
 const axios = require('axios');
 const crypto = require('crypto');
+import { generatePaperWallet } from './paperWallet';
 // On Windows, Node's proc.kill('SIGTERM') does an unconditional TerminateProcess
 // — no signal handler runs, so wallet-rpc can't save. We load ctrlc-windows'
 // native module directly (not via its index.js) because the library resolves
@@ -474,6 +475,33 @@ ipcMain.handle('get-preliminary-migration-status', async () => {
     const result = await rpc('get_transfers', { migration: true, out: true });
     return { ok: true, migrations: result.migration || [] };
   } catch (err) {
+    return { ok: false, error: err.message };
+  }
+});
+
+ipcMain.handle('generate-paper-wallet', async (_event, { address, privateKey, password }) => {
+  try {
+    // Resolve logo path (dev vs production)
+    const logoPath = app.isPackaged
+      ? path.join(process.resourcesPath, 'icon.png')
+      : path.join(__dirname, '..', '..', 'resources', 'icon.png');
+
+    const pdfBuffer = await generatePaperWallet({ address, privateKey, password, logoPath });
+
+    const addrSlice = address.slice(0, 10);
+    const { canceled, filePath } = await dialog.showSaveDialog(mainWindow, {
+      defaultPath: `etn-paper-wallet-${addrSlice}.pdf`,
+      filters: [{ name: 'PDF', extensions: ['pdf'] }],
+    });
+
+    if (canceled || !filePath) {
+      return { ok: true, cancelled: true };
+    }
+
+    fs.writeFileSync(filePath, pdfBuffer);
+    return { ok: true, filePath };
+  } catch (err) {
+    console.error('[main] Paper wallet generation failed:', err);
     return { ok: false, error: err.message };
   }
 });
