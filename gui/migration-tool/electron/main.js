@@ -6,6 +6,13 @@ const fs = require('fs');
 const axios = require('axios');
 const crypto = require('crypto');
 import { generatePaperWallet } from './paperWallet';
+
+// AppImage mounts as a read-only squashfs — Chromium's SUID sandbox cannot
+// work from that filesystem. Disable it on Linux when running from AppImage.
+// This is safe because AppImage is already sandboxed by the user's session.
+if (process.platform === 'linux' && process.env.APPIMAGE) {
+  app.commandLine.appendSwitch('no-sandbox');
+}
 // On Windows, Node's proc.kill('SIGTERM') does an unconditional TerminateProcess
 // — no signal handler runs, so wallet-rpc can't save. We load ctrlc-windows'
 // native module directly (not via its index.js) because the library resolves
