@@ -116,8 +116,32 @@ function getWalletRpcBinaryPath() {
     return path.join(projectRoot, 'bin', platformDir, binaryName);
   }
 
-  // In production: electron-builder copies bin/ into resourcesPath
-  return path.join(process.resourcesPath, 'bin', binaryName);
+  // In production: electron-builder copies bin/ into resourcesPath.
+  // On Linux (AppImage), this is a read-only squashfs mount, so we cannot
+  // chmod the binary in place. Copy it to a writable location first.
+  const resourceBinary = path.join(process.resourcesPath, 'bin', binaryName);
+
+  if (platform === 'linux') {
+    const writableBinDir = path.join(app.getPath('userData'), 'bin');
+    if (!fs.existsSync(writableBinDir)) {
+      fs.mkdirSync(writableBinDir, { recursive: true });
+    }
+    const writableBinary = path.join(writableBinDir, binaryName);
+
+    // Copy if missing or if the resource binary is newer (app was updated)
+    const needsCopy = !fs.existsSync(writableBinary) ||
+      fs.statSync(resourceBinary).mtimeMs > fs.statSync(writableBinary).mtimeMs;
+
+    if (needsCopy) {
+      console.log(`[main] Copying wallet-rpc to writable location: ${writableBinary}`);
+      fs.copyFileSync(resourceBinary, writableBinary);
+      fs.chmodSync(writableBinary, 0o755);
+    }
+
+    return writableBinary;
+  }
+
+  return resourceBinary;
 }
 
 // ── Wallet dir ───────────────────────────────────────────────────────────────
@@ -241,7 +265,13 @@ async function startWalletRpc(mode, walletFile) {
 
   // Ensure binary is executable on unix
   if (process.platform !== 'win32') {
-    fs.chmodSync(binaryPath, 0o755);
+    try {
+      fs.chmodSync(binaryPath, 0o755);
+    } catch (err) {
+      // May fail on read-only filesystems (e.g. macOS DMG) — binary should
+      // already be executable from the build, or was copied writable on Linux.
+      console.warn(`[main] chmod failed (${err.code}), assuming binary is already executable`);
+    }
   }
 
   const args = [
