@@ -233,8 +233,9 @@ export default function Result({ ethInfo, onReset }) {
         <h3>New Chain Private Key</h3>
         <p className="hint">
           Your private spend key doubles as your private key on the Electroneum Smart Chain.
-          Keep this secret and import it into a compatible wallet (e.g. MetaMask) to access
-          your funds.
+          Keep this secret. You can copy the key above and manually import it into MetaMask
+          or another compatible wallet via "Import Account", or use the "Download Smart Chain
+          Paper Wallet" button below to generate a scannable QR code for importing.
         </p>
         <RevealField label="Private key (hex)" value={ethInfo.privateKey} />
       </section>
