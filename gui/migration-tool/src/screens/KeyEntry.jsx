@@ -107,7 +107,7 @@ export default function KeyEntry({ onSuccess }) {
             my private spend key to open my legacy wallet and migrate my ETN balance
             to the Electroneum Smart Chain. My private spend key never leaves this
             device — only my view key is used to sync with a remote blockchain node
-            hosted by Electroneum. The view key confers no spending powers and is
+            hosted by ETN-Network. The view key confers no spending powers and is
             not used on the Smart Chain.
           </span>
         </label>
