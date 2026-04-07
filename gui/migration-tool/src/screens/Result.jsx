@@ -211,7 +211,10 @@ export default function Result({ ethInfo, onReset }) {
           It is your EVM-compatible address on the Electroneum Smart Chain.
           Once the Oracle has observed your confirmed bridge transfers, your
           balance will be sent to this address. Please be patient — this process
-          may take some time. Use the explorer link below to check your balance.
+          may take some time. Use the explorer link below to check your balance,
+          or download a Smart Chain Paper Wallet using the button at the bottom
+          of this page — the address QR code on the paper wallet can also be
+          scanned to view your balance on the block explorer.
         </p>
 
         <div className="address-row">
