@@ -108,7 +108,9 @@ export default function KeyEntry({ onSuccess }) {
             to the Electroneum Smart Chain. My private spend key never leaves this
             device — only my view key is used to sync with a remote blockchain node
             hosted by ETN-Network. The view key confers no spending powers and is
-            not used on the Smart Chain.
+            not used on the Smart Chain. I understand the security implications of
+            managing my own private keys and have read the best practices guide
+            at <a href="https://electroneum.com/best-practices/" target="_blank" rel="noopener noreferrer">electroneum.com/best-practices</a>.
           </span>
         </label>
 
