@@ -33,7 +33,7 @@ export function deriveEthAddress(spendKeyHex) {
   // Last 20 bytes of the hash
   const addressBytes = hash.slice(-20);
   const address = '0x' + bytesToHex(addressBytes);
-  const privateKey = '0x' + spendKeyHex.toLowerCase().replace(/^0x/, '');
+  const privateKey = spendKeyHex.toLowerCase().replace(/^0x/, '');
 
   return { address, privateKey };
 }
