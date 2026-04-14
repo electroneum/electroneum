@@ -42,6 +42,15 @@ sudo apt-get install fuse
 
 Without this, `electron-builder` will fail when packaging the AppImage. The `.deb` target does not require FUSE.
 
+### Windows build note
+
+On Windows, the build may fail with a symlink error when `electron-builder` extracts its code signing cache (`Cannot create symbolic link : A required privilege is not held by the client`). This is a Windows permissions issue, not a code problem. To fix it, either:
+
+- Run the build from an **Administrator** command prompt / PowerShell, or
+- Enable **Developer Mode** in Windows (Settings → Update & Security → For Developers → Developer Mode), which grants symlink permissions without admin.
+
+The produced executable will still work even if this error appears — it only affects macOS-specific files in the cache that are not needed on Windows.
+
 ## Project Structure
 
 ```
