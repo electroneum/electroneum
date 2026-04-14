@@ -65,6 +65,25 @@ body {
 .field input:focus { border-color: var(--etn-blue); }
 .field input::placeholder { color: var(--etn-muted); }
 
+.input-with-toggle { position: relative; display: flex; }
+.input-with-toggle input { flex: 1; padding-right: 64px; }
+.reveal-toggle {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: 1px solid var(--etn-border);
+  border-radius: calc(var(--radius) - 2px);
+  color: var(--etn-muted);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 10px;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+.reveal-toggle:hover { color: var(--etn-text); border-color: var(--etn-blue); }
+
 .disclaimer {
   margin-top: 20px;
   font-size: 11px;

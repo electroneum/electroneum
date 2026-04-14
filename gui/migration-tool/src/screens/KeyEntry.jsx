@@ -10,6 +10,8 @@ export default function KeyEntry({ onSuccess }) {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [accepted, setAccepted] = useState(false);
+  const [showSpendKey, setShowSpendKey] = useState(false);
+  const [showViewKey, setShowViewKey] = useState(false);
 
   // Strip all whitespace (spaces, tabs, line breaks) so users can paste keys
   // copied from multi-line sources like old paper wallet PDFs without having
@@ -79,36 +81,56 @@ export default function KeyEntry({ onSuccess }) {
 
         <div className="field">
           <label htmlFor="spendKey">Private Spend Key</label>
-          <input
-            id="spendKey"
-            type="password"
-            placeholder="64 hex characters"
-            value={spendKey}
-            onChange={(e) => setSpendKey(stripWhitespace(e.target.value))}
-            onPaste={(e) => {
-              e.preventDefault();
-              setSpendKey(stripWhitespace(e.clipboardData.getData('text')));
-            }}
-            spellCheck={false}
-            autoComplete="off"
-          />
+          <div className="input-with-toggle">
+            <input
+              id="spendKey"
+              type={showSpendKey ? 'text' : 'password'}
+              placeholder="64 hex characters"
+              value={spendKey}
+              onChange={(e) => setSpendKey(stripWhitespace(e.target.value))}
+              onPaste={(e) => {
+                e.preventDefault();
+                setSpendKey(stripWhitespace(e.clipboardData.getData('text')));
+              }}
+              spellCheck={false}
+              autoComplete="off"
+            />
+            <button
+              type="button"
+              className="reveal-toggle"
+              onClick={() => setShowSpendKey((v) => !v)}
+              aria-label={showSpendKey ? 'Hide private spend key' : 'Show private spend key'}
+            >
+              {showSpendKey ? 'Hide' : 'Show'}
+            </button>
+          </div>
         </div>
 
         <div className="field">
           <label htmlFor="viewKey">Private View Key</label>
-          <input
-            id="viewKey"
-            type="password"
-            placeholder="64 hex characters"
-            value={viewKey}
-            onChange={(e) => setViewKey(stripWhitespace(e.target.value))}
-            onPaste={(e) => {
-              e.preventDefault();
-              setViewKey(stripWhitespace(e.clipboardData.getData('text')));
-            }}
-            spellCheck={false}
-            autoComplete="off"
-          />
+          <div className="input-with-toggle">
+            <input
+              id="viewKey"
+              type={showViewKey ? 'text' : 'password'}
+              placeholder="64 hex characters"
+              value={viewKey}
+              onChange={(e) => setViewKey(stripWhitespace(e.target.value))}
+              onPaste={(e) => {
+                e.preventDefault();
+                setViewKey(stripWhitespace(e.clipboardData.getData('text')));
+              }}
+              spellCheck={false}
+              autoComplete="off"
+            />
+            <button
+              type="button"
+              className="reveal-toggle"
+              onClick={() => setShowViewKey((v) => !v)}
+              aria-label={showViewKey ? 'Hide private view key' : 'Show private view key'}
+            >
+              {showViewKey ? 'Hide' : 'Show'}
+            </button>
+          </div>
         </div>
 
         {error && <p className="error">{error}</p>}
