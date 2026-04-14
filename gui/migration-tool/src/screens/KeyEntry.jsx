@@ -11,6 +11,11 @@ export default function KeyEntry({ onSuccess }) {
   const [loading, setLoading] = useState(false);
   const [accepted, setAccepted] = useState(false);
 
+  // Strip all whitespace (spaces, tabs, line breaks) so users can paste keys
+  // copied from multi-line sources like old paper wallet PDFs without having
+  // to clean them up first.
+  const stripWhitespace = (s) => s.replace(/\s+/g, '');
+
   function validate() {
     if (!address.trim().startsWith('etn')) {
       return 'Address must start with "etn"';
@@ -62,7 +67,11 @@ export default function KeyEntry({ onSuccess }) {
             type="text"
             placeholder="etnk..."
             value={address}
-            onChange={(e) => setAddress(e.target.value)}
+            onChange={(e) => setAddress(stripWhitespace(e.target.value))}
+            onPaste={(e) => {
+              e.preventDefault();
+              setAddress(stripWhitespace(e.clipboardData.getData('text')));
+            }}
             spellCheck={false}
             autoComplete="off"
           />
@@ -75,7 +84,11 @@ export default function KeyEntry({ onSuccess }) {
             type="password"
             placeholder="64 hex characters"
             value={spendKey}
-            onChange={(e) => setSpendKey(e.target.value)}
+            onChange={(e) => setSpendKey(stripWhitespace(e.target.value))}
+            onPaste={(e) => {
+              e.preventDefault();
+              setSpendKey(stripWhitespace(e.clipboardData.getData('text')));
+            }}
             spellCheck={false}
             autoComplete="off"
           />
@@ -88,7 +101,11 @@ export default function KeyEntry({ onSuccess }) {
             type="password"
             placeholder="64 hex characters"
             value={viewKey}
-            onChange={(e) => setViewKey(e.target.value)}
+            onChange={(e) => setViewKey(stripWhitespace(e.target.value))}
+            onPaste={(e) => {
+              e.preventDefault();
+              setViewKey(stripWhitespace(e.clipboardData.getData('text')));
+            }}
             spellCheck={false}
             autoComplete="off"
           />
