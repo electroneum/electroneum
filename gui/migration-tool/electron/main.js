@@ -550,7 +550,7 @@ function createWindow() {
 
   mainWindow = new BrowserWindow({
     width: 960,
-    height: 920,
+    height: 980,
     resizable: false,
     icon: iconPath,
     webPreferences: {
