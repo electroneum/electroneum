@@ -2449,6 +2449,11 @@ namespace cryptonote
   //------------------------------------------------------------------------------------------------------------------------------
   bool core_rpc_server::on_get_tax_data(const COMMAND_RPC_GET_TAX_DATA::request &req,
                                         COMMAND_RPC_GET_TAX_DATA::response &res, const connection_context *ctx) {
+      if (m_restricted && ctx)
+      {
+        res.status = "Method disabled on restricted RPC";
+        return true;
+      }
       PERF_TIMER(on_get_tax_data);
       std::string filename =
               "taxes-" + std::to_string(req.start_height) + "-" + std::to_string(req.end_height) + ".csv";

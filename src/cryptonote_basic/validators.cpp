@@ -94,9 +94,6 @@ namespace electroneum {
 
           if(obj.list_timestamp < this->current_list_timestamp) {
 
-            this->last_updated = time(nullptr);
-            this->status = ValidatorsState::Valid;
-            
             LOG_PRINT_L1("Validator list received is older than our local list.");
 
             if(isEmergencyUpdate && (std::time(nullptr) - obj.list_timestamp < 18000)){
@@ -105,9 +102,6 @@ namespace electroneum {
                 return list_update_outcome::Old_List;
             }
           } else if(obj.list_timestamp == this->current_list_timestamp) {
-
-            this->last_updated = time(nullptr);
-            this->status = ValidatorsState::Valid;
 
             LOG_PRINT_L1("Validator list received has the same timestamp than our local list.");
             if(isEmergencyUpdate && (std::time(nullptr) - obj.list_timestamp < 18000)){
