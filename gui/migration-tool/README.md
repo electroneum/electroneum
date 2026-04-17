@@ -51,6 +51,36 @@ On Windows, the build may fail with a symlink error when `electron-builder` extr
 
 The produced executable will still work even if this error appears — it only affects macOS-specific files in the cache that are not needed on Windows.
 
+## Antivirus & Firewall Guide
+
+The migration tool bundles `electroneum-wallet-rpc`, a background process that communicates with the Electroneum legacy blockchain. Antivirus software and OS firewalls may flag or block this binary because cryptocurrency-related executables commonly trigger false positive detections. If the app shows a `connect ECONNREFUSED 127.0.0.1:...` error on the first screen, the wallet-rpc process has been blocked from starting.
+
+### Windows
+
+1. **Windows Defender** — Open Windows Security → Virus & threat protection → Protection history. If `electroneum-wallet-rpc.exe` has been quarantined, select it and choose "Allow on device". Then go to Virus & threat protection settings → Exclusions → Add an exclusion → Folder, and add the app's installation directory (typically `C:\Users\<you>\AppData\Local\Programs\etn-migration-tool\`).
+
+2. **Third-party antivirus (Avast, Norton, etc.)** — Add the same installation directory to the antivirus exclusion/whitelist. The exact steps vary by product — look for "Exclusions", "Exceptions", or "Whitelist" in the antivirus settings. You may need to restore the file from quarantine first.
+
+3. **Windows Firewall** — The app only makes outbound connections to `legacy-rpc.electroneum.com` and communicates with wallet-rpc on `127.0.0.1` (localhost). If the firewall prompts you when opening the app, allow the connection. If it was already blocked: Control Panel → Windows Defender Firewall → Allow an app through firewall → Add `ETN Migration Tool.exe` and `electroneum-wallet-rpc.exe`.
+
+### macOS
+
+1. **Gatekeeper** — On first launch, macOS may show "app is from an unidentified developer". Right-click the app → Open → Open. This only needs to be done once.
+
+2. **Notarisation warning** — If macOS says the app "cannot be opened because it is from an unidentified developer", go to System Settings → Privacy & Security → scroll down to the Security section where the blocked app will be listed → click "Open Anyway".
+
+3. **wallet-rpc blocked separately** — macOS may also block the `electroneum-wallet-rpc` binary inside the app bundle. If the app opens but shows a connection error, go to System Settings → Privacy & Security and look for a second blocked item to allow.
+
+4. **Firewall** — If the macOS firewall is enabled (System Settings → Network → Firewall), add the app to the allowed list or temporarily disable the firewall during migration.
+
+### Linux
+
+1. **AppImage permissions** — After downloading, make the AppImage executable: `chmod +x ETN-Migration-Tool-*.AppImage`. FUSE is required to run AppImages: `sudo apt-get install fuse`.
+
+2. **SELinux / AppArmor** — On distributions with mandatory access control (e.g. Ubuntu with AppArmor, Fedora with SELinux), the embedded `electroneum-wallet-rpc` may be prevented from executing. Check `dmesg` or `journalctl -xe` for denial messages. If blocked, you can temporarily set SELinux to permissive (`sudo setenforce 0`) or add an AppArmor exception for the app.
+
+3. **Firewall (ufw / firewalld)** — The app only makes outbound connections. Most Linux firewalls allow outbound by default. If you have a restrictive outbound policy, allow connections to `legacy-rpc.electroneum.com` on port `443`.
+
 ## Project Structure
 
 ```
