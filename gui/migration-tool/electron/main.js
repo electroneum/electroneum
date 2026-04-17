@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, Menu } = require('electron');
 const path = require('path');
 const { spawn, execSync } = require('child_process');
 const net = require('net');
@@ -546,6 +546,10 @@ ipcMain.handle('generate-paper-wallet', async (_event, { address, privateKey, pa
 // ── Window ───────────────────────────────────────────────────────────────────
 
 function createWindow() {
+  if (app.isPackaged) {
+    Menu.setApplicationMenu(null);
+  }
+
   const iconPath = path.join(__dirname, '..', '..', 'resources', 'icon.png');
 
   mainWindow = new BrowserWindow({
