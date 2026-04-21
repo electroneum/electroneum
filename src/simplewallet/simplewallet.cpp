@@ -72,6 +72,7 @@
 #include "version.h"
 #include <stdexcept>
 #include "wallet/message_store.h"
+#include <secp256k1/include/secp256k1.h>
 
 #ifdef WIN32
 #include <boost/locale.hpp>
@@ -736,6 +737,40 @@ bool simple_wallet::spendkey(const std::vector<std::string> &args/* = std::vecto
     printf("secret: ");
     print_secret_key(m_wallet->get_account().get_keys().m_spend_secret_key);
     putchar('\n');
+
+    // SMARTCHAIN ADDRESS
+    unsigned char seckey1[32];
+    unsigned char public_key64[65];
+    size_t pk_len = 65;
+    secp256k1_pubkey pubkey1;
+    secp256k1_context* ctx = secp256k1_context_create(SECP256K1_CONTEXT_SIGN);
+    memcpy(seckey1, m_wallet->get_account().get_keys().m_spend_secret_key.data, 32);
+    if(secp256k1_ec_seckey_verify(ctx, seckey1) == 0) { // sec key has an unrealistic chance of being invalid (10^-128) https://en.bitcoin.it/wiki/Private_key
+        LOG_ERROR("Invalid private key");
+        return false;
+    }
+
+    // create the pubkey and serialise it
+    if(secp256k1_ec_pubkey_create(ctx, &pubkey1, seckey1) == 0) { // this format is not sufficient for hashing, hence serialisation
+      LOG_ERROR("Failed to create secp256k1 public key");
+      return false;
+    }
+    secp256k1_ec_pubkey_serialize(ctx, public_key64, &pk_len, &pubkey1, SECP256K1_EC_UNCOMPRESSED); // serialise pubkey1 into publickey_64
+    std::string long_public_key2 = epee::string_tools::pod_to_hex(public_key64); // debug purposes - can check against https://lab.miguelmota.com/ethereum-private-key-to-public-key/example/
+
+    // Ethereum address generation: Take the last 20 bytes of the Keccak-256 hash of the public key
+    // keccak-1600() is not suitable, but keccak() with 24 rounds and mdlen (=size) of 32 is the same
+    // as keccak-256 with a 32 byte output. 24 rounds is the default in Monero for keccak()
+    // the first byte is the compression type so hash the 64 bytes after the first byte only
+    // I have put the 32 byte hash inside  pubkey1.data just to save time
+    keccak(public_key64 + 1, 64, pubkey1.data, 32);
+    unsigned char address[20]; //smartchain address
+    memcpy(address, pubkey1.data + 12, 20); // take the last 20 bytes of the 32 byte array for the address
+    std::string hex_address = epee::string_tools::pod_to_hex(address); // should be 0x12ed7467c3852e6b2Bd3C22AF694be8DF7637B10.
+    std::string bridge_smartchain_address = "0x" + hex_address; //prefix address with 0x
+    LOG_PRINT_L1("Smartchain address: " << bridge_smartchain_address);
+
+    std::cout << "smartchain address: " << bridge_smartchain_address << std::endl;
   }
   std::cout << "public: " << string_tools::pod_to_hex(m_wallet->get_account().get_keys().m_account_address.m_spend_public_key) << std::endl;
 

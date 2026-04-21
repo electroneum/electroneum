@@ -89,7 +89,11 @@ namespace epee
     {
       //go to loop
       MINFO("Run net_service loop( " << threads_count << " threads)...");
-      if(!m_net_server.run_server(threads_count, wait))
+      // cn_slow_hash requires ~2MB stack; default thread stack (512KB on macOS)
+      // is insufficient and causes a stack overflow (SIGBUS/SIGSEGV) on arm64.
+      boost::thread::attributes attrs;
+      attrs.set_stack_size(8 * 1024 * 1024); // 8 MB
+      if(!m_net_server.run_server(threads_count, wait, attrs))
       {
         LOG_ERROR("Failed to run net tcp server!");
       }

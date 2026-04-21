@@ -3803,8 +3803,8 @@ void wallet2::refresh(bool trusted_daemon, uint64_t start_height, uint64_t & blo
                 // check that unlocked balance = unlocked balance as a best-effort to ensure that we're not migrating the funds whilst more are in transit/confirming
                 if ((!portal_wallet) && (this->balance_all(true) != 0) &&
                     (this->unlocked_balance_all(true) == this->balance_all(true))) {
-                    LOG_PRINT_L0(
-                            "You are beginning your token migration over to the Electroneum Smart Chain.\n This transaction is feeless. For further information, please read our documentation over at https:///developer.electroneum.com/migration-to-smart-chain/overview");
+                    std::cout << std::endl << "You are beginning your token migration over to the Electroneum Smart Chain." << std::endl;
+                    std::cout << "This transaction is feeless. For further information, please read our documentation over at https:///developer.electroneum.com/migration-to-smart-chain/overview" << std::endl;
                     std::map<uint32_t, std::map<uint32_t, std::pair<uint64_t, uint64_t>>> unlocked_balance_per_subaddress_per_account; // map of:   account index ---->  (subaddress index, pair(u-balance, unlock time))
                     // for each account, grab all of the subaddress info (index, (balance, unlock))
                     for (uint32_t account_index = 0;
@@ -3836,8 +3836,11 @@ void wallet2::refresh(bool trusted_daemon, uint64_t start_height, uint64_t & blo
                                 this->commit_tx(ptx_vector);
                             }
                         }
-                    }
-                    LOG_PRINT_L0("Migration to Smart Chain portal address completed. Please use the command show_transfers (CLI Wallet) or get_transfers (RPC Wallet) to see the details of your Smart Chain migration transactions.");
+                      }
+                      std::cout << std::endl;
+                      std::cout << "Migration to Smart Chain portal address completed. Please use the command show_transfers (CLI Wallet) or get_transfers (RPC Wallet) to see the details of your Smart Chain migration transactions." << std::endl;
+                      std::cout << "Please note that the entire migration process is not instant and your funds may take some time to show up in the Smart Chain." << std::endl;
+                      std::cout << "You can find your SmartChain address using the \"spendkey\" command in the CLI wallet." << std::endl;
                 }
             }
         } catch(...) {

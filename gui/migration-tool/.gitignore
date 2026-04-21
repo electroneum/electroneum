@@ -1,0 +1,6 @@
+node_modules/
+out/
+dist/
+toy-blockchain-testing-files/testnet-data-*/
+!bin/
+bin/**/*.log

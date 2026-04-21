@@ -1,0 +1,437 @@
+LOCAL TESTNET MIGRATION TEST — INSTRUCTIONS
+=============================================
+
+OVERVIEW
+--------
+This test creates a private two-node testnet with compressed hardfork heights
+and automatically mines through all forks. Mining happens in two phases:
+
+  Phase 1 (blocks 1-59):  Mine to miner wallets — earns coinbase rewards.
+  Phase 2 (blocks 60+):   Mine to burn address — HF11 requires all coinbase
+                           to go to the burn address. These blocks advance the
+                           chain so the phase 1 coinbase rewards unlock.
+
+After mining completes, the miner wallets have spendable ETN and the chain
+is past the migration fork, ready for GUI migration tool testing.
+
+Validator block signatures are mocked in the source code — sign_block() writes
+a dummy 64-byte signature and verify_block_signature() always returns true.
+No --fallback-to-pow flag is needed.
+
+
+PREREQUISITES
+-------------
+1. Apply the source code changes listed in "FILES MODIFIED" below.
+   A ready-to-apply patch is included:
+
+     cd ~/electroneum
+     git apply gui/migration-tool/toy-blockchain-testing-files/testnet-toy-hardforks.patch
+
+   If the patch doesn't apply cleanly, each change is listed inline below
+   so you can make the edits manually.
+
+2. Rebuild electroneumd and electroneum-wallet-rpc:
+
+     mkdir -p build/Darwin/gui-migration-app/release && cd build/Darwin/gui-migration-app/release
+     cmake -DCMAKE_BUILD_TYPE=Release ../../../..
+     make -j$(sysctl -n hw.ncpu) electroneumd electroneum-wallet-rpc electroneum-wallet-cli
+
+3. Ensure the rebuilt binaries are in:
+     ~/electroneum/build/Darwin/gui-migration-app/release/bin/
+
+
+TOY HARDFORK TABLE (testnet)
+----------------------------
+  HF1  @ height 1    (genesis)
+  HF6  @ height 10
+  HF7  @ height 20
+  HF8  @ height 30   (public tx / mocked validator signatures)
+  HF9  @ height 40
+  HF10 @ height 50
+  HF11 @ height 60   (migration fork — coinbase must go to burn address)
+
+
+WHY TWO MINING PHASES?
+----------------------
+At HF11, validate_miner_transaction() enforces that all coinbase outputs go
+to the burn address (etnkCys4uGh...). This means after height 60 you cannot
+mine to your own wallet. But you still need blocks to be produced after
+height 60 so that the coinbase rewards earned in phase 1 (blocks 1-59) get
+enough confirmations to become spendable (5 blocks after HF8).
+
+The script handles both phases automatically.
+
+
+MOCKED VALIDATOR SIGNATURES
+----------------------------
+From HF8 onward, blocks require a validator signature. Rather than using the
+real validator infrastructure (which requires keys from Electroneum Ltd), the
+following functions are mocked in blockchain.cpp:
+
+  sign_block():            Fills b.signature with 64 dummy bytes, varying by
+                           block height so consecutive blocks differ.
+  verify_block_signature(): Always returns true. Sets b.signatory from the
+                           signature bytes.
+  Validator list checks:   Skipped entirely (no isEnabled/isValid calls).
+  Sequential signatory:    Check removed (mocked signatories vary by height).
+
+This allows the miner to produce valid signed blocks without real validator keys.
+
+
+WALLET INFO
+-----------
+Miner 1:
+  Address: etnjvFKes6Rj2cpthTS17ygk4Q8EKwyUyQaohU8v9fNg3fMT74SRAsBSuYnTY7vQ2XY6SRVkMJ8LPVDAGhpWf5Tw8K5Yqx1VfU
+  Seed:    keyboard suddenly wise baby tanks logic wizard lofty
+           fully ethics spout kisses jellyfish losing balding pixels
+           eggs occur enlist pact onto hounded rays rockets onto
+  File:    test-wallets/miner1
+
+Miner 2:
+  Address: etnjyd3AjP3aFm3ddAmJCzheSHT7r6np3V5Zc94miX4vY1bJ4ZqdZQBdhdnb68FD42ZLtudwswYQPGXZatB12YE391yHeHBP6F
+  Seed:    fences sifting fudge urchins onboard pact incur etched
+           input building inkling abrasive different dash situated byline
+           negative aplomb phone tutor pirate cafe dubbed enraged dubbed
+  File:    test-wallets/miner2
+
+Burn address (HF11+ coinbase):
+  etnkCys4uGhSi9h48ajL9vBDJTcn2s2ttXtXq3SXWPAbiMHNhHitu5fJ8QgRfFWTzmJ8QgRfFWTzmJ8QgRfFWTzm4t51HTfCtK
+
+Both wallets have empty passwords.
+
+
+PORT LAYOUT
+-----------
+                 Daemon 1       Daemon 2
+  P2P            34567          34569
+  RPC            34568          34570
+  ZMQ            34582          34584
+
+The GUI migration tool connects to Daemon 1 (RPC port 34568).
+
+
+STEP-BY-STEP
+=============
+
+STEP 1 — Run the test script
+-----------------------------
+The script starts both daemons and handles all mining automatically:
+
+  cd ~/electroneum/gui/migration-tool/toy-blockchain-testing-files
+  ./migration-test.sh
+
+It will:
+  1. Launch Daemon 1 and Daemon 2 (detached, peered exclusively)
+  2. Mine to miner wallets up to height 59 (phase 1)
+  3. Stop mining, switch to burn address
+  4. Mine to burn address up to height 150 (phase 2)
+  5. Stop mining and print status
+
+With --fixed-difficulty 1, the whole process takes seconds.
+
+
+STEP 2 — Get wallet keys
+-------------------------
+The GUI migration tool needs the wallet address, spend key, and view key.
+Open a wallet in the CLI to retrieve them:
+
+  ~/electroneum/build/Darwin/gui-migration-app/release/bin/electroneum-wallet-cli \
+    --testnet --wallet-file ~/electroneum/gui/migration-tool/toy-blockchain-testing-files/test-wallets/miner1 --password "" --offline
+
+Then in the wallet CLI:
+  spendkey        (reveals secret spend key — copy it)
+  viewkey         (reveals secret view key — copy it)
+  exit
+
+
+STEP 3 — Run the GUI migration tool
+------------------------------------
+The tool has been pre-configured to use the local testnet daemon
+(127.0.0.1:34568) with SSL disabled and the --testnet flag on wallet-rpc.
+
+  cd ~/electroneum/gui/migration-tool
+  npm run dev
+
+In the GUI:
+  1. Enter the miner wallet address and its spend key + view key.
+  2. The GUI will sync the wallet against the local daemon.
+  3. After sync, it will show the migration status and derived SC address.
+
+
+STEP 4 — Clean up
+------------------
+Stop both daemons:
+
+  cd ~/electroneum/gui/migration-tool/toy-blockchain-testing-files
+  ./migration-test.sh stop
+
+Remove blockchain data (to start fresh next time):
+
+  ./migration-test.sh clean
+
+
+MANUAL COMMANDS (if not using the script)
+==========================================
+
+Start daemons (no --fallback-to-pow — signatures are mocked in source):
+
+  BIN=~/electroneum/build/Darwin/gui-migration-app/release/bin
+  DATA=~/electroneum/gui/migration-tool/toy-blockchain-testing-files
+
+  # Daemon 1
+  $BIN/electroneumd --testnet --data-dir $DATA/testnet-data-1 \
+    --p2p-bind-port 34567 --rpc-bind-port 34568 --zmq-rpc-bind-port 34582 \
+    --rpc-bind-ip 127.0.0.1 --confirm-external-bind \
+    --add-exclusive-node 127.0.0.1:34569 \
+    --fixed-difficulty 1 --no-igd --hide-my-port --detach
+
+  # Daemon 2
+  $BIN/electroneumd --testnet --data-dir $DATA/testnet-data-2 \
+    --p2p-bind-port 34569 --rpc-bind-port 34570 --zmq-rpc-bind-port 34584 \
+    --rpc-bind-ip 127.0.0.1 --confirm-external-bind \
+    --add-exclusive-node 127.0.0.1:34567 \
+    --fixed-difficulty 1 --no-igd --hide-my-port --detach
+
+Phase 1 — mine to wallets (before height 60):
+
+  curl -s http://127.0.0.1:34568/start_mining \
+    -d '{"do_background_mining":false,"ignore_battery":true,"miner_address":"etnjvFKes6Rj2cpthTS17ygk4Q8EKwyUyQaohU8v9fNg3fMT74SRAsBSuYnTY7vQ2XY6SRVkMJ8LPVDAGhpWf5Tw8K5Yqx1VfU","threads_count":1}' \
+    -H 'Content-Type: application/json'
+
+  curl -s http://127.0.0.1:34570/start_mining \
+    -d '{"do_background_mining":false,"ignore_battery":true,"miner_address":"etnjyd3AjP3aFm3ddAmJCzheSHT7r6np3V5Zc94miX4vY1bJ4ZqdZQBdhdnb68FD42ZLtudwswYQPGXZatB12YE391yHeHBP6F","threads_count":1}' \
+    -H 'Content-Type: application/json'
+
+Check height:
+
+  curl -s http://127.0.0.1:34568/json_rpc \
+    -d '{"jsonrpc":"2.0","id":"0","method":"get_info"}' \
+    -H 'Content-Type: application/json' \
+    | python3 -c "import sys,json; print('Height:', json.load(sys.stdin)['result']['height'])"
+
+Stop mining at height 59, then Phase 2 — mine to burn address:
+
+  curl -s http://127.0.0.1:34568/stop_mining -H 'Content-Type: application/json'
+  curl -s http://127.0.0.1:34570/stop_mining -H 'Content-Type: application/json'
+
+  curl -s http://127.0.0.1:34568/start_mining \
+    -d '{"do_background_mining":false,"ignore_battery":true,"miner_address":"etnkCys4uGhSi9h48ajL9vBDJTcn2s2ttXtXq3SXWPAbiMHNhHitu5fJ8QgRfFWTzmJ8QgRfFWTzmJ8QgRfFWTzm4t51HTfCtK","threads_count":1}' \
+    -H 'Content-Type: application/json'
+
+  curl -s http://127.0.0.1:34570/start_mining \
+    -d '{"do_background_mining":false,"ignore_battery":true,"miner_address":"etnkCys4uGhSi9h48ajL9vBDJTcn2s2ttXtXq3SXWPAbiMHNhHitu5fJ8QgRfFWTzmJ8QgRfFWTzmJ8QgRfFWTzm4t51HTfCtK","threads_count":1}' \
+    -H 'Content-Type: application/json'
+
+Mine to height 150+, then stop and test migration.
+
+
+TROUBLESHOOTING
+===============
+
+"Chain stuck at height 60"
+  - This means mining is still targeting a miner wallet address. After HF11,
+    coinbase must go to the burn address. Stop mining and restart with the
+    burn address (see Phase 2 above).
+  - If using the script, this is handled automatically.
+
+"Daemon not responding"
+  - Check if electroneumd processes are running: ps aux | grep electroneumd
+  - Check daemon logs in testnet-data-1/testnet/electroneum.log
+
+"Wallet RPC won't connect to daemon"
+  - Ensure daemon 1 is running on port 34568
+  - The GUI tool's wallet-rpc uses --daemon-ssl=disabled; make sure you
+    haven't reverted that change in electron/main.js
+
+"No balance showing in wallet"
+  - Coinbase outputs need confirmations to unlock (5 blocks after HF8).
+    Ensure the chain is well past height 150 before checking balances.
+  - Open wallet in CLI and type 'refresh' then 'balance'.
+
+"Migration transaction fails"
+  - The chain must be past HF11 (height 60) for v3 migration transactions.
+  - The testnet portal address keys differ from mainnet — this is handled
+    automatically when using --testnet.
+
+"Failed to create block template"
+  - If V9_BLOCK_HEIGHT in cryptonote_basic_impl.cpp wasn't changed to 40,
+    get_block_reward() will underflow and fail. Rebuild after the fix.
+
+
+FILES MODIFIED FOR THIS TEST (revert when done)
+================================================
+
+A patch file is provided at:
+  gui/migration-tool/toy-blockchain-testing-files/testnet-toy-hardforks.patch
+
+Apply:  cd ~/electroneum && git apply gui/migration-tool/toy-blockchain-testing-files/testnet-toy-hardforks.patch
+Revert: cd ~/electroneum && git checkout -- <files below>
+
+All 9 modified files are listed below with inline diffs so you can apply
+changes manually if the patch doesn't apply cleanly.
+
+------------------------------------------------------------------------
+1. src/cryptonote_core/blockchain.cpp
+------------------------------------------------------------------------
+   a) testnet_hard_forks[] — replace the production heights with toy heights:
+
+      BEFORE:
+        { 1, 1, 0, 1341378000 },
+        { 6, 190060, 0, 1523263057 },
+        { 7, 215000, 0, 1530615600 },
+        { 8, 446674, 0, 1562889600 },
+        { 9, 707121, 0, 1595615809 },
+        { 10, 1086402, 0, 1631789441 },
+        { 11, 1455270, 0, 1693256672 }
+
+      AFTER:
+        { 1,  1,  0, 1341378000 },
+        { 6,  10, 0, 1341378001 },
+        { 7,  20, 0, 1341378002 },
+        { 8,  30, 0, 1341378003 },
+        { 9,  40, 0, 1341378004 },
+        { 10, 50, 0, 1341378005 },
+        { 11, 60, 0, 1341378006 }
+
+   b) testnet_hard_fork_version_1_till:  190059 -> 9
+
+   c) private_to_public_fork_height (in Blockchain::init):
+        TESTNET case:  1086402 -> 50
+
+   d) sign_block() — replace with mock:
+        (void)privateKey;
+        b.signature.assign(64, 0xAA);
+        b.signature[0] = static_cast<uint8_t>(b.nonce & 0xFF);
+        b.signature[1] = static_cast<uint8_t>((b.nonce >> 8) & 0xFF);
+
+   e) verify_block_signature() — replace with mock:
+        b.signatory = std::vector<uint8_t>(b.signature.begin(), b.signature.end());
+        return true;
+
+   f) handle_alternative_block — remove validator isEnabled/isValid checks
+      and sequential signatory check (keep verify_block_signature call)
+
+   g) handle_block_to_main_chain — remove validator isEnabled/isValid checks
+      and sequential signatory check (keep verify_block_signature call)
+
+------------------------------------------------------------------------
+2. src/cryptonote_core/cryptonote_core.cpp
+------------------------------------------------------------------------
+   handle_block_found() — always resume miner after successful block:
+
+   BEFORE:
+     if(m_fallback_to_pow) {
+       m_miner.resume();
+     }
+
+   AFTER:
+     update_miner_block_template();
+     m_miner.resume();
+
+   Also add miner resume + template update on verification failure:
+
+   BEFORE:
+     CHECK_AND_ASSERT_MES(!bvc.m_verification_failed, false, "Mined block failed verification");
+
+   AFTER:
+     if(bvc.m_verification_failed) {
+       MERROR("Mined block failed verification");
+       update_miner_block_template();
+       m_miner.resume();
+       return false;
+     }
+
+------------------------------------------------------------------------
+3. src/cryptonote_basic/cryptonote_basic_impl.cpp
+------------------------------------------------------------------------
+   V9_BLOCK_HEIGHT TESTNET case:  707121 -> 40
+
+------------------------------------------------------------------------
+4. src/cryptonote_core/tx_pool.cpp
+------------------------------------------------------------------------
+   Two occurrences of the v3 migration height check (testnet ternary):
+
+   BEFORE (2 places):
+     m_blockchain.get_nettype() == MAINNET ? 1811310 : 1455270
+
+   AFTER (2 places):
+     m_blockchain.get_nettype() == MAINNET ? 1811310 : 60
+
+   Lines are near: "if(tx.version == 3 && m_blockchain.get_current_blockchain_height() > ..."
+
+------------------------------------------------------------------------
+5. src/rpc/core_rpc_server.cpp
+------------------------------------------------------------------------
+   v10_height testnet value:
+
+   BEFORE:
+     auto v10_height = nettype() == ... MAINNET ? 1175315 : 1086402;
+
+   AFTER:
+     auto v10_height = nettype() == ... MAINNET ? 1175315 : 50;
+
+------------------------------------------------------------------------
+6. src/wallet/wallet2.cpp
+------------------------------------------------------------------------
+   a) v8height TESTNET ternary (4 occurrences):  446674 -> 30
+      Search for: m_nettype == TESTNET ? 446674
+      Functions: unlocked_balance_per_subaddress, rescan_spent,
+                 is_transfer_unlocked, get_outs
+
+   b) migration_minheight TESTNET:  1086402 + 5 -> 50 + 5
+      In refresh(), search for: this->nettype() == TESTNET ? 1086402
+
+   c) smartchain_migration_minheight TESTNET:  1455270 -> 60
+      In refresh(), search for: this->nettype() == MAINNET ? 1811310 : 1455270
+
+   d) v6height TESTNET:  190059 -> 9
+      In is_tx_spendtime_unlocked(), search for: m_nettype == TESTNET ? 190059
+
+   e) fork_block TESTNET:  190060 -> 10
+      In get_approximate_blockchain_height(), search for:
+        m_nettype == TESTNET ? 190060
+
+------------------------------------------------------------------------
+7. src/wallet/wallet2.h
+------------------------------------------------------------------------
+   a) synced_to_v10() — testnet height:  1086402 -> 50
+      Search for: get_blockchain_current_height() >= 1086402
+
+   b) public_transactions_required() — testnet height:  1086402 -> 50
+      Search for: (1086402 - CRYPTONOTE_LOCKED_TX_ALLOWED_DELTA_BLOCKS)
+
+------------------------------------------------------------------------
+8. gui/migration-tool/src/lib/constants.js
+------------------------------------------------------------------------
+   BEFORE:
+     export const REMOTE_NODE = 'legacy-rpc.electroneum.com:443';
+     export const REMOTE_NODE_URL = 'https://legacy-rpc.electroneum.com';
+     export const SMARTCHAIN_MIGRATION_FORKHEIGHT = 1811310;
+
+   AFTER:
+     export const REMOTE_NODE = '127.0.0.1:34568';
+     export const REMOTE_NODE_URL = 'http://127.0.0.1:34568';
+     export const SMARTCHAIN_MIGRATION_FORKHEIGHT = 60;
+
+------------------------------------------------------------------------
+9. gui/migration-tool/electron/main.js
+------------------------------------------------------------------------
+   a) REMOTE_NODE / REMOTE_NODE_URL:
+
+   BEFORE:
+     const REMOTE_NODE = 'legacy-rpc.electroneum.com:443';
+     const REMOTE_NODE_URL = 'https://legacy-rpc.electroneum.com';
+
+   AFTER:
+     const REMOTE_NODE = '127.0.0.1:34568';
+     const REMOTE_NODE_URL = 'http://127.0.0.1:34568';
+
+   b) wallet-rpc args:
+
+   BEFORE:
+     '--daemon-ssl=enabled',
+     '--daemon-ssl-allow-any-cert',
+
+   AFTER:
+     '--daemon-ssl=disabled',
+     '--testnet',
