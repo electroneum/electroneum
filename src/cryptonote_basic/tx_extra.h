@@ -42,6 +42,7 @@
 #define TX_EXTRA_TAG_ADDITIONAL_PUBKEYS         0x04
 #define TX_EXTRA_TAG_BRIDGE_SOURCE_ADDRESS      0x05
 #define TX_EXTRA_TAG_BRIDGE_SMARTCHAIN_ADDRESS  0x06
+#define TX_EXTRA_TAG_BRIDGE_OWNERSHIP_SIG      0x07
 #define TX_EXTRA_MYSTERIOUS_MINERGATE_TAG       0xDE
 
 #define TX_EXTRA_NONCE_PAYMENT_ID               0x00
@@ -191,6 +192,15 @@ namespace cryptonote
         END_SERIALIZE()
     };
 
+    struct tx_extra_bridge_ownership_sig
+    {
+        std::string data;
+
+        BEGIN_SERIALIZE()
+            FIELD(data)
+        END_SERIALIZE()
+    };
+
     struct tx_extra_mysterious_minergate
     {
         std::string data;
@@ -204,7 +214,7 @@ namespace cryptonote
   //   varint tag;
   //   varint size;
   //   varint data[];
-  typedef boost::variant<tx_extra_padding, tx_extra_pub_key, tx_extra_nonce, tx_extra_merge_mining_tag, tx_extra_additional_pub_keys, tx_extra_bridge_source_address, tx_extra_bridge_smartchain_address, tx_extra_mysterious_minergate> tx_extra_field;
+  typedef boost::variant<tx_extra_padding, tx_extra_pub_key, tx_extra_nonce, tx_extra_merge_mining_tag, tx_extra_additional_pub_keys, tx_extra_bridge_source_address, tx_extra_bridge_smartchain_address, tx_extra_bridge_ownership_sig, tx_extra_mysterious_minergate> tx_extra_field;
 }
 
 VARIANT_TAG(binary_archive, cryptonote::tx_extra_padding, TX_EXTRA_TAG_PADDING);
@@ -214,4 +224,5 @@ VARIANT_TAG(binary_archive, cryptonote::tx_extra_merge_mining_tag, TX_EXTRA_MERG
 VARIANT_TAG(binary_archive, cryptonote::tx_extra_additional_pub_keys, TX_EXTRA_TAG_ADDITIONAL_PUBKEYS);
 VARIANT_TAG(binary_archive, cryptonote::tx_extra_bridge_source_address, TX_EXTRA_TAG_BRIDGE_SOURCE_ADDRESS);
 VARIANT_TAG(binary_archive, cryptonote::tx_extra_bridge_smartchain_address, TX_EXTRA_TAG_BRIDGE_SMARTCHAIN_ADDRESS);
+VARIANT_TAG(binary_archive, cryptonote::tx_extra_bridge_ownership_sig, TX_EXTRA_TAG_BRIDGE_OWNERSHIP_SIG);
 VARIANT_TAG(binary_archive, cryptonote::tx_extra_mysterious_minergate, TX_EXTRA_MYSTERIOUS_MINERGATE_TAG);

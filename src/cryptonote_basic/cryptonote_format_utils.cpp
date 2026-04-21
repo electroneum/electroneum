@@ -635,6 +635,21 @@ namespace cryptonote
         memcpy(&tx_extra[start_pos], bridge_smartchain_address.data(), bridge_smartchain_address.size());
         return true;
     }
+    //---------------------------------------------------------------
+    bool add_bridge_ownership_sig_to_tx_extra(std::vector<uint8_t>& tx_extra, const crypto::signature& sig)
+    {
+        size_t start_pos = tx_extra.size();
+        tx_extra.resize(tx_extra.size() + 2 + sizeof(crypto::signature));
+        //write tag
+        tx_extra[start_pos] = TX_EXTRA_TAG_BRIDGE_OWNERSHIP_SIG;
+        //write len
+        ++start_pos;
+        tx_extra[start_pos] = static_cast<uint8_t>(sizeof(crypto::signature));
+        //write data
+        ++start_pos;
+        memcpy(&tx_extra[start_pos], &sig, sizeof(crypto::signature));
+        return true;
+    }
   //---------------------------------------------------------------
   bool remove_field_from_tx_extra(std::vector<uint8_t>& tx_extra, const std::type_info &type)
   {
