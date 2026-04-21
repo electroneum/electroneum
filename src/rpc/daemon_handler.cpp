@@ -363,6 +363,11 @@ namespace rpc
           if (!res.error_details.empty()) res.error_details += " and ";
           res.error_details = "the bridge smartchain address in the tx extra is invalid";
       }
+      if (tvc.m_bad_bridge_ownership_sig)
+      {
+          if (!res.error_details.empty()) res.error_details += " and ";
+          res.error_details = "the bridge ownership signature is missing or invalid";
+      }
       if (res.error_details.empty())
       {
         res.error_details = "an unknown issue was found with the transaction";

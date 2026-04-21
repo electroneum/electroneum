@@ -48,6 +48,15 @@ function RevealField({ label, value }) {
   );
 }
 
+function formatTxDate(timestamp) {
+  if (!timestamp) return '—';
+  const d = new Date(timestamp * 1000);
+  const date = d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+  const time = d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+  const tz = d.toLocaleTimeString('en-GB', { timeZoneName: 'short' }).split(' ').pop();
+  return `${date}, ${time} ${tz}`;
+}
+
 function TxTable({ txs }) {
   return (
     <table className="tx-table">
@@ -55,7 +64,7 @@ function TxTable({ txs }) {
         <tr>
           <th>TX ID</th>
           <th>Amount (ETN)</th>
-          <th>Confirmations</th>
+          <th>Date</th>
           <th>Explorer</th>
         </tr>
       </thead>
@@ -64,7 +73,7 @@ function TxTable({ txs }) {
           <tr key={tx.txid}>
             <td className="txid">{tx.txid.slice(0, 16)}…</td>
             <td>{(tx.amount / 1e2).toFixed(2)}</td>
-            <td>{tx.confirmations ?? '—'}</td>
+            <td>{formatTxDate(tx.timestamp)}</td>
             <td>
               <a
                 href={`${LEGACY_EXPLORER_TX_URL}${tx.txid}`}
