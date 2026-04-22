@@ -9,7 +9,7 @@ The following table summarizes the tools and libraries required to build. A few 
 | GCC          | 4.7.3         | NO       | `build-essential`    | `base-devel`   | `gcc`               | NO    | C/C++ compiler           |
 | CMake        | 3.5           | NO       | `cmake`              | `cmake`        | `cmake`             | NO    | Build system             |
 | pkg-config   | any           | NO       | `pkg-config`         | `base-devel`   | `pkgconf`           | NO    | Compiler options         |
-| Boost        | 1.58          | NO       | `libboost-all-dev`   | `boost`        | `boost-devel`       | NO    | C++ libraries            |
+| Boost        | **1.85 required** (see note below) | NO | Build from source    | `boost`        | `boost-devel`       | NO    | C++ libraries            |
 | GMP          | ?             | NO       | `libgmp-dev`         | `gmp`          | `gmp`               | NO    | Arithmetic Opoerations   |
 | OpenSSL      | basically any | NO       | `libssl-dev`         | `openssl`      | `openssl-devel`     | NO    | sha256 sum               |
 | libzmq       | 3.0.0         | NO       | `libzmq3-dev`        | `zeromq`       | `cppzmq-devel`      | NO    | ZeroMQ library           |
@@ -37,15 +37,55 @@ The following table summarizes the tools and libraries required to build. A few 
 build the library binary manually. This can be done with the following command ```sudo apt-get install libgtest-dev && cd /usr/src/gtest && sudo cmake . && sudo make && sudo mv libg* /usr/lib/ ```
 [2] libnorm-dev is needed if your zmq library was built with libnorm, and not needed otherwise
 
-Install all dependencies at once on Debian/Ubuntu:
+### Boost 1.85 (required on all platforms)
 
-``` sudo apt update && sudo apt install build-essential cmake pkg-config libboost-all-dev libssl-dev libzmq3-dev libsecp256k1-dev libunbound-dev libsodium-dev libunwind8-dev liblzma-dev libreadline6-dev libldns-dev libexpat1-dev doxygen graphviz libpgm-dev libusb-dev libgmp-dev```
+Electroneum must be built against **Boost 1.85** on every platform. Newer Boost
+releases (1.86+, including Homebrew's current `boost` formula at 1.90) remove
+APIs the project depends on and will fail to compile. Older versions from
+distro repos are typically not 1.85 either, so install it explicitly as
+described below.
 
-Install all dependencies at once on macOS with the provided Brewfile:
+**macOS (Homebrew):** install the tapped formula and force-link it over any
+existing `boost` keg:
+```
+brew install boost@1.85
+brew link --force --overwrite boost@1.85
+```
+If you already have a newer `boost` linked, unlink it first:
+`brew uninstall --ignore-dependencies boost` (or `brew unlink boost`).
+
+**Debian/Ubuntu:** remove any distro Boost and build 1.85 from source:
+```
+sudo apt remove --purge 'libboost*-dev' 'libboost*1.*' libboost-all-dev
+sudo apt autoremove --purge
+sudo apt install -y build-essential g++ python3-dev libicu-dev libbz2-dev zlib1g-dev liblzma-dev
+cd /tmp
+wget https://archives.boost.io/release/1.85.0/source/boost_1_85_0.tar.bz2
+tar xjf boost_1_85_0.tar.bz2 && cd boost_1_85_0
+./bootstrap.sh --prefix=/usr/local
+sudo ./b2 -j"$(nproc)" variant=release link=static,shared threading=multi runtime-link=shared install
+sudo ldconfig
+```
+Verify with `grep BOOST_LIB_VERSION /usr/local/include/boost/version.hpp` — expect `1_85`.
+
+**Other distros:** install Boost 1.85 via the distro package manager if
+available, otherwise build from source as shown above. Arch users can pin
+an older `boost` AUR package; Fedora users can sometimes find a
+`boost1.85` compat package.
+
+Install the remaining dependencies at once on Debian/Ubuntu:
+
+``` sudo apt update && sudo apt install build-essential cmake pkg-config libssl-dev libzmq3-dev libsecp256k1-dev libunbound-dev libsodium-dev libunwind8-dev liblzma-dev libreadline6-dev libldns-dev libexpat1-dev doxygen graphviz libpgm-dev libusb-dev libgmp-dev```
+
+Install the remaining dependencies at once on macOS with the provided Brewfile:
 ``` brew update && brew bundle --file=contrib/brew/Brewfile ```
+(The Brewfile pulls `boost@1.85` — if you skipped the Boost step above, running
+the Brewfile is sufficient, but you will still need `brew link --force --overwrite boost@1.85`
+if a newer boost is already linked.)
 
 FreeBSD one liner for required to build dependencies
 ```pkg install git gmake cmake pkgconf boost-libs cppzmq libsodium libsecp256k1```
+(Ensure the `boost-libs` package resolves to 1.85 — if not, build from source.)
 
 ### Cloning the repository
 

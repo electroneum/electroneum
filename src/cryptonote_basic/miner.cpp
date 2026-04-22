@@ -34,6 +34,7 @@
 #include <boost/utility/value_init.hpp>
 #include <boost/interprocess/detail/atomic.hpp>
 #include <boost/algorithm/string.hpp>
+#include <boost/filesystem.hpp>
 #include "misc_language.h"
 #include "syncobj.h"
 #include "cryptonote_basic_impl.h"
