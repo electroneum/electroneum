@@ -494,6 +494,7 @@ namespace cryptonote
     if (!pick<tx_extra_merge_mining_tag>(nar, tx_extra_fields, TX_EXTRA_MERGE_MINING_TAG)) return false;
     if (!pick<tx_extra_bridge_source_address>(nar, tx_extra_fields, TX_EXTRA_TAG_BRIDGE_SOURCE_ADDRESS)) return false;
     if (!pick<tx_extra_bridge_smartchain_address>(nar, tx_extra_fields, TX_EXTRA_TAG_BRIDGE_SMARTCHAIN_ADDRESS)) return false;
+    if (!pick<tx_extra_bridge_ownership_sig>(nar, tx_extra_fields, TX_EXTRA_TAG_BRIDGE_OWNERSHIP_SIG)) return false;
     if (!pick<tx_extra_mysterious_minergate>(nar, tx_extra_fields, TX_EXTRA_MYSTERIOUS_MINERGATE_TAG)) return false;
     if (!pick<tx_extra_padding>(nar, tx_extra_fields, TX_EXTRA_TAG_PADDING)) return false;
 
