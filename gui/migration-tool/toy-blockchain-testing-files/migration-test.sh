@@ -14,13 +14,18 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 # ── Binary location (build output) ──────────────────────────────────────────
-# Adjust this if your build output lives elsewhere.
-BIN="$HOME/electroneum/build/Darwin/gui-migration-app/release/bin"
+# Points at CLion's debug build. Override via BIN env var if needed:
+#   BIN=/path/to/bin ./migration-test.sh
+BIN="${BIN:-$HOME/electroneum/cmake-build-debug/bin}"
 
-# ── Addresses ────────────────────────────────────────────────────────────────
-MINER1_ADDR="etnjvFKes6Rj2cpthTS17ygk4Q8EKwyUyQaohU8v9fNg3fMT74SRAsBSuYnTY7vQ2XY6SRVkMJ8LPVDAGhpWf5Tw8K5Yqx1VfU"
-MINER2_ADDR="etnjyd3AjP3aFm3ddAmJCzheSHT7r6np3V5Zc94miX4vY1bJ4ZqdZQBdhdnb68FD42ZLtudwswYQPGXZatB12YE391yHeHBP6F"
+# ── Burn address (fixed — HF11+ coinbase target) ─────────────────────────────
 BURN_ADDR="etnkCys4uGhSi9h48ajL9vBDJTcn2s2ttXtXq3SXWPAbiMHNhHitu5fJ8QgRfFWTzmJ8QgRfFWTzmJ8QgRfFWTzm4t51HTfCtK"
+
+# Miner addresses are derived dynamically from the seeds below (see step 5
+# where the wallets are restored) so they always match whichever binary is
+# used — different builds may derive different addresses from the same seed.
+MINER1_ADDR=""
+MINER2_ADDR=""
 
 # ── Mnemonic seeds (for reference / recovery) ────────────────────────────────
 # Miner 1: keyboard suddenly wise baby tanks logic wizard lofty
@@ -43,6 +48,11 @@ DATA2="$SCRIPT_DIR/testnet-data-2"
 LOG1="$DATA1/testnet/electroneum.log"
 LOG2="$DATA2/testnet/electroneum.log"
 TARGET_HEIGHT=150   # mine to this height (well past HF11@60 + unlock window)
+WALLETS_DIR="$SCRIPT_DIR/test-wallets"
+
+# ── Mnemonic seeds ──────────────────────────────────────────────────────────
+MINER1_SEED="keyboard suddenly wise baby tanks logic wizard lofty fully ethics spout kisses jellyfish losing balding pixels eggs occur enlist pact onto hounded rays rockets onto"
+MINER2_SEED="fences sifting fudge urchins onboard pact incur etched input building inkling abrasive different dash situated byline negative aplomb phone tutor pirate cafe dubbed enraged dubbed"
 
 # ── Helper: get daemon height ────────────────────────────────────────────────
 get_height() {
@@ -135,6 +145,9 @@ fi
 if [[ "${1:-}" == "clean" ]]; then
     echo "Removing old testnet data..."
     rm -rf "$DATA1" "$DATA2"
+    echo "Removing wallet files..."
+    rm -f "$WALLETS_DIR/miner1" "$WALLETS_DIR/miner1.keys" "$WALLETS_DIR/miner1.address.txt"
+    rm -f "$WALLETS_DIR/miner2" "$WALLETS_DIR/miner2.keys" "$WALLETS_DIR/miner2.address.txt"
     echo "Done. Run again without arguments to start fresh."
     exit 0
 fi
@@ -213,6 +226,34 @@ if [[ "$H1" == "0" || "$H2" == "0" ]]; then
     dump_recent_errors "$LOG2" "Daemon 2" 20
     exit 1
 fi
+echo ""
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Restore wallets now so we know which address to mine to.
+# Different builds of electroneum-wallet-cli can derive different addresses
+# from the same seed — so we always derive fresh from the binary in $BIN.
+# ══════════════════════════════════════════════════════════════════════════════
+echo "[restore] Restoring miner wallets from seed (password: 'password')..."
+mkdir -p "$WALLETS_DIR"
+rm -f "$WALLETS_DIR/miner1" "$WALLETS_DIR/miner1.keys" "$WALLETS_DIR/miner1.address.txt"
+rm -f "$WALLETS_DIR/miner2" "$WALLETS_DIR/miner2.keys" "$WALLETS_DIR/miner2.address.txt"
+
+echo -e "$WALLETS_DIR/miner1\npassword\npassword\n0\n" | "$BIN/electroneum-wallet-cli" \
+    --testnet --restore-deterministic-wallet --electrum-seed "$MINER1_SEED" \
+    --restore-height 0 --daemon-address 127.0.0.1:34568 --daemon-ssl disabled \
+    --log-level 0 --command exit > /dev/null 2>&1 \
+    || { echo "ERROR: miner1 restore failed"; exit 1; }
+
+echo -e "$WALLETS_DIR/miner2\npassword\npassword\n0\n" | "$BIN/electroneum-wallet-cli" \
+    --testnet --restore-deterministic-wallet --electrum-seed "$MINER2_SEED" \
+    --restore-height 0 --daemon-address 127.0.0.1:34568 --daemon-ssl disabled \
+    --log-level 0 --command exit > /dev/null 2>&1 \
+    || { echo "ERROR: miner2 restore failed"; exit 1; }
+
+MINER1_ADDR=$(cat "$WALLETS_DIR/miner1.address.txt")
+MINER2_ADDR=$(cat "$WALLETS_DIR/miner2.address.txt")
+echo "  Miner 1 address: $MINER1_ADDR"
+echo "  Miner 2 address: $MINER2_ADDR"
 echo ""
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -353,6 +394,28 @@ dump_recent_errors "$LOG1" "Daemon 1" 5
 dump_recent_errors "$LOG2" "Daemon 2" 5
 echo ""
 
+# ══════════════════════════════════════════════════════════════════════════════
+# STEP 5: Sync wallets against the freshly mined chain
+# (wallets were already restored up front so we could mine to their addresses)
+# ══════════════════════════════════════════════════════════════════════════════
+echo "[5/5] Syncing wallets against the mined chain..."
+
+echo "password" | "$BIN/electroneum-wallet-cli" --testnet \
+    --wallet-file "$WALLETS_DIR/miner1" \
+    --daemon-address 127.0.0.1:34568 --daemon-ssl disabled \
+    --log-level 0 --command refresh > /dev/null 2>&1 \
+    && echo "  miner1 synced" \
+    || echo "  WARNING: miner1 sync failed"
+
+echo "password" | "$BIN/electroneum-wallet-cli" --testnet \
+    --wallet-file "$WALLETS_DIR/miner2" \
+    --daemon-address 127.0.0.1:34568 --daemon-ssl disabled \
+    --log-level 0 --command refresh > /dev/null 2>&1 \
+    && echo "  miner2 synced" \
+    || echo "  WARNING: miner2 sync failed"
+
+echo ""
+
 # ── Done ─────────────────────────────────────────────────────────────────────
 echo "============================================================"
 echo "  READY FOR MIGRATION TESTING"
@@ -360,13 +423,22 @@ echo "============================================================"
 echo ""
 echo "Both daemons are running. Miner wallets have unlocked coinbase."
 echo ""
-echo "To get wallet keys for the GUI tool, run:"
+echo "Open a wallet with:"
 echo ""
-echo "  $BIN/electroneum-wallet-cli --testnet --wallet-file $SCRIPT_DIR/test-wallets/miner1 --password \"\""
+echo "  $BIN/electroneum-wallet-cli --testnet \\"
+echo "    --wallet-file $WALLETS_DIR/miner1 --password password \\"
+echo "    --daemon-address 127.0.0.1:34568 --daemon-ssl disabled"
 echo ""
-echo "  Then type:  spendkey"
-echo "              viewkey"
-echo "              exit"
+echo "  Then type:  refresh"
+echo "              balance"
+echo "              show_transfers"
+echo ""
+echo "To get keys for the GUI tool:"
+echo ""
+echo "  spendkey        (reveals secret spend key)"
+echo "  viewkey         (reveals secret view key)"
+echo "  address         (shows wallet address)"
+echo "  exit"
 echo ""
 echo "Run the GUI migration tool:"
 echo ""
@@ -376,7 +448,7 @@ echo "Stop daemons when done:"
 echo ""
 echo "  $0 stop"
 echo ""
-echo "Wallet files: $SCRIPT_DIR/test-wallets/"
+echo "Wallet files: $WALLETS_DIR/"
 echo "  miner1 — seed: keyboard suddenly wise baby ..."
 echo "  miner2 — seed: fences sifting fudge urchins ..."
 echo ""

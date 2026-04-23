@@ -30,14 +30,27 @@ PREREQUISITES
    If the patch doesn't apply cleanly, each change is listed inline below
    so you can make the edits manually.
 
-2. Rebuild electroneumd and electroneum-wallet-rpc:
+2. Build the debug binaries (the script expects the CLion debug output dir).
+   In CLion, build targets: electroneumd, electroneum-wallet-rpc,
+   electroneum-wallet-cli. Or from the command line:
 
-     mkdir -p build/Darwin/gui-migration-app/release && cd build/Darwin/gui-migration-app/release
-     cmake -DCMAKE_BUILD_TYPE=Release ../../../..
-     make -j$(sysctl -n hw.ncpu) electroneumd electroneum-wallet-rpc electroneum-wallet-cli
+     cmake -S . -B cmake-build-debug -G Ninja -DCMAKE_BUILD_TYPE=Debug
+     cmake --build cmake-build-debug --target electroneumd \
+           electroneum-wallet-rpc electroneum-wallet-cli -j
 
 3. Ensure the rebuilt binaries are in:
-     ~/electroneum/build/Darwin/gui-migration-app/release/bin/
+     ~/electroneum/cmake-build-debug/bin/
+
+   If you prefer a different build directory, override the binary path
+   when running the script:
+     BIN=~/electroneum/build/Darwin/master/release/bin ./migration-test.sh
+
+   IMPORTANT: Use the same binary to run wallet-cli that was used to
+   restore the wallets. Different builds can derive different addresses
+   from the same seed, and the wallet file is encrypted with the binary's
+   key-derivation — opening a wallet with a different build will fail with
+   "invalid password". The script restores wallets with whichever binary
+   is in $BIN, so always open them with that same binary.
 
 
 TOY HARDFORK TABLE (testnet)
@@ -81,23 +94,25 @@ This allows the miner to produce valid signed blocks without real validator keys
 WALLET INFO
 -----------
 Miner 1:
-  Address: etnjvFKes6Rj2cpthTS17ygk4Q8EKwyUyQaohU8v9fNg3fMT74SRAsBSuYnTY7vQ2XY6SRVkMJ8LPVDAGhpWf5Tw8K5Yqx1VfU
   Seed:    keyboard suddenly wise baby tanks logic wizard lofty
            fully ethics spout kisses jellyfish losing balding pixels
            eggs occur enlist pact onto hounded rays rockets onto
   File:    test-wallets/miner1
+  Address: derived dynamically from the seed at script run time.
+           See test-wallets/miner1.address.txt after the script runs.
 
 Miner 2:
-  Address: etnjyd3AjP3aFm3ddAmJCzheSHT7r6np3V5Zc94miX4vY1bJ4ZqdZQBdhdnb68FD42ZLtudwswYQPGXZatB12YE391yHeHBP6F
   Seed:    fences sifting fudge urchins onboard pact incur etched
            input building inkling abrasive different dash situated byline
            negative aplomb phone tutor pirate cafe dubbed enraged dubbed
   File:    test-wallets/miner2
+  Address: derived dynamically from the seed at script run time.
+           See test-wallets/miner2.address.txt after the script runs.
 
 Burn address (HF11+ coinbase):
   etnkCys4uGhSi9h48ajL9vBDJTcn2s2ttXtXq3SXWPAbiMHNhHitu5fJ8QgRfFWTzmJ8QgRfFWTzmJ8QgRfFWTzm4t51HTfCtK
 
-Both wallets have empty passwords.
+Both wallets use the password: password
 
 
 PORT LAYOUT
@@ -115,7 +130,7 @@ STEP-BY-STEP
 
 STEP 1 — Run the test script
 -----------------------------
-The script starts both daemons and handles all mining automatically:
+The script starts both daemons, handles all mining, and restores wallets:
 
   cd ~/electroneum/gui/migration-tool/toy-blockchain-testing-files
   ./migration-test.sh
@@ -125,22 +140,38 @@ It will:
   2. Mine to miner wallets up to height 59 (phase 1)
   3. Stop mining, switch to burn address
   4. Mine to burn address up to height 150 (phase 2)
-  5. Stop mining and print status
+  5. Restore both wallets from seed and sync them against the chain
 
 With --fixed-difficulty 1, the whole process takes seconds.
 
+IMPORTANT: The script restores wallets from their mnemonic seeds each run.
+Pre-existing .keys files in test-wallets/ are NOT used — they may have been
+created on a different network and will not sync correctly. The script
+creates fresh wallet files that are guaranteed to work with this test chain.
 
-STEP 2 — Get wallet keys
--------------------------
-The GUI migration tool needs the wallet address, spend key, and view key.
-Open a wallet in the CLI to retrieve them:
 
-  ~/electroneum/build/Darwin/gui-migration-app/release/bin/electroneum-wallet-cli \
-    --testnet --wallet-file ~/electroneum/gui/migration-tool/toy-blockchain-testing-files/test-wallets/miner1 --password "" --offline
+STEP 2 — Open a wallet and verify balance
+------------------------------------------
+Open one of the restored wallets using the SAME binary that restored it
+(the script restores with ~/electroneum/cmake-build-debug/bin/electroneum-wallet-cli
+by default):
+
+  ~/electroneum/cmake-build-debug/bin/electroneum-wallet-cli \
+    --testnet \
+    --wallet-file ~/electroneum/gui/migration-tool/toy-blockchain-testing-files/test-wallets/miner1 \
+    --password password \
+    --daemon-address 127.0.0.1:34568 \
+    --daemon-ssl disabled
 
 Then in the wallet CLI:
+  refresh         (syncs wallet — should show incoming coinbase)
+  balance         (should show unlocked ETN)
+  show_transfers  (lists all incoming coinbase transactions)
+
+To get keys for the GUI tool:
   spendkey        (reveals secret spend key — copy it)
   viewkey         (reveals secret view key — copy it)
+  address         (shows wallet address)
   exit
 
 
@@ -165,7 +196,7 @@ Stop both daemons:
   cd ~/electroneum/gui/migration-tool/toy-blockchain-testing-files
   ./migration-test.sh stop
 
-Remove blockchain data (to start fresh next time):
+Remove blockchain data AND wallet caches (to start fresh next time):
 
   ./migration-test.sh clean
 
@@ -175,7 +206,7 @@ MANUAL COMMANDS (if not using the script)
 
 Start daemons (no --fallback-to-pow — signatures are mocked in source):
 
-  BIN=~/electroneum/build/Darwin/gui-migration-app/release/bin
+  BIN=~/electroneum/cmake-build-debug/bin
   DATA=~/electroneum/gui/migration-tool/toy-blockchain-testing-files
 
   # Daemon 1
@@ -194,12 +225,17 @@ Start daemons (no --fallback-to-pow — signatures are mocked in source):
 
 Phase 1 — mine to wallets (before height 60):
 
+  NOTE: the miner addresses below are PLACEHOLDERS. If you're not using the
+  script, first restore the miner wallets from seed with your binary and use
+  the addresses from test-wallets/miner{1,2}.address.txt — different binaries
+  can derive different addresses from the same seed.
+
   curl -s http://127.0.0.1:34568/start_mining \
-    -d '{"do_background_mining":false,"ignore_battery":true,"miner_address":"etnjvFKes6Rj2cpthTS17ygk4Q8EKwyUyQaohU8v9fNg3fMT74SRAsBSuYnTY7vQ2XY6SRVkMJ8LPVDAGhpWf5Tw8K5Yqx1VfU","threads_count":1}' \
+    -d '{"do_background_mining":false,"ignore_battery":true,"miner_address":"<MINER1_ADDR from miner1.address.txt>","threads_count":1}' \
     -H 'Content-Type: application/json'
 
   curl -s http://127.0.0.1:34570/start_mining \
-    -d '{"do_background_mining":false,"ignore_battery":true,"miner_address":"etnjyd3AjP3aFm3ddAmJCzheSHT7r6np3V5Zc94miX4vY1bJ4ZqdZQBdhdnb68FD42ZLtudwswYQPGXZatB12YE391yHeHBP6F","threads_count":1}' \
+    -d '{"do_background_mining":false,"ignore_battery":true,"miner_address":"<MINER2_ADDR from miner2.address.txt>","threads_count":1}' \
     -H 'Content-Type: application/json'
 
 Check height:
@@ -247,6 +283,20 @@ TROUBLESHOOTING
   - Coinbase outputs need confirmations to unlock (5 blocks after HF8).
     Ensure the chain is well past height 150 before checking balances.
   - Open wallet in CLI and type 'refresh' then 'balance'.
+  - IMPORTANT: Do NOT use pre-existing .keys files from test-wallets/.
+    They may have been created on a different network and will silently
+    fail to detect coinbase. The script restores wallets from seed each
+    run — always use the wallets it creates, or restore from seed manually:
+
+      electroneum-wallet-cli --testnet --restore-deterministic-wallet \
+        --electrum-seed "keyboard suddenly wise baby ..." \
+        --restore-height 0 --daemon-address 127.0.0.1:34568 \
+        --daemon-ssl disabled
+
+  - If you opened a wallet and show_transfers is empty, delete the wallet
+    cache file (the file without an extension, NOT the .keys file) and
+    reopen. The clean command does this automatically:
+      ./migration-test.sh clean
 
 "Migration transaction fails"
   - The chain must be past HF11 (height 60) for v3 migration transactions.
