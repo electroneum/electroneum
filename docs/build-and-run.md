@@ -253,8 +253,13 @@ pacman -S --noconfirm \
   mingw-w64-x86_64-libsodium \
   mingw-w64-x86_64-hidapi \
   mingw-w64-x86_64-unbound \
-  mingw-w64-x86_64-openssl
+  mingw-w64-x86_64-openssl \
+  mingw-w64-x86_64-icu
 ```
+
+`mingw-w64-x86_64-icu` is required because Boost.Locale links against
+ICU. Without it, the final link of `electroneum-wallet-cli.exe` fails
+with `cannot find -licuio / -licuin / -licuuc / -licudt / -licutu`.
 
 **Explicitly do not install `mingw-w64-x86_64-boost`.** If a previous attempt
 installed it, remove it first: `pacman -R --noconfirm mingw-w64-x86_64-boost`.
@@ -678,6 +683,18 @@ Key things to notice:
   used the same compiler. If not, nuke Boost (`rm -rf
   /c/boost_1_85_0/{bin.v2,stage,include,lib}`) and rebuild it with the
   currently-active gcc.
+- `cannot find -licuio / -licuin / -licuuc / -licudt / -licutu` at the
+  final link of `electroneum-wallet-cli.exe` (usually at 98%+): ICU
+  isn't installed or isn't visible to the linker.
+  Boost.Locale requires ICU, and the project's cmake `find_package`
+  pulls in `locale`. Fix:
+
+  ```bash
+  pacman -S --noconfirm mingw-w64-x86_64-icu
+  cp -rn /mingw64/lib/libicu*     /c/gcc-14/lib/     2>/dev/null
+  cp -rn /mingw64/include/unicode /c/gcc-14/include/ 2>/dev/null
+  cd ~/electroneum && make -j"$(nproc)"   # no reconfigure needed
+  ```
 - Builds on 32-bit Windows are no longer supported by the project Boost
   build instructions above. If you need a 32-bit build, adjust
   `address-model=32` and use the `mingw32` MSYS2 shell consistently.
