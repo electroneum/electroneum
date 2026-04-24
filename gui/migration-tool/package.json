@@ -62,7 +62,8 @@
           ]
         }
       ],
-      "category": "public.app-category.finance"
+      "category": "public.app-category.finance",
+      "identity": null
     },
     "linux": {
       "target": [
