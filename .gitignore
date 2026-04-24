@@ -78,7 +78,9 @@ cmake-build-debug/
 .metadata
 .gradle
 bin/
+!gui/migration-tool/bin/
 !gui/migration-tool/bin/**
+gui/migration-tool/bin/**/.DS_Store
 tmp/
 *.tmp
 *.bak

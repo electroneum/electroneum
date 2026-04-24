@@ -1,6 +1,6 @@
 {
   "name": "etn-migration-tool",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "Electroneum Legacy Chain to Smart Chain Migration Tool",
   "author": {
     "name": "Electroneum",
@@ -10,10 +10,11 @@
   "main": "out/main/main.js",
   "scripts": {
     "dev": "electron-vite dev",
-    "build": "electron-vite build && electron-builder",
-    "build:mac": "electron-vite build && electron-builder --mac",
-    "build:linux": "electron-vite build && electron-builder --linux",
-    "build:win": "electron-vite build && electron-builder --win",
+    "build:mac:macos14": "BIN_VARIANT_DIR=mac-arm64-macos14 MAC_VARIANT_LABEL=macos14 electron-vite build && BIN_VARIANT_DIR=mac-arm64-macos14 MAC_VARIANT_LABEL=macos14 electron-builder --mac",
+    "build:mac:macos15": "BIN_VARIANT_DIR=mac-arm64-macos15 MAC_VARIANT_LABEL=macos15 electron-vite build && BIN_VARIANT_DIR=mac-arm64-macos15 MAC_VARIANT_LABEL=macos15 electron-builder --mac",
+    "build:mac:all": "npm run build:mac:macos14 && npm run build:mac:macos15",
+    "build:linux": "BIN_VARIANT_DIR=linux-x64 electron-vite build && BIN_VARIANT_DIR=linux-x64 electron-builder --linux",
+    "build:win": "BIN_VARIANT_DIR=win-x64 electron-vite build && BIN_VARIANT_DIR=win-x64 electron-builder --win",
     "preview": "electron-vite preview"
   },
   "dependencies": {
@@ -40,7 +41,7 @@
     },
     "extraResources": [
       {
-        "from": "bin/${os}-${arch}/",
+        "from": "bin/${env.BIN_VARIANT_DIR}/",
         "to": "bin/",
         "filter": [
           "**/*"
@@ -63,7 +64,8 @@
         }
       ],
       "category": "public.app-category.finance",
-      "identity": null
+      "identity": null,
+      "artifactName": "${productName}-${version}-${env.MAC_VARIANT_LABEL}-arm64.${ext}"
     },
     "linux": {
       "target": [

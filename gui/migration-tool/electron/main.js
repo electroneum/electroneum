@@ -95,15 +95,23 @@ function getWalletRpcBinaryPath() {
   const platform = process.platform; // darwin, linux, win32
   const arch = process.arch;         // arm64, x64
 
-  let platformDir;
-  if (platform === 'darwin') {
-    platformDir = 'mac-arm64';
-  } else if (platform === 'linux') {
-    platformDir = 'linux-x64';
-  } else if (platform === 'win32') {
-    platformDir = 'win-x64';
-  } else {
-    throw new Error(`Unsupported platform: ${platform}`);
+  // Dev mode allows BIN_VARIANT_DIR to override the default platform dir.
+  // In production the env var is already used by electron-builder to pick
+  // which bin/<variant>/ gets bundled, and at runtime the binary is simply
+  // at Contents/Resources/bin/ regardless of which variant was packaged.
+  let platformDir = process.env.BIN_VARIANT_DIR;
+  if (!platformDir) {
+    if (platform === 'darwin') {
+      // Default to the macOS 15 binary for dev; override with
+      // BIN_VARIANT_DIR=mac-arm64-macos14 npm run dev if on Sonoma.
+      platformDir = 'mac-arm64-macos15';
+    } else if (platform === 'linux') {
+      platformDir = 'linux-x64';
+    } else if (platform === 'win32') {
+      platformDir = 'win-x64';
+    } else {
+      throw new Error(`Unsupported platform: ${platform}`);
+    }
   }
 
   const binaryName = platform === 'win32'
