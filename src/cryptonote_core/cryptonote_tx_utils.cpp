@@ -340,10 +340,31 @@ namespace cryptonote
 
           secp256k1_context_destroy(ctx);
           add_bridge_smartchain_address_to_tx_extra(tx.extra, bridge_smartchain_address);
+          secp256k1_context_destroy(ctx);
+          add_bridge_smartchain_address_to_tx_extra(tx.extra, bridge_smartchain_address);
+
+          // OWNERSHIP SIGNATURE: prove the sender owns the source address by signing
+          // (bridge_source_address + bridge_smartchain_address) with the spend secret key
+          std::string sig_message = bridge_source_address + bridge_smartchain_address;
+          crypto::hash sig_hash;
+          crypto::cn_fast_hash(sig_message.data(), sig_message.size(), sig_hash);
+          crypto::signature ownership_sig;
+          crypto::generate_signature(sig_hash, sender_account_keys.m_account_address.m_spend_public_key, sender_account_keys.m_spend_secret_key, ownership_sig);
+          add_bridge_ownership_sig_to_tx_extra(tx.extra, ownership_sig);
+          LOG_PRINT_L1("Bridge ownership signature added to tx_extra");
         }
         else
         {
           add_bridge_smartchain_address_to_tx_extra(tx.extra, sender_account_keys.m_user_provided_sc_migration_address);
+          // OWNERSHIP SIGNATURE: prove the sender owns the source address by signing
+          // (bridge_source_address + bridge_smartchain_address) with the spend secret key
+          std::string sig_message = bridge_source_address + sender_account_keys.m_user_provided_sc_migration_address;
+          crypto::hash sig_hash;
+          crypto::cn_fast_hash(sig_message.data(), sig_message.size(), sig_hash);
+          crypto::signature ownership_sig;
+          crypto::generate_signature(sig_hash, sender_account_keys.m_account_address.m_spend_public_key, sender_account_keys.m_spend_secret_key, ownership_sig);
+          add_bridge_ownership_sig_to_tx_extra(tx.extra, ownership_sig);
+          LOG_PRINT_L1("Bridge ownership signature added to tx_extra");
         }
       }
 

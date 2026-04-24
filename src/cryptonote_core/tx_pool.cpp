@@ -335,6 +335,25 @@ namespace cryptonote
           if(!cryptonote::get_account_address_from_str(parse_info_dummy, m_blockchain.get_nettype(), bridge_source_address.data)){
               tvc.m_verification_failed = true;
               tvc.m_bad_bridge_source_address = true;
+              return false;
+          }
+
+          // Verify ownership signature: proves the sender controls the spend key of bridge_source_address
+          cryptonote::tx_extra_bridge_ownership_sig bridge_ownership_sig;
+          if(!find_tx_extra_field_by_type(tx_extra_fields, bridge_ownership_sig) || bridge_ownership_sig.data.size() != sizeof(crypto::signature)){
+              tvc.m_verification_failed = true;
+              tvc.m_bad_bridge_ownership_sig = true;
+              return false;
+          }
+          std::string sig_message = bridge_source_address.data + bridge_smartchain_address.data;
+          crypto::hash sig_hash;
+          crypto::cn_fast_hash(sig_message.data(), sig_message.size(), sig_hash);
+          crypto::signature ownership_sig;
+          memcpy(&ownership_sig, bridge_ownership_sig.data.data(), sizeof(crypto::signature));
+          if(!crypto::check_signature(sig_hash, parse_info_dummy.address.m_spend_public_key, ownership_sig)){
+              tvc.m_verification_failed = true;
+              tvc.m_bad_bridge_ownership_sig = true;
+              return false;
           }
 
           // The regular expression pattern for a valid Ethereum address

@@ -83,6 +83,7 @@ namespace cryptonote
   bool add_extra_nonce_to_tx_extra(std::vector<uint8_t>& tx_extra, const blobdata& extra_nonce);
   bool add_bridge_source_address_to_tx_extra(std::vector<uint8_t>& tx_extra, const blobdata& bridge_source_address);
   bool add_bridge_smartchain_address_to_tx_extra(std::vector<uint8_t>& tx_extra, const blobdata& bridge_smartchain_address);
+  bool add_bridge_ownership_sig_to_tx_extra(std::vector<uint8_t>& tx_extra, const crypto::signature& sig);
   bool remove_field_from_tx_extra(std::vector<uint8_t>& tx_extra, const std::type_info &type);
   void set_payment_id_to_tx_extra_nonce(blobdata& extra_nonce, const crypto::hash& payment_id);
   void set_encrypted_payment_id_to_tx_extra_nonce(blobdata& extra_nonce, const crypto::hash8& payment_id);

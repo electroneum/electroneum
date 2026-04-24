@@ -53,6 +53,7 @@ namespace cryptonote
     bool m_portal_outbound_tx;
     bool m_bad_bridge_source_address;
     bool m_bad_bridge_smartchain_address;
+    bool m_bad_bridge_ownership_sig;
   };
 
   struct block_verification_context

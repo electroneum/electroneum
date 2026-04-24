@@ -1,0 +1,374 @@
+diff --git a/gui/migration-tool/electron/main.js b/gui/migration-tool/electron/main.js
+index 1b53cc3a6..4cb9e84b8 100644
+--- a/gui/migration-tool/electron/main.js
++++ b/gui/migration-tool/electron/main.js
+@@ -46,8 +46,11 @@ function gracefulKill(proc) {
+   }
+ }
+ 
+-const REMOTE_NODE = 'legacy-rpc.electroneum.com:443';
+-const REMOTE_NODE_URL = 'https://legacy-rpc.electroneum.com';
++// LOCAL TESTNET — originals:
++//   const REMOTE_NODE = 'legacy-rpc.electroneum.com:443';
++//   const REMOTE_NODE_URL = 'https://legacy-rpc.electroneum.com';
++const REMOTE_NODE = '127.0.0.1:34568';
++const REMOTE_NODE_URL = 'http://127.0.0.1:34568';
+ const WALLET_RPC_READY_TIMEOUT_MS = 60000;
+ const WALLET_RPC_POLL_INTERVAL_MS = 500;
+ 
+@@ -245,8 +248,8 @@ async function startWalletRpc(mode, walletFile) {
+     '--log-level', '0,wallet.wallet2:DEBUG',
+     '--max-log-files', '1',
+     '--rpc-ssl=disabled',
+-    '--daemon-ssl=enabled',
+-    '--daemon-ssl-allow-any-cert',
++    '--daemon-ssl=disabled',
++    '--testnet',
+     '--trusted-daemon',
+   ];
+ 
+diff --git a/gui/migration-tool/src/lib/constants.js b/gui/migration-tool/src/lib/constants.js
+index 72261f0ca..681b9b469 100644
+--- a/gui/migration-tool/src/lib/constants.js
++++ b/gui/migration-tool/src/lib/constants.js
+@@ -1,8 +1,12 @@
+-export const REMOTE_NODE = 'legacy-rpc.electroneum.com:443';
+-export const REMOTE_NODE_URL = 'https://legacy-rpc.electroneum.com';
++// LOCAL TESTNET — original values preserved in comments for restoration:
++//   export const REMOTE_NODE = 'legacy-rpc.electroneum.com:443';
++//   export const REMOTE_NODE_URL = 'https://legacy-rpc.electroneum.com';
++//   export const SMARTCHAIN_MIGRATION_FORKHEIGHT = 1811310;
++export const REMOTE_NODE = '127.0.0.1:34568';
++export const REMOTE_NODE_URL = 'http://127.0.0.1:34568';
+ 
+-// Block height of the smart chain migration fork (informational only)
+-export const SMARTCHAIN_MIGRATION_FORKHEIGHT = 1811310;
++// Block height of the smart chain migration fork (matches toy testnet table)
++export const SMARTCHAIN_MIGRATION_FORKHEIGHT = 60;
+ 
+ // Legacy block explorer
+ export const LEGACY_EXPLORER_TX_URL = 'https://legacy-blockexplorer.electroneum.com/tx/';
+diff --git a/src/cryptonote_basic/cryptonote_basic_impl.cpp b/src/cryptonote_basic/cryptonote_basic_impl.cpp
+index 8371f7bed..4ceacd822 100644
+--- a/src/cryptonote_basic/cryptonote_basic_impl.cpp
++++ b/src/cryptonote_basic/cryptonote_basic_impl.cpp
+@@ -115,7 +115,7 @@ namespace cryptonote {
+           V9_BLOCK_HEIGHT = 862866;
+           break;
+         case TESTNET:
+-          V9_BLOCK_HEIGHT = 707121;
++          V9_BLOCK_HEIGHT = 40; // was 707121, changed for toy hardfork table
+           break;
+         case STAGENET:
+           V9_BLOCK_HEIGHT = 39000;
+diff --git a/src/cryptonote_core/blockchain.cpp b/src/cryptonote_core/blockchain.cpp
+index 4a624aab0..2ff021441 100644
+--- a/src/cryptonote_core/blockchain.cpp
++++ b/src/cryptonote_core/blockchain.cpp
+@@ -109,16 +109,19 @@ static const struct {
+   uint8_t threshold;
+   time_t time;
+ } testnet_hard_forks[] = {
+-  // version 1 from the start of the blockchain
+-  { 1, 1, 0, 1341378000 },
+-  { 6, 190060, 0, 1523263057 },
+-  { 7, 215000, 0, 1530615600 },
+-  { 8, 446674, 0, 1562889600 },
+-  { 9, 707121, 0, 1595615809 },
+-  { 10, 1086402, 0, 1631789441 }, // Estimated Sep 16th 2021
+-  { 11, 1455270, 0, 1693256672 }  // Estimated Aug 30th 2023
++  // TOY TABLE FOR LOCAL MIGRATION TESTING — pack all forks into low heights
++  // Original testnet heights preserved in comments for restoration:
++  //   { 1, 1 }, { 6, 190060 }, { 7, 215000 }, { 8, 446674 },
++  //   { 9, 707121 }, { 10, 1086402 }, { 11, 1455270 }
++  { 1,  1,  0, 1341378000 },
++  { 6,  10, 0, 1341378001 },
++  { 7,  20, 0, 1341378002 },
++  { 8,  30, 0, 1341378003 },
++  { 9,  40, 0, 1341378004 },
++  { 10, 50, 0, 1341378005 },
++  { 11, 60, 0, 1341378006 }  // migration fork
+ };
+-static const uint64_t testnet_hard_fork_version_1_till = 190059;
++static const uint64_t testnet_hard_fork_version_1_till = 9;
+ 
+ static const struct {
+   uint8_t version;
+@@ -558,7 +561,7 @@ bool Blockchain::init(BlockchainDB* db, const network_type nettype, bool offline
+         {
+             uint64_t top_height;
+             m_db->top_block_hash(&top_height);
+-            uint64_t private_to_public_fork_height = m_nettype == MAINNET ? 1175315 : 1086402;
++            uint64_t private_to_public_fork_height = m_nettype == MAINNET ? 1175315 : 50; // was 1086402, changed for toy hardfork table
+             if(top_height >= private_to_public_fork_height)
+             {
+                 block b = m_db->get_block_from_height(private_to_public_fork_height);
+@@ -1809,29 +1812,25 @@ bool Blockchain::create_block_template(block& b, const crypto::hash *from_block,
+ }
+ 
+ void Blockchain::sign_block(block& b, const std::string privateKey) {
+-  crypto::hash tx_tree_hash = get_tx_tree_hash(b);
+-
+-  std::string signature = crypto::sign_message(std::string(reinterpret_cast<char const*>(tx_tree_hash.data), sizeof(tx_tree_hash.data)), privateKey);
+-  if(signature.empty() || signature.size() != 64) {
+-    LOG_ERROR("The daemon has failed to digitally sign a block and therefore it cannot be accepted by the network. Please check your validator-key configuration before resuming mining.");
+-    return;
+-  }
+-
+-  b.signature = std::vector<uint8_t>(signature.begin(), signature.end());
++  // TEST MOCK: fill signature with dummy 64 bytes derived from block height
++  // so that consecutive blocks get different signatories.
++  // Original code:
++  //   crypto::hash tx_tree_hash = get_tx_tree_hash(b);
++  //   std::string signature = crypto::sign_message(..., privateKey);
++  //   ...
++  (void)privateKey;
++  b.signature.assign(64, 0xAA);
++  // Vary the first byte by nonce so consecutive blocks differ
++  b.signature[0] = static_cast<uint8_t>(b.nonce & 0xFF);
++  b.signature[1] = static_cast<uint8_t>((b.nonce >> 8) & 0xFF);
+ }
+ 
+ bool Blockchain::verify_block_signature(const block& b) {
+-  crypto::hash tx_tree_hash = get_tx_tree_hash(b);
+-  const std::vector<std::string> public_keys = m_validators->getApplicablePublicKeys(m_db->height(), true);
+-
+-  for(auto &key : public_keys) {
+-    if(crypto::verify_signature(std::string(reinterpret_cast<char const *>(tx_tree_hash.data), sizeof(tx_tree_hash.data)),
+-                             key, std::string(b.signature.begin(), b.signature.end()))){
+-        b.signatory = std::vector<uint8_t>(key.begin(), key.end());
+-        return true;
+-    }
+-  }
+-  return false;
++  // TEST MOCK: always accept, set signatory from signature so consecutive
++  // blocks from different heights get different signatories.
++  // Original code verified against validator public key list.
++  b.signatory = std::vector<uint8_t>(b.signature.begin(), b.signature.end());
++  return true;
+ }
+ 
+ //------------------------------------------------------------------
+@@ -1931,15 +1930,7 @@ bool Blockchain::handle_alternative_block(const block& b, const crypto::hash& id
+ 
+     if(!m_fallback_to_pow) {
+ 
+-      if(!m_validators->isEnabled()) {
+-        m_validators->enable();
+-      }
+-
+-      if(!m_validators->isValid()) {
+-        bvc.m_validator_list_update_failed = true;
+-        return false;
+-      }
+-
++      // TEST MOCK: skip validator list checks, just verify (mocked) signature
+       if(!verify_block_signature(b)) {
+         MERROR_VER("Block with id: " << id << std::endl << " has wrong digital signature");
+         bvc.m_verification_failed = true;
+@@ -1987,11 +1978,12 @@ bool Blockchain::handle_alternative_block(const block& b, const crypto::hash& id
+     uint64_t block_reward = get_outs_etn_amount(b.miner_tx);
+     bei.already_generated_coins = block_reward + (alt_chain.size() ? it_prev->second.already_generated_coins : m_db->get_block_already_generated_coins(prev_height));
+ 
+-    if(!m_fallback_to_pow && b.major_version >= 8)
+-    {
+-      std::vector<uint8_t> prev_signatory = alt_chain.size() ? it_prev->second.bl.signatory : m_db->get_block(b.prev_id).signatory;
+-      CHECK_AND_ASSERT_MES(b.signatory != prev_signatory, false, "a single validator can't mine blocks in sequence");
+-    }
++    // TEST MOCK: skip sequential signatory check (mocked signatories vary by height)
++    // Original code:
++    //   if(!m_fallback_to_pow && b.major_version >= 8) {
++    //     std::vector<uint8_t> prev_signatory = ...;
++    //     CHECK_AND_ASSERT_MES(b.signatory != prev_signatory, false, "a single validator can't mine blocks in sequence");
++    //   }
+ 
+     // verify that the block's timestamp is within the acceptable range
+     // (not earlier than the median of the last X blocks)
+@@ -3705,26 +3697,13 @@ leave:
+ 
+     if(!m_fallback_to_pow) {
+ 
+-      if(!m_validators->isEnabled()) {
+-        m_validators->enable();
+-      }
+-
+-      if(!m_validators->isValid()) {
+-        bvc.m_validator_list_update_failed = true;
+-        goto leave;
+-      }
+-
++      // TEST MOCK: skip validator list checks and sequential signatory check.
++      // verify_block_signature() is mocked to always return true.
+       if(!verify_block_signature(bl) && !m_ignore_bsig) {
+         MERROR_VER("Block with id: " << id << std::endl << " has wrong digital signature");
+         bvc.m_verification_failed = true;
+         goto leave;
+       }
+-      if(bl.signatory == m_db->get_block(bl.prev_id).signatory &&  !m_ignore_bsig){
+-        MERROR_VER("Block with id: " << id << std::endl << " has the same signatory as the previous block, which is not allowed");
+-        bvc.m_verification_failed = true;
+-        bvc.m_sequential_block = true;
+-        goto leave;
+-      }
+     }
+   }
+ 
+diff --git a/src/cryptonote_core/cryptonote_core.cpp b/src/cryptonote_core/cryptonote_core.cpp
+index e73e1c433..f9a3e7ffc 100644
+--- a/src/cryptonote_core/cryptonote_core.cpp
++++ b/src/cryptonote_core/cryptonote_core.cpp
+@@ -1440,7 +1440,12 @@ namespace cryptonote
+     m_blockchain_storage.add_new_block(b, bvc);
+     cleanup_handle_incoming_blocks(true);
+ 
+-    CHECK_AND_ASSERT_MES(!bvc.m_verification_failed, false, "Mined block failed verification");
++    if(bvc.m_verification_failed) {
++      MERROR("Mined block failed verification");
++      update_miner_block_template();
++      m_miner.resume();
++      return false;
++    }
+     if(bvc.m_added_to_main_chain)
+     {
+       cryptonote_connection_context exclude_context = boost::value_initialized<cryptonote_connection_context>();
+@@ -1464,9 +1469,11 @@ namespace cryptonote
+ 
+       m_pprotocol->relay_block(arg, exclude_context);
+ 
+-      if(m_fallback_to_pow) {
+-        m_miner.resume();
+-      }
++      // TEST MOCK: always resume miner after successful block.
++      // Original code only resumed here when m_fallback_to_pow was true,
++      // otherwise the validator infrastructure handled it.
++      update_miner_block_template();
++      m_miner.resume();
+     } else {
+       update_miner_block_template();
+       m_miner.resume();
+diff --git a/src/cryptonote_core/tx_pool.cpp b/src/cryptonote_core/tx_pool.cpp
+index 9a95f1ec6..de5b1075b 100644
+--- a/src/cryptonote_core/tx_pool.cpp
++++ b/src/cryptonote_core/tx_pool.cpp
+@@ -170,7 +170,7 @@ namespace cryptonote
+     uint64_t outputs_amount = get_outs_etn_amount(tx);
+     fee = inputs_amount - outputs_amount;
+ 
+-      if(tx.version == 3 && m_blockchain.get_current_blockchain_height() > (m_blockchain.get_nettype() == MAINNET ? 1811310 : 1455270)) {
++      if(tx.version == 3 && m_blockchain.get_current_blockchain_height() > (m_blockchain.get_nettype() == MAINNET ? 1811310 : 60)) { // was 1455270, changed for toy hardfork table
+           if(outputs_amount != inputs_amount)
+           {
+               LOG_PRINT_L1("transaction fee isnt zero: outputs_amount != inputs_amount, rejecting.");
+@@ -313,7 +313,7 @@ namespace cryptonote
+ 
+     bool ch_inp_res = check_tx_inputs([&tx]()->cryptonote::transaction&{ return tx; }, id, max_used_block_height, max_used_block_id, tvc, kept_by_block);
+ 
+-      if(tx.version == 3 && m_blockchain.get_current_blockchain_height() > (m_blockchain.get_nettype() == MAINNET ? 1811310 : 1455270)) {
++      if(tx.version == 3 && m_blockchain.get_current_blockchain_height() > (m_blockchain.get_nettype() == MAINNET ? 1811310 : 60)) { // was 1455270, changed for toy hardfork table
+ 
+           //testing
+           //std::string hex_hash = "b166158ee98c5b01252ef6180a1d1ec5f8eced68c947e1a0f2444cf3b9730371";
+diff --git a/src/rpc/core_rpc_server.cpp b/src/rpc/core_rpc_server.cpp
+index cee9071ae..47566b3d3 100644
+--- a/src/rpc/core_rpc_server.cpp
++++ b/src/rpc/core_rpc_server.cpp
+@@ -334,7 +334,7 @@ namespace cryptonote
+       }
+ 
+       //no need to look up indexes for v2+ txes
+-      auto v10_height = nettype() == cryptonote::network_type::MAINNET ? 1175315 : 1086402;
++      auto v10_height = nettype() == cryptonote::network_type::MAINNET ? 1175315 : 50; // was 1086402, changed for toy hardfork table
+       const size_t n_txes_to_lookup = height_counter >= v10_height ? 0 : (bd.second.size() + (req.no_miner_tx ? 0 : 1));
+       if (n_txes_to_lookup > 0)
+       {
+diff --git a/src/wallet/wallet2.cpp b/src/wallet/wallet2.cpp
+index 133e72b41..7faf9ca60 100644
+--- a/src/wallet/wallet2.cpp
++++ b/src/wallet/wallet2.cpp
+@@ -3731,7 +3731,7 @@ void wallet2::refresh(bool trusted_daemon, uint64_t start_height, uint64_t & blo
+             // V9-->V10 PUBLIC MIGRATIONS
+             // check that the local blockchain height is at least the v10 fork height + 5 blocks (so we know we don't need to scan for any more v1 outputs and they have all have 5 confs)
+             //todo: write function for wallet that gets the b.major version for a given *local* blockchain height, to save hardcoding heights.
+-            uint64_t migration_minheight = this->nettype() == TESTNET ? 1086402 + 5 : 1175315 + 5;
++            uint64_t migration_minheight = this->nettype() == TESTNET ? 50 + 5 : 1175315 + 5;
+             if (this->get_blockchain_current_height() > migration_minheight && this->unlocked_balance_all(false) != 0) {
+                 LOG_PRINT_L0(
+                         "You are now on the transparent version of Electroneum and so we're giving you the chance to migrate your funds via a sweep transaction back to your address.\n Don't worry, this migration is completely free of charge. Please follow the prompts to continue.");
+@@ -3798,7 +3798,7 @@ void wallet2::refresh(bool trusted_daemon, uint64_t start_height, uint64_t & blo
+             epee::string_tools::hex_to_pod(portal_address_viewkey_hex_str, portal_address.m_view_public_key);
+ 
+             // ONLY do migration transactions after the fork block
+-            uint64_t smartchain_migration_minheight = this->nettype() == MAINNET ? 1811310 : 1455270;
++            uint64_t smartchain_migration_minheight = this->nettype() == MAINNET ? 1811310 : 60; // was 1455270, changed for toy hardfork table
+             if (this->get_blockchain_current_height() > smartchain_migration_minheight) {
+                 // check that unlocked balance = unlocked balance as a best-effort to ensure that we're not migrating the funds whilst more are in transit/confirming
+                 if ((!portal_wallet) && (this->balance_all(true) != 0) &&
+@@ -6267,7 +6267,7 @@ std::map<uint32_t, std::pair<uint64_t, uint64_t>> wallet2::unlocked_balance_per_
+       else
+       {
+ 
+-        uint64_t v8height = m_nettype == TESTNET ? 446674 : 589169;
++        uint64_t v8height = m_nettype == TESTNET ? 30 : 589169;
+         uint16_t UNLOCK_WINDOW = td.m_block_height > v8height ? ETN_DEFAULT_TX_SPENDABLE_AGE_V8 : CRYPTONOTE_DEFAULT_TX_SPENDABLE_AGE;
+         uint64_t unlock_height = td.m_block_height + std::max<uint64_t>(UNLOCK_WINDOW, CRYPTONOTE_LOCKED_TX_ALLOWED_DELTA_BLOCKS);
+         if (td.m_tx.unlock_time < CRYPTONOTE_MAX_BLOCK_NUMBER && td.m_tx.unlock_time > unlock_height)
+@@ -6455,7 +6455,7 @@ void wallet2::rescan_spent()
+ 
+ 
+   // urgent code update so just duplicate code above for public outputs
+-    uint64_t v8height = m_nettype == TESTNET ? 446674 : 589169;
++    uint64_t v8height = m_nettype == TESTNET ? 30 : 589169;
+     for (size_t start_offset = 0; start_offset < m_transfers.size(); start_offset += chunk_size)
+     {
+         const size_t n_outputs = std::min<size_t>(chunk_size, m_transfers.size() - start_offset);
+@@ -6572,7 +6572,7 @@ bool wallet2::is_transfer_unlocked(uint64_t unlock_time, uint64_t block_height)
+   if(!is_tx_spendtime_unlocked(unlock_time, block_height))
+     return false;
+ 
+-  uint64_t v8height = m_nettype == TESTNET ? 446674 : 589169;
++  uint64_t v8height = m_nettype == TESTNET ? 30 : 589169;
+   uint16_t UNLOCK_WINDOW = block_height > v8height ? ETN_DEFAULT_TX_SPENDABLE_AGE_V8 : CRYPTONOTE_DEFAULT_TX_SPENDABLE_AGE;
+   
+   if(block_height + UNLOCK_WINDOW > get_blockchain_current_height())
+@@ -6596,7 +6596,7 @@ bool wallet2::is_tx_spendtime_unlocked(uint64_t unlock_time, uint64_t block_heig
+     uint64_t current_time = static_cast<uint64_t>(time(NULL));
+     // XXX: this needs to be fast, so we'd need to get the starting heights
+     // from the daemon to be correct once voting kicks in
+-    uint64_t v6height = m_nettype == TESTNET ? 190059 : 307499;
++    uint64_t v6height = m_nettype == TESTNET ? 9 : 307499;
+     uint64_t leeway = block_height > v6height ? CRYPTONOTE_LOCKED_TX_ALLOWED_DELTA_SECONDS_V6 : CRYPTONOTE_LOCKED_TX_ALLOWED_DELTA_SECONDS;
+     if(current_time + leeway >= unlock_time)
+       return true;
+@@ -8389,7 +8389,7 @@ void wallet2::get_outs(std::vector<std::vector<tools::wallet2::get_outs_entry>>
+     bool is_shortly_after_segregation_fork = height >= segregation_fork_height && height < segregation_fork_height + SEGREGATION_FORK_VICINITY;
+     bool is_after_segregation_fork = height >= segregation_fork_height;
+ 
+-    uint64_t v8height = m_nettype == TESTNET ? 446674 : 589169;
++    uint64_t v8height = m_nettype == TESTNET ? 30 : 589169;
+     uint16_t TX_SPENDABLE_AGE = height > v8height ? ETN_DEFAULT_TX_SPENDABLE_AGE_V8 : CRYPTONOTE_DEFAULT_TX_SPENDABLE_AGE;
+     uint16_t MINED_ETN_SPENDABLE_AGE = height > v8height ? ETN_MINED_ETN_UNLOCK_WINDOW_V8 : CRYPTONOTE_MINED_ETN_UNLOCK_WINDOW;
+ 
+@@ -11967,7 +11967,7 @@ uint64_t wallet2::get_approximate_blockchain_height() const
+   // time of v2 fork
+   const time_t fork_time = m_nettype == TESTNET ? 1341378000 : m_nettype == STAGENET ? 1521000000 : 1538815057;
+   // v2 fork block
+-  const uint64_t fork_block = m_nettype == TESTNET ? 190060 : m_nettype == STAGENET ? 32000 : 307500;
++  const uint64_t fork_block = m_nettype == TESTNET ? 10 : m_nettype == STAGENET ? 32000 : 307500;
+   // avg seconds per block
+   const int seconds_per_block = DIFFICULTY_TARGET_V6;
+   // Calculated blockchain height
+diff --git a/src/wallet/wallet2.h b/src/wallet/wallet2.h
+index a44c394c5..3b94635bc 100644
+--- a/src/wallet/wallet2.h
++++ b/src/wallet/wallet2.h
+@@ -896,8 +896,8 @@ private:
+     void get_unconfirmed_payments(std::list<std::pair<crypto::hash,wallet2::pool_payment_details>>& unconfirmed_payments, const boost::optional<uint32_t>& subaddr_account = boost::none, const std::set<uint32_t>& subaddr_indices = {}) const;
+ 
+     uint64_t get_blockchain_current_height() const { return m_light_wallet_blockchain_height ? m_light_wallet_blockchain_height : m_blockchain.size(); }
+-    bool synced_to_v10() const {return nettype() == cryptonote::network_type::MAINNET ? get_blockchain_current_height() >= 1175315 : get_blockchain_current_height() >= 1086402;}
+-    bool public_transactions_required() const { return nettype() == cryptonote::network_type::MAINNET ? get_blockchain_current_height() >= (1175315 - CRYPTONOTE_LOCKED_TX_ALLOWED_DELTA_BLOCKS) : get_blockchain_current_height() >= (1086402 - CRYPTONOTE_LOCKED_TX_ALLOWED_DELTA_BLOCKS);} // prepare v2 tx if the block height is one before the fork block (which contains v2+ tx only)
++    bool synced_to_v10() const {return nettype() == cryptonote::network_type::MAINNET ? get_blockchain_current_height() >= 1175315 : get_blockchain_current_height() >= 50;} // was 1086402, changed for toy hardfork table
++    bool public_transactions_required() const { return nettype() == cryptonote::network_type::MAINNET ? get_blockchain_current_height() >= (1175315 - CRYPTONOTE_LOCKED_TX_ALLOWED_DELTA_BLOCKS) : get_blockchain_current_height() >= (50 - CRYPTONOTE_LOCKED_TX_ALLOWED_DELTA_BLOCKS);} // was 1086402, changed for toy hardfork table
+     void rescan_spent();
+     void rescan_blockchain(bool hard, bool refresh = true, bool keep_key_images = false);
+     bool is_transfer_unlocked(const transfer_details& td) const;

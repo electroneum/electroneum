@@ -494,6 +494,7 @@ namespace cryptonote
     if (!pick<tx_extra_merge_mining_tag>(nar, tx_extra_fields, TX_EXTRA_MERGE_MINING_TAG)) return false;
     if (!pick<tx_extra_bridge_source_address>(nar, tx_extra_fields, TX_EXTRA_TAG_BRIDGE_SOURCE_ADDRESS)) return false;
     if (!pick<tx_extra_bridge_smartchain_address>(nar, tx_extra_fields, TX_EXTRA_TAG_BRIDGE_SMARTCHAIN_ADDRESS)) return false;
+    if (!pick<tx_extra_bridge_ownership_sig>(nar, tx_extra_fields, TX_EXTRA_TAG_BRIDGE_OWNERSHIP_SIG)) return false;
     if (!pick<tx_extra_mysterious_minergate>(nar, tx_extra_fields, TX_EXTRA_MYSTERIOUS_MINERGATE_TAG)) return false;
     if (!pick<tx_extra_padding>(nar, tx_extra_fields, TX_EXTRA_TAG_PADDING)) return false;
 
@@ -633,6 +634,21 @@ namespace cryptonote
         //write data
         ++start_pos;
         memcpy(&tx_extra[start_pos], bridge_smartchain_address.data(), bridge_smartchain_address.size());
+        return true;
+    }
+    //---------------------------------------------------------------
+    bool add_bridge_ownership_sig_to_tx_extra(std::vector<uint8_t>& tx_extra, const crypto::signature& sig)
+    {
+        size_t start_pos = tx_extra.size();
+        tx_extra.resize(tx_extra.size() + 2 + sizeof(crypto::signature));
+        //write tag
+        tx_extra[start_pos] = TX_EXTRA_TAG_BRIDGE_OWNERSHIP_SIG;
+        //write len
+        ++start_pos;
+        tx_extra[start_pos] = static_cast<uint8_t>(sizeof(crypto::signature));
+        //write data
+        ++start_pos;
+        memcpy(&tx_extra[start_pos], &sig, sizeof(crypto::signature));
         return true;
     }
   //---------------------------------------------------------------
