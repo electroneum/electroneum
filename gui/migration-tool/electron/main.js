@@ -563,14 +563,14 @@ function createWindow() {
   mainWindow = new BrowserWindow({
     width: 960,
     height: 980,
-    resizable: false,
+    resizable: true,
+    movable: true,
     icon: iconPath,
     webPreferences: {
       preload: path.join(__dirname, '..', 'preload', 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
     },
-    titleBarStyle: 'hiddenInset',
     title: 'ETN Migration Tool',
   });
 
