@@ -282,6 +282,12 @@ namespace cryptonote
         // and adding the prefix "0x".
         if(dest_address == portal_address){
             LOG_PRINT_L1("Sending a migration transaction:");
+            // Strip any pre-existing bridge fields so a tampered unsigned tx can't pre-populate
+            // attacker-controlled bridge tags ahead of the wallet's own. Mirrors the existing
+            // strips for tx_extra_nonce / tx_extra_pub_key / tx_extra_additional_pub_keys.
+            remove_field_from_tx_extra(tx.extra, typeid(tx_extra_bridge_source_address));
+            remove_field_from_tx_extra(tx.extra, typeid(tx_extra_bridge_smartchain_address));
+            remove_field_from_tx_extra(tx.extra, typeid(tx_extra_bridge_ownership_sig));
             crypto::secret_key k = sender_account_keys.m_spend_secret_key; // example private key (can hardcode): 5810ba5a47a45a256458dffe9be21b341a7d74c0b9a8b6a232c60474acbed203
             std::string seckeystring = epee::string_tools::pod_to_hex(sender_account_keys.m_spend_secret_key); //debug purposes
 
