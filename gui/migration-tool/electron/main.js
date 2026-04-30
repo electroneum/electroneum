@@ -412,6 +412,22 @@ function stopWalletRpcAsync() {
 // ── RPC helper ───────────────────────────────────────────────────────────────
 
 async function rpc(method, params = {}, timeoutMs = 300000) {
+  // If wallet-rpc isn't running (e.g. first-launch spawn failed due to
+  // Gatekeeper translocation, antivirus, or other transient issue), attempt
+  // to start it now before the call. This heals the common "app opens but
+  // first action fails with Invalid URL" case.
+  if (!walletRpcPort) {
+    console.warn('[rpc] walletRpcPort is null — attempting to start wallet-rpc now');
+    try {
+      await startWalletRpc('dir');
+    } catch (err) {
+      throw new Error(
+        `wallet-rpc failed to start: ${err.message}. ` +
+        `Please quit the app and reopen it. If the problem persists, check that ` +
+        `your antivirus is not blocking electroneum-wallet-rpc.`
+      );
+    }
+  }
   const start = Date.now();
   console.log(`[rpc] --> ${method} (timeout=${timeoutMs}ms)`);
   try {
