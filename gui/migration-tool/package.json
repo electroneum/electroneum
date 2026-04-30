@@ -64,7 +64,13 @@
         }
       ],
       "category": "public.app-category.finance",
-      "identity": null,
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist",
+      "notarize": {
+        "teamId": "${env.TEAM_ID}"
+      },
       "artifactName": "${productName}-${version}-${env.MAC_VARIANT_LABEL}-arm64.${ext}"
     },
     "linux": {
