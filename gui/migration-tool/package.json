@@ -55,6 +55,7 @@
     ],
     "icon": "resources/icon",
     "afterSign": "build/notarize.js",
+    "afterAllArtifactBuild": "build/notarize-dmg.js",
     "mac": {
       "target": [
         {
