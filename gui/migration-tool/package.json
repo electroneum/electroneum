@@ -54,6 +54,7 @@
       "node_modules/linebreak/**"
     ],
     "icon": "resources/icon",
+    "afterSign": "build/notarize.js",
     "mac": {
       "target": [
         {
@@ -68,9 +69,7 @@
       "gatekeeperAssess": false,
       "entitlements": "build/entitlements.mac.plist",
       "entitlementsInherit": "build/entitlements.mac.plist",
-      "notarize": {
-        "teamId": "${env.TEAM_ID}"
-      },
+      "notarize": false,
       "artifactName": "${productName}-${version}-${env.MAC_VARIANT_LABEL}-arm64.${ext}"
     },
     "linux": {
