@@ -10,9 +10,10 @@
   "main": "out/main/main.js",
   "scripts": {
     "dev": "electron-vite dev",
-    "build:mac:macos14": "BIN_VARIANT_DIR=mac-arm64-macos14 MAC_VARIANT_LABEL=macos14 electron-vite build && BIN_VARIANT_DIR=mac-arm64-macos14 MAC_VARIANT_LABEL=macos14 electron-builder --mac",
-    "build:mac:macos15": "BIN_VARIANT_DIR=mac-arm64-macos15 MAC_VARIANT_LABEL=macos15 electron-vite build && BIN_VARIANT_DIR=mac-arm64-macos15 MAC_VARIANT_LABEL=macos15 electron-builder --mac",
-    "build:mac:all": "npm run build:mac:macos14 && npm run build:mac:macos15",
+    "build:mac:macos14": "BIN_VARIANT_DIR=mac-arm64-macos14 MAC_VARIANT_LABEL=macos14 electron-vite build && BIN_VARIANT_DIR=mac-arm64-macos14 MAC_VARIANT_LABEL=macos14 electron-builder --mac --arm64",
+    "build:mac:macos14-x64": "BIN_VARIANT_DIR=mac-x64-macos14 MAC_VARIANT_LABEL=macos14 electron-vite build && BIN_VARIANT_DIR=mac-x64-macos14 MAC_VARIANT_LABEL=macos14 electron-builder --mac dmg:x64",
+    "build:mac:macos15": "BIN_VARIANT_DIR=mac-arm64-macos15 MAC_VARIANT_LABEL=macos15 electron-vite build && BIN_VARIANT_DIR=mac-arm64-macos15 MAC_VARIANT_LABEL=macos15 electron-builder --mac --arm64",
+    "build:mac:all": "npm run build:mac:macos14 && npm run build:mac:macos14-x64 && npm run build:mac:macos15",
     "build:linux": "BIN_VARIANT_DIR=linux-x64 electron-vite build && BIN_VARIANT_DIR=linux-x64 electron-builder --linux",
     "build:win": "BIN_VARIANT_DIR=win-x64 electron-vite build && BIN_VARIANT_DIR=win-x64 electron-builder --win",
     "preview": "electron-vite preview"
@@ -71,7 +72,7 @@
       "entitlements": "build/entitlements.mac.plist",
       "entitlementsInherit": "build/entitlements.mac.plist",
       "notarize": false,
-      "artifactName": "${productName}-${version}-${env.MAC_VARIANT_LABEL}-arm64.${ext}"
+      "artifactName": "${productName}-${version}-${env.MAC_VARIANT_LABEL}-${arch}.${ext}"
     },
     "linux": {
       "target": [
