@@ -356,61 +356,15 @@ namespace cryptonote
               return false;
           }
 
-          // The regular expression pattern for a valid Ethereum address
-          bool valid_smartchain_address = true;
-          std::string string_smartchain_address = bridge_smartchain_address.data;
-          //string_smartchain_address = "0xc1912fEE45d61C87Cc5EA59DaE31190FFFFf232d";
-          std::regex pattern("^(0x|0X)[a-fA-F0-9]{40}$");
-          if(!std::regex_match(string_smartchain_address, pattern))
-              valid_smartchain_address = false;
-
-
-          bool isMixedCase = std::any_of(string_smartchain_address.begin(), string_smartchain_address.end(), [](char c) {
-              return std::isupper(c);
-          }) && std::any_of(string_smartchain_address.begin(), string_smartchain_address.end(), [](char c) {
-              return std::islower(c);
-          });
-
-          if(isMixedCase && valid_smartchain_address != false){ // if it's mixed case, we have to do extra checks
-          // Convert the address to lowercase for hashing
-          std::string lower_address = string_smartchain_address.substr(2);
-          std::transform(lower_address.begin(), lower_address.end(), lower_address.begin(), ::tolower);
-
-              unsigned char hashed_lower[32];
-              keccak(reinterpret_cast<const uint8_t *>(lower_address.data()), 40, hashed_lower, 32);
-              std::string address_hash = epee::string_tools::pod_to_hex(hashed_lower); // should be 0x12ed7467c3852e6b2Bd3C22AF694be8DF7637B10.
-
-              std::string hash;
-              for (size_t i = 0; i < lower_address.length(); i++) {
-                  if (std::isdigit(lower_address[i])) {
-                      hash += lower_address[i];
-                  }
-                  else if (address_hash[i] >= '8') {
-                      hash += std::toupper(lower_address[i]);
-                  }
-                  else {
-                      hash += lower_address[i];
-                  }
-              }
-              std::string checksum = hash.substr(0, 8);
-              for (size_t i = 2; i < checksum.length() + 2; i++) {
-                  if (std::islower(string_smartchain_address[i]) && checksum[i - 2] < 'a') {
-                      valid_smartchain_address = false;
-                  }
-                  else if (std::isupper(string_smartchain_address[i]) && checksum[i - 2] < 'A') {
-                      char lower_char = std::tolower(string_smartchain_address[i]);
-                      if (checksum[i - 2] != lower_char) {
-                          valid_smartchain_address = false;
-                      }
-                  }
-                  else if (checksum[i - 2] != string_smartchain_address[i]) {
-                      valid_smartchain_address = false;
-                  }
-              }
-
-          } //end of is mixed case
-
-          if(!valid_smartchain_address){
+          // Enforce the canonical bridge SC address format: "0x" + 40 lowercase hex chars.
+          // The wallet derives this deterministically from the sender's spend secret key
+          // (see construct_tx_with_tx_key in cryptonote_tx_utils.cpp) and emits it via
+          // pod_to_hex, which always produces lowercase. Any other casing is non-canonical
+          // and must be rejected. Restricting to a single canonical form removes the need
+          // for EIP-55 mixed-case checksum validation on this code path.
+          const std::string &string_smartchain_address = bridge_smartchain_address.data;
+          static const std::regex sc_address_pattern("^0x[0-9a-f]{40}$");
+          if(!std::regex_match(string_smartchain_address, sc_address_pattern)){
               tvc.m_verification_failed = true;
               tvc.m_bad_bridge_smartchain_address = true;
               return false;
