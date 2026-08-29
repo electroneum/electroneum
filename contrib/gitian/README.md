@@ -113,8 +113,8 @@ If you are using docker, run it with:
 ./gitian-build.py --setup --docker fluffypony v0.14.0
 ```
 
-While gitian and this build script does provide a way for you to sign the build directly, it is recommended to sign in a seperate step. 
-This script is only there for convenience. Seperate steps for building can still be taken.
+While gitian and this build script does provide a way for you to sign the build directly, it is recommended to sign in a separate step. 
+This script is only there for convenience. Separate steps for building can still be taken.
 In order to sign gitian builds on your host machine, which has your PGP key, 
 fork the gitian.sigs repository and clone it on your host machine, 
 or pass the signed assert file back to your build machine.
