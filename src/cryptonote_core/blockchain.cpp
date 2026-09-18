@@ -3716,6 +3716,20 @@ bool Blockchain::flush_txes_from_pool(const std::vector<crypto::hash> &txids)
   return res;
 }
 //------------------------------------------------------------------
+// Height from which a block is rejected if two of its txes spend the same utxo. This is a tightening of
+// the rules, so on mainnet it's only enforced from a height which was past the chain tip when it got
+// introduced (2477478): blocks below are never judged by it, and a node syncing from scratch can't end up
+// rejecting old history. Testnet uses the height of its last hard fork (v11).
+static uint64_t get_intra_block_utxo_check_height(network_type nettype)
+{
+  switch (nettype)
+  {
+    case MAINNET: return 2480000;
+    case TESTNET: return 1455270;
+    default: return 0;
+  }
+}
+//------------------------------------------------------------------
 //      Needs to validate the block and acquire each transaction from the
 //      transaction mem_pool, then pass the block and transactions to
 //      m_db->add_block()
@@ -3894,6 +3908,9 @@ leave:
 
   std::vector<std::pair<transaction, blobdata>> txs;
   key_images_container keys;
+  // utxos spent by the public inputs of the txes seen so far in this block
+  std::unordered_set<std::string> block_spent_utxos;
+  const bool check_block_spent_utxos = blockchain_height >= get_intra_block_utxo_check_height(m_nettype);
 
   uint64_t fee_summary = 0;
   uint64_t t_checktx = 0;
@@ -3961,6 +3978,34 @@ leave:
     //     bvc.m_verification_failed = true;
     //     break;
     // }
+
+    // Unlike key images, nothing in the db rejects a utxo being spent twice: check_tx_inputs below reads
+    // the chainstate, which isn't updated until the whole block gets added, and removing an utxo which
+    // is already gone is not an error. Two txes in a block spending the same utxo would thus both be
+    // accepted, with the utxo consumed once but credited twice, so this has to be checked for here.
+    if (check_block_spent_utxos)
+    {
+      bool utxo_spent_twice = false;
+      for (const auto &in: tx.vin)
+      {
+        if (in.type() != typeid(txin_to_key_public))
+          continue;
+        const txin_to_key_public &in_to_key = boost::get<txin_to_key_public>(in);
+        if (!block_spent_utxos.insert(std::string(in_to_key.tx_hash.data, 32) + std::to_string(in_to_key.relative_offset)).second)
+        {
+          utxo_spent_twice = true;
+          break;
+        }
+      }
+      if (utxo_spent_twice)
+      {
+        MERROR_VER("Block with id: " << id << " has at least one transaction (id: " << tx_id << ") spending an utxo already spent in this block.");
+        add_block_as_invalid(bl, id);
+        bvc.m_verification_failed = true;
+        return_tx_to_pool(txs);
+        goto leave;
+      }
+    }
 
     TIME_MEASURE_FINISH(dd);
     t_dblspnd += dd;
