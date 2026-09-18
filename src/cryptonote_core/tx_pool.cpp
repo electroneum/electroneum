@@ -311,6 +311,7 @@ namespace cryptonote
     uint64_t max_used_block_height = 0;
     cryptonote::txpool_tx_meta_t meta;
 
+    tvc.m_input_permanently_invalid = false;
     bool ch_inp_res = check_tx_inputs([&tx]()->cryptonote::transaction&{ return tx; }, id, max_used_block_height, max_used_block_id, tvc, kept_by_block);
 
       if(tx.version == 3 && m_blockchain.get_current_blockchain_height() > (m_blockchain.get_nettype() == MAINNET ? 1811310 : 1455270)) {
@@ -396,7 +397,12 @@ namespace cryptonote
     {
       // if the transaction was valid before (kept_by_block), then it
       // may become valid again, so ignore the failed inputs check.
-      if(kept_by_block)
+      // This only holds for failures which depend on chain state. kept_by_block
+      // txes also come from untrusted peers, ahead of their block being verified,
+      // so a tx which can never be valid (eg, bad input signature) must not be
+      // stored, or it would mark the utxos it claims to spend as spent in the
+      // pool and get the legitimate spend of those utxos rejected.
+      if(kept_by_block && !tvc.m_input_permanently_invalid)
       {
         meta.weight = tx_weight;
         meta.fee = fee;

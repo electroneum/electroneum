@@ -45,6 +45,7 @@ namespace cryptonote
     bool m_double_spend;
     bool m_utxo_nonexistent;
     bool m_invalid_input;
+    bool m_input_permanently_invalid; //input check failed for a reason that doesn't depend on chain state (e.g. bad signature), so the tx can never become valid on any chain
     bool m_invalid_output;
     bool m_too_big;
     bool m_overspend;
