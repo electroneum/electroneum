@@ -1820,9 +1820,9 @@ void Blockchain::sign_block(block& b, const std::string privateKey) {
   b.signature = std::vector<uint8_t>(signature.begin(), signature.end());
 }
 
-bool Blockchain::verify_block_signature(const block& b) {
+bool Blockchain::verify_block_signature(const block& b, uint64_t height) {
   crypto::hash tx_tree_hash = get_tx_tree_hash(b);
-  const std::vector<std::string> public_keys = m_validators->getApplicablePublicKeys(m_db->height(), true);
+  const std::vector<std::string> public_keys = m_validators->getApplicablePublicKeys(height, true);
 
   for(auto &key : public_keys) {
     if(crypto::verify_signature(std::string(reinterpret_cast<char const *>(tx_tree_hash.data), sizeof(tx_tree_hash.data)),
@@ -1940,7 +1940,12 @@ bool Blockchain::handle_alternative_block(const block& b, const crypto::hash& id
         return false;
       }
 
-      if(!verify_block_signature(b)) {
+      // The signer has to be an active validator at the height of the block itself, which is the rule
+      // applied when the block gets added to the main chain (where m_db->height() is the block's height),
+      // and not just at the height of our own chain. Also being active at our current height is still
+      // required, as it was before, so that this only ever rejects more alternative blocks than it used
+      // to, and a retired validator key can't be used to get blocks at old heights accepted here.
+      if(!verify_block_signature(b, block_height) || !verify_block_signature(b, m_db->height())) {
         MERROR_VER("Block with id: " << id << std::endl << " has wrong digital signature");
         bvc.m_verification_failed = true;
         return false;
@@ -3749,7 +3754,7 @@ leave:
         goto leave;
       }
 
-      if(!verify_block_signature(bl) && !m_ignore_bsig) {
+      if(!verify_block_signature(bl, m_db->height()) && !m_ignore_bsig) {
         MERROR_VER("Block with id: " << id << std::endl << " has wrong digital signature");
         bvc.m_verification_failed = true;
         goto leave;
