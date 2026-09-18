@@ -1055,8 +1055,9 @@ namespace cryptonote
      * @brief Verify block's digital signature
      *
      * @param b block to be verified
+     * @param height the height at which the signing validator has to be active
      */
-    bool verify_block_signature(const block& b);
+    bool verify_block_signature(const block& b, uint64_t height);
 
       /**
      * @brief set validator key
