@@ -3049,6 +3049,7 @@ bool Blockchain::check_tx_inputs(transaction& tx, tx_verification_context &tvc, 
       if(!ins.insert(std::string(tokey_in.tx_hash.data, 32) + std::to_string(tokey_in.relative_offset)).second)
       {
         tvc.m_invalid_input = true;
+        tvc.m_input_permanently_invalid = true;
         tvc.m_verification_failed = true;
         return false;
       }
@@ -3057,10 +3058,19 @@ bool Blockchain::check_tx_inputs(transaction& tx, tx_verification_context &tvc, 
     if(tx.vin.size() != tx.signatures.size())
     {
       tvc.m_invalid_input = true;
+      tvc.m_input_permanently_invalid = true;
       tvc.m_verification_failed = true;
       return false;
     }
 
+    // Failures are split in two classes. Anything that depends only on the tx itself and on the
+    // (hash-committed, hence chain-independent) contents of its parent tx is permanent: the tx can
+    // never become valid on any chain, and is flagged with m_input_permanently_invalid so the tx pool
+    // refuses it even when it comes with a block (kept_by_block). Failures that depend on chain state
+    // (parent tx unknown, utxo spent, utxo still locked) are left unflagged, since such a tx may
+    // legitimately belong to an alternative chain. The permanent checks run first, over every input,
+    // so that a chain state failure on one input can never mask a bad signature on another.
+    bool parent_tx_missing = false;
     for (size_t i = 0; i < tx.vin.size(); ++i)
     {
       CHECK_AND_ASSERT_MES(tx.vin[i].type() == typeid(txin_to_key_public), false, "wrong type id in tx input at Blockchain::check_tx_inputs");
@@ -3070,6 +3080,7 @@ bool Blockchain::check_tx_inputs(transaction& tx, tx_verification_context &tvc, 
       if (in_to_key.amount <= 0)
       {
         tvc.m_invalid_input = true;
+        tvc.m_input_permanently_invalid = true;
         tvc.m_verification_failed = true;
         return false;
       }
@@ -3077,13 +3088,46 @@ bool Blockchain::check_tx_inputs(transaction& tx, tx_verification_context &tvc, 
       transaction parent_tx;
       if (!m_db->get_tx(in_to_key.tx_hash, parent_tx))
       {
+        // can't check anything else for this input, but keep checking the other ones
+        parent_tx_missing = true;
+        continue;
+      }
+
+      if (parent_tx.vout.size() <= in_to_key.relative_offset
+          || parent_tx.vout[in_to_key.relative_offset].amount != in_to_key.amount
+          || parent_tx.vout[in_to_key.relative_offset].target.type() != typeid(txout_to_key_public))
+      {
+        MERROR_VER("wrong relative_offset, amount or output type in tx input at Blockchain::check_tx_inputs");
         tvc.m_invalid_input = true;
+        tvc.m_input_permanently_invalid = true;
         tvc.m_verification_failed = true;
         return false;
       }
 
-      CHECK_AND_ASSERT_MES(parent_tx.vout.size() > in_to_key.relative_offset, false, "wrong relative_offset in tx input at Blockchain::check_tx_inputs");
-      CHECK_AND_ASSERT_MES(parent_tx.vout.at(in_to_key.relative_offset).amount == in_to_key.amount, false, "wrong amount in tx input at Blockchain::check_tx_inputs");
+      // check signature
+      // verify_input_signature aborts on keys which aren't valid points, so check them first
+      const txout_to_key_public& out_to_key = boost::get<txout_to_key_public>(parent_tx.vout[in_to_key.relative_offset].target);
+      bool valid = tx.signatures[i].size() == 1 && crypto::check_key(out_to_key.address.m_view_public_key) && crypto::check_key(out_to_key.address.m_spend_public_key) && crypto::verify_input_signature(tx_prefix_hash, i, out_to_key.address.m_view_public_key, out_to_key.address.m_spend_public_key, tx.signatures[i][0]);
+      if (!valid)
+      {
+        tvc.m_invalid_input = true;
+        tvc.m_input_permanently_invalid = true;
+        tvc.m_verification_failed = true;
+        return false;
+      }
+    }
+
+    if (parent_tx_missing)
+    {
+      tvc.m_invalid_input = true;
+      tvc.m_verification_failed = true;
+      return false;
+    }
+
+    // chain state dependent checks
+    for (size_t i = 0; i < tx.vin.size(); ++i)
+    {
+      const txin_to_key_public& in_to_key = boost::get<txin_to_key_public>(tx.vin[i]);
 
       if (!m_db->check_chainstate_utxo(in_to_key.tx_hash, in_to_key.relative_offset))
       {
@@ -3095,15 +3139,6 @@ bool Blockchain::check_tx_inputs(transaction& tx, tx_verification_context &tvc, 
       if(!is_tx_spendtime_unlocked(m_db->get_utxo_unlock_time(in_to_key.tx_hash, in_to_key.relative_offset))){
           tvc.m_verification_failed = true;
           return false;
-      }
-
-      // check signature
-      const txout_to_key_public& out_to_key = boost::get<txout_to_key_public>(parent_tx.vout[in_to_key.relative_offset].target);
-      bool valid = crypto::verify_input_signature(tx_prefix_hash, i, out_to_key.address.m_view_public_key, out_to_key.address.m_spend_public_key, tx.signatures[i][0]);
-      if (!valid)
-      {
-        tvc.m_verification_failed = true;
-        return false;
       }
     }
 
