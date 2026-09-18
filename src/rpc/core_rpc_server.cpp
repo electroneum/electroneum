@@ -779,6 +779,7 @@ namespace cryptonote
       if(b.size() != sizeof(crypto::key_image))
       {
         res.status = "Failed, size of data mismatch";
+        return true;
       }
       key_images.push_back(*reinterpret_cast<const crypto::key_image*>(b.data()));
     }
