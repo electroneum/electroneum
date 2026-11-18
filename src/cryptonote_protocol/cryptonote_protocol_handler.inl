@@ -495,6 +495,14 @@ namespace cryptonote
     m_core.resume_mine();
     if(bvc.m_verification_failed)
     {
+      if (bvc.m_bad_tx_copy)
+      {
+        // The tx copy that failed was one we already had in the pool, not one this peer just sent
+        // (those get checked on the way in), so this isn't the peer's fault. That copy is gone now,
+        // and the block will go through when we next get it, from this peer or another.
+        LOG_PRINT_CCONTEXT_L1("Block failed on a bad copy of one of its txes we already had, not dropping connection");
+        return 1;
+      }
       LOG_PRINT_CCONTEXT_L0("Block verification failed, dropping connection");
       drop_connection(context, true, false);
       return 1;
@@ -868,6 +876,22 @@ namespace cryptonote
         
         if( bvc.m_verification_failed )
         {
+          if (bvc.m_bad_tx_copy)
+          {
+            // The tx copy that failed was one we already had in the pool, not one this peer just sent
+            // (those get checked on the way in), so this isn't the peer's fault. That copy is gone now:
+            // ask the peer for the txes we're missing, like for any fluffy block we can't complete.
+            NOTIFY_REQUEST_FLUFFY_MISSING_TX::request missing_tx_req;
+            missing_tx_req.block_hash = get_block_hash(new_block);
+            missing_tx_req.current_blockchain_height = arg.current_blockchain_height;
+            for (size_t i = 0; i < new_block.tx_hashes.size(); ++i)
+              if (!m_core.pool_has_tx(new_block.tx_hashes[i]))
+                missing_tx_req.missing_tx_indices.push_back(i);
+            LOG_PRINT_CCONTEXT_L1("Block failed on a bad copy of one of its txes we already had, requesting " << missing_tx_req.missing_tx_indices.size() << " txes again");
+            MLOG_P2P_MESSAGE("-->>NOTIFY_REQUEST_FLUFFY_MISSING_TX: missing_tx_indices.size()=" << missing_tx_req.missing_tx_indices.size() );
+            post_notify<NOTIFY_REQUEST_FLUFFY_MISSING_TX>(missing_tx_req, context);
+            return 1;
+          }
           LOG_PRINT_CCONTEXT_L0("Block verification failed, dropping connection");
           drop_connection(context, true, false);
           return 1;
@@ -1431,8 +1455,11 @@ namespace cryptonote
             if(bvc.m_verification_failed)
             {
               if (!m_p2p->for_connection(span_connection_id, [&](cryptonote_connection_context& context, nodetool::peerid_type peer_id, uint32_t f)->bool{
-                LOG_PRINT_CCONTEXT_L1("Block verification failed, dropping connection");
-                drop_connection(context, true, true);
+                // If the block only failed on a bad copy of a tx we already had (not one this peer
+                // sent, those get checked on the way in), it's not the peer's fault: still drop the
+                // connection so the span gets fetched again, but don't count it against the peer.
+                LOG_PRINT_CCONTEXT_L1("Block verification failed" << (bvc.m_bad_tx_copy ? " on a bad copy of one of its txes we already had" : "") << ", dropping connection");
+                drop_connection(context, !bvc.m_bad_tx_copy, true);
                 return 1;
               }))
                 LOG_ERROR_CCONTEXT("span connection id not found");

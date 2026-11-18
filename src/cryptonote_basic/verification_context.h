@@ -46,6 +46,7 @@ namespace cryptonote
     bool m_utxo_nonexistent;
     bool m_invalid_input;
     bool m_input_permanently_invalid; //input check failed for a reason that doesn't depend on chain state (e.g. bad signature), so the tx can never become valid on any chain
+    bool m_invalid_signature; //an input signature failed to verify. v2+ txids don't cover the signatures, so this only condemns this copy of the tx, not other copies with the same txid or a block listing it
     bool m_invalid_output;
     bool m_too_big;
     bool m_overspend;
@@ -66,6 +67,7 @@ namespace cryptonote
     bool m_partial_block_reward;
     bool m_validator_list_update_failed;
     bool m_sequential_block;
+    bool m_bad_tx_copy; //failed only because our copy of one of its txes had a bad signature, which says nothing about the block itself, so it mustn't be marked invalid
   };
 
 }

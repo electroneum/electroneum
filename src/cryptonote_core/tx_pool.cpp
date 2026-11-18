@@ -312,7 +312,7 @@ namespace cryptonote
     cryptonote::txpool_tx_meta_t meta;
 
     tvc.m_input_permanently_invalid = false;
-    bool ch_inp_res = check_tx_inputs([&tx]()->cryptonote::transaction&{ return tx; }, id, max_used_block_height, max_used_block_id, tvc, kept_by_block);
+    bool ch_inp_res = check_tx_inputs([&tx]()->cryptonote::transaction&{ return tx; }, blob, max_used_block_height, max_used_block_id, tvc, kept_by_block);
 
       if(tx.version == 3 && m_blockchain.get_current_blockchain_height() > (m_blockchain.get_nettype() == MAINNET ? 1811310 : 1455270)) {
 
@@ -414,7 +414,11 @@ namespace cryptonote
         meta.receive_time = receive_time;
         meta.last_relayed_time = time(NULL);
         meta.relayed = relayed;
-        meta.do_not_relay = do_not_relay;
+        // We couldn't verify this tx's inputs, so don't pass it on: peers would reject it and drop
+        // the connection to us, and anyone can hand us junk like this (eg spending an output that
+        // doesn't exist) to get us disconnected from our peers over and over. If it's legit, it's
+        // in a block the network has anyway.
+        meta.do_not_relay = true;
         meta.double_spend_seen = key_images_already_spent(tx);
         meta.utxo_nonexistent_seen = utxo_nonexistent(tx);
         meta.bf_padding = 0;
@@ -422,7 +426,7 @@ namespace cryptonote
         try
         {
           if (kept_by_block)
-            m_parsed_tx_cache.insert(std::make_pair(id, tx));
+            m_parsed_tx_cache.insert(std::make_pair(get_blob_hash(blob), tx));
           CRITICAL_REGION_LOCAL1(m_blockchain);
           LockedTXN lock(m_blockchain);
           m_blockchain.add_txpool_tx(id, blob, meta);
@@ -467,7 +471,7 @@ namespace cryptonote
       try
       {
         if (kept_by_block)
-          m_parsed_tx_cache.insert(std::make_pair(id, tx));
+          m_parsed_tx_cache.insert(std::make_pair(get_blob_hash(blob), tx));
         CRITICAL_REGION_LOCAL1(m_blockchain);
         LockedTXN lock(m_blockchain);
         m_blockchain.remove_txpool_tx(id);
@@ -695,7 +699,7 @@ namespace cryptonote
         return false;
       }
       txblob = m_blockchain.get_txpool_tx_blob(id);
-      auto ci = m_parsed_tx_cache.find(id);
+      auto ci = m_parsed_tx_cache.find(get_blob_hash(txblob));
       if (ci != m_parsed_tx_cache.end())
       {
         tx = ci->second;
@@ -1241,11 +1245,16 @@ namespace cryptonote
     m_transactions_lock.unlock();
   }
   //---------------------------------------------------------------------------------
-  bool tx_memory_pool::check_tx_inputs(const std::function<cryptonote::transaction&(void)> &get_tx, const crypto::hash &txid, uint64_t &max_used_block_height, crypto::hash &max_used_block_id, tx_verification_context &tvc, bool kept_by_block) const
+  bool tx_memory_pool::check_tx_inputs(const std::function<cryptonote::transaction&(void)> &get_tx, const cryptonote::blobdata &txblob, uint64_t &max_used_block_height, crypto::hash &max_used_block_id, tx_verification_context &tvc, bool kept_by_block) const
   {
+    // The cache is keyed on the hash of the whole blob, not the txid: v2+ txids don't cover the
+    // signatures, so two copies of a tx with the same txid can differ in whether their inputs check
+    // out, and a copy with garbage signatures mustn't get the real one rejected.
+    crypto::hash cache_key = crypto::null_hash;
     if (!kept_by_block)
     {
-      const std::unordered_map<crypto::hash, std::tuple<bool, tx_verification_context, uint64_t, crypto::hash>>::const_iterator i = m_input_cache.find(txid);
+      cache_key = get_blob_hash(txblob);
+      const std::unordered_map<crypto::hash, std::tuple<bool, tx_verification_context, uint64_t, crypto::hash>>::const_iterator i = m_input_cache.find(cache_key);
       if (i != m_input_cache.end())
       {
         max_used_block_height = std::get<2>(i->second);
@@ -1256,7 +1265,7 @@ namespace cryptonote
     }
     bool ret = m_blockchain.check_tx_inputs(get_tx(), max_used_block_height, max_used_block_id, tvc, kept_by_block);
     if (!kept_by_block)
-      m_input_cache.insert(std::make_pair(txid, std::make_tuple(ret, tvc, max_used_block_height, max_used_block_id)));
+      m_input_cache.insert(std::make_pair(cache_key, std::make_tuple(ret, tvc, max_used_block_height, max_used_block_id)));
     return ret;
   }
   //---------------------------------------------------------------------------------
@@ -1291,7 +1300,7 @@ namespace cryptonote
         return false;//we already sure that this tx is broken for this height
 
       tx_verification_context tvc;
-      if(!check_tx_inputs([&lazy_tx]()->cryptonote::transaction&{ return lazy_tx(); }, txid, txd.max_used_block_height, txd.max_used_block_id, tvc))
+      if(!check_tx_inputs([&lazy_tx]()->cryptonote::transaction&{ return lazy_tx(); }, txblob, txd.max_used_block_height, txd.max_used_block_id, tvc))
       {
         txd.last_failed_height = m_blockchain.get_current_blockchain_height()-1;
         txd.last_failed_id = m_blockchain.get_block_id_by_height(txd.last_failed_height);
@@ -1308,7 +1317,7 @@ namespace cryptonote
           return false;
         //check ring signature again, it is possible (with very small chance) that this transaction become again valid
         tx_verification_context tvc;
-        if(!check_tx_inputs([&lazy_tx]()->cryptonote::transaction&{ return lazy_tx(); }, txid, txd.max_used_block_height, txd.max_used_block_id, tvc))
+        if(!check_tx_inputs([&lazy_tx]()->cryptonote::transaction&{ return lazy_tx(); }, txblob, txd.max_used_block_height, txd.max_used_block_id, tvc))
         {
           txd.last_failed_height = m_blockchain.get_current_blockchain_height()-1;
           txd.last_failed_id = m_blockchain.get_block_id_by_height(txd.last_failed_height);

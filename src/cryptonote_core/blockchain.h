@@ -1258,10 +1258,12 @@ namespace cryptonote
      *
      * @param alt_chain the chain to switch to
      * @param discard_disconnected_chain whether or not to keep the old chain as an alternate
+     * @param bad_tx_copy if not NULL, set to true when the reorganization failed only because our
+     *        copy of a tx in one of the blocks had a bad signature (see block_verification_context::m_bad_tx_copy)
      *
      * @return false if the reorganization fails, otherwise true
      */
-    bool switch_to_alternative_blockchain(std::list<blocks_ext_by_hash::const_iterator>& alt_chain, bool discard_disconnected_chain);
+    bool switch_to_alternative_blockchain(std::list<blocks_ext_by_hash::const_iterator>& alt_chain, bool discard_disconnected_chain, bool *bad_tx_copy = NULL);
 
     /**
      * @brief removes the most recent block from the blockchain
