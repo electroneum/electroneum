@@ -609,7 +609,7 @@ private:
     sorted_tx_container::iterator find_tx_in_sorted_container(const crypto::hash& id) const;
 
     //! cache/call Blockchain::check_tx_inputs results
-    bool check_tx_inputs(const std::function<cryptonote::transaction&(void)> &get_tx, const crypto::hash &txid, uint64_t &max_used_block_height, crypto::hash &max_used_block_id, tx_verification_context &tvc, bool kept_by_block = false) const;
+    bool check_tx_inputs(const std::function<cryptonote::transaction&(void)> &get_tx, const cryptonote::blobdata &txblob, uint64_t &max_used_block_height, crypto::hash &max_used_block_id, tx_verification_context &tvc, bool kept_by_block = false) const;
 
     //! transactions which are unlikely to be included in blocks
     /*! These transactions are kept in RAM in case they *are* included
@@ -624,6 +624,8 @@ private:
 
     mutable std::unordered_map<crypto::hash, std::tuple<bool, tx_verification_context, uint64_t, crypto::hash>> m_input_cache;
 
+    //! keyed on the hash of the whole blob rather than the txid: v2+ txids don't cover the signatures, so a
+    //! stale entry for an earlier copy of a tx could otherwise be handed out in place of the copy now in the pool
     std::unordered_map<crypto::hash, transaction> m_parsed_tx_cache;
   };
 }

@@ -1191,7 +1191,7 @@ bool Blockchain::rollback_blockchain_switching(std::list<block>& original_chain,
 //------------------------------------------------------------------
 // This function attempts to switch to an alternate chain, returning
 // boolean based on success therein.
-bool Blockchain::switch_to_alternative_blockchain(std::list<blocks_ext_by_hash::const_iterator>& alt_chain, bool discard_disconnected_chain)
+bool Blockchain::switch_to_alternative_blockchain(std::list<blocks_ext_by_hash::const_iterator>& alt_chain, bool discard_disconnected_chain, bool *bad_tx_copy_out)
 {
   //TODO: Public
   LOG_PRINT_L3("Blockchain::" << __func__);
@@ -1240,16 +1240,29 @@ bool Blockchain::switch_to_alternative_blockchain(std::list<blocks_ext_by_hash::
       // just the latter (because the rollback was done above).
       rollback_blockchain_switching(disconnected_chain, split_height);
 
+      // If all that went wrong is that our copy of one of the block's txes had a bad signature, the
+      // block (and the ones after it) may well be fine. Forget them without marking them invalid,
+      // so they get fetched again, along with a good copy of the tx, the next time we sync.
+      const bool bad_tx_copy = bvc.m_bad_tx_copy;
+      if (bad_tx_copy_out)
+        *bad_tx_copy_out = bad_tx_copy;
+
       // FIXME: Why do we keep invalid blocks around?  Possibly in case we hear
       // about them again so we can immediately dismiss them, but needs some
       // looking into.
-      add_block_as_invalid(ch_ent->second, get_block_hash(ch_ent->second.bl));
-      MERROR("The block was inserted as invalid while connecting new alternative chain, block_id: " << get_block_hash(ch_ent->second.bl));
+      if (bad_tx_copy)
+        MERROR("Dropped a bad tx copy while connecting new alternative chain, forgetting block " << get_block_hash(ch_ent->second.bl) << " and its descendants without marking them invalid");
+      else
+      {
+        add_block_as_invalid(ch_ent->second, get_block_hash(ch_ent->second.bl));
+        MERROR("The block was inserted as invalid while connecting new alternative chain, block_id: " << get_block_hash(ch_ent->second.bl));
+      }
       m_alternative_chains.erase(*alt_ch_iter++);
 
       for(auto alt_ch_to_orph_iter = alt_ch_iter; alt_ch_to_orph_iter != alt_chain.end(); )
       {
-        add_block_as_invalid((*alt_ch_to_orph_iter)->second, (*alt_ch_to_orph_iter)->first);
+        if (!bad_tx_copy)
+          add_block_as_invalid((*alt_ch_to_orph_iter)->second, (*alt_ch_to_orph_iter)->first);
         m_alternative_chains.erase(*alt_ch_to_orph_iter++);
       }
       return false;
@@ -2061,7 +2074,7 @@ bool Blockchain::handle_alternative_block(const block& b, const crypto::hash& id
       //do reorganize!
       MGINFO_GREEN("###### REORGANIZE on height: " << alt_chain.front()->second.height << " of " << m_db->height() - 1 << ", checkpoint is found in alternative chain on height " << bei.height);
 
-      bool r = switch_to_alternative_blockchain(alt_chain, true);
+      bool r = switch_to_alternative_blockchain(alt_chain, true, &bvc.m_bad_tx_copy);
 
       if(r) bvc.m_added_to_main_chain = true;
       else bvc.m_verification_failed = true;
@@ -2073,7 +2086,7 @@ bool Blockchain::handle_alternative_block(const block& b, const crypto::hash& id
       //do reorganize!
       MGINFO_GREEN("###### REORGANIZE on height: " << alt_chain.front()->second.height << " of " << m_db->height() - 1 << " with cum_difficulty " << m_db->get_block_cumulative_difficulty(m_db->height() - 1) << std::endl << " alternative blockchain size: " << alt_chain.size() << " with cum_difficulty " << bei.cumulative_difficulty);
 
-      bool r = switch_to_alternative_blockchain(alt_chain, false);
+      bool r = switch_to_alternative_blockchain(alt_chain, false, &bvc.m_bad_tx_copy);
       if (r)
         bvc.m_added_to_main_chain = true;
       else
@@ -3112,7 +3125,13 @@ bool Blockchain::check_tx_inputs(transaction& tx, tx_verification_context &tvc, 
       // check signature
       // verify_input_signature aborts on keys which aren't valid points, so check them first
       const txout_to_key_public& out_to_key = boost::get<txout_to_key_public>(parent_tx.vout[in_to_key.relative_offset].target);
-      bool valid = tx.signatures[i].size() == 1 && crypto::check_key(out_to_key.address.m_view_public_key) && crypto::check_key(out_to_key.address.m_spend_public_key) && crypto::verify_input_signature(tx_prefix_hash, i, out_to_key.address.m_view_public_key, out_to_key.address.m_spend_public_key, tx.signatures[i][0]);
+      bool valid = tx.signatures[i].size() == 1 && crypto::check_key(out_to_key.address.m_view_public_key) && crypto::check_key(out_to_key.address.m_spend_public_key);
+      if (valid && !crypto::verify_input_signature(tx_prefix_hash, i, out_to_key.address.m_view_public_key, out_to_key.address.m_spend_public_key, tx.signatures[i][0]))
+      {
+        // the signature bytes themselves are bad, as opposed to the parent's keys
+        tvc.m_invalid_signature = true;
+        valid = false;
+      }
       if (!valid)
       {
         tvc.m_invalid_input = true;
@@ -3240,6 +3259,20 @@ bool Blockchain::check_tx_inputs(transaction& tx, tx_verification_context &tvc, 
       }
     }
   }
+  // A ring signature that fails over resolved ring members is down to the signature bytes alone.
+  // For v2 those aren't covered by the txid, so the failure says nothing about other copies of the
+  // tx, or about a block listing it. And from the public tx fork on, no new txout_to_key outputs get
+  // created at all, so the ring members resolve to the same keys on any chain we could switch to:
+  // this copy can never become valid, and the tx pool shouldn't keep it even when it comes with a block.
+  const auto flag_bad_ring_signature = [&]() {
+    tvc.m_invalid_input = true;
+    tvc.m_verification_failed = true;
+    if (tx.version >= 2)
+      tvc.m_invalid_signature = true;
+    if (hf_version >= HF_VERSION_PUBLIC_TX)
+      tvc.m_input_permanently_invalid = true;
+  };
+
   auto it = m_check_txin_table.find(tx_prefix_hash);
   if(it == m_check_txin_table.end())
   {
@@ -3319,6 +3352,7 @@ bool Blockchain::check_tx_inputs(transaction& tx, tx_verification_context &tvc, 
       if (!results[sig_index])
       {
         it->second[in_to_key.k_image] = false;
+        flag_bad_ring_signature();
         MERROR_VER("Failed to check ring signature for tx " << get_transaction_hash(tx) << "  vin key with k_image: " << in_to_key.k_image << "  sig_index: " << sig_index);
 
         if (pmax_used_block_height)  // a default value of NULL is used when called from Blockchain::handle_block_to_main_chain()
@@ -3349,6 +3383,7 @@ bool Blockchain::check_tx_inputs(transaction& tx, tx_verification_context &tvc, 
 
     if (failed)
     {
+      flag_bad_ring_signature();
       MERROR_VER("Failed to check ring signatures!");
       return false;
     }
@@ -4020,6 +4055,21 @@ leave:
       if(!check_tx_inputs(tx, tvc))
       {
         MERROR_VER("Block with id: " << id  << " has at least one transaction (id: " << tx_id << ") with wrong inputs.");
+
+        if (tvc.m_invalid_signature)
+        {
+          // The txid doesn't cover the signatures, so a bad signature only tells us the copy of the
+          // tx we're holding is bad, not that the block is: a peer can hand us a copy with garbage
+          // signatures ahead of the block, and the pool keeps it if it can't check it yet. So throw
+          // that copy away instead of putting it back in the pool, and don't mark the block invalid,
+          // so we can still take the block once we've got a good copy of the tx.
+          MERROR_VER("Dropping our copy of tx " << tx_id << " (bad signature), not marking block " << id << " as invalid");
+          txs.pop_back();
+          bvc.m_verification_failed = true;
+          bvc.m_bad_tx_copy = true;
+          return_tx_to_pool(txs);
+          goto leave;
+        }
 
         //TODO: why is this done?  make sure that keeping invalid blocks makes sense.
         add_block_as_invalid(bl, id);
